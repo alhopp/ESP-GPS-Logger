@@ -98,7 +98,7 @@ extern GxEPD_Class display;
 extern int sdTrouble,gps_speed,S10_previous_run;
 extern int wifi_search;
 extern int start_logging_millis;
-extern bool sdOK,LITTLEFS_OK;
+extern bool sdOK,LittleFS_OK;
 extern bool Wifi_on;
 extern bool SoftAP_connection;
 extern bool GPS_Signal_OK;

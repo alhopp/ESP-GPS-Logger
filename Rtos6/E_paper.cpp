@@ -1,6 +1,6 @@
 #include "E_paper.h"
 #include "Definitions.h"
-#include <LITTLEFS.h>
+#include <LittleFS.h>
 
 // row height 14pt spacing 2pt
 #define ROW_SPACING 2
@@ -600,7 +600,7 @@ void Speed_in_Unit(int offset) {
 }
 void sdCardInfo(void) {
   if (sdOK) display.printf("SD : %d Mb\n", freeSpace);
-  if (LITTLEFS_OK) display.printf("Local : %d kb\n", (LITTLEFS.totalBytes() - LITTLEFS.usedBytes()) / 1024);
+  if (LittleFS_OK) display.printf("Local : %d kb\n", (LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024);
   // display.setCursor(offset,102);
   // display.printf("Logspace left : %d hour",Logtime_left(Free_space())/60);
 }

@@ -1,5 +1,4 @@
-//Additional boardmanager !!
-//https://espressif.github.io/arduino-esp32/package_esp32_index.json
+
 
 #ifndef ESP_FUNCTIONS
 #define ESP_FUNCTIONS
@@ -24,7 +23,7 @@ char TimeZone[64] ="GMT0";
 int sdTrouble=0;
 bool sdOK = false;
 bool button = false;
-bool LITTLEFS_OK;
+bool LittleFS_OK;
 bool reed = false;
 bool deep_sleep = false;
 bool Wifi_on=true;
@@ -140,8 +139,10 @@ class Button_push{
             int max_button_count;        
 };
 FtpServer ftpSrv;  
+
 GPS_data Ublox; // create an object storing GPS_data !
 GPS_SAT_info Ublox_Sat;//create an object storing GPS_SAT info !
+
 GPS_speed M100(100);
 GPS_speed M250(250);
 GPS_speed M500(500);
@@ -451,60 +452,48 @@ void printLocalTime(){
 }  
 //For RTOS, the watchdog has to be triggered
 void feedTheDog_Task0(){
-  //esp_task_wdt_reset();
-  TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE;
-  TIMERG0.wdt_feed=1;                       // feed dog
-  TIMERG0.wdt_wprotect=0;                   // write protect
+  // TIMERG0.wdtwprotect=TIMG_WDT_WKEY_VALUE; // write enable TIMERG0.wdtwprotect=TIMG_WDT_WKEY_VALUE;
+  //TIMERG0.wdt_feed=1;                       // feed dog
+  //TIMERG0.wdtwprotect=0;                   // write protect
 }
 void feedTheDog_Task1(){ 
-  TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
-  TIMERG1.wdt_feed=1;                       // feed dog
-  TIMERG1.wdt_wprotect=0;                   // write protect
+ // TIMERG1.wdtwprotect=TIMG_WDT_WKEY_VALUE; // write enable
+ // TIMERG1.wdt_feed=1;                       // feed dog
+ // TIMERG1.wdtwprotect=0;                   // write protect
 } 
 
 void OnWiFiEvent(WiFiEvent_t event){
   switch (event) {
-    case SYSTEM_EVENT_STA_CONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
       Serial.println("ESP32 Connected to SSID Station mode");
       WiFi.mode(WIFI_MODE_STA);//switch off softAP
       Serial.println("ESP32 Soft AP switched off");
       break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:         //test
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:         //test
       Serial.println("ESP32 disconnected to WIFI");
       //SoftAP_connection=false;
       break;
-    case SYSTEM_EVENT_STA_GOT_IP://  @this event no IP !!!         ARDUINO__EVENT_STA_CONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
       Serial.println("ESP32 Connected to WiFi Network");
       IP_adress =  WiFi.localIP().toString();
       break;
-    case SYSTEM_EVENT_AP_START:
+    case ARDUINO_EVENT_WIFI_AP_START:
       WiFi.softAPConfig(local_IP, gateway, subnet);  
       Serial.println("ESP32 soft AP started");
       break;
-    case SYSTEM_EVENT_AP_STACONNECTED:
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
       Serial.println("Station connected to ESP32 soft AP");
       IP_adress =  WiFi.softAPIP().toString();
       SoftAP_connection=true;
       break;
-    case SYSTEM_EVENT_AP_STADISCONNECTED:
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
       Serial.println("Station disconnected from ESP32 soft AP");
       SoftAP_connection=false;
       break;
     default: break;
   }
 }
-/*
-void IRAM_ATTR isr() {
-  WiFi.disconnect();
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(soft_ap_ssid, soft_ap_password); 
-	wifi_search=150;//to prevent action @ boot
-}
-*/
-/*Eenmaal flankdetectie indien GPIO langer dan push_time gedrukt
-* Ook variabele die dan long_pulse_time hoog blijft
-* Ook variabele die optelt tot maw elke keer push
-*/
+
 Button_push::Button_push(int GPIO_pin, int push_time, int long_pulse_time, int max_count,bool default_state) {
   //gpio_num_t pin_nr=GPIO_pin;
  // if(default_state==1){pinMode(GPIO_pin, INPUT_PULLUP);gpio_pullup_en((gpio_num_t)GPIO_pin);}
@@ -538,7 +527,7 @@ boolean Button_push::Button_pushed(void) {
 }
 void Search_for_wifi(void) {
   while ((WiFi.status() != WL_CONNECTED)&(SoftAP_connection==false)){  
-    if(Short_push39.Button_pushed()|Short_push19.Button_pushed()){ap_mode=true;esp_task_wdt_reset();break;}
+   // if(Short_push39.Button_pushed()|Short_push19.Button_pushed()){ap_mode=true;esp_task_wdt_reset();break;}
     Update_bat();        
     if(ap_mode==false)Update_screen(WIFI_STATION);
     else Update_screen(WIFI_SOFT_AP);

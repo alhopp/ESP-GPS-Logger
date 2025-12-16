@@ -24,6 +24,7 @@
 #include "ESP32FtpServerJH.h"
 #include <WiFi.h>
 #include <WiFiClient.h>
+#include <WiFiServer.h>
 #include <FS.h>
 #include "SD_MMC.h"
 #include "SPI.h"

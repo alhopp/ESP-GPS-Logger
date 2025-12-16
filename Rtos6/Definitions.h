@@ -78,5 +78,5 @@
 #define MAX_GPS_SPEED_OK 40       //max snelheid in m/s voor berekenen snelheid, anders 0
 #define EEPROM_SIZE 32            //use 8 bytes in eeprom for saving type of ublox
 #define TIME_OUT_NAV_PVT 10000    //10s time out ubx nav-pvt msg before screen "TROUBLE" 
-#define FORMAT_LITTLEFS_IF_FAILED true
+#define FORMAT_LittleFS_IF_FAILED true
 #endif

@@ -1,6 +1,6 @@
 //#include "SD_card.h"
 //#include <SD_MMC.h>
-#include <LITTLEFS.h>
+#include <LittleFS.h>
 #include "Definitions.h"
 #include "gpx.h"
 #include "sbp.h"
@@ -75,8 +75,8 @@ void Open_files(void) {
           break;
         }
       }
-      if (LITTLEFS_OK) {
-        if (!LITTLEFS.exists(filenameERR)) {
+      if (LittleFS_OK) {
+        if (!LittleFS.exists(filenameERR)) {
           break;
         }
       }
@@ -94,30 +94,30 @@ void Open_files(void) {
   strcat(filenameGPX, "gpx");
   if (config.logUBX == true) {
     if (sdOK) ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
-    if (LITTLEFS_OK) ubxfile = LITTLEFS.open(filenameUBX, FILE_APPEND);
+    if (LittleFS_OK) ubxfile = LittleFS.open(filenameUBX, FILE_APPEND);
     //ubxfile.setBufferSize(4096);
     //if(setvbuf(file, NULL, _IOFBF, 4096) != 0) {}//enlarge buffer SD handle error
   }
 #if defined(GPY_H)
   if (config.logGPY == true) {
     if (sdOK) gpyfile = SD_MMC.open(filenameGPY, FILE_APPEND);
-    if (LITTLEFS_OK) gpyfile = LITTLEFS.open(filenameGPY, FILE_APPEND);
+    if (LittleFS_OK) gpyfile = LittleFS.open(filenameGPY, FILE_APPEND);
     log_GPY_Header(gpyfile);
   }
 #endif
   if (config.logSBP == true) {
     if (sdOK) sbpfile = SD_MMC.open(filenameSBP, FILE_APPEND);
-    if (LITTLEFS_OK) sbpfile = LITTLEFS.open(filenameSBP, FILE_APPEND);
+    if (LittleFS_OK) sbpfile = LittleFS.open(filenameSBP, FILE_APPEND);
     log_header_SBP(sbpfile);
   }
   if (config.logGPX == true) {
     if (sdOK) gpxfile = SD_MMC.open(filenameGPX, FILE_APPEND);
-    if (LITTLEFS_OK) gpxfile = LITTLEFS.open(filenameGPX, FILE_APPEND);
+    if (LittleFS_OK) gpxfile = LittleFS.open(filenameGPX, FILE_APPEND);
     log_GPX(GPX_HEADER, gpxfile);
   }
   if (config.logTXT == true) {
     if (sdOK) errorfile = SD_MMC.open(filenameERR, FILE_APPEND);
-    if (LITTLEFS_OK) errorfile = LITTLEFS.open(filenameERR, FILE_APPEND);
+    if (LittleFS_OK) errorfile = LittleFS.open(filenameERR, FILE_APPEND);
   }
 }
 void Close_files(void) {
@@ -213,13 +213,13 @@ void loadConfiguration(const char *filename, const char *filename_backup, Config
       //wifi_search = 120;  //elongation SoftAP mode to 120s !!!
     }
   }
-  if (LITTLEFS_OK){
-    if (LITTLEFS.exists(filename)) {
+  if (LittleFS_OK){
+    if (LittleFS.exists(filename)) {
       Serial.println(F("open the config.txt"));
-      file = LITTLEFS.open(filename);
-    } else if (LITTLEFS.exists(filename_backup)) {
+      file = LittleFS.open(filename);
+    } else if (LittleFS.exists(filename_backup)) {
       Serial.println(F("open the config_backup.txt"));
-      file = LITTLEFS.open(filename_backup);
+      file = LittleFS.open(filename_backup);
     } else {
       Serial.println(F("no configuration file found"));
       //wifi_search = 120;  //elongation SoftAP mode to 120s !!!
@@ -340,7 +340,7 @@ void printFile(const char *filename) {
   // Open file for reading
   File file;
   if(sdOK) file = SD_MMC.open(filename);
-  if(LITTLEFS_OK) file = LITTLEFS.open(filename);
+  if(LittleFS_OK) file = LittleFS.open(filename);
   if (!file.available()) {
     Serial.println(F("Failed to read file"));
     return;
@@ -583,7 +583,7 @@ void TimeZone_env (float timezone){     //without daylight saving, standard TZ s
 }
 uint64_t Free_space(void){
   uint64_t free_kbytes=0;
-  if(LITTLEFS_OK) free_kbytes = (LITTLEFS.totalBytes() - LITTLEFS.usedBytes())/1024;
+  if(LittleFS_OK) free_kbytes = (LittleFS.totalBytes() - LittleFS.usedBytes())/1024;
   if(sdOK) {
     uint64_t totalBytes=SD_MMC.totalBytes();
     uint64_t usedBytes=SD_MMC.usedBytes();
@@ -593,7 +593,7 @@ uint64_t Free_space(void){
 }
 int Logtime_left (uint64_t kbytes){
   uint64_t free_kbytes=0;
-    if(LITTLEFS_OK) free_kbytes = (LITTLEFS.totalBytes() - LITTLEFS.usedBytes())/1024;
+    if(LittleFS_OK) free_kbytes = (LittleFS.totalBytes() - LittleFS.usedBytes())/1024;
     if(sdOK) {
         uint64_t totalBytes=SD_MMC.totalBytes();
         uint64_t usedBytes=SD_MMC.usedBytes();

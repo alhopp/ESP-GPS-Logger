@@ -1,40 +1,60 @@
-#include <SD_MMC.h>
-#include <sd_defines.h>
-#include <sd_diskio.h>
-#include <ETH.h>
-#include <WiFi.h>
-#include <WiFiAP.h>
-#include <WiFiClient.h>
-#include <WiFiGeneric.h>
-#include <WiFiServer.h>
-#include <WiFiSTA.h>
-#include <WiFiType.h>
-#include <WiFiUdp.h> 
-#include "FS.h"
-#include "SPI.h"
-#include "sys/time.h"
-#include "soc/timer_group_struct.h"
-#include "soc/timer_group_reg.h"
-#include "Arduino.h"
-#include "Ublox.h"
-//#include "E_paper_266.h"//changing the E_paper : delete the build directory (can be found in the compile output)
-#include "E_paper.h"
-#include "SD_card.h"
-#include "GPS_data.h"
-#include "ESP32FtpServerJH.h"
-#include "OTA_server.h" 
-#include <esp_task_wdt.h>
-#include "freertos/task.h"//added V3
-#include <driver/rtc_io.h>
-#include <driver/gpio.h>
-#include <lwip/apps/sntp.h>
+/*************************************************
+ * Core Arduino / ESP32
+ *************************************************/
+#include <Arduino.h>
 #include <esp32-hal.h>
+#include <esp_task_wdt.h>
+#include <rom/rtc.h>
+#include <sys/time.h>
 #include <time.h>
+
+/*************************************************
+ * FreeRTOS
+ *************************************************/
+#include "freertos/task.h"
+
+/*************************************************
+ * ESP32 drivers
+ *************************************************/
+#include <driver/gpio.h>
+#include <driver/rtc_io.h>
+
+/*************************************************
+ * Networking (Arduino ESP32 core)
+ *************************************************/
+#include <WiFi.h>        // umbrella include
+#include <WiFiClient.h>
+#include <WiFiServer.h>
+#include <WiFiUdp.h>
+#include <WiFiAP.h>
+#include <WiFiSTA.h>
+#include <WiFiGeneric.h>
+#include <WiFiType.h>
+
+#include <ETH.h>
+#include <lwip/apps/sntp.h>
+
+
+/*************************************************
+ * Storage
+ *************************************************/
+#include <FS.h>
+#include <SPI.h>
+#include <SD_MMC.h>
 #include <EEPROM.h>
-#include "Definitions.h"
 #include <LittleFS.h>
-#include "rom/rtc.h"
+
+/*************************************************
+ * Project headers
+ *************************************************/
+#include "Definitions.h"
+#include "Ublox.h"
+#include "GPS_data.h"
+#include "SD_card.h"
+#include "E_paper.h"
+#include "ESP32FtpServerJH.h"
 #include "ESP_functions.h"
+#include "OTA_server.h"
 
 const char* ssid = config.ssid; //WiFi SSID
 const char* password = config.password; //WiFi Password
@@ -46,7 +66,13 @@ bool ap_mode=false;
 bool sleep_mode=false;
 extern bool reset_boot; 
 
+
+
 void setup() {
+
+
+  esp_task_wdt_deinit();   // disables task watchdog entirely
+
   Serial.begin(115200);
   Serial.print("Actual CPU freq @ boot"); Serial.println (getCpuFrequencyMhz());
   pinMode(2, INPUT_PULLUP);//for SD_MMC mode....
@@ -72,48 +98,44 @@ void setup() {
   Serial.print("RTC_calibration_bat EEPROM = ");
   Serial.println(RTC_calibration_bat);
   Serial.println("Configuring WDT...");
-  esp_task_wdt_init(WDT_TIMEOUT,true);
+  //esp_task_wdt_init(WDT_TIMEOUT,true);
   esp_task_wdt_add(NULL); //add current thread to WDT watch
   analog_mean = analogRead(PIN_BAT);//fill FIR filter
   SPI.begin(SPI_CLK, SPI_MISO, SPI_MOSI, ELINK_SS); //SPI is used for SD-card and for E_paper display !
-  //sdSPI.begin(SDCARD_CLK, SDCARD_MISO, SDCARD_MOSI, SDCARD_SS);//default 20 MHz gezet worden !
-  struct timeval tv = { .tv_sec =  0, .tv_usec = 0 };
+    struct timeval tv = { .tv_sec =  0, .tv_usec = 0 };
   settimeofday(&tv, NULL);
-  //if (!SD.begin(SDCARD_SS, sdSPI)) {//was SD.begin
-  //sdmmc_host_t host = SDMMC_HOST_DEFAULT();//SDMMC_HOST_SLOT_1
-  //host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
+  
   if (!SD_MMC.begin("/sdcard", true)) {  
         sdOK = false;
         Serial.println("No SDCard found!");
-        if (!LITTLEFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
-          Serial.println("LITTLEFS Mount Failed");
+        if (!LittleFS.begin(FORMAT_LittleFS_IF_FAILED)) {
+          Serial.println("LittleFS Mount Failed");
           return;
         } 
     else {
-      Serial.print("LITTLEFS Mounted with success. Total space= ");
-      int total_bytes = LITTLEFS.totalBytes();
-      int used_bytes = LITTLEFS.usedBytes();
+      Serial.print("LittleFS Mounted with success. Total space= ");
+      int total_bytes = LittleFS.totalBytes();
+      int used_bytes = LittleFS.usedBytes();
       Serial.print(total_bytes);
       Serial.println(" bytes");
       Serial.print("Free space left= ");
       Serial.print(total_bytes-used_bytes);
       Serial.println(" bytes");
-      LITTLEFS_OK = true;
+      LittleFS_OK = true;
       //Boot_screen();
       loadConfiguration(filename, filename_backup, config);  // load config file
       Serial.print(F("Print config file..."));
-      if (sdOK|LITTLEFS_OK) printFile(filename); 
+      if (sdOK|LittleFS_OK) printFile(filename); 
     }
   } 
   else {
         sdOK = true;Serial.println("SDCard found!");
-        //int *real_freq=0;
-        //sdmmc_host_get_real_freq(SDMMC_HOST_SLOT_1,*real_freq);
+        
         uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
         uint64_t totalBytes=SD_MMC.totalBytes() / (1024 * 1024);
         uint64_t usedBytes=SD_MMC.usedBytes() / (1024 * 1024);
         freeSpace=totalBytes-usedBytes;
-       // Serial.printf("SD Card Speed: %d MHz\n", real_freq/1000); 
+      
         Serial.printf("SD Card Size: %lluMB\n", cardSize); 
         Serial.printf("SD Total bytes: %lluMB\n", totalBytes); 
         Serial.printf("SD Used bytes: %lluMB\n", usedBytes); 
@@ -206,7 +228,7 @@ void setup() {
   xTaskCreatePinnedToCore(  
                     taskOne,          /* Task function. */
                     "TaskOne",        /* String with name of task. */
-                    10000,            /* Stack size in bytes. */
+                    4096, // 10000,            /* Stack size in bytes. */
                     NULL,             /* Parameter passed as input of the task */
                     1,                /* Priority of the task. */
                     &t1,  //&t1,
@@ -216,7 +238,7 @@ void setup() {
   xTaskCreatePinnedToCore( 
                     taskTwo,          /* Task function. */
                     "TaskTwo",        /* String with name of task. */
-                    10000,            /* Stack size in bytes was 10000, but stack overflow on task 2 ?????? now 20000. */
+                    4096, //10000,            /* Stack size in bytes was 10000, but stack overflow on task 2 ?????? now 20000. */
                     NULL,             /* Parameter passed as input of the task */
                     1,                /* Priority of the task. */
                     &t2,//&t2,
@@ -336,7 +358,7 @@ void taskOne( void * parameter )
                 }
           }      //    Alleen speed>0 indien snelheid groter is dan 1m/s + sACC<1 + sat<5 + speed>35 m/s !!!
         }
-        if ((sdOK|LITTLEFS_OK)&(Time_Set_OK==true)&(nav_pvt_message>10)&(nav_pvt_message!=old_message)){
+        if ((sdOK|LittleFS_OK)&(Time_Set_OK==true)&(nav_pvt_message>10)&(nav_pvt_message!=old_message)){
                   old_message=nav_pvt_message;
                   //last_gps_msg=millis();
                   gps_speed=ubxMessage.navPvt.gSpeed; //hier alles naar mm/s !!

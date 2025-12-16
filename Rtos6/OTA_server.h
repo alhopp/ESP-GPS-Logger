@@ -7,7 +7,7 @@ https://github.com/italocjs/ESP32_OTA_APMODE/blob/main/Main.cpp
 #include <ESPmDNS.h>
 #include <Update.h>
 #include <EEPROM.h>
-#include <LITTLEFS.h>
+#include <LittleFS.h>
 #include "Definitions.h"
 #include "OTA_html.h"
 //#include "ESP_functions.h"
@@ -94,7 +94,7 @@ String logtime_left(int log_minutes){
 String Print_time(time_t timestamp) {
   char buff[30];
   tm *tm_local=localtime(&timestamp);
-  if((tm_local->tm_isdst==1)&(sdOK))timestamp=timestamp-3600;//correction for littlefs bug if dst is active and sdOK
+  if((tm_local->tm_isdst==1)&(sdOK))timestamp=timestamp-3600;//correction for LittleFS bug if dst is active and sdOK
   strftime(buff, 30, "%Y-%m-%d  %H:%M:%S", localtime(&timestamp));//was localtime
   return buff;
 }
@@ -102,13 +102,13 @@ String Print_time(time_t timestamp) {
 
 //Download a file from the SD, it is called in void SD_dir()
 void SD_file_download(String filename) {
-  if (sdOK | LITTLEFS_OK) {
+  if (sdOK | LittleFS_OK) {
     File download;
     if (sdOK) download = SD_MMC.open("/" + filename);
-    if (LITTLEFS_OK) download = LITTLEFS.open("/" + filename);
+    if (LittleFS_OK) download = LittleFS.open("/" + filename);
     if (download) {
       downloading_file = true;
-      if (sdOK|LITTLEFS_OK) filename.remove(0, 1);  //remove 1 character starting at index 0, this is /, after downloading -> _filename....
+      if (sdOK|LittleFS_OK) filename.remove(0, 1);  //remove 1 character starting at index 0, this is /, after downloading -> _filename....
       server.sendHeader("Content-Disposition", "attachment; filename=" + filename);
       server.sendHeader("Connection", "close");
       server.streamFile(download, "application/octet-stream");
@@ -126,7 +126,7 @@ void SD_file_download(String filename) {
 void printDirectory(const char* dirname, uint8_t levels) {
   File root;
   if (sdOK) root = SD_MMC.open(dirname);
-  if (LITTLEFS_OK) root = LITTLEFS.open(dirname);
+  if (LittleFS_OK) root = LittleFS.open(dirname);
   if (!root) {
     return;
   }
@@ -152,11 +152,11 @@ void printDirectory(const char* dirname, uint8_t levels) {
       char buffer[40] = "/Archive";                                                                                                                                 //&(file.getLastWrite()>EPOCH_2022)
       strcat(buffer, file.name());                                                                                                                                  //only rename if not Archive listing !!!
       if ((String(file.name()) != "config.txt") & (String(file.name()) != "/config.txt") & (String(file.name()) != "/config_backup.txt") & (String(file.name()) != "config_backup.txt")) {
-        if (sdOK|LITTLEFS_OK) SD_MMC.rename(file.name(), buffer);
+        if (sdOK|LittleFS_OK) SD_MMC.rename(file.name(), buffer);
       }
     } else {
       String filename = String(file.name());
-      if (sdOK|LITTLEFS_OK) filename.remove(0, 1);  //remove 1 character starting at index 0
+      if (sdOK|LittleFS_OK) filename.remove(0, 1);  //remove 1 character starting at index 0
       webpage += "<tr><td width='20%'>" + filename + "</td>";
       int bytes = file.size();
       String fsize = "";
@@ -197,21 +197,21 @@ void printDirectory(const char* dirname, uint8_t levels) {
 
 //Delete a file from the SD, it is called in void SD_dir()
 void SD_file_delete(String filename) {
-  if (sdOK | LITTLEFS_OK) {
+  if (sdOK | LittleFS_OK) {
     //SendHTML_Header();
     File dataFile;
     if (sdOK) dataFile = SD_MMC.open("/" + filename, FILE_READ);               //Now read data from SD Card
-    if (LITTLEFS_OK) dataFile = LITTLEFS.open("/" + filename, FILE_READ);  //Now read data from SD Card
+    if (LittleFS_OK) dataFile = LittleFS.open("/" + filename, FILE_READ);  //Now read data from SD Card
     if (dataFile) {
       if (sdOK) {
         if (SD_MMC.remove("/" + filename)) {
           Serial.println(F("SD File deleted successfully"));
         }  //toegevoegd
       }
-      if (LITTLEFS_OK) {
+      if (LittleFS_OK) {
         dataFile.close();
-        if (LITTLEFS.remove("/" + filename)) {
-          Serial.println(F("LITTLEFS File deleted successfully"));
+        if (LittleFS.remove("/" + filename)) {
+          Serial.println(F("LittleFS File deleted successfully"));
         }
       }
 
@@ -255,7 +255,7 @@ void GPSTC_Upload(void){
 }
 //Initial page of the server web, list directory and give you the chance of deleting and uploading
 void SD_dir(int archive) {
-  if (sdOK | LITTLEFS_OK) {
+  if (sdOK | LittleFS_OK) {
     //Action acording to post, dowload or delete, by MC 2022
     if (server.args() > 0)  //Arguments were received, ignored if there are not arguments
     {
@@ -278,10 +278,10 @@ void SD_dir(int archive) {
     }
     File root;
     if (sdOK) root = SD_MMC.open("/");
-    if (LITTLEFS_OK) root = LITTLEFS.open("/");
+    if (LittleFS_OK) root = LittleFS.open("/");
     /*
     uint64_t free_kbytes=0;
-    if(LITTLEFS_OK) free_kbytes = (LITTLEFS.totalBytes() - LITTLEFS.usedBytes())/1024;
+    if(LittleFS_OK) free_kbytes = (LittleFS.totalBytes() - LittleFS.usedBytes())/1024;
     if(sdOK) {
         uint64_t totalBytes=SD_MMC.totalBytes();
         uint64_t usedBytes=SD_MMC.usedBytes();
@@ -391,9 +391,9 @@ void handleFileUpload() {
       SD_MMC.remove(filename);                         //Remove a previous version, otherwise data is appended the file again
       UploadFile = SD_MMC.open(filename, FILE_WRITE);  //Open the file for writing in SD (create it, if doesn't exist)
     }
-    if (LITTLEFS_OK) {
-      LITTLEFS.remove(filename);                         //Remove a previous version, otherwise data is appended the file again
-      UploadFile = LITTLEFS.open(filename, FILE_WRITE);  //Open the file for writing in SD (create it, if doesn't exist)
+    if (LittleFS_OK) {
+      LittleFS.remove(filename);                         //Remove a previous version, otherwise data is appended the file again
+      UploadFile = LittleFS.open(filename, FILE_WRITE);  //Open the file for writing in SD (create it, if doesn't exist)
     }
     filename = String();
   } else if (uploadfile.status == UPLOAD_FILE_WRITE) {
@@ -432,7 +432,7 @@ void Config_TXT() {
 }
 
 void handleConfigUpload() {
-  if (sdOK | LITTLEFS_OK) {
+  if (sdOK | LittleFS_OK) {
     File file;
     if (sdOK) {
       SD_MMC.remove("/config_backup.txt");
@@ -445,12 +445,12 @@ void handleConfigUpload() {
         return;
       }
     }
-    if (LITTLEFS_OK) {
-      LITTLEFS.remove("/config_backup.txt");
-      LITTLEFS.rename("/config.txt", "/config_backup.txt");
-      LITTLEFS.remove("/config.txt");
+    if (LittleFS_OK) {
+      LittleFS.remove("/config_backup.txt");
+      LittleFS.rename("/config.txt", "/config_backup.txt");
+      LittleFS.remove("/config.txt");
       // Open file for writing
-      file = LITTLEFS.open("/config.txt", FILE_WRITE);
+      file = LittleFS.open("/config.txt", FILE_WRITE);
       if (!file) {
         Serial.println(F("Failed to create file"));
         return;
