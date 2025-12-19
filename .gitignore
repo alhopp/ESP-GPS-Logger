@@ -1,0 +1,47 @@
+# ===============================
+# PlatformIO
+# ===============================
+.pio/
+.vscode/
+
+# PlatformIO build artifacts
+*.elf
+*.bin
+*.map
+
+# ===============================
+# Arduino / ESP32 junk
+# ===============================
+*.hex
+*.eep
+*.lst
+
+# ===============================
+# OS / Editor junk
+# ===============================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Windows
+*.lnk
+
+# ===============================
+# Logs & temp files
+# ===============================
+*.log
+*.tmp
+*.bak
+*.swp
+
+# ===============================
+# Credentials / secrets (safety)
+# ===============================
+secrets.h
+wifi_secrets.h
+
+# ===============================
+# Python / tooling cache
+# ===============================
+__pycache__/
+*.pyc
