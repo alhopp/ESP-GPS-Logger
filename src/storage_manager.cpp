@@ -71,14 +71,23 @@ static bool mountLittleFS()
 
 static void reportSDStats()
 {
-  const uint64_t cardSizeMB = SD_MMC.cardSize()   / (1024 * 1024);
-  const uint64_t totalMB   = SD_MMC.totalBytes() / (1024 * 1024);
-  const uint64_t usedMB    = SD_MMC.usedBytes()  / (1024 * 1024);
+  // Work in BYTES first (always safe)
+  uint64_t card_bytes  = SD_MMC.cardSize();
+  uint64_t total_bytes = SD_MMC.totalBytes();
+  uint64_t used_bytes  = SD_MMC.usedBytes();
+  uint64_t free_bytes  = total_bytes - used_bytes;
 
-  freeSpace = totalMB - usedMB;
+  // Convert to MB explicitly
+  uint32_t card_mb  = card_bytes  / (1024ULL * 1024ULL);
+  uint32_t total_mb = total_bytes / (1024ULL * 1024ULL);
+  uint32_t used_mb  = used_bytes  / (1024ULL * 1024ULL);
+  uint32_t free_mb  = free_bytes  / (1024ULL * 1024ULL);
 
-  Serial.printf("SD Card Size  : %llu MB\n", cardSizeMB);
-  Serial.printf("SD Total      : %llu MB\n", totalMB);
-  Serial.printf("SD Used       : %llu MB\n", usedMB);
-  Serial.printf("SD Free       : %llu MB\n", freeSpace);
+  // Store free space in MB (matches usage elsewhere)
+  freeSpace = free_mb;
+
+  Serial.printf("SD Card Size  : %lu MB\n", card_mb);
+  Serial.printf("SD Total      : %lu MB\n", total_mb);
+  Serial.printf("SD Used       : %lu MB\n", used_mb);
+  Serial.printf("SD Free       : %lu MB\n", free_mb);
 }
