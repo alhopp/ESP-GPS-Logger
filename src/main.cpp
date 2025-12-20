@@ -41,8 +41,8 @@
 //#include <epd/GxEPD2_213_B74.h>
 
 
-RTC_DATA_ATTR int RTC_Sail_Logo = 0;
-RTC_DATA_ATTR char RTC_Sleep_txt[32] = "Your ID";
+extern RTC_DATA_ATTR int RTC_Sail_Logo = 0;
+extern RTC_DATA_ATTR char RTC_Sleep_txt[32];
 
 
 // Pin mapping – adjust per board later
@@ -138,6 +138,7 @@ void setup() {
         Serial.printf("SD free space: %lluMB\n", totalBytes-usedBytes); 
         testFileIO(SD_MMC, "/test.txt");
         Serial.println(F("Loading configuration..."));// Should load default config 
+        ensureConfigExistsOnSD();          // ← ADD THIS
         loadConfiguration(filename, filename_backup, config); // load config file
         //Short_push39.button_count=config.field;//set speed_field choice, so counting from correct speed_field !!
         Serial.print(F("Print config file...")); 

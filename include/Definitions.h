@@ -10,7 +10,8 @@
 // Legacy compatibility
 #define LITTLEFS LittleFS
 
-
+enum BootMode { MODE_CONFIG, MODE_RUN };
+extern BootMode bootMode;
 
 extern Button_push Short_push12;
 extern Button_push Long_push12;

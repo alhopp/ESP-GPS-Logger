@@ -46,10 +46,10 @@
 // ============================================================================
 
 class GxEPD_Class
-  : public GxEPD2_BW<PanelDriver, 250>
+  : public GxEPD2_BW<PanelDriver,PanelDriver::HEIGHT>
 {
 public:
-  using Base = GxEPD2_BW<PanelDriver, 250>;
+  using Base = GxEPD2_BW<PanelDriver, PanelDriver::HEIGHT>;
 
   // Constructor
   GxEPD_Class(int8_t cs, int8_t dc, int8_t rst, int8_t busy)

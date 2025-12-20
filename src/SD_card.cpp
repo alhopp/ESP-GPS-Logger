@@ -28,6 +28,34 @@ int SD_MMC_write_speed;
 
 struct Config config;
 
+
+void ensureConfigExistsOnSD() {
+  if (!SD_MMC.exists("/config.txt")) {
+    Serial.println("config.txt missing on SD → creating default");
+
+    File f = SD_MMC.open("/config.txt", FILE_WRITE);
+    if (!f) {
+      Serial.println("Failed to create /config.txt on SD");
+      return;
+    }
+
+    StaticJsonDocument<512> doc;
+    doc["cal_bat"] = 1.75;
+    doc["cal_speed"] = 3.6;
+    doc["sample_rate"] = 5;
+    doc["gnss"] = 2;
+    doc["ssid"] = "ssid_not_set";
+    doc["password"] = "password";
+
+    serializeJsonPretty(doc, f);
+    f.close();
+
+    Serial.println("Default config.txt written to SD");
+  }
+}
+
+
+
 void logERR(const char *message) {
   if (config.logTXT) {
     errorfile.print(message);
