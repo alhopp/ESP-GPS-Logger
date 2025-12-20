@@ -49,7 +49,7 @@ void Shut_down();
 #include <freertos/task.h>
 
 extern TaskHandle_t t1;
-extern TaskHandle_t t2;
+
 
 
 

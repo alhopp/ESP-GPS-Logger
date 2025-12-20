@@ -1,5 +1,10 @@
 #include "task_gps.h"
 
+TaskHandle_t t1 = nullptr;
+
+
+
+
 // bring in exactly what taskOne already relied on
 #include "wifi_manager.h"
 #include "Ublox.h"

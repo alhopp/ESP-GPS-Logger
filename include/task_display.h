@@ -1,4 +1,7 @@
 #pragma once
-#include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
-void taskTwo(void *parameter);
+extern TaskHandle_t t2;
+void taskTwo(void* parameter);
+

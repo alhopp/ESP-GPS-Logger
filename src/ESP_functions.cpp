@@ -85,8 +85,8 @@ float Afstand_gps=0;
 */
 String actual_ssid="_ssid_";
  /* variables to hold instances of tasks*/
-TaskHandle_t t1 = NULL;
-TaskHandle_t t2 = NULL;
+//TaskHandle_t t1 = NULL;
+//TaskHandle_t t2 = NULL;
 byte mac[6];  //unique mac adress of esp32
 IPAddress local_IP(192,168,4,1);
 IPAddress gateway(192,168,1,1);
