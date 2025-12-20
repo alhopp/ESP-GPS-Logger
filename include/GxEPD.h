@@ -6,8 +6,17 @@
 // ============================================================================
 
 #include <Arduino.h>
-#include <GxEPD2_BW.h>
 #include <Adafruit_GFX.h>
+
+#include <GxEPD2_BW.h>
+#include <epd/GxEPD2_213_B74.h>
+
+using PanelDriver = GxEPD2_213_B74;
+
+#if defined(EPD_213_B74) + defined(EPD_213_B73) + defined(EPD_266_BN) + defined(EPD_154_OC1) != 1
+#error "Exactly one EPD_xxx panel must be defined"
+#endif
+
 
 // -----------------------------------------------------------------------------
 // PANEL SELECTION

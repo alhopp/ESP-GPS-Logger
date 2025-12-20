@@ -185,7 +185,7 @@ void Log_to_SD(void) {
     interval = ubxMessage.navPvt.iTOW - old_iTOW;
     old_iTOW = ubxMessage.navPvt.iTOW;
     /*
-                if((interval>time_out_nav_pvt)&(sdOK==true)&(nav_pvt_message>10)){//check for timeout navPvt message !!
+                if((interval>time_out_nav_pvt)&&(sdOK==true)&&(nav_pvt_message>10)){//check for timeout navPvt message !!
                      next_gpy_full_frame=1;
                      dataStr[0] = 0;
                      dtostrf(ubxMessage.navPvt.hour, 2, 0, Buffer);AddString(); 
@@ -350,7 +350,7 @@ void loadConfiguration(const char *filename, const char *filename_backup, Config
   }
   RTC_Board_Logo = config.Board_Logo;  //copy RTC memory !!
   RTC_Sail_Logo = config.Sail_Logo;    //copy to RTC memory !!
-  //RTC_calibration_bat = config.cal_bat;
+
   config.cal_bat=RTC_calibration_bat; //stored in EEPROM !!!
   calibration_speed = config.cal_speed / 1000;  //3.6=km/h, 1.94384449 = knots, speed is now in mm/s
   //time_out_nav_pvt=(1000/config.sample_rate+75);//max time out = 175 ms

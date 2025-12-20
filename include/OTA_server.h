@@ -94,7 +94,7 @@ String logtime_left(int log_minutes){
 String Print_time(time_t timestamp) {
   char buff[30];
   tm *tm_local=localtime(&timestamp);
-  if((tm_local->tm_isdst==1)&(sdOK))timestamp=timestamp-3600;//correction for littlefs bug if dst is active and sdOK
+  if((tm_local->tm_isdst==1)&&(sdOK))timestamp=timestamp-3600;//correction for littlefs bug if dst is active and sdOK
   strftime(buff, 30, "%Y-%m-%d  %H:%M:%S", localtime(&timestamp));//was localtime
   return buff;
 }
@@ -321,11 +321,11 @@ void SD_dir(int archive) {
     bool Data_rate_overload = false;
     if(bat_perc<VOLTAGE_LOW) voltage_percent = "&emsp;"+font_color_start+"Bat = " + String(bat_perc,0)+" % &emsp;"+font_color_end;
     else voltage_percent = "&emsp;Bat % = " + String(bat_perc,0)+" % &emsp;";
-    if ((config.ublox_type == M10_9600BD) | (config.ublox_type == M10_38400BD) | (config.ublox_type == M10_115200BD)|(config.ublox_type == AUTO_DETECT)) {  //limit sample rate for 3/4 GNSS M10, prevent lost points
+    if ((config.ublox_type == M10_9600BD) | (config.ublox_type == M10_38400BD) | (config.ublox_type == M10_115200BD)||(config.ublox_type == AUTO_DETECT)) {  //limit sample rate for 3/4 GNSS M10, prevent lost points
       if (((config.gnss == 3) & (config.sample_rate> 5)) | ((config.gnss== 4) & (config.sample_rate > 8)) | ((config.gnss== 5) & (config.sample_rate > 4))) {GPS_warning=true;}
        }
     if(config.M10_high_nav) {GPS_warning=false;} 
-    if(((config.sample_rate==5)&!(config.cpu_freq==80))|((config.sample_rate==10)&!(config.cpu_freq==160)))CPU_freq_warning=true;
+    if(((config.sample_rate==5)&!(config.cpu_freq==80))||((config.sample_rate==10)&!(config.cpu_freq==160)))CPU_freq_warning=true;
    // if((config.logSBP+config.logUBX+config.logGPY+config.logGPX)>2)Data_rate_overload = true;
     if(config.shutdown_voltage<3.1) Shutdown_warning=true;
     if (root) {
@@ -457,17 +457,7 @@ void handleConfigUpload() {
       }
     }
     StaticJsonDocument<1536> doc;
-    // Set the values in the document
-    //Serial.println("calspeed:"+server.arg("cal_speed"));
-    //gnss 4 = GPS + GALILEO + BEIDOU_B1C
-    //gnss x = GPS + GLONAS + BEIDOU   (impossible for the M10 ???)
-    //gnss 3 = GPS + GLONAS + GALILEO
-    //gnss 2 = GPS + GLONAS (default M8 ROM 2)
-    //gnss 1 = GPS + GALILEO (not working for M8)
-    //gnss 0 = GPS + BEIDOU
-    //EEPROM.readInt(2,RTC_highest_read);
-    //RTC_calibration_bat= FULLY_CHARGED_LIPO_VOLTAGE/RTC_highest_read;
-    //doc["cal_bat"] = RTC_calibration_bat;
+    
     doc["cal_bat"] = serialized(server.arg("cal_bat"));
     config.cal_bat = server.arg("cal_bat").toFloat();
     doc["cal_speed"] = serialized(server.arg("cal_speed"));

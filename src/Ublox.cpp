@@ -149,7 +149,7 @@ void Init_ublox(void){
         Serial2.write( pgm_read_byte(UBLOX_UBX_NAVDOP_ON+i) );
         }
   Ublox_serial2(wait); 
-  if((config.logUBX_nav_sat)&(config.logUBX)){
+  if((config.logUBX_nav_sat)&&(config.logUBX)){
       Serial.println("Set ublox NAV_SAT_ON ");   
       for(int i = 0; i < sizeof(UBLOX_UBX_NAVSAT_ON); i++) {                        
             Serial2.write( pgm_read_byte(UBLOX_UBX_NAVSAT_ON+i) );
@@ -206,7 +206,7 @@ void Init_ubloxM10(void){
         Serial2.write( pgm_read_byte(UBLOX_M10_NMEA_OFF+i) );
         }
   Ublox_serial2(wait); 
-  if((config.ublox_type == M10_9600BD)|(config.ublox_type == M10_38400BD)|(config.ublox_type == M10_115200BD)){
+  if((config.ublox_type == M10_9600BD)||(config.ublox_type == M10_38400BD)||(config.ublox_type == M10_115200BD)){
     if(config.M10_high_nav == SET_M10_HIGH_NAV){ Set_M10_high_nav_rate();}//reboot noodzakelijk ????
     //config.M10_high_nav=Check_M10_nav_rate();
     }
@@ -250,7 +250,7 @@ void Init_ubloxM10(void){
               }
         Ublox_serial2(wait);
         }     
-  if(((config.gnss==5)&(config.sample_rate<10)&((config.ublox_type == M10_9600BD)|(config.ublox_type == M10_38400BD)|(config.ublox_type == M10_115200BD)))){  
+  if(((config.gnss==5)&&(config.sample_rate<10)&&((config.ublox_type == M10_9600BD)||(config.ublox_type == M10_38400BD)||(config.ublox_type == M10_115200BD)))){  
         Serial.println("Set ublox M10 4 GNSS ");     
         for(int i = 0; i < sizeof(UBLOX_M10_4GNSS); i++) {                        
               Serial2.write( pgm_read_byte(UBLOX_M10_4GNSS+i) );
@@ -313,7 +313,7 @@ void Init_ubloxM10(void){
         Serial2.write( pgm_read_byte(UBLOX_M10_NAV_DOP+i) );
         }
   Ublox_serial2(wait);  
-  if((config.logUBX_nav_sat)&(config.logUBX)){
+  if((config.logUBX_nav_sat)&&(config.logUBX)){
       Serial.println("Set ublox M10 NAV_SAT_ON "); 
       if(config.sample_rate<10){ 
         for(int i = 0; i < sizeof(UBLOX_M10_NAV_SAT); i++) {     //NAV_SAT_RATE = sample_rate/10                   
@@ -467,7 +467,7 @@ int processGPS() {
       // the struct does not include the initial two-byte header (UBX_HEADER).
       // the struct does not include the 2 last bytes which are the checksums
       // checksums are not placed in the ubxMessage !!!
-      if (((fpos-2) < payloadSize)&(fpos<4)){((unsigned char*)(&ubxMessage.navDummy))[fpos-2] = c;} 
+      if (((fpos-2) < payloadSize)&&(fpos<4)){((unsigned char*)(&ubxMessage.navDummy))[fpos-2] = c;} 
       if(fpos==3) {
         // We have just received the second byte of the message type header, 
         // so now we can check to see what kind of message it is.
@@ -533,7 +533,7 @@ int processGPS() {
           continue;
         }
       }
-      if (((fpos-2) < payloadSize)&(fpos>=4)){
+      if (((fpos-2) < payloadSize)&&(fpos>=4)){
         if(currentMsgType==MT_NAV_PVT) {((unsigned char*)(&ubxMessage.navPvt))[fpos-2] = c;} 
         if(currentMsgType==MT_NAV_DOP) {((unsigned char*)(&ubxMessage.navDOP))[fpos-2] = c;} 
         if(currentMsgType==MT_MON_GNSS) {((unsigned char*)(&ubxMessage.monGNSS))[fpos-2] = c;} 
@@ -574,7 +574,7 @@ int processGPS() {
         if ( c != checksum[0] ) {
           // Checksum doesn't match, reset to beginning state and try again.
            Serial.println("CkA NIO");
-         if ((Time_Set_OK==true)&(nav_pvt_message>10)){
+         if ((Time_Set_OK==true)&&(nav_pvt_message>10)){
               char tekst[32] = "";
               sprintf(tekst, "ChecksumA_NIO @ %d\n", (nav_pvt_message-11));
               logERR(tekst);
@@ -598,7 +598,7 @@ int processGPS() {
           */ 
           return currentMsgType; 
         }
-        else{ if ((Time_Set_OK==true)&(nav_pvt_message>10)){
+        else{ if ((Time_Set_OK==true)&&(nav_pvt_message>10)){
               Serial.println("CkB NIO");
               char tekst[32] = "";
               sprintf(tekst, "ChecksumB_NIO @ %d\n", (nav_pvt_message-11));

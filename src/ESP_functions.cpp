@@ -4,25 +4,21 @@
 
 #include <Arduino.h>
 #include "ESP_functions.h"
-
-
+#include "E_paper.h"
+#include "GxEPD.h"
 
 String IP_adress="0.0.0.0";
 const char SW_version[16]="Ver 6.01c";//Hier staat de software versie !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
 extern GxEPD_Class display;
-
 
 #include <esp_attr.h>
 
-extern RTC_DATA_ATTR int RTC_Sail_Logo;
+extern RTC_DATA_ATTR int RTC_Sail_Logo ;
 extern RTC_DATA_ATTR char RTC_Sleep_txt[32];
-
 
 const char *filename = "/config.txt";
 const char *filename_backup = "/config_backup.txt";
-
 
 
 void feedTheDog_Task0()
@@ -122,41 +118,18 @@ RTC_DATA_ATTR float RTC_R2_10s;
 RTC_DATA_ATTR float RTC_R3_10s;
 RTC_DATA_ATTR float RTC_R4_10s;
 RTC_DATA_ATTR float RTC_R5_10s;
-//RTC_DATA_ATTR char RTC_Sleep_txt[32]="Your ID";
 RTC_DATA_ATTR int RTC_Board_Logo;
-//RTC_DATA_ATTR int RTC_Sail_Logo;
 RTC_DATA_ATTR int RTC_SLEEP_screen=0;
 RTC_DATA_ATTR int RTC_OFF_screen=0;
 RTC_DATA_ATTR int RTC_counter=0;
-//Simon
-RTC_DATA_ATTR float RTC_calibration_bat=1.75;//bij ontwaken uit deepsleep niet noodzakelijk config file lezen
+
+RTC_DATA_ATTR float RTC_calibration_bat; //t=1.75;
 RTC_DATA_ATTR float RTC_voltage_bat=3.6;
 RTC_DATA_ATTR float RTC_old_voltage_bat=3.6;
 RTC_DATA_ATTR float RTC_minimum_voltage_bat=MINIMUM_VOLTAGE;
 RTC_DATA_ATTR int RTC_bat_choice = 0;
 RTC_DATA_ATTR int RTC_highest_read = STARTVALUE_HIGHEST_READ;
 
-//void GPSTC_info(char* GPSTC_post );
-/*Eenmaal flankdetectie indien GPIO langer dan push_time gedrukt
-* Ook variabele die dan long_pulse_time hoog blijft
-* Ook variabele die optelt tot maw elke keer push
-*/
-//class Button_push{
-//            public:
-//            Button_push(int GPIO_pin,int push_time,int long_pulse_time,int max_count, bool default_state);//constructor
-//            void begin(int GPIO_pin,bool default_state);//call in setup for init gpio
-//            boolean Button_pushed(void);//return true if button is pushed longer then push_time
-//            boolean long_pulse;
-//            int button_count;
-//            private:
-//            boolean button_status, old_button_status,return_value,Default_state;
-//            int Input_pin;
-//            int push_millis; 
-//            int time_out_millis; 
-//            int millis_10s;
-//            int max_pulse_time; 
-//            int max_button_count;        
-//};
 
 Button_push::Button_push(int GPIO_pin,
                          int push_time,
@@ -189,26 +162,6 @@ Alfa_speed A250(50);
 Alfa_speed A500(50);
 Alfa_speed a500(50);//for  Alfa stats GPIO_12 screens, reset possible !!
 GPS_Track M_500;
-
-
-
-// Button objects (defined in main.cpp)
-//extern PushButton Short_push12;
-//extern PushButton Short_push19;
-//extern PushButton Short_push39;
-
-//extern PushButton Long_push12;
-//extern PushButton Long_push19;
-//extern PushButton Long_push39;
-
-
-//#if defined(_GxDEPG0266BN_H_) //only for screen BN266, Rolzz... !!!
-//GxIO_Class io(SPI, /*CS=5*/ ELINK_SS, /*DC=*/ 19, /*RST=*/4);
-//GxEPD_Class display(io, /*RST=*/4, /*BUSY=*/34);
-//#else
-//GxIO_Class io(SPI, /*CS=5*/ ELINK_SS, /*DC=*/ ELINK_DC, /*RST=*/ ELINK_RESET);
-//GxEPD_Class display(io, /*RST=*/ ELINK_RESET, /*BUSY=*/ ELINK_BUSY);
-//#endif
 
 SPIClass sdSPI(VSPI);//was VSPI
 
@@ -297,23 +250,7 @@ void print_reset_reason(int reason)
 {
   switch ( reason)
   {
-    /*
-    case 1 : Serial.println ("POWERON_RESET"); break;          //<1,  Vbat power on reset
-    case 3 : Serial.println ("SW_RESET");break;               //<3,  Software reset digital core
-    case 4 : Serial.println ("OWDT_RESET");break;             //<4,  Legacy watch dog reset digital core
-    case 5 : Serial.println ("DEEPSLEEP_RESET");break;        //<5,  Deep Sleep reset digital core
-    case 6 : Serial.println ("SDIO_RESET");break;             //<6,  Reset by SLC module, reset digital core
-    case 7 : Serial.println ("TG0WDT_SYS_RESET");break;       //<7,  Timer Group0 Watch dog reset digital core
-    case 8 : Serial.println ("TG1WDT_SYS_RESET");break;       //<8,  Timer Group1 Watch dog reset digital core
-    case 9 : Serial.println ("RTCWDT_SYS_RESET");break;       //<9,  RTC Watch dog Reset digital core
-    case 10 : Serial.println ("INTRUSION_RESET");break;       //<10, Instrusion tested to reset CPU
-    case 11 : Serial.println ("TGWDT_CPU_RESET");break;       //<11, Time Group reset CPU
-    case 12 : Serial.println ("SW_CPU_RESET");break;          //<12, Software reset CPU
-    case 13 : Serial.println ("RTCWDT_CPU_RESET");break;      //<13, RTC Watch dog Reset CPU
-    case 14 : Serial.println ("EXT_CPU_RESET");break;         //<14, for APP CPU, reseted by PRO CPU
-    case 15 : Serial.println ("RTCWDT_BROWN_OUT_RESET");break;//<15, Reset when the vdd voltage is not stable 
-    case 16 : Serial.println ("RTCWDT_RTC_RESET");break;      //<16, RTC Watch dog reset digital core and rtc module
-    */
+
      case 5 : Serial.println ("DEEPSLEEP_RESET");break;        //<5,  Deep Sleep reset digital core
     case 12 : Serial.println ("SW_CPU_RESET");break;          /**<12, Software reset CPU*/        
     default : Serial.println ("NO_MEAN, always back to sleep after bootscreen()!!!");reset_boot=true; 
@@ -336,20 +273,7 @@ void go_to_sleep(uint64_t sleep_time,bool refresh_screen){
   digitalWrite(13, HIGH);
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH);
-/*
-  pinMode(12, OUTPUT);
-  digitalWrite(12, HIGH);
-  pinMode(14, OUTPUT);
-  digitalWrite(14, HIGH);//sd-card  in deepsleep, CS stays HIGH!!
-  pinMode(15, OUTPUT);
-  digitalWrite(15, HIGH);
-  rtc_gpio_pullup_en(GPIO_NUM_12);
-  
-  rtc_gpio_pullup_en(GPIO_NUM_14);
-  rtc_gpio_pullup_en(GPIO_NUM_15);
-*/
- // rtc_gpio_pullup_en(GPIO_NUM_13);//0.16 mA rtc 2 en 13
- // rtc_gpio_pullup_en(GPIO_NUM_2);//was still floating....for SD_MMC -> pull up is needed !!!
+
   if(refresh_screen==1){
     Sleep_screen(RTC_SLEEP_screen);
     delay(1000);
@@ -413,11 +337,7 @@ void Shut_down(void){
             Close_files();  
             delay(500);//jh test lost files
             }
-       // RTC_old_voltage_bat=0; //to force refresh the sleep screen when shutting down !!!   Off_screen(RTC_OFF_screen);eerst 2s dit scherm
-       // Sleep_screen(RTC_SLEEP_screen);
-      //  delay(1000);
-      //  display.powerOff();
-      //  digitalWrite(HOLD_PIN,LOW);  
+   
         go_to_sleep(TIME_TO_SLEEP,1);//got to sleep after 5 s, this to prevent booting when GPIO39 is still low !     
 }
 void GPSTC_info(char *GPSTC_post) {
@@ -484,18 +404,6 @@ void printLocalTime(){
   Serial.print("NTP Time = ");
   Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
 }  
-//For RTOS, the watchdog has to be triggered
-//void feedTheDog_Task0(){
-  //esp_task_wdt_reset();
- // TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE;
- // TIMERG0.wdt_feed=1;                       // feed dog
- // TIMERG0.wdt_wprotect=0;                   // write protect/
-//}
-//void feedTheDog_Task1(){ 
- // TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
- // TIMERG1.wdt_feed=1;                       // feed dog
- // TIMERG1.wdt_wprotect=0;                   // write protect
-//} 
 
 void OnWiFiEvent(WiFiEvent_t event){
   switch (event) {
@@ -528,28 +436,7 @@ void OnWiFiEvent(WiFiEvent_t event){
     default: break;
   }
 }
-/*
-void IRAM_ATTR isr() {
-  WiFi.disconnect();
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(soft_ap_ssid, soft_ap_password); 
-	wifi_search=150;//to prevent action @ boot
-}
-*/
-/*Eenmaal flankdetectie indien GPIO langer dan push_time gedrukt
-* Ook variabele die dan long_pulse_time hoog blijft
-* Ook variabele die optelt tot maw elke keer push
-*/
-//Button_push::Button_push(int GPIO_pin, int push_time, int long_pulse_time, int max_count,bool default_state) {
-  //gpio_num_t pin_nr=GPIO_pin;
- // if(default_state==1){pinMode(GPIO_pin, INPUT_PULLUP);gpio_pullup_en((gpio_num_t)GPIO_pin);}
- // if(default_state==0){pinMode(GPIO_pin, INPUT_PULLDOWN);gpio_pulldown_en((gpio_num_t)GPIO_pin);}
- // Input_pin = GPIO_pin;
- // Default_state = default_state;
- // time_out_millis = push_time;
- // max_pulse_time = long_pulse_time;
- // max_button_count = max_count;
-//}
+
 void Button_push::begin(int GPIO_pin,bool default_state){
   if(default_state==1){pinMode(GPIO_pin, INPUT_PULLUP);}
   if(default_state==0){pinMode(GPIO_pin, INPUT_PULLDOWN);}
@@ -572,7 +459,7 @@ boolean Button_push::Button_pushed(void) {
   return return_value;
 }
 void Search_for_wifi(void) {
-  while ((WiFi.status() != WL_CONNECTED)&(SoftAP_connection==false)){  
+  while ((WiFi.status() != WL_CONNECTED)&&(SoftAP_connection==false)){  
     if(Short_push39.Button_pushed()|Short_push19.Button_pushed()){ap_mode=true;yield();break;}
     Update_bat();        
     if(ap_mode==false)Update_screen(WIFI_STATION);

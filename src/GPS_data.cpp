@@ -18,11 +18,11 @@ int alfa_counter;
 
 void GPS_data::push_data(float latitude,float longitude,uint32_t gSpeed) {//gspeed in mm/s !!!
     static int dynamic_state=0;
-    if((S2.avg_s>24000)&(config.dynamic_model==1)&(dynamic_state==0)){  //omschakelen naar dynamic_model "portable", only works with speed<25 m/s !!!
+    if((S2.avg_s>24000)&&(config.dynamic_model==1)&&(dynamic_state==0)){  //omschakelen naar dynamic_model "portable", only works with speed<25 m/s !!!
           dynamic_state=1;                   //test with 5 m/s, this is 18 km/h
           Serial.print("Set ublox UBX_PORTABLE ");
           Model_info(0);
-          if((config.ublox_type==M8_9600BD)|(config.ublox_type==M8_38400BD)){
+          if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)){
             for(int i = 0; i < sizeof(UBX_PORTABLE); i++) {                        
                 Serial2.write( pgm_read_byte(UBX_PORTABLE+i) );
                 }
@@ -33,11 +33,11 @@ void GPS_data::push_data(float latitude,float longitude,uint32_t gSpeed) {//gspe
                 }     
           }    
       }
-    if((S2.avg_s<20000)&(config.dynamic_model==1)&(dynamic_state==1)){  //omschakelen naar dynamic_model "portable", only works with speed<25 m/s !!!
+    if((S2.avg_s<20000)&&(config.dynamic_model==1)&&(dynamic_state==1)){  //omschakelen naar dynamic_model "portable", only works with speed<25 m/s !!!
               dynamic_state=0;               //test with 4.5 m/s, this is 16.2 km/h
               Serial.print("Set ublox UBX_SEA ");
               Model_info(1);
-              if((config.ublox_type==M8_9600BD)|(config.ublox_type==M8_38400BD)){
+              if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)){
               for(int i = 0; i < sizeof(UBX_SEA); i++) {                        
                   Serial2.write( pgm_read_byte(UBX_SEA+i) );
                   }
@@ -53,7 +53,7 @@ void GPS_data::push_data(float latitude,float longitude,uint32_t gSpeed) {//gspe
   _lat[index_GPS%BUFFER_ALFA]=latitude;
   _long[index_GPS%BUFFER_ALFA]=longitude;
    //alleen afstand optellen als ontvangst goed is, opgelet af en toe sAcc<2  !!!****************************************************
-  if((ubxMessage.navPvt.numSV>=FILTER_MIN_SATS)&((ubxMessage.navPvt.sAcc/1000.0f)<FILTER_MAX_sACC)){
+  if((ubxMessage.navPvt.numSV>=FILTER_MIN_SATS)&&((ubxMessage.navPvt.sAcc/1000.0f)<FILTER_MAX_sACC)){
         delta_dist=gSpeed/config.sample_rate;//snelheid omrekenen naar afstand !!!
         total_distance=total_distance+delta_dist;
         run_distance=run_distance+delta_dist;
@@ -189,7 +189,7 @@ void GPS_Track::Set_course(double lon_1,double lat_1,double lon_2,double lat_2,d
 }
 float GPS_Track::Update_Track(void){
   distance_startline= Dis_point_line(ubxMessage.navPvt.lon/10000000.0f,ubxMessage.navPvt.lat/10000000.0f,lon1,lat1,lon2,lat2);
-  if((distance_startline>0)&(Old_distance_start<0)){//lijn gepasseerd in van + naar -
+  if((distance_startline>0)&&(Old_distance_start<0)){//lijn gepasseerd in van + naar -
     getLocalTime(&tmstruct, 0);
     Start_lon=ubxMessage.navPvt.lon/10000000.0f;
     Start_lat=ubxMessage.navPvt.lat/10000000.0f;
@@ -198,7 +198,7 @@ float GPS_Track::Update_Track(void){
     }
     Old_distance_start=distance_startline;
   distance_endline= Dis_point_line(ubxMessage.navPvt.lon/10000000.0f,ubxMessage.navPvt.lat/10000000.0f,lon3,lat3,lon4,lat4);
-  if((distance_endline>0)&(Old_distance_end<0)&Run_started){//lijn gepasseerd in van + naar -
+  if((distance_endline>0)&&(Old_distance_end<0)&Run_started){//lijn gepasseerd in van + naar -
     getLocalTime(&tmstruct, 0);
     End_lon=ubxMessage.navPvt.lon/10000000.0f;// _lon[(index_GPS-1)%BUFFER_ALFA] = vorige positie
     End_lat=ubxMessage.navPvt.lat/10000000.0f; //_lat[(index_GPS-1)%BUFFER_ALFA] = vorige positie
@@ -265,7 +265,7 @@ double GPS_speed::Update_distance(int actual_run){
           }
         sort_display(display_speed,10);
         }    
-  if((actual_run!=old_run)&(this_run[0]==old_run)){              //opslaan hoogste snelheid van run + sorteren
+  if((actual_run!=old_run)&&(this_run[0]==old_run)){              //opslaan hoogste snelheid van run + sorteren
       sort_run_alfa(avg_speed,m_Distance,message_nr,time_hour,time_min,time_sec,this_run,nr_samples,10);
       avg_speed[0]=0;
       m_max_speed=0;
@@ -318,7 +318,7 @@ float GPS_time::Update_speed(int actual_run){
               }
               avg_5runs=avg_5runs/5;
             }
-            if((actual_run!=old_run)&(this_run[0]==old_run)){          //sorting only if new max during this run !!!
+            if((actual_run!=old_run)&&(this_run[0]==old_run)){          //sorting only if new max during this run !!!
               sort_run(avg_speed,time_hour,time_min,time_sec,Mean_cno,Max_cno,Min_cno,Mean_numSat,this_run,10);
               if(s_max_speed>5000)speed_run_counter ++;//changes SW5.51 min speed bar graph = 5 m/s
               speed_run[actual_run%NR_OF_BAR]=avg_speed[0];    //SW 5.5
@@ -330,7 +330,7 @@ float GPS_time::Update_speed(int actual_run){
                     }
                 avg_5runs=avg_5runs/5;
               }
-            if((actual_run!=reset_display_last_run)&(avg_s>3000)){
+            if((actual_run!=reset_display_last_run)&&(avg_s>3000)){
               reset_display_last_run=actual_run;
               display_last_run=0;
               }
@@ -358,7 +358,7 @@ float GPS_time::Update_speed(int actual_run){
                 }
             if(s_max_speed>avg_speed[9])display_max_speed=s_max_speed;//update on the fly voor S1800 / S3600 
             else display_max_speed=avg_speed[9];
-            if((actual_run!=old_run)&(this_run[0]==old_run)){   //sorting only if new max during this run !!!
+            if((actual_run!=old_run)&&(this_run[0]==old_run)){   //sorting only if new max during this run !!!
                   //sort_run(avg_speed,time_hour,time_min,time_sec,this_run,10);
                   sort_run(avg_speed,time_hour,time_min,time_sec,Mean_cno,Max_cno,Min_cno,Mean_numSat,this_run,10);
                   avg_speed[0]=0;
@@ -403,7 +403,7 @@ float Alfa_speed::Update_Alfa(GPS_speed M){
           alfa_distance[0]=M.m_distance_alfa/config.sample_rate;
           }
     }
-  //if((alfa_speed_max>0.0f)&(straight_dist_square>(alfa_circle_square*1.4))){//alfa max gaat pas op 0 indien 500 m na de gijp, rechte afstand na de gijp
+  //if((alfa_speed_max>0.0f)&&(straight_dist_square>(alfa_circle_square*1.4))){//alfa max gaat pas op 0 indien 500 m na de gijp, rechte afstand na de gijp
   if(run_count!=old_run_count){ 
       sort_run_alfa(avg_speed,real_distance,message_nr,time_hour,time_min,time_sec,alfa_distance,this_run,10);
       char tekst[20]="";char message[255]=""; 
@@ -456,10 +456,10 @@ int New_run_detection(float actual_heading, float S2_speed){
    Mean_heading=Mean_heading*(mean_heading_time*config.sample_rate-1)/(mean_heading_time*config.sample_rate)+heading/(mean_heading_time*config.sample_rate);
    /*detection stand still, more then 2s with velocity<1m/s**************************************************************************************************/
    if(S2_speed>speed_detection_min)velocity_5=1;    //snelheid was hoger dan 4m/s        
-   if((S2_speed<standstill_detection_max)&(velocity_5==1))velocity_0=1;//snelheid is kleiner dan 1m/s
+   if((S2_speed<standstill_detection_max)&&(velocity_5==1))velocity_0=1;//snelheid is kleiner dan 1m/s
    //else velocity_0=0;
    /*Nieuwe run gedetecteerd omwille stilstand **********************************************************************************************************************/
-   if((velocity_0==1)&(S2_speed>speed_detection_min)){
+   if((velocity_0==1)&&(S2_speed>speed_detection_min)){
      velocity_5=0;
      velocity_0=0;
      delay_counter=(time_delay_new_run-1)*config.sample_rate;//delay only 1 s after standstill + speed> min speed !!
@@ -467,8 +467,8 @@ int New_run_detection(float actual_heading, float S2_speed){
    /*Nieuwe run gedetecteerd omwille heading change*****************************************************************************************************************/
    static bool straight_course;
    //if(abs(Mean_heading-heading)<straight_course_max){straight_course=true;}//stabiele koers terug bereikt
-   if((abs(Mean_heading-heading)<straight_course_max)&(S2_speed>speed_detection_min)){straight_course=true;}//stabiele koers terug bereikt, added min_speed SW5.51
-   if(((abs(Mean_heading-heading)>course_deviation_min)&(straight_course==true))){      
+   if((abs(Mean_heading-heading)<straight_course_max)&&(S2_speed>speed_detection_min)){straight_course=true;}//stabiele koers terug bereikt, added min_speed SW5.51
+   if(((abs(Mean_heading-heading)>course_deviation_min)&&(straight_course==true))){      
       straight_course=false;
       delay_counter=0;
       alfa_counter++;//jibe detection for alfa_indicator ....
@@ -580,7 +580,7 @@ double afstandPunten(double lambda1, double phi1, double lambda2, double phi2) {
 int setupGPS(void) {
   int Cpu_freq = getCpuFrequencyMhz();
   Serial.print("CPU freq 240 ?= "); Serial.println(Cpu_freq);
-  //if((config.sample_rate>5)&(config.logUBX)) Cpu_freq = 80;
+  //if((config.sample_rate>5)&&(config.logUBX)) Cpu_freq = 80;
   setCpuFrequencyMhz(config.cpu_freq);
   config.cpu_freq = getCpuFrequencyMhz();
   int Xtal_freq = getXtalFrequencyMhz();
@@ -589,10 +589,10 @@ int setupGPS(void) {
   Ublox_on();//beitian bn220 power supply over output 25,26,27
   Serial2.setRxBufferSize(2048); // increasing buffer size ?
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2); //default connection to ublox over serial2
-   if((config.ublox_type==M8_115200BD)|(config.ublox_type==M9_115200BD)|(config.ublox_type==M10_115200BD)){
+   if((config.ublox_type==M8_115200BD)||(config.ublox_type==M9_115200BD)||(config.ublox_type==M10_115200BD)){
     Serial2.begin(115200, SERIAL_8N1, RXD2, TXD2); //connection to ublox over serial2  
     }
-  if((config.ublox_type==M8_38400BD)|(config.ublox_type==M9_38400BD)|  (config.ublox_type==M10_38400BD)){
+  if((config.ublox_type==M8_38400BD)||(config.ublox_type==M9_38400BD)|  (config.ublox_type==M10_38400BD)){
     Serial2.begin(38400, SERIAL_8N1, RXD2, TXD2); //connection to ublox over serial2  
     }  
   Serial.println("Serial2 Txd is on pin: "+String(TXD2));
@@ -614,7 +614,7 @@ int setupGPS(void) {
        Serial.println("Can't detect type and or baudrate of ublox....");
       }  
     } 
-  if((config.ublox_type==M8_9600BD)|(config.ublox_type==M8_38400BD)|(config.ublox_type==M8_115200BD)){
+  if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)||(config.ublox_type==M8_115200BD)){
      Serial.println("Set ublox bdrate 38.4 + UBX_OUT ");     
      for(int i = 0; i < sizeof(UBLOX_UBX_BD38400); i++) {                        
         Serial2.write( pgm_read_byte(UBLOX_UBX_BD38400+i) );
@@ -622,10 +622,10 @@ int setupGPS(void) {
       delay(100) ; 
       Serial2.begin(38400, SERIAL_8N1, RXD2, TXD2);  
   }      
-  if((config.ublox_type==M8_9600BD)|(config.ublox_type==M8_38400BD)|(config.ublox_type==M8_115200BD)){
+  if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)||(config.ublox_type==M8_115200BD)){
     Init_ublox(); //switch to ubx protocol
     }
-  if((config.ublox_type==M9_9600BD)|(config.ublox_type==M9_38400BD)|(config.ublox_type==M9_115200BD)|(config.ublox_type==M10_9600BD)|(config.ublox_type==M10_38400BD)|(config.ublox_type==M10_115200BD)){
+  if((config.ublox_type==M9_9600BD)||(config.ublox_type==M9_38400BD)||(config.ublox_type==M9_115200BD)||(config.ublox_type==M10_9600BD)||(config.ublox_type==M10_38400BD)||(config.ublox_type==M10_115200BD)){
     Init_ubloxM10(); //switch to ubx protocol, same for M9/M10
     }
   Serial.print("SW Ublox=");
@@ -640,10 +640,10 @@ int setupGPS(void) {
   Serial.println();  
   Serial.println (ubxMessage.monGNSS.default_Gnss);
   Serial.println (ubxMessage.monGNSS.enabled_Gnss);
-  if((config.ublox_type==M8_9600BD)|(config.ublox_type==M8_38400BD)|(config.ublox_type==M8_115200BD)){
+  if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)||(config.ublox_type==M8_115200BD)){
       Set_rate_ublox(config.sample_rate);//after reading config file !! 
   } 
-  if((config.ublox_type==M9_9600BD)|(config.ublox_type==M9_38400BD)|(config.ublox_type==M9_115200BD)|(config.ublox_type==M10_9600BD)|(config.ublox_type==M10_38400BD)|(config.ublox_type==M10_115200BD)){
+  if((config.ublox_type==M9_9600BD)||(config.ublox_type==M9_38400BD)||(config.ublox_type==M9_115200BD)||(config.ublox_type==M10_9600BD)||(config.ublox_type==M10_38400BD)||(config.ublox_type==M10_115200BD)){
       Set_rate_ubloxM10(config.sample_rate);//after reading config file !! 
   } 
   return 1;

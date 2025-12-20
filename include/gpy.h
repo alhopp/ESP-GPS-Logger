@@ -144,12 +144,12 @@ int  delta_COG=ubxMessage.navPvt.heading/1000-gpy_frame.COG/1000;//delta (course
 #define  SIGNED_INT 30000 //if delta is more, a full frame is written
 int full_frame=0;
 static int first_frame=0;
-if((delta_time>SIGNED_INT)|(delta_time<-SIGNED_INT))full_frame=1;
-if((delta_Speed>SIGNED_INT)|(delta_Speed<-SIGNED_INT))full_frame=1;
-if((delta_Speed_error>SIGNED_INT)|(delta_Speed_error<-SIGNED_INT))full_frame=1;
-if((delta_Latitude>SIGNED_INT)|(delta_Latitude<-SIGNED_INT))full_frame=1;
-if((delta_Longitude>SIGNED_INT)|(delta_Longitude<-SIGNED_INT))full_frame=1;
-if((delta_COG>SIGNED_INT)|(delta_COG<-SIGNED_INT))full_frame=1;
+if((delta_time>SIGNED_INT)||(delta_time<-SIGNED_INT))full_frame=1;
+if((delta_Speed>SIGNED_INT)||(delta_Speed<-SIGNED_INT))full_frame=1;
+if((delta_Speed_error>SIGNED_INT)||(delta_Speed_error<-SIGNED_INT))full_frame=1;
+if((delta_Latitude>SIGNED_INT)||(delta_Latitude<-SIGNED_INT))full_frame=1;
+if((delta_Longitude>SIGNED_INT)||(delta_Longitude<-SIGNED_INT))full_frame=1;
+if((delta_COG>SIGNED_INT)||(delta_COG<-SIGNED_INT))full_frame=1;
 if(first_frame==0)full_frame=1;//first frame is always a full frame
 if(next_gpy_full_frame){full_frame=1;next_gpy_full_frame=0;}//if a navPvt frame is lost, next frame = full frame !!!
 if(full_frame==1){

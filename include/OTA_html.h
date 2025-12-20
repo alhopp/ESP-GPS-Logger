@@ -289,7 +289,7 @@ const char html_header[] PROGMEM = R"=====(
         return !0 == confirm("Want to delete?");
     }
     window.addEventListener('DOMContentLoaded', (event) => {
-    if ((location.pathname == "/")|(location.pathname == "/archive")) sortTable();
+    if ((location.pathname == "/")||(location.pathname == "/archive")) sortTable();
     });
     function sortTable() {
       var table, rows, switching, i, x, y, shouldSwitch;
@@ -389,7 +389,7 @@ void html_config(String& webpage){
   Drop_down_menu(config.ublox_type,M10_115200BD,"M10@115200BD",webpage);
   webpage += "</select>\n</td><td>GPS type : If auto detect ON, the type of GPS will be identified when booting. If a M10 gps, you can select high navigation rate.<br>This is irreversible !!</td>\n</tr>\n";
   //Set M10 to high nav rate
-  if((config.ublox_type==M10_9600BD)|(config.ublox_type==M10_38400BD)|(config.ublox_type==M10_115200BD)){
+  if((config.ublox_type==M10_9600BD)||(config.ublox_type==M10_38400BD)||(config.ublox_type==M10_115200BD)){
     webpage += "<tr>\n<td>M10_high_nav</td><td>\n<select id='M10_high_nav' name='M10_high_nav'>";
     if(config.M10_high_nav==M10_DEFAULT_NAV) {
         Drop_down_menu(config.M10_high_nav,M10_DEFAULT_NAV,"M10 default nav",webpage);
@@ -407,9 +407,9 @@ void html_config(String& webpage){
   Drop_down_menu(config.sample_rate,8,"8 Hz",webpage);
   Drop_down_menu(config.sample_rate,10,"10 Hz",webpage);
   int ublox_type =0;
-  if((config.ublox_type == M10_9600BD)|(config.ublox_type == M10_38400BD)|(config.ublox_type == M10_115200BD))ublox_type=3;
-  if((config.ublox_type == M9_9600BD)|(config.ublox_type == M9_38400BD)|(config.ublox_type == M9_115200BD)|(config.M10_high_nav==M10_HIGH_NAV_RATE)) ublox_type=2;
-  if((ublox_type==2)|((config.gnss==1)&(ublox_type==3))){
+  if((config.ublox_type == M10_9600BD)||(config.ublox_type == M10_38400BD)||(config.ublox_type == M10_115200BD))ublox_type=3;
+  if((config.ublox_type == M9_9600BD)||(config.ublox_type == M9_38400BD)||(config.ublox_type == M9_115200BD)||(config.M10_high_nav==M10_HIGH_NAV_RATE)) ublox_type=2;
+  if((ublox_type==2)||((config.gnss==1)&&(ublox_type==3))){
     Drop_down_menu(config.sample_rate,15,"15 Hz",webpage);
     Drop_down_menu(config.sample_rate,20,"20 Hz",webpage);
     }
@@ -423,7 +423,7 @@ void html_config(String& webpage){
   webpage += "</select>\n</td><td>CPU freq: can be 80 MHz (5 Hz),160 MHz(10hz) or 240 MHz(20Hz). Longest battery live @ 80 Mhz ! 20 Hz (M9) needs possible 160 MHz. </td>\n</tr>\n";
   //gnss
   webpage += "<tr><td>gnss</td><td>\n<select id='gnss' name='gnss'>\n";
-  if((config.ublox_type == M8_9600BD)|(config.ublox_type == M8_38400BD)|(config.ublox_type == M8_115200BD)){
+  if((config.ublox_type == M8_9600BD)||(config.ublox_type == M8_38400BD)||(config.ublox_type == M8_115200BD)){
       Drop_down_menu(config.gnss,0,"GPS + BEIDOU",webpage);
       }
   else{ 
@@ -432,7 +432,7 @@ void html_config(String& webpage){
   Drop_down_menu(config.gnss,2,"GPS + GLONAS",webpage);
   Drop_down_menu(config.gnss,3,"GPS + GLONAS + GALILEO",webpage);
   Drop_down_menu(config.gnss,4,"GPS + GALILEO + BEIDOU_B1C",webpage);      
-  if((config.ublox_type == M9_9600BD)|(config.ublox_type == M9_38400BD)|(config.ublox_type == M9_115200BD)|(config.ublox_type == M10_9600BD)|(config.ublox_type == M10_38400BD)|(config.ublox_type == M10_115200BD)){
+  if((config.ublox_type == M9_9600BD)||(config.ublox_type == M9_38400BD)||(config.ublox_type == M9_115200BD)||(config.ublox_type == M10_9600BD)||(config.ublox_type == M10_38400BD)||(config.ublox_type == M10_115200BD)){
     Drop_down_menu(config.gnss,5,"GPS + GLONAS + GALILEO + BEIDOU",webpage);
     }   
   webpage += "</select>\n</td><td>gnss choice, for the M10, 3 or 4 gnss simultanous limits the sample rate ! :<br> M8 (ROM version 2.01) : max 2 GNSS (GPS + GLONAS)<br> M8 (ROM version 3.01) : max 3 GNSS (GPS + GLONAS + GALILEO)<br> M9 : max 4 GNSS (GPS + GLONAS + GALILEO + BEIDOU)<br> M10: max 4 GNSS  (GPS + GLONAS + GALILEO + BEIDOU), but depends on sample-rate !</td>\n</tr>\n";
@@ -565,7 +565,7 @@ void html_config(String& webpage){
   if(config.logGPX == 0) webpage += "<option value='0' selected>LOG GPX OFF</option>\n"; else webpage += "<option value='0'>LOG GPX OFF</option>\n";
   webpage += "</select>\n</td><td>logGPX: To save the GPS data in gpx format @ 1Hz, for video overlay or other purposes.</td>\n</tr>\n";  
   //dynamic_model
-  //if((config.ublox_type==M8_9600BD)|(config.ublox_type==M8_38400BD)){
+  //if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)){
   webpage += "<tr><td>dynamic_model</td><td>\n<select id='dynamic_model' name='dynamic_model'>\n";
   if(config.dynamic_model == 0) webpage += "<option value='0' selected>portable</option>\n"; else webpage += "<option value='0'>portable</option>\n";
   if(config.dynamic_model == 1) webpage += "<option value='1' selected>sea</option>\n"; else webpage += "<option value='1'>sea</option>\n";

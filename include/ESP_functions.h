@@ -8,10 +8,6 @@
 #include <FS.h>
 
 
-/* ==== DISPLAY ==== */
-//#include <GxEPD2_BW.h>
-//#include <epd/GxEPD2_213_B74.h>
-
 /* ==== PROJECT HEADERS (ORDER MATTERS) ==== */
 #include "Definitions.h"
 #include "GPS_data.h"
@@ -20,6 +16,8 @@
 #include "ESP32FtpServerJH.h"
 #include "E_paper.h"
 #include "Button_push.h"
+
+#include "GxEPD.h"
 
 // Forward declarations
 class GPS_data;
@@ -31,19 +29,10 @@ class GPS_Track;
 class FtpServer;
 
 
-// ------------------------------
-// Global PushButton instances
-// (defined in main.cpp)
-// ------------------------------
 
-
-// ------------------------------
-// RTC battery state
-// ------------------------------
-extern RTC_DATA_ATTR float RTC_voltage_bat;
 
 // Display (defined elsewhere)
-extern GxEPD_Class display;
+//extern GxEPD_Class display;
 // -------------------------------------------------
 // Global state (extern ONLY)
 // -------------------------------------------------
