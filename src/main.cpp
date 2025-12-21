@@ -1,5 +1,3 @@
-
-
 #include "Arduino.h"
 #include "wifi_manager.h"
 #include "storage_manager.h"
@@ -10,6 +8,7 @@
 #include "system_init.h"
 #include "task_gps.h"
 #include "task_display.h"
+#include "system_phase.h"
 
 
 static void startTasks();
@@ -21,16 +20,27 @@ extern bool reset_boot;
 
 
 void setup() {
-  systemInitEarly();        // system_init.cpp
-  initEEPROM();             // eeprom_manager.cpp
-  watchdogInit();           // watchdog_manager.cpp
-  systemInitSPIAndTime();
-  initStorage();            // storage_manager.cpp
-  initConfig();             // config_manager.cpp
-  initBootChecks();         // boot_manager.cpp
-  wifi_init();              // wifi_manager.cpp
-  startTasks();             // task_gps.cpp / task_display.cpp
+  Serial.begin(115200);
+  delay(200);
+
+  PHASE(PH_BOOT_START, "systemInitEarly");
+  systemInitEarly();
+
+  PHASE(PH_STORAGE_INIT, "initStorage");
+  initStorage();
+
+  PHASE(PH_CONFIG_LOADED, "initConfig");
+  initConfig();
+
+  PHASE(PH_WIFI_INIT, "wifi_init");
+  wifi_init();
+
+  PHASE(PH_TASKS_CREATED, "startTasks");
+  startTasks();
+
+  PHASE(PH_RUNNING, "SETUP_DONE");
 }
+
 
 
 static void startTasks() {

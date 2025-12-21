@@ -1,14 +1,10 @@
-
-//Additional boardmanager !!
-//https://espressif.github.io/arduino-esp32/package_esp32_index.json
-
 #include <Arduino.h>
 #include "ESP_functions.h"
 #include "E_paper.h"
 #include "GxEPD.h"
 
 String IP_adress="0.0.0.0";
-const char SW_version[16]="Ver 6.01c";//Hier staat de software versie !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+const char SW_version[16]="Ver 6.01c";
 
 extern GxEPD_Class display;
 
@@ -19,18 +15,6 @@ extern RTC_DATA_ATTR char RTC_Sleep_txt[32];
 
 const char *filename = "/config.txt";
 const char *filename_backup = "/config_backup.txt";
-
-
-void feedTheDog_Task0()
-{
-  yield();   // safe Arduino-compatible stub
-}
-
-void feedTheDog_Task1()
-{
-  yield();
-}
-
 
 
 char Ublox_type[20]="Ublox unknown...";
@@ -44,7 +28,6 @@ bool deep_sleep = false;
 bool Wifi_on=true;
 bool SoftAP_connection = false;
 bool GPS_Signal_OK = false;
-//bool long_push = false;
 bool Field_choice = false;
 bool reset_boot = false;
 int NTP_time_set = 0;
@@ -52,14 +35,13 @@ int Gps_time_set = 0;
 bool Shut_down_Save_session = false;
 bool trouble_screen = false;
 extern bool downloading_file;
-extern bool ap_mode;
+bool ap_mode = false;
 int GPS_OK = 0;
 int analog_bat;
 int first_fix_GPS,run_count,old_run_count,stat_count,GPS_delay;
 int start_logging_millis;
-int wifi_search=10;//was 10
+int wifi_search=10;
 int ftpStatus=0;
-//int time_out_nav_pvt=TIME_OUT_NAV_PVT;
 int last_gps_msg=0;
 int nav_pvt_message=0;
 int old_message=0;
@@ -458,17 +440,26 @@ boolean Button_push::Button_pushed(void) {
   if (digitalRead(Input_pin) == Default_state) old_button_status = 0;
   return return_value;
 }
+
 void Search_for_wifi(void) {
-  while ((WiFi.status() != WL_CONNECTED)&&(SoftAP_connection==false)){  
-    if(Short_push39.Button_pushed()|Short_push19.Button_pushed()){ap_mode=true;yield();break;}
-    Update_bat();        
-    if(ap_mode==false)Update_screen(WIFI_STATION);
-    else Update_screen(WIFI_SOFT_AP);
-    Serial.print(".");
-    wifi_search--;
-    if(wifi_search<=0){
-      IP_adress = "0.0.0.0";
-      break;
-      }
-    }
+{
+
+  return;
+
+}
+ // Legacy function — intentionally disabled in refactor
+
+ 
+ // while ((WiFi.status() != WL_CONNECTED)&&(SoftAP_connection==false)){  
+ //   if(Short_push39.Button_pushed()|Short_push19.Button_pushed()){ap_mode=true;yield();break;}
+ //   Update_bat();        
+ //   if(ap_mode==false)Update_screen(WIFI_STATION);
+ //   else Update_screen(WIFI_SOFT_AP);
+ //   Serial.print(".");
+ //   wifi_search--;
+ //   if(wifi_search<=0){
+ //     IP_adress = "0.0.0.0";
+ //     break;
+ //     }
+ //   }
 } 

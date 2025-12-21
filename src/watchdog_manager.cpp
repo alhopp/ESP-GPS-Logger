@@ -9,6 +9,14 @@ void watchdogInit() {
   esp_task_wdt_add(NULL);
 }
 
+
+void watchdogLoop()
+{
+  // Single global watchdog feed
+  esp_task_wdt_reset();
+}
+
+/*
 void watchdogLoop() {
   int wdt_task0_duration = millis() - wdt_task0;
   int wdt_task1_duration = millis() - wdt_task1;
@@ -37,3 +45,4 @@ void watchdogLoop() {
   if (wdt_task1_duration > task_timeout)
     Serial.println("Watchdog task1 triggered");
 }
+    */

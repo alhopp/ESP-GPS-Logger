@@ -2,24 +2,16 @@
 
 // ============================================================================
 // Legacy GxEPD compatibility wrapper
-// Backend: GxEPD2
+// Backend: GxEPD2 (paged)
 // ============================================================================
 
 #include <Arduino.h>
 #include <Adafruit_GFX.h>
 
 #include <GxEPD2_BW.h>
-#include <epd/GxEPD2_213_B74.h>
-
-using PanelDriver = GxEPD2_213_B74;
-
-#if defined(EPD_213_B74) + defined(EPD_213_B73) + defined(EPD_266_BN) + defined(EPD_154_OC1) != 1
-#error "Exactly one EPD_xxx panel must be defined"
-#endif
-
 
 // -----------------------------------------------------------------------------
-// PANEL SELECTION
+// PANEL SELECTION (exactly ONE must be defined)
 // -----------------------------------------------------------------------------
 
 #if defined(EPD_213_B74)
@@ -39,28 +31,31 @@ using PanelDriver = GxEPD2_213_B74;
   using PanelDriver = GxEPD2_154_GDEY0154D67;
 
 #else
-  #error "No EPD_xxx panel defined"
+  #error "Define exactly one EPD_xxx panel type"
 #endif
 
 // -----------------------------------------------------------------------------
 // LEGACY COLORS
 // -----------------------------------------------------------------------------
+
 #ifndef GxEPD_BLACK
   #define GxEPD_BLACK  0
   #define GxEPD_WHITE  1
 #endif
 
 // ============================================================================
-// GxEPD_Class — LEGACY API
+// GxEPD_Class — legacy API, GxEPD2 backend
 // ============================================================================
 
 class GxEPD_Class
-  : public GxEPD2_BW<PanelDriver,PanelDriver::HEIGHT>
+  : public GxEPD2_BW<PanelDriver, PanelDriver::HEIGHT>
 {
 public:
   using Base = GxEPD2_BW<PanelDriver, PanelDriver::HEIGHT>;
 
+  // ---------------------------------------------------------------------------
   // Constructor
+  // ---------------------------------------------------------------------------
   GxEPD_Class(int8_t cs, int8_t dc, int8_t rst, int8_t busy)
   : Base(PanelDriver(cs, dc, rst, busy)) {}
 
@@ -73,15 +68,18 @@ public:
   }
 
   // ---------------------------------------------------------------------------
-  // Legacy update()
+  // Legacy update()  (FULL refresh, correct paging)
   // ---------------------------------------------------------------------------
   void update()
   {
-    Base::display();
+    Base::firstPage();
+    do {
+      // drawing already performed by application
+    } while (Base::nextPage());
   }
 
   // ---------------------------------------------------------------------------
-  // Legacy updateWindow()
+  // Legacy updateWindow() (partial refresh)
   // ---------------------------------------------------------------------------
   void updateWindow(int16_t x, int16_t y,
                     int16_t w, int16_t h,
@@ -95,11 +93,11 @@ public:
   // ---------------------------------------------------------------------------
   void fillScreen(uint16_t color)
   {
-    Base::clearScreen(color);
+    Base::fillScreen(color);
   }
 
   // ---------------------------------------------------------------------------
-  // Legacy drawExampleBitmap()
+  // Legacy bitmap helper
   // ---------------------------------------------------------------------------
   void drawExampleBitmap(const uint8_t* bitmap,
                          int16_t x, int16_t y,
@@ -110,7 +108,7 @@ public:
   }
 
   // ---------------------------------------------------------------------------
-  // Power
+  // Power control
   // ---------------------------------------------------------------------------
   void powerDown()
   {
@@ -120,7 +118,7 @@ public:
   void wakeUp() {}
 
   // ---------------------------------------------------------------------------
-  // ⭐ EXPOSE Adafruit_GFX + Print APIs ⭐
+  // Expose Adafruit_GFX / Print API
   // ---------------------------------------------------------------------------
   using Base::setFont;
   using Base::setCursor;

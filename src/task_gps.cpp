@@ -3,8 +3,6 @@
 TaskHandle_t t1 = nullptr;
 
 
-
-
 // bring in exactly what taskOne already relied on
 #include "wifi_manager.h"
 #include "Ublox.h"
@@ -18,6 +16,14 @@ extern bool sleep_mode;
 
 void taskOne(void *parameter)
 {
+    
+  Serial.println("[TASK1] GPS task disabled (stub)");
+
+  // TESTING TESTING Just idle forever 
+  while (true) {
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+
   static int actual_speed_field = 0;
 
   while (true) {
@@ -37,11 +43,14 @@ void taskOne(void *parameter)
     }
 #endif
 
-    if (Long_push39.Button_pushed() | Long_push19.Button_pushed()) {
-      sleep_mode = true;
-      Serial.println("task one delete");
-      vTaskDelete(NULL);
-    }
+    static bool buttons_enabled = false;
+    if (buttons_enabled) {
+        if (Long_push39.Button_pushed() | Long_push19.Button_pushed()) {
+        sleep_mode = true;
+        Serial.println("task one delete");
+        vTaskDelete(NULL);
+        }
+    }   
 
     if (Short_push39.Button_pushed() | Short_push19.Button_pushed()) {
       if (config.Stat_screens_time == 0) stat_count++;

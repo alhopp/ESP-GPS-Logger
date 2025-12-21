@@ -6,7 +6,7 @@
 #include "SD_card.h"
 #include "ESP_functions.h"
 #include "E_paper.h"
-
+#include "Fonts.h"
 
 
 // ----------------------------------------------------
@@ -31,6 +31,36 @@ static void updateDisplay();
 // ----------------------------------------------------
 void taskTwo(void* parameter)
 {
+
+
+   Serial.println("[TASK2] display task entered");
+
+        display.init(115200);
+        display.setRotation(1);
+
+        display.firstPage();
+        do {
+            display.fillScreen(GxEPD_WHITE);
+            display.setTextColor(GxEPD_BLACK);
+            display.setFont(&FreeSansBold18pt7b);
+            display.setCursor(10, 40);
+            display.print("HELLO");
+        } while (display.nextPage());
+
+  Serial.println("[TASK2] display refresh done");
+
+  // park task forever
+  for (;;) {
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+    Serial.println("[TASK2] display refresh done");
+
+    // park task forever
+    for (;;) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+
+
   while (true) {
 
     // ------------------------------------------------
