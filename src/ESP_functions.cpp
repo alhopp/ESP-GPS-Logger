@@ -1,14 +1,11 @@
 #include <Arduino.h>
 #include "ESP_functions.h"
 #include "E_paper.h"
-#include "GxEPD.h"
+
 
 String IP_adress="0.0.0.0";
 const char SW_version[16]="Ver 6.01c";
 
-extern GxEPD_Class display;
-
-#include <esp_attr.h>
 
 extern RTC_DATA_ATTR int RTC_Sail_Logo ;
 extern RTC_DATA_ATTR char RTC_Sleep_txt[32];

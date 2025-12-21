@@ -1,20 +1,20 @@
 #pragma once
 
-
-// ============================================================================
-//  E-paper public interface
-//  Header must contain:
-//   - NO implementation
-//   - NO font includes
-//   - NO display instantiation
-//   - ONLY declarations, constants, and externs
-// ============================================================================
-
 #include <Arduino.h>
+#include <GxEPD2_BW.h>
+#include <epd/GxEPD2_213_B74.h>
 
-// Forward declarations only
-class GxEPD_Class;
-extern GxEPD_Class display;
+extern GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display;
+
+extern char time_now[8];
+extern char time_now_sec[12];
+extern int run_rectangle_length;
+extern int bar_position;
+extern int total_bar_length;
+extern int bar_length;
+
+
+
 
 struct UBXMessage;
 
@@ -22,6 +22,15 @@ class GPS_speed;
 class Alfa_speed;
 class GPS_time;
 class GPS_Track;
+
+// ==========================
+// E-paper pin mapping
+// ==========================
+#define ELINK_SS     5
+#define ELINK_DC     17
+#define ELINK_RESET  16
+#define ELINK_BUSY  4
+
 
 // ============================================================================
 //  Legacy logo macros (no-op, statement-safe)
