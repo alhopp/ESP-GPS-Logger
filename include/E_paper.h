@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <GxEPD2_BW.h>
 #include <epd/GxEPD2_213_B74.h>
+#include <screen_draw.h>
 
 extern GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display;
 
@@ -14,6 +15,7 @@ extern int total_bar_length;
 extern int bar_length;
 
 void sdCardInfo(void);
+
 int device_boot_log(int rows, int ws);
 
 
@@ -200,6 +202,8 @@ void Bat_level(int X_offset, int Y_offset);
 void Bat_level_Simon(int offset);
 void Sat_level(int offset);
 void time_print(int time);
+
+
 
 void Stats_4lines(
   String Message1,

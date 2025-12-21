@@ -5,12 +5,115 @@
 #include "GPS_data.h"
 #include "Definitions.h"
 #include "screen_ui.h"
+#include "Layout.h"
 
 #define INFO_BAR_TOP 12   // use your original value
 static char bar_info[16];
 
 
-int draw_SPEED() 
+
+
+
+  void Speed_font0(
+    const char* message1,
+    const char* message2,
+    float speed1,
+    float speed2,
+    float speed,
+    int screen
+) {
+    const int decimals_small = (screen == 2) ? 0 : 1;
+
+    display.setFont(Fonts::Body12);
+    display.setTextColor(GxEPD_BLACK);
+
+    display.setCursor(offset, Layout::ROW12(1));
+    display.print(message1);
+
+    if (screen <= 2) {
+        display.setFont(Fonts::Body18);
+        display.print(speed1, decimals_small);
+    }
+
+    display.setFont(Fonts::Body12);
+    display.setCursor(offset + 122, Layout::ROW12(1));
+    display.print(message2);
+
+    display.setFont(Fonts::Body18);
+    display.print(speed2, decimals_small);
+
+    display.setFont(Fonts::SpeedXL);
+    display.setCursor(offset, 120);
+    display.print(speed, 1);
+}
+
+
+void Speed_font1(
+    const char* message1,
+    const char* message2,
+    float speed1,
+    float speed2,
+    float speed,
+    int screen
+) {
+    display.setCursor(offset, 36);
+
+    if (screen == 0) {
+        display.setFont(Fonts::SpeedM);
+        display.print(speed1, 1);
+
+        display.setFont(Fonts::Body12);
+        display.setCursor(offset + 113, 36);
+        display.print(message2);
+
+        display.setFont(Fonts::SpeedM);
+        display.print(speed2, 1);
+    }
+    else if (screen == 1) {
+        display.setFont(Fonts::Body12);
+        display.print(message1);
+
+        display.setFont(Fonts::SpeedM);
+        display.print(speed1, 0);
+
+        display.setFont(Fonts::Body12);
+        display.print(message2);
+
+        display.setFont(Fonts::SpeedM);
+        display.print(speed2, 0);
+    }
+    else if (screen == 2) {
+        display.setFont(Fonts::Body18);
+        display.print(message1);
+
+        display.setFont(Fonts::SpeedM);
+        display.print(speed1, 2);
+    }
+    else if (screen == 3) {
+        display.setFont(Fonts::Body18);
+        display.print(message1);
+    }
+
+    display.setFont(Fonts::SpeedXL);
+    display.setCursor(offset, 120);
+    display.println(speed, 1);
+}
+
+void Speed_font3(
+    const char* message1,
+    float speed
+) {
+    display.setFont(&FreeSansBold24pt7b);
+    display.setCursor(offset, 36);
+    bar_position = 40;
+    display.print(message1);
+
+    display.setCursor(offset, 120);
+    display.setFont(Fonts::SpeedXL);
+    display.print(speed, 1);
+}
+
+void draw_SPEED() 
 {
     int update_delay = 50;
 
@@ -256,5 +359,4 @@ int draw_SPEED()
 
     display.fillRect(offset, bar_position, run_rectangle_length, 8, GxEPD_BLACK);
   
-  return update_delay;
 }

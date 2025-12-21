@@ -34,9 +34,9 @@ void taskTwo(void* parameter)
 
 
    Serial.println("[TASK2] display task entered");
-/*
-        display.init(115200);
-        display.setRotation(1);
+
+      display.init(115200);
+        display.setRotation(1);//
 
         display.firstPage();
         do {
@@ -45,7 +45,9 @@ void taskTwo(void* parameter)
             display.setFont(&FreeSansBold18pt7b);
             display.setCursor(10, 40);
             display.print("HELLO");
-        } while (display.nextPage());
+       } while (display.nextPage());
+
+        Off_screen(1);
 
   Serial.println("[TASK2] display refresh done");
 
@@ -59,7 +61,7 @@ void taskTwo(void* parameter)
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
-*/
+
 
   while (true) {
 

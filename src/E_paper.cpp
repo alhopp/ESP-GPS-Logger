@@ -1,72 +1,61 @@
+
 #include <Arduino.h>
 #include "E_paper.h"
 #include "Fonts.h"
+
 #include "Ublox.h"
 #include "GPS_data.h"
+
 #include "Definitions.h"
+
+#include "SD_card.h"
 #include <LittleFS.h>
+
+#include "screens.h"
+#include "screen_draw.h"
 #include "screen_speed.h"
 #include "screen_ui.h"
-#include "SD_card.h"
-#include "Ublox.h"
+
+#include "Layout.h"
+
+#include "screen_system.h"
 
 GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
   GxEPD2_213_B74(ELINK_SS, ELINK_DC, ELINK_RESET, ELINK_BUSY)
 );
 
-int device_boot_log(int rows, int ws);
-
+int16_t displayWidth  = 0;
+int16_t displayHeight = 0;
 
 static int update_epaper = 2;
-
-namespace Layout {
-
-  // global vertical spacing between rows
-  constexpr int SPACING = 2;
-
-  // base row heights
-  constexpr int H9  = 14;
-  constexpr int H12 = 19;
-  constexpr int H18 = 25;
-
-  // absolute row positions (top-aligned)
-  constexpr int ROW9(int n)  { return H9  + (n - 1) * (H9  + SPACING); }
-  constexpr int ROW12(int n) { return H12 + (n - 1) * (H12 + SPACING); }
-  constexpr int ROW18(int n) { return H18 + (n - 1) * (H18 + SPACING); }
-
-  // row-to-row spacing helpers (replacement for *_W_SPACING)
-  constexpr int STEP9  = H9  + SPACING;
-  constexpr int STEP12 = H12 + SPACING;
-  constexpr int STEP18 = H18 + SPACING;
-
-}
-
-
 
 // bottom area 15px reserved to info bar
 #define INFO_BAR_HEIGHT 15
 #define INFO_BAR_TOP (display.height() - INFO_BAR_HEIGHT)
 #define INFO_BAR_ROW (display.height() - 2)
 
-//display.setFont(Fonts::Body9);
-#define TITLE_9PT \
-  do { \
-    display.setFont(Fonts::Body9); \
-    display.setCursor(offset, Layout::ROW9(1)); \
-  } while (0)
-
-#define TOP_TITLE_MSG(msg) \
-  do { \
-    display.print(msg); \
-  } while (0)
-
-#define TOP_LEFT_TITLE_MSG(msg) \
-  do { \
-    TITLE_9PT; \
-    TOP_TITLE_MSG(msg); \
-  } while (0)
+  // --- Chrome helpers (forward declarations) ---
+void Bat_level_Simon(int offset);
+void Sats_level(int offset);
+void M8_M10(int offset);
+int  Time(int offset);
+int  DateTimeRtc(int offset);
 
 
+
+void drawChrome(int offset, bool rtcMode)
+{
+  if (rtcMode) {
+    Bat_level_Simon(offset);
+    DateTimeRtc(offset);
+  } else {
+    Bat_level_Simon(offset);
+    Sats_level(offset);
+    if (ubxMessage.navPvt.numSV > 4)
+      M8_M10(offset);
+    Time(offset);
+  }
+}
 
 
 #if defined(EPD_213_B74)
@@ -79,160 +68,86 @@ namespace Layout {
   const char E_paper_version[] = "E-paper unknown";
 #endif
 
-
-
 int device_boot_log(int rows, int ws)
 {
   int r = 2;
-  int row = Layout::H9 + Layout::SPACING;
 
+  auto pause = [&]() {
+    if (ws) delay(ws);
+  };
+
+  // --------------------------------------------------
+  // Header: device + firmware
+  // --------------------------------------------------
   display.setCursor(offset, Layout::ROW9(2));
-  if (ws) delay(ws);
+  pause();
   display.print(E_paper_version);
   display.print(SW_version);
 
-  if (rows == 2 || rows == 23 || rows == 24 || rows == 234) {
+  // --------------------------------------------------
+  // SD / filesystem info
+  // --------------------------------------------------
+  const bool show_storage =
+      (rows == 2 || rows == 23 || rows == 24 || rows == 234);
+
+  if (show_storage) {
     display.setCursor(offset, Layout::ROW9(3));
-    if (ws) delay(ws);
+    pause();
     sdCardInfo();
   }
 
-  if (rows == 3 || rows == 23 || rows == 34 || rows == 234) {
-    r = (rows == 23 || rows == 34) ? 3 : (rows == 234 ? 4 : 2);
-    display.setCursor(offset,
+  // --------------------------------------------------
+  // Cursor advance / spacing logic
+  // --------------------------------------------------
+  const bool advance_row =
+      (rows == 3 || rows == 23 || rows == 34 || rows == 234);
+
+  if (advance_row) {
+    r = (rows == 234) ? 4
+        : (rows == 23 || rows == 34) ? 3
+        : 2;
+
+    display.setCursor(
+      offset,
       (rows == 234 || rows == 23 || rows == 34)
         ? Layout::ROW9(4)
-        : Layout::ROW9(3));
-    //display.printf("Display size %dx%d\n", display.width(), display.height());
+        : Layout::ROW9(3)
+    );
   }
 
-  if ((rows == 4 || rows == 24 || rows == 34 || rows == 234)
-      && ubxMessage.monVER.hwVersion[0]) {
-    display.setCursor(offset,
-      rows == 24 || rows == 34
-        ? Layout::ROW9(4)
-        : (rows == 234 ? Layout::ROW9(5) : Layout::ROW9(3)));
-    display.printf("Gps %s at %dHz", gpsChip(1), config.sample_rate);
+  // --------------------------------------------------
+  // GPS info
+  // --------------------------------------------------
+  const bool show_gps =
+      (rows == 4 || rows == 24 || rows == 34 || rows == 234) &&
+      ubxMessage.monVER.hwVersion[0];
+
+  if (show_gps) {
+    display.setCursor(
+      offset,
+      (rows == 234) ? Layout::ROW9(5)
+      : (rows == 24 || rows == 34) ? Layout::ROW9(4)
+      : Layout::ROW9(3)
+    );
+
+    display.printf("Gps %s at %dHz",
+                    gpsChip(1),
+                    config.sample_rate);
   }
 
   return r;
 }
 
 
-
-  void Speed_font0(
-    const char* message1,
-    const char* message2,
-    float speed1,
-    float speed2,
-    float speed,
-    int screen
-) {
-    const int decimals_small = (screen == 2) ? 0 : 1;
-
-    display.setFont(Fonts::Body12);
-    display.setTextColor(GxEPD_BLACK);
-
-    display.setCursor(offset, Layout::ROW12(1));
-    display.print(message1);
-
-    if (screen <= 2) {
-        display.setFont(Fonts::Body18);
-        display.print(speed1, decimals_small);
-    }
-
-    display.setFont(Fonts::Body12);
-    display.setCursor(offset + 122, Layout::ROW12(1));
-    display.print(message2);
-
-    display.setFont(Fonts::Body18);
-    display.print(speed2, decimals_small);
-
-    display.setFont(Fonts::SpeedXL);
-    display.setCursor(offset, 120);
-    display.print(speed, 1);
-}
-
-
-void Speed_font1(
-    const char* message1,
-    const char* message2,
-    float speed1,
-    float speed2,
-    float speed,
-    int screen
-) {
-    display.setCursor(offset, 36);
-
-    if (screen == 0) {
-        display.setFont(Fonts::SpeedM);
-        display.print(speed1, 1);
-
-        display.setFont(Fonts::Body12);
-        display.setCursor(offset + 113, 36);
-        display.print(message2);
-
-        display.setFont(Fonts::SpeedM);
-        display.print(speed2, 1);
-    }
-    else if (screen == 1) {
-        display.setFont(Fonts::Body12);
-        display.print(message1);
-
-        display.setFont(Fonts::SpeedM);
-        display.print(speed1, 0);
-
-        display.setFont(Fonts::Body12);
-        display.print(message2);
-
-        display.setFont(Fonts::SpeedM);
-        display.print(speed2, 0);
-    }
-    else if (screen == 2) {
-        display.setFont(Fonts::Body18);
-        display.print(message1);
-
-        display.setFont(Fonts::SpeedM);
-        display.print(speed1, 2);
-    }
-    else if (screen == 3) {
-        display.setFont(Fonts::Body18);
-        display.print(message1);
-    }
-
-    display.setFont(Fonts::SpeedXL);
-    display.setCursor(offset, 120);
-    display.println(speed, 1);
-}
-
-void Speed_font3(
-    const char* message1,
-    float speed
-) {
-    display.setFont(&FreeSansBold24pt7b);
-    display.setCursor(offset, 36);
-    bar_position = 40;
-    display.print(message1);
-
-    display.setCursor(offset, 120);
-    display.setFont(Fonts::SpeedXL);
-    display.print(speed, 1);
-}
-
-
-
 #ifndef T5_E_PAPER
-void Boot_screen(void){};
-void Sleep_screen(int choice){};
-void Update_screen(int screen){};
+
 #else
 
-#define DEVICE_BOOT_LOG(rows) device_boot_log(rows, 0)
+#define device_boot_log(rows) device_boot_log(rows, 0)
 
 char time_now[8];
 char time_now_sec[12];
-int16_t displayWidth  = display.width();
-int16_t displayHeight = display.height();
+
 
 int bar_length = 1852;
 int bar_position = 32;
@@ -243,25 +158,6 @@ void InfoBarRtc(int offset);
 char bar_info[8] = "info";
 
 
-// -------- Screen draw functions (Level 1) --------
-static int draw_BOOT();
-static int draw_GPS_INIT();
-static int draw_WIFI_ON();
-static int draw_WIFI_STATION();
-static int draw_WIFI_SOFT_AP();
-int draw_SPEED();
-
-static int draw_STATS1();
-static int draw_STATS2();
-static int draw_STATS3();
-static int draw_STATS4();
-static int draw_STATS5();
-static int draw_STATS6();
-static int draw_STATS7();
-static int draw_STATS8();
-static int draw_STATS9();
-static int draw_STATSA();
-static int draw_STATSB();
 
 #ifdef TRACKSPEED
 static void draw_STATSC();
@@ -272,293 +168,6 @@ static void draw_STATSD();
 
 
 
-
-void Boot_screen(void) {
-  display.init();
-  display.setRotation(1);
-  displayHeight = display.height();
-  displayWidth = display.width();
-  display.fillScreen(GxEPD_WHITE);
-  display.setTextColor(GxEPD_BLACK);
-  //display.drawExampleBitmap(ESP_GPS_LOGO_40;, offset + 198, 6, 40, 40, GxEPD_BLACK);
-  InfoBarRtc(offset);
-  display.setFont(Fonts::Body9);
-  display.setCursor(offset, 14);
-  if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
-    //int cursor = Layout::ROW9(2);
-    display.println("EPS-GPS sleeping");
-    display.print("Go back to sleep...");
-    display.setFont(Fonts::Body12);
-    display.setCursor(offset, 60);
-    display.printf("Voltage to low: %.2f", RTC_voltage_bat);
-    display.setCursor(offset, 80);
-    display.println("Please charge lipo!");
-    display.setCursor(offset, 100);
-    display.print(RTC_Sleep_txt);
-    display.display();
-  } else {
-    display.println("ESP-GPS booting");
-    display.print(E_paper_version);
-    display.println(SW_version);
-    sdCardInfo();
-    display.setCursor(offset, 102);
-    display.printf("Logspace left : %d hour", Logtime_left(Free_space()) / 60);
-    display.display(true);
-    delay(100);
-    display.display();
-  }
-}
-void Off_screen(int choice) {  //choice 0 = old screen, otherwise Simon screens
-  //int offset=0;
-  float session_time = (millis() - start_logging_millis) / 1000;
-  display.setRotation(1);
-  display.fillScreen(GxEPD_WHITE);
-  display.setTextColor(GxEPD_BLACK);
-  int cursor = Layout::ROW9(3) + Layout::STEP12;
-  ESP_GPS_LOGO_40;
-  TOP_LEFT_TITLE_MSG("ESP-GPS saving");  //row1 14
-  DEVICE_BOOT_LOG(4);
-  display.setFont(Fonts::Body12);
-  display.setCursor(offset, cursor);
-  if (choice == 0) {
-    if (Shut_down_Save_session == true) {
-      display.println("Saving session");
-      display.setFont(Fonts::Body9);
-      display.setCursor(offset, (cursor += Layout::STEP9));
-      display.print("Time: ");
-      display.print(session_time, 0);
-      display.print(" s");
-      display.setCursor(offset, (cursor += Layout::STEP9));
-      display.print("AVG: ");
-      display.print(RTC_avg_10s, 2);
-      display.setCursor(offset + 120, cursor);
-      display.print("Dist: ");
-      display.print(Ublox.total_distance / 1000, 0);
-    } else {
-      display.println("Going back to sleep");
-    }
-  }
-  if (choice == 1) {
-    if (Shut_down_Save_session == true) {
-      display.println("Saving session");
-      display.setFont(Fonts::Body9);
-      display.setCursor(offset, (cursor += Layout::STEP9));
-      display.print("Time: ");
-      display.print(session_time, 0);
-      display.print(" s");
-      display.setCursor(offset, (cursor += Layout::STEP9));
-      display.print("AVG: ");
-      display.print(RTC_avg_10s, 2);
-      display.setCursor(offset + 120, cursor);
-      display.print("Dist: ");
-      display.print(Ublox.total_distance / 1000, 0);
-    } else {
-      display.println("Going back to sleep");
-    }
-  }
-  if (choice == 2) {  //shutdown due low bat
-    display.println("Shutdown LOW Bat");
-    display.setFont(Fonts::Body9);
-    display.print("Bat = ");
-    display.print(RTC_voltage_bat);
-    display.println(" V");
-  }
-  InfoBar(offset);
-  display.display(true);
-
-
-
-}
-//Screen in deepsleep, update bat voltage, refresh every 4000s !!
-void Sleep_screen(int choice) {
-  if (offset > 9) offset--;
-  if (offset < 1) offset++;
-  display.init();
-  display.setRotation(1);
-  displayHeight = display.height();
-  displayWidth = display.width();
-  display.fillScreen(GxEPD_WHITE);
-  display.setTextColor(GxEPD_BLACK);
-  InfoBarRtc(offset);
-  if (choice == 0) {
-    display.setFont(Fonts::Body18);
-    display.setCursor(offset, 24);
-    display.print("Dist: ");
-    display.println(RTC_distance, 0);
-    display.setCursor(offset, 56);
-    display.print("AVG: ");
-    display.println(RTC_avg_10s, 2);
-    display.setCursor(offset, 88);
-    display.print("2s: ");
-    display.print(RTC_max_2s);
-    display.display();
-  } else {
-    int row1 = 15;
-    int row = 15;
-    int row2 = row1 + row;
-    int row3 = row2 + row;
-    int row4 = row3 + row;
-    int row5 = row4 + row;
-    int row6 = row5 + row;
-    int col1 = 0 + offset;
-    int col2 = 34 + offset;
-    int col3 = 90 + offset;
-    int col4 = 146 + offset;
-
-    // Board Logo's:
-    // add special logos - funlogos
-    //Board logos
-    if (RTC_Board_Logo == 1)  //Logo's Simon Dijkstra
-      //display.drawExampleBitmap(Starboard_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 2)
-      //display.drawExampleBitmap(Fanatic_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 3)
-      //display.drawExampleBitmap(JP_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 4)
-      //display.drawExampleBitmap(NoveNove_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 5)  //Logo's Jan Scholten
-      //display.drawExampleBitmap(Mistral_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 6)
-      //display.drawExampleBitmap(Goya_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 7)
-      //display.drawExampleBitmap(Patrik_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 8)
-      //display.drawExampleBitmap(Severne_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 9)
-      //display.drawExampleBitmap(Tabou_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 10)
-      //display.drawExampleBitmap(F2_logo_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 11)  // Schwechater - Austrian Beer - by tritondm
-      //display.drawExampleBitmap(epd_bitmap_Schwechater, 195, -10, 79, 132, GxEPD_BLACK);
-    if (RTC_Board_Logo == 12)
-      //display.drawExampleBitmap(Thommen1_logo_BW, 195, 0, 64, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 13)
-      //display.drawExampleBitmap(BIC_logo_BW, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 14)
-      //display.drawExampleBitmap(Carbon_art, 195, 0, 48, 39, GxEPD_BLACK);
-    if (RTC_Board_Logo == 15)
-      //display.drawExampleBitmap(FutureFly_logo_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 16)
-      //display.drawExampleBitmap(OneHundred_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 17)
-      //display.drawExampleBitmap(FMX_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 18)
-      //display.drawExampleBitmap(Phantom_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 19)
-      //display.drawExampleBitmap(f4_foils_logoS_zwart, 195, 0, 48, 48, GxEPD_BLACK);
-    if (RTC_Board_Logo == 20)
-      //display.drawExampleBitmap(Logo_LISA, 195, 0, 48, 48, GxEPD_BLACK);
-    // Zeil Logo's:
-    if (RTC_Sail_Logo == 1)  //Logo's Simon Dijkstra
-      //display.drawExampleBitmap(GAsails_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    if (RTC_Sail_Logo == 2)
-      //display.drawExampleBitmap(DuoTone_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    if (RTC_Sail_Logo == 3)
-      //display.drawExampleBitmap(NP_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    if (RTC_Sail_Logo == 4)
-      //display.drawExampleBitmap(Pryde_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    if (RTC_Sail_Logo == 5)  //Logo's Jan Scholten
-      //display.drawExampleBitmap(Loftsails_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    if (RTC_Sail_Logo == 6)
-      //display.drawExampleBitmap(Gunsails_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    if (RTC_Sail_Logo == 7)
-      //display.drawExampleBitmap(Point7_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    if (RTC_Sail_Logo == 8)
-      //display.drawExampleBitmap(Simmer_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    if (RTC_Sail_Logo == 9)
-      //display.drawExampleBitmap(Naish_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    if (RTC_Sail_Logo == 10) {
-      //display.drawExampleBitmap(Severne_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    }
-    if (RTC_Sail_Logo == 11) {
-      //display.drawExampleBitmap(S2maui_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    }
-    if (RTC_Sail_Logo == 12) {
-      //display.drawExampleBitmap(North_Sails_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    }
-    if (RTC_Sail_Logo == 13) {
-      //display.drawExampleBitmap(Challenger_Sails_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);
-    }
-    if (RTC_Sail_Logo == 14) {
-      //display.drawExampleBitmap(Phantom_logoS_zwart, 195, 50, 48, 30, GxEPD_BLACK);  //Patrik_logoS_zwart
-    }
-    if (RTC_Sail_Logo == 15) {
-      //display.drawExampleBitmap(Patrik_logoS_zwart, 195, 50, 48, 48, GxEPD_BLACK);  //Patrik_logoS_zwart
-    }
-    if (RTC_Sail_Logo == 16) {
-      //display.drawExampleBitmap(Logo_LISA_vertical, 195, 50, 48, 48, GxEPD_BLACK);  //Patrik_logoS_zwart
-    }
-    display.setCursor(col1, 105);  // was 121
-    display.setFont(&SF_Distant_Galaxy9pt7b);
-    display.print(RTC_Sleep_txt);
-
-    display.setRotation(0);
-    display.setCursor(30, 249);  //was 30, 249
-    display.setFont(Fonts::Small6);
-    if ((int)(calibration_speed * 100000) == 194) display.print("speed in knots");  //1.94384449 m/s to knots !!!
-    if ((int)(calibration_speed * 1000000) == 3600) display.print("speed in km/h");
-
-    display.setRotation(1);
-    // left column
-    display.setFont(Fonts::Mono9);
-    display.setCursor(col1, row1);
-    display.print("AV:");
-    display.setCursor(col1, row2);
-    display.print("R1:");
-    display.setCursor(col1, row3);
-    display.print("R2:");
-    display.setCursor(col1, row4);
-    display.print("R3:");
-    display.setCursor(col1, row5);
-    display.print("R4:");
-    display.setCursor(col1, row6);
-    display.print("R5:");
-
-    display.setFont(Fonts::Body9);
-    display.setCursor(col2, row1);
-    display.println(RTC_avg_10s, 2);
-    display.setCursor(col2, row2);
-    display.println(RTC_R1_10s, 2);
-    display.setCursor(col2, row3);
-    display.println(RTC_R2_10s, 2);
-    display.setCursor(col2, row4);
-    display.println(RTC_R3_10s, 2);
-    display.setCursor(col2, row5);
-    display.println(RTC_R4_10s, 2);
-    display.setCursor(col2, row6);
-    display.println(RTC_R5_10s, 2);
-
-    // right column
-    display.setFont(Fonts::Mono9);
-    display.setCursor(col3, row1);
-    display.print("2sec:");
-    display.setCursor(col3, row2);
-    display.print("Dist:");
-    display.setCursor(col3, row3);
-    display.print("Alph:");
-    display.setCursor(col3, row4);
-    display.print("1h:");  //
-    display.setCursor(col3, row5);
-    display.print("NM:");
-    display.setCursor(col3, row6);
-    display.print("500m:");
-
-    display.setFont(Fonts::Body9);
-    display.setCursor(col4, row1);
-    display.println(RTC_max_2s, 2);
-    display.setCursor(col4, row2);
-    display.println(RTC_distance, 2);
-    display.setCursor(col4, row3);
-    display.println(RTC_alp, 2);
-    display.setCursor(col4, row4);
-    display.println(RTC_1h, 2);  //
-    display.setCursor(col4, row5);
-    display.println(RTC_mile, 2);
-    display.setCursor(col4, row6);
-    display.println(RTC_500m, 2);
-    display.display();
-  }
-}
 int update_time() {
   int ret = 0;
   if (!NTP_time_set) {
@@ -586,6 +195,8 @@ void Bat_level(int X_offset, int Y_offset) {
     display.fillRect(X_offset + 2, Y_offset + 7, 8, (int)bat_symbol, GxEPD_WHITE);
   }
 }
+
+
 void Bat_level_Simon(int offset) {
   float bat_perc = 100 * (1 - (VOLTAGE_100 - RTC_voltage_bat) / (VOLTAGE_100 - VOLTAGE_0));
   if (bat_perc < 0) bat_perc = 0;
@@ -615,6 +226,8 @@ void Bat_level_Simon(int offset) {
   display.print(int(bat_perc));
   display.print("%");
 }
+
+
 void Sats_level(int offset) {
   if (!ubxMessage.monVER.swVersion[0]) return;
   // int circelL = 5;
@@ -633,6 +246,8 @@ void M8_M10(int offset) {
   display.setCursor(offset + 60, INFO_BAR_ROW);
   display.print(gpsChip(0));
 }
+
+
 int Time(int offset) {
   if (!update_time()) {
     display.setFont(Fonts::Body9);
@@ -647,12 +262,16 @@ int TimeRtc(int offset) {
   display.printf("%d:%d", RTC_hour, RTC_min);
   return 0;
 }
+
+
 int DateTimeRtc(int offset) {
   display.setFont(Fonts::Body9);
   display.setCursor(offset, INFO_BAR_ROW);
   display.printf("%02d:%02d %02d-%02d-%02d", RTC_hour, RTC_min, RTC_day, RTC_month, RTC_year);
   return 0;
 }
+
+
 void InfoBar(int offset) {
   Bat_level_Simon(offset);
   Sats_level(offset);
@@ -673,64 +292,17 @@ void Speed_in_Unit(int offset) {
   if ((int)(calibration_speed * 1000000) == 3600) display.print("speed in km/h");
   display.setRotation(1);
 }
+
 void sdCardInfo(void) {
   if (sdOK) display.printf("SD : %d Mb\n", freeSpace);
   if (LITTLEFS_OK) display.printf("Local : %d kb\n", (LITTLEFS.totalBytes() - LITTLEFS.usedBytes()) / 1024);
-  // display.setCursor(offset,102);
-  // display.printf("Logspace left : %d hour",Logtime_left(Free_space())/60);
 }
-void Stats_4lines(String Message1, String Message2, String Message3, String Message4, float Value1, float Value2, float Value3, float Value4) {
-#define STAT4_ROW2 150
-#define DIS_WIDTH 240
-  display.setCursor(offset, Layout::ROW18(1));
-  display.setFont(Fonts::Body18);
-  display.print(Message1);
-  display.setCursor(STAT4_ROW2, Layout::ROW18(1));
-  // display.setFont(Fonts::Body18);
-  if (Value1 < 100.0) display.println(Value1, 2);
-  else if (Value1 < 1000.0) display.println(Value1, 1);
-  else display.println(Value1, 0);
-  display.setCursor(offset, Layout::ROW18(2));
-  // display.setFont(Fonts::Body12);
-  display.print(Message2);
-  display.setCursor(STAT4_ROW2, Layout::ROW18(2));
-  // display.setFont(Fonts::Body18);
-  display.println(Value2, 2);
-  display.setCursor(offset, Layout::ROW18(3));
-  //display.setFont(Fonts::Body12);
-  display.print(Message3);
-  display.setCursor(STAT4_ROW2, Layout::ROW18(3));
-  // display.setFont(Fonts::Body18);
-  display.println(Value3, 2);
-  display.setCursor(offset, Layout::ROW18(4));
-  //display.setFont(Fonts::Body12);
-  display.print(Message4);
-  display.setCursor(STAT4_ROW2, Layout::ROW18(4));
-  // if(Value4<0) display.print("-");
-  //display.setFont(Fonts::Body18);
-  //if(Value4>=0) display.println(Value4,2);
-  display.println(Value4, 2);
-}
-void Stats_2s_3_lines(String Message1, String Message2, String Message3, float Value1, float Value2, float Value3) {
-  display.setFont(Fonts::Body12);
-  display.setCursor(offset, Layout::ROW18(1));
-  display.print("2l: ");
-  display.setFont(Fonts::Body18);
-  display.print(S2.display_last_run * calibration_speed, 1);  //last 2s max from rundisplay.print(S2.avg_speed[9]*calibration_speed);
-  display.setFont(Fonts::Body12);
-  display.setCursor(120 + offset % 2, Layout::ROW18(1));  //zodat SXX niet groter wordt dan 244 pix
-  display.print("2s: ");
-  display.setFont(Fonts::Body18);
-  display.print(S2.display_speed[9] * calibration_speed);  //best 2s, was avg_speed[9]
-  display.setCursor(offset, Layout::ROW18(2));
-  display.print(Message1);
-  display.println(Value1);  //best 10s(Fast), was avg_speed[9]
-  display.setCursor(offset, Layout::ROW18(3));
-  display.print(Message2);
-  display.println(Value2);  //langzaamste 10s(Slow) run van de sessie
-  display.setCursor(offset, Layout::ROW18(4));
-  display.print(Message3);
-  display.println(Value3);  //average 5*10s
+
+
+static void printValueSmart(float v) {
+  if (v < 100.0f)      display.println(v, 2);
+  else if (v < 1000.0f) display.println(v, 1);
+  else                 display.println(v, 0);
 }
 
 
@@ -743,109 +315,140 @@ void Stats_2s_3_lines(String Message1, String Message2, String Message3, float V
 
 
 
-
-
-
-
-
-void Update_screen(int screen) {
-  static int count, old_screen, update_delay;
+void Update_screen(int screen)
+{
+  static int count = 0;
+  static int old_screen = -1;
+  static int update_delay = 0;
 
   update_time();
   update_epaper = 1;
 
+  // subtle horizontal wobble
   offset += ((count / 4) % 20 < 10) ? 1 : -1;
   if (offset < 0 || offset > 10) offset = 0;
 
   int cursor = 0;
 
+  // allow screen to prepare data
+  ScreenDrawTable[screen]();
+
   display.firstPage();
   do {
     display.fillScreen(GxEPD_WHITE);
 
-    if (screen != SPEED && screen != STATS9 && screen != STATS8 &&
-        screen != STATSA && screen != STATSD)
-      InfoBar(offset);
-
-    if (screen == BOOT_SCREEN) {
-      update_delay = 1000;
-      ESP_GPS_LOGO_40;
-      TOP_LEFT_TITLE_MSG("ESP-GPS config");
-      DEVICE_BOOT_LOG(234);
-      if (screen != old_screen) count = 0;
-      Speed_in_Unit(offset);
+    // Chrome everywhere except pure speed/stats
+    if (screen != SPEED &&
+        screen != STATS9 &&
+        screen != STATS8 &&
+        screen != STATSA &&
+        screen != STATSD) {
+      drawChrome(offset, false);
     }
 
-    if (screen == GPS_INIT_SCREEN) {
-      update_delay = 100;
-      ESP_GPS_LOGO_40;
-      TOP_LEFT_TITLE_MSG("ESP-GPS GPS init");
-      DEVICE_BOOT_LOG(24);
+    switch (screen) {
 
-      display.setFont(Fonts::Body12);
-      if (config.ublox_type == 0xFF) {
-        display.setCursor(offset, cursor = Layout::ROW9(4) + Layout::STEP12);
-        display.print("Auto detect gps-type");
-      } else if (!ubxMessage.monVER.hwVersion[0]) {
-        display.setCursor(offset, cursor = Layout::ROW9(3) + Layout::STEP12);
-        display.println("Gps initializing");
-        if (config.M10_high_nav == M10_HIGH_NAV_RATE) display.println("M10 high nav mode !");
-        if (config.M10_high_nav == M10_DEFAULT_NAV)  display.println("M10 default nav mode");
-      }
+      // --------------------------------------------------
+      case BOOT_SCREEN:
+        update_delay = 1000;
+        ESP_GPS_LOGO_40;
+        drawTopLeftTitle("ESP-GPS config");
+        device_boot_log(234);
+        Speed_in_Unit(offset);
+        if (screen != old_screen) count = 0;
+        break;
 
-      if (screen != old_screen) count = 0;
-      Speed_in_Unit(offset);
+      // --------------------------------------------------
+      case GPS_INIT_SCREEN:
+        update_delay = 100;
+        ESP_GPS_LOGO_40;
+        drawTopLeftTitle("ESP-GPS GPS init");
+        device_boot_log(24);
+
+        display.setFont(Fonts::Body12);
+
+        if (config.ublox_type == 0xFF) {
+          display.setCursor(offset,
+            cursor = Layout::ROW9(4) + Layout::STEP12);
+          display.print("Auto detect gps-type");
+        }
+        else if (!ubxMessage.monVER.hwVersion[0]) {
+          display.setCursor(offset,
+            cursor = Layout::ROW9(3) + Layout::STEP12);
+          display.println("Gps initializing");
+
+          if (config.M10_high_nav == M10_HIGH_NAV_RATE)
+            display.println("M10 high nav mode !");
+          if (config.M10_high_nav == M10_DEFAULT_NAV)
+            display.println("M10 default nav mode");
+        }
+
+        Speed_in_Unit(offset);
+        if (screen != old_screen) count = 0;
+        break;
+
+      default:
+        break;
     }
 
   } while (display.nextPage());
 
-  if (screen == BOOT_SCREEN) delay(1000);
+  if (screen == BOOT_SCREEN)
+    delay(1000);
 
+  // ==================================================
+  // WIFI SCREENS (not paged)
+  // ==================================================
 
-
-    if (screen == WIFI_ON) {
+  if (screen == WIFI_ON) {
     update_delay = 100;
     offset += (count % 20 < 10) ? 1 : -1;
 
     ESP_GPS_LOGO_40;
-    TOP_LEFT_TITLE_MSG("ESP-GPS connect");
-    DEVICE_BOOT_LOG(2);
+    drawTopLeftTitle("ESP-GPS connect");
+    device_boot_log(2);
 
     if (!SoftAP_connection) {
       display.setCursor(offset, 102);
-      display.printf("Logspace left : %d hour", Logtime_left(Free_space()) / 60);
+      display.printf("Logspace left : %d hour",
+        Logtime_left(Free_space()) / 60);
     }
 
-    if (Wifi_on == 1) {
+    if (Wifi_on) {
       display.setFont(Fonts::Body12);
-      display.setCursor(offset, cursor = Layout::ROW9(3) + Layout::STEP12);
+      display.setCursor(offset,
+        cursor = Layout::ROW9(3) + Layout::STEP12);
       display.print("Ssid: ");
       display.print(SoftAP_connection ? "ESP32AP" : actual_ssid);
 
       display.setFont(Fonts::Body9);
       display.setCursor(offset, cursor += Layout::STEP9);
+
       if (SoftAP_connection) {
         display.print("Password: password");
         display.setCursor(offset, cursor += Layout::STEP9);
       }
-      display.printf("http://%s", IP_adress.c_str());
 
-    } else {
+      display.printf("http://%s", IP_adress.c_str());
+    }
+    else {
       display.fillRect(0, 0, 250, 122, GxEPD_WHITE);
 
       ESP_GPS_LOGO_40;
-      TOP_LEFT_TITLE_MSG("ESP-GPS ready");
-      DEVICE_BOOT_LOG(24);
+      drawTopLeftTitle("ESP-GPS ready");
+      device_boot_log(24);
 
       display.setFont(Fonts::Body12);
-      display.setCursor(offset, cursor = Layout::ROW9(4) + Layout::STEP12);
+      display.setCursor(offset,
+        cursor = Layout::ROW9(4) + Layout::STEP12);
 
       if (ubxMessage.navPvt.numSV < 5) {
         display.println("Waiting for Sat >=5");
         display.setFont(Fonts::Body9);
         display.setCursor(offset, 102);
-        display.println("Please go outside...       ");
-      } else {
+        display.println("Please go outside...");
+      }
+      else {
         display.println("Ready for action");
         display.setFont(Fonts::Body9);
         display.setCursor(offset, cursor += Layout::STEP9);
@@ -858,22 +461,25 @@ void Update_screen(int screen) {
 
         Speed_in_Unit(offset);
       }
-      InfoBar(offset);
+
+      drawChrome(offset, false);
     }
   }
 
-
-  if (screen == WIFI_STATION) {
+  else if (screen == WIFI_STATION) {
     update_delay = 100;
+
     ESP_GPS_LOGO_40;
-    TOP_LEFT_TITLE_MSG("ESP-GPS try to connect");
-    DEVICE_BOOT_LOG(2);
+    drawTopLeftTitle("ESP-GPS try to connect");
+    device_boot_log(2);
 
     display.setCursor(offset, 102);
-    display.printf("Logspace left : %d hour", Logtime_left(Free_space()) / 60);
+    display.printf("Logspace left : %d hour",
+      Logtime_left(Free_space()) / 60);
 
     display.setFont(Fonts::Body12);
-    display.setCursor(offset, cursor = Layout::ROW9(3) + Layout::STEP12);
+    display.setCursor(offset,
+      cursor = Layout::ROW9(3) + Layout::STEP12);
     display.print(actual_ssid);
 
     display.setFont(Fonts::Body9);
@@ -883,14 +489,16 @@ void Update_screen(int screen) {
     if (screen != old_screen) count = 0;
   }
 
-  if (screen == WIFI_SOFT_AP) {
+  else if (screen == WIFI_SOFT_AP) {
     update_delay = 100;
+
     ESP_GPS_LOGO_40;
-    TOP_LEFT_TITLE_MSG("Connect to ESP-GPS");
-    DEVICE_BOOT_LOG(2);
+    drawTopLeftTitle("Connect to ESP-GPS");
+    device_boot_log(2);
 
     display.setFont(Fonts::Body12);
-    display.setCursor(offset, cursor = Layout::ROW9(3) + Layout::STEP12);
+    display.setCursor(offset,
+      cursor = Layout::ROW9(3) + Layout::STEP12);
     display.print("Ssid: ESP32AP");
 
     display.setFont(Fonts::Body9);
@@ -898,259 +506,23 @@ void Update_screen(int screen) {
     display.print("Password: password");
 
     display.setCursor(offset, cursor += Layout::STEP9);
-    display.printf("http://%s/ in %ds\n", IP_adress.c_str(), wifi_search);
+    display.printf("http://%s/ in %ds",
+      IP_adress.c_str(), wifi_search);
 
     if (screen != old_screen) count = 0;
   }
 
- if (screen == SPEED) {
-  update_delay = draw_SPEED();
-}
-
-
-  if (screen == TROUBLE) {
+  else if (screen == TROUBLE) {
     display.setFont(Fonts::Body12);
     display.setCursor(offset, Layout::ROW12(1));
     display.println("No GPS frames for");
-    display.println("more then 10 s.... ");
+    display.println("more then 10 s....");
   }
 
-  if (screen >= STATS1) {
-    display.setFont(Fonts::Small6);
-    display.setCursor(display.width() - 20, INFO_BAR_TOP);
-    display.print((char)screen);
-  }
-
-  if (screen == STATS1)
-    Stats_2s_3_lines("10sF: ", "10sS: ", "AVG:  ",
-                     S10.display_speed[9] * calibration_speed,
-                     S10.display_speed[5] * calibration_speed,
-                     S10.avg_5runs * calibration_speed);
-
-  if (screen == STATS2) {
-    static bool toggle;
-    Stats_4lines("Dist: ", "1852m: ", toggle ? "3600s: " : "1800s: ", "Alfa: ",
-                 Ublox.total_distance / 1000,
-                 M1852.display_speed[9] * calibration_speed,
-                 (toggle ? S3600.display_max_speed : S1800.display_max_speed) * calibration_speed,
-                 A500.avg_speed[9] * calibration_speed);
-    toggle = !toggle;
-  }
-
-  if (screen == STATS3)
-    Stats_4lines("100m:", "250m:", "500m:", "Alfa:",
-                 M100.display_speed[9] * calibration_speed,
-                 M250.display_speed[9] * calibration_speed,
-                 M500.display_speed[9] * calibration_speed,
-                 A500.avg_speed[9] * calibration_speed);
-
- 
+  old_screen = screen;
+  count++;
 
 
-
-
-
-
-    if (screen == STATS4) {
-    display.setFont(Fonts::Body12);
-    display.setCursor(offset, Layout::ROW18(1));
-    display.print("10s Avg: ");
-    display.setFont(Fonts::Body18);
-    display.println(s10.avg_5runs * calibration_speed, 2);
-
-    for (int i = 9; i > 6; i--) {
-      int y = Layout::ROW18(2) + (9 - i) * Layout::STEP18;
-
-      display.setCursor(offset, y);
-      display.setFont(Fonts::Body12);
-      display.print("R"); display.print(10 - i); display.print(" ");
-      display.setFont(Fonts::Body18);
-      display.print(s10.display_speed[i] * calibration_speed, 1);
-
-      display.setCursor(offset + 118, y);
-      if (i > 7) {
-        display.setFont(Fonts::Body12);
-        display.print(" R"); display.print(13 - i); display.print(" ");
-        display.setFont(Fonts::Body18);
-        display.print(s10.display_speed[i - 3] * calibration_speed, 1);
-      } else {
-        display.print(time_now);
-      }
-    }
-  }
-
-
-    if (screen == STATS5) {
-    display.setFont(Fonts::Body12);
-    display.setCursor(offset, Layout::ROW18(1));
-    display.print("Last Alfa stats ! ");
-
-    for (int i = 9; i > 6; i--) {
-      int y = Layout::ROW18(2) + (9 - i) * Layout::STEP18;
-
-      display.setCursor(offset, y);
-      display.setFont(Fonts::Body12);
-      display.print("A"); display.print(10 - i); display.print(" ");
-      display.setFont(Fonts::Body18);
-      display.print(a500.avg_speed[i] * calibration_speed, 1);
-
-      if (i > 7) {
-        display.setCursor(offset + 118, y);
-        display.setFont(Fonts::Body12);
-        display.print(" A"); display.print(13 - i); display.print(" ");
-        display.setFont(Fonts::Body18);
-        display.print(a500.avg_speed[i - 3] * calibration_speed, 1);
-      }
-    }
-  }
-
-
-  if (screen == STATS6) {
-    Serial.println("STATS6_Simon_screen");
-
-    int row1 = 15, step = 17;
-    int row[6] = { row1,
-                   row1 + step,
-                   row1 + 2 * step,
-                   row1 + 3 * step,
-                   row1 + 4 * step,
-                   row1 + 5 * step };
-
-    int col1 = offset;
-    int col2 = offset + 46;
-    int col3 = offset + 114;
-    int col4 = offset + 182;
-
-    float s10[6] = {
-      S10.avg_5runs * calibration_speed,
-      S10.display_speed[9] * calibration_speed,
-      S10.display_speed[8] * calibration_speed,
-      S10.display_speed[7] * calibration_speed,
-      S10.display_speed[6] * calibration_speed,
-      S10.display_speed[5] * calibration_speed
-    };
-
-    float right[6] = {
-      S2.display_speed[9] * calibration_speed,
-      S10.s_max_speed * calibration_speed,
-      Ublox.total_distance / 1000000.0,
-      A500.avg_speed[9] * calibration_speed,
-      M500.display_speed[9] * calibration_speed,
-      M1852.display_speed[9] * calibration_speed
-    };
-
-    const char *left_lbl[6]  = { "AV:", "R1:", "R2:", "R3:", "R4:", "R5:" };
-    const char *right_lbl[6] = { "2sec:", "Prv :", "Dist:", "Alp :", "500m:", "NM:" };
-
-    display.setFont(Fonts::Mono12);
-    for (int i = 0; i < 6; i++) {
-      display.setCursor(col1, row[i]); display.print(left_lbl[i]);
-      display.setCursor(col3, row[i]); display.print(right_lbl[i]);
-    }
-
-    display.setFont(Fonts::Body12);
-    for (int i = 0; i < 6; i++) {
-      display.setCursor(col2, row[i]); display.println(s10[i], 2);
-      display.setCursor(col4, row[i]); display.println(right[i], i == 2 ? 0 : 2);
-    }
-
-    float prv = S10.s_max_speed * calibration_speed;
-    int line = row[5];
-    for (int i = 1; i < 6; i++)
-      if (prv > s10[i]) { line = row[i - 1]; break; }
-
-    display.fillRect(0, line + 2, col3 - 10, 2, GxEPD_BLACK);
-  }
-
-    if (screen == STATS7) {
-    Serial.println("STATS7_Simon_bar graph");
-
-    const int posX = 5, posY = INFO_BAR_TOP, GraphWidth = 215;
-    const int MaxBars = NR_OF_BAR;
-    int barSpace = 2, barWidth = 3, barPitch;
-    static int r;
-
-    int top = S10.display_speed[9] * calibration_speed;
-    int max_bar = max(int(top / 5 + 1) * 5, 24);
-    int step = (max_bar > 45) ? 5 : 3;
-    int min_bar = max_bar - step * 8;
-    float scale = 80.0f / (max_bar - min_bar);
-
-    display.setFont(Fonts::Body9);
-    display.setCursor(0, 15);
-    display.println("Graph : Speed runs (10sec)");
-
-    r = run_count % MaxBars + 1;
-
-    display.setFont(Fonts::Small6);
-    for (int i = 0; i < 9; i++) {
-      int y = posY - i * 10;
-      display.fillRect(offset + posX, y, GraphWidth, 1, GxEPD_BLACK);
-      display.setCursor(offset + 225, y);
-      display.print(min_bar + i * step);
-    }
-
-    display.setCursor(0, 26);
-    display.print("R1-R5:");
-    for (int i = 9; i > 4; i--) {
-      display.print(S10.display_speed[i] * calibration_speed);
-      display.print(i > 5 ? " " : "");
-    }
-    display.println();
-
-    int bars = (run_count < MaxBars) ? r : MaxBars;
-    barWidth = max((GraphWidth - bars * barSpace) / bars, 3);
-    barPitch = barWidth + barSpace;
-
-    for (int i = 0; i < bars; i++) {
-      int idx = (run_count < MaxBars) ? i : (i + r) % MaxBars;
-      int h = (S10.speed_run[idx] * calibration_speed - min_bar) * scale;
-      display.fillRect(offset + posX + i * barPitch, posY - h, barWidth, h, GxEPD_BLACK);
-    }
-  }
-
-
-     if (screen == STATS8 || screen == STATS9 || screen == STATSA) {
-      display.setFont(Fonts::Body12);
-
-      for (int i = 9; i > 4; i--) {
-        int y = 24 * (10 - i);
-        display.setCursor(offset, y);
-
-        if (screen == STATS8) {
-          display.print("500 "); display.print(10 - i); display.print(": ");
-          display.print(M500.avg_speed[i] * calibration_speed, 2);
-          display.print(" @");
-          display.print(M500.time_hour[i]);
-          display.print(M500.time_min[i] < 10 ? ":0" : ":");
-          display.print(M500.time_min[i]);
-        }
-
-        else if (screen == STATS9) {
-          display.print("Run "); display.print(10 - i); display.print(": ");
-          display.print(S10.avg_speed[i] * calibration_speed, 2);
-          display.print(" @");
-          display.print(S10.time_hour[i]);
-          display.print(S10.time_min[i] < 10 ? ":0" : ":");
-          display.print(S10.time_min[i]);
-        }
-
-        else { // STATSA
-          display.print("2s: "); display.print(10 - i); display.print(": ");
-          display.print(S2.avg_speed[i] * calibration_speed, 2);
-          display.print(" @");
-          display.print(S2.time_hour[i]);
-          display.print(S2.time_min[i] < 10 ? ":0" : ":");
-          display.print(S2.time_min[i]);
-        }
-      }
-    }
-
-    if (screen == STATSB)
-      Stats_2s_3_lines("10sLast: ", "10sBest: ", "AVG :  ",
-                       S10.display_last_run * calibration_speed,
-                       S10.display_speed[9] * calibration_speed,
-                       S10.avg_5runs * calibration_speed);
 
     #ifdef TRACKSPEED
         if (screen == STATSC)
