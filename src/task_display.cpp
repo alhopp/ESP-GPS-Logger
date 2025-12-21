@@ -31,37 +31,20 @@ static void updateDisplay();
 // ----------------------------------------------------
 void taskTwo(void* parameter)
 {
-
-
    Serial.println("[TASK2] display task entered");
 
-      display.init(115200);
-        display.setRotation(1);//
+      
+      //      display.setFont(&FreeSansBold18pt7b);
 
-        display.firstPage();
-        do {
-            display.fillScreen(GxEPD_WHITE);
-            display.setTextColor(GxEPD_BLACK);
-            display.setFont(&FreeSansBold18pt7b);
-            display.setCursor(10, 40);
-            display.print("HELLO");
-       } while (display.nextPage());
-
-        Off_screen(1);
-
-  Serial.println("[TASK2] display refresh done");
-
-  // park task forever
-  for (;;) {
-    vTaskDelay(pdMS_TO_TICKS(1000));
-  }
-    Serial.println("[TASK2] display refresh done");
+    Boot_screen ();
 
     // park task forever
     for (;;) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+      vTaskDelay(pdMS_TO_TICKS(1000));
     }
+    Serial.println("[TASK2] display refresh done");
 
+  
 
   while (true) {
 

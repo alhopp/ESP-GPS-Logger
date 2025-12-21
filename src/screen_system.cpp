@@ -98,50 +98,60 @@ void Off_screen(int choice)
 
 void Boot_screen(void)
 {
-  display.init();
-  beginScreen();
 
-  displayWidth  = display.width();
-  displayHeight = display.height();
+  display.firstPage();
+  do {
+    // Prepare framebuffer
+    beginScreen();
 
-  drawChrome(offset, true);
+    // Draw static chrome (RTC / boot mode)
+    drawChrome(offset, true);
 
-  display.setFont(Fonts::Body9);
-  display.setCursor(offset, 14);
+    // Header text
+    display.setFont(Fonts::Body9);
+    display.setCursor(offset, 14);
+ 
 
-  if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
+    // ------------------------------
+    // LOW BATTERY PATH
+    // ------------------------------
+    if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
 
-    display.println("EPS-GPS sleeping");
-    display.print("Go back to sleep...");
+      display.println("ESP-GPS sleeping");
+      display.print("Go back to sleep...");
 
-    display.setFont(Fonts::Body12);
-    display.setCursor(offset, 60);
-    display.printf("Voltage too low: %.2f", RTC_voltage_bat);
+      display.setFont(Fonts::Body12);
+      display.setCursor(offset, 60);
+      display.printf("Voltage too low: %.2f", RTC_voltage_bat);
 
-    display.setCursor(offset, 80);
-    display.println("Please charge lipo!");
+      display.setCursor(offset, 80);
+      display.println("Please charge lipo!");
 
-    display.setCursor(offset, 100);
-    display.print(RTC_Sleep_txt);
+      display.setCursor(offset, 100);
+      display.print(RTC_Sleep_txt);
 
-    display.display();
-    return;
-  }
+      // Draw once, no follow-on redraw
+      break;
+    }
 
-  display.println("ESP-GPS booting");
-  display.print(E_paper_version);
-  display.println(SW_version);
+    // ------------------------------
+    // NORMAL BOOT PATH
+    // ------------------------------
+    display.println("ESP-GPS booting");
+    display.print(E_paper_version);
+    display.println(SW_version);
 
-  sdCardInfo();
+    sdCardInfo();
 
-  display.setCursor(offset, 102);
-  display.printf("Logspace left : %d hour",
-                 Logtime_left(Free_space()) / 60);
+    display.setCursor(offset, 102);
+    display.printf(
+      "Logspace left : %d hour",
+      Logtime_left(Free_space()) / 60
+    );
 
-  display.display(true);
-  delay(100);
-  display.display();
+  } while (display.nextPage());
 }
+
 
 /* =========================================================
  * Sleep screen (RTC summary)
@@ -152,11 +162,9 @@ void Sleep_screen(int choice)
   // keep offset sane
   offset = constrain(offset, 1, 9);
 
-  display.init();
+//  display.init();
+  Serial.println("[DISPLAY] init()");
   beginScreen();
-
-  displayWidth  = display.width();
-  displayHeight = display.height();
 
   drawChrome(offset, true);
 

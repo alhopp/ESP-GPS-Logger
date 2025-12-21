@@ -9,7 +9,8 @@
 #include "task_gps.h"
 #include "task_display.h"
 #include "system_phase.h"
-
+#include "E_paper.h"
+#include "screen_system.h"
 
 static void startTasks();
 extern RTC_DATA_ATTR int RTC_Sail_Logo;
@@ -19,10 +20,13 @@ bool sleep_mode=false;
 extern bool reset_boot; 
 
 
+
 void setup() {
   Serial.begin(115200);
   delay(200);
 
+  display.init();
+  
   PHASE(PH_BOOT_START, "systemInitEarly");
   systemInitEarly();
 
