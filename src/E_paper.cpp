@@ -7,11 +7,14 @@
 #include <LittleFS.h>
 #include "screen_speed.h"
 #include "screen_ui.h"
+#include "SD_card.h"
+#include "Ublox.h"
 
 GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
   GxEPD2_213_B74(ELINK_SS, ELINK_DC, ELINK_RESET, ELINK_BUSY)
 );
 
+int device_boot_log(int rows, int ws);
 
 
 static int update_epaper = 2;
@@ -42,8 +45,8 @@ namespace Layout {
 
 // bottom area 15px reserved to info bar
 #define INFO_BAR_HEIGHT 15
-#define INFO_BAR_TOP (displayHeight - INFO_BAR_HEIGHT)
-#define INFO_BAR_ROW (displayHeight - 2)
+#define INFO_BAR_TOP (display.height() - INFO_BAR_HEIGHT)
+#define INFO_BAR_ROW (display.height() - 2)
 
 //display.setFont(Fonts::Body9);
 #define TITLE_9PT \
@@ -64,6 +67,8 @@ namespace Layout {
   } while (0)
 
 
+
+
 #if defined(EPD_213_B74)
   const char E_paper_version[] = "E-paper 213B74";
 #elif defined(EPD_213_B73)
@@ -75,11 +80,155 @@ namespace Layout {
 #endif
 
 
+
+int device_boot_log(int rows, int ws)
+{
+  int r = 2;
+  int row = Layout::H9 + Layout::SPACING;
+
+  display.setCursor(offset, Layout::ROW9(2));
+  if (ws) delay(ws);
+  display.print(E_paper_version);
+  display.print(SW_version);
+
+  if (rows == 2 || rows == 23 || rows == 24 || rows == 234) {
+    display.setCursor(offset, Layout::ROW9(3));
+    if (ws) delay(ws);
+    sdCardInfo();
+  }
+
+  if (rows == 3 || rows == 23 || rows == 34 || rows == 234) {
+    r = (rows == 23 || rows == 34) ? 3 : (rows == 234 ? 4 : 2);
+    display.setCursor(offset,
+      (rows == 234 || rows == 23 || rows == 34)
+        ? Layout::ROW9(4)
+        : Layout::ROW9(3));
+    //display.printf("Display size %dx%d\n", display.width(), display.height());
+  }
+
+  if ((rows == 4 || rows == 24 || rows == 34 || rows == 234)
+      && ubxMessage.monVER.hwVersion[0]) {
+    display.setCursor(offset,
+      rows == 24 || rows == 34
+        ? Layout::ROW9(4)
+        : (rows == 234 ? Layout::ROW9(5) : Layout::ROW9(3)));
+    display.printf("Gps %s at %dHz", gpsChip(1), config.sample_rate);
+  }
+
+  return r;
+}
+
+
+
+  void Speed_font0(
+    const char* message1,
+    const char* message2,
+    float speed1,
+    float speed2,
+    float speed,
+    int screen
+) {
+    const int decimals_small = (screen == 2) ? 0 : 1;
+
+    display.setFont(Fonts::Body12);
+    display.setTextColor(GxEPD_BLACK);
+
+    display.setCursor(offset, Layout::ROW12(1));
+    display.print(message1);
+
+    if (screen <= 2) {
+        display.setFont(Fonts::Body18);
+        display.print(speed1, decimals_small);
+    }
+
+    display.setFont(Fonts::Body12);
+    display.setCursor(offset + 122, Layout::ROW12(1));
+    display.print(message2);
+
+    display.setFont(Fonts::Body18);
+    display.print(speed2, decimals_small);
+
+    display.setFont(Fonts::SpeedXL);
+    display.setCursor(offset, 120);
+    display.print(speed, 1);
+}
+
+
+void Speed_font1(
+    const char* message1,
+    const char* message2,
+    float speed1,
+    float speed2,
+    float speed,
+    int screen
+) {
+    display.setCursor(offset, 36);
+
+    if (screen == 0) {
+        display.setFont(Fonts::SpeedM);
+        display.print(speed1, 1);
+
+        display.setFont(Fonts::Body12);
+        display.setCursor(offset + 113, 36);
+        display.print(message2);
+
+        display.setFont(Fonts::SpeedM);
+        display.print(speed2, 1);
+    }
+    else if (screen == 1) {
+        display.setFont(Fonts::Body12);
+        display.print(message1);
+
+        display.setFont(Fonts::SpeedM);
+        display.print(speed1, 0);
+
+        display.setFont(Fonts::Body12);
+        display.print(message2);
+
+        display.setFont(Fonts::SpeedM);
+        display.print(speed2, 0);
+    }
+    else if (screen == 2) {
+        display.setFont(Fonts::Body18);
+        display.print(message1);
+
+        display.setFont(Fonts::SpeedM);
+        display.print(speed1, 2);
+    }
+    else if (screen == 3) {
+        display.setFont(Fonts::Body18);
+        display.print(message1);
+    }
+
+    display.setFont(Fonts::SpeedXL);
+    display.setCursor(offset, 120);
+    display.println(speed, 1);
+}
+
+void Speed_font3(
+    const char* message1,
+    float speed
+) {
+    display.setFont(&FreeSansBold24pt7b);
+    display.setCursor(offset, 36);
+    bar_position = 40;
+    display.print(message1);
+
+    display.setCursor(offset, 120);
+    display.setFont(Fonts::SpeedXL);
+    display.print(speed, 1);
+}
+
+
+
 #ifndef T5_E_PAPER
 void Boot_screen(void){};
 void Sleep_screen(int choice){};
 void Update_screen(int screen){};
 #else
+
+#define DEVICE_BOOT_LOG(rows) device_boot_log(rows, 0)
+
 char time_now[8];
 char time_now_sec[12];
 int16_t displayWidth  = display.width();
@@ -91,8 +240,6 @@ int total_bar_length = 240;
 int run_rectangle_length = 0;
 void InfoBar(int offset);
 void InfoBarRtc(int offset);
-void sdCardInfo(void);
-const char* gpsChip(int longname);
 char bar_info[8] = "info";
 
 
@@ -122,126 +269,9 @@ static void draw_STATSD();
 #endif
 
 
-void Speed_font0(
-    const String& message1,
-    const String& message2,
-    float speed1,
-    float speed2,
-    float speed,
-    int screen
-) {
-    // -------------------------------------------------
-    // Formatting rules
-    // -------------------------------------------------
-    const int decimals_small = (screen == 2) ? 0 : 1;
-    const int decimals_big   = 1;
-
-    // -------------------------------------------------
-    // Top row: labels + small speeds
-    // -------------------------------------------------
-    display.setFont(Fonts::Body12);
-    display.setTextColor(GxEPD_BLACK);
-
-    // Left label
-    display.setCursor(offset, Layout::ROW12(1));
-    display.print(message1);
-
-    // Left value
-    if (screen <= 2) {
-        display.setFont(Fonts::Body18);
-        display.print(speed1, decimals_small);
-    }
-
-    // Right label
-    display.setFont(Fonts::Body12);
-    display.setCursor(offset + 122, Layout::ROW12(1));
-    display.print(message2);
-
-    // Right value
-    display.setFont(Fonts::Body18);
-    display.print(speed2, decimals_small);
-
-    // -------------------------------------------------
-    // Big speed (main value)
-    // -------------------------------------------------
-    display.setFont(Fonts::SpeedXL);
-    display.setCursor(offset, 120);
-    display.print(speed, decimals_big);
-}
 
 
 
-void Speed_font1(String message1, String message2, float speed1, float speed2, float speed, int screen) {
-  display.setCursor(offset, 36);
-  if (screen == 0) {                         //Run "A" AVG
-    display.setFont(Fonts::SpeedM);  //Test for bigger alfa fonts
-    display.print(speed1, 1);                //last 10s max from run
-    display.setFont(Fonts::Body12);
-    display.setCursor(offset + 113, 36);
-    display.print(message2);
-    display.setFont(Fonts::SpeedM);
-    display.print(speed2, 1);
-  } else if (screen == 1) {  //Alfa screen, Gate xx Ex xx
-    display.setFont(Fonts::Body12);
-    display.print(message1);
-    display.setFont(Fonts::SpeedM);
-    display.print(speed1, 0);
-    //display.setCursor(offset + 110, 36);
-    display.setFont(Fonts::Body12);
-    display.print(message2);
-    display.setFont(Fonts::SpeedM);
-    display.print(speed2, 0);
-  } else if (screen == 2) {  //Alfa= xx.xx
-    display.setFont(Fonts::Body18);
-    display.print(message1);
-    display.setFont(Fonts::SpeedM);
-    display.print(speed1, 2);
-  } else if (screen == 3) {  //Alfa = MISS
-    display.setFont(Fonts::Body18);
-    display.print(message1);
-  }
-  display.setFont(Fonts::SpeedXL);
-  display.setCursor(offset, 120);
-  display.println(speed, 1);
-}
-void Speed_font3(String message1, float speed) {
-  display.setFont(&FreeSansBold24pt7b);
-  display.setCursor(offset, 36);
-  bar_position = 40;
-  display.print(message1);
-  display.setCursor(offset, 120);
-  display.setFont(Fonts::SpeedXL);
-  display.print(speed, 1);
-}
-int device_boot_log(int rows, int ws) {
-  int r = 2, row = Layout::H9 + Layout::SPACING;
-  display.setCursor(offset, Layout::ROW9(2));
-  if (ws) delay(ws);
-  display.print(E_paper_version);
-  display.print(SW_version);
-  if (rows == 2 || rows == 23 || rows == 24 || rows == 234) {
-    display.setCursor(offset, Layout::ROW9(3));
-    if (ws) delay(ws);
-    sdCardInfo();
-  }
-  if (rows == 3 || rows == 23 || rows == 34 || rows == 234) {
-    r = (rows == 23 || rows == 34) ? 3 : rows == 234 ? 4
-                                                     : 2;
-    if (ws) delay(ws);
-    display.setCursor(offset, (rows == 234 || rows == 23 || rows == 34) ? Layout::ROW9(4) : Layout::ROW9(3));
-    display.printf("Display size %dx%d\n", display.width(), displayHeight);
-  }
-  if ((rows == 4 || rows == 24 || rows == 34 || rows == 234) && ubxMessage.monVER.hwVersion[0]) {
-    r = (rows == 24 || rows == 34) ? 3 : rows == 234 ? 4
-                                                     : 2;
-    if (ws) delay(ws);
-    display.setCursor(offset, rows == 24 || rows == 34 ? Layout::ROW9(4) : (rows == 234 ? Layout::ROW9(5) : Layout::ROW9(3)));
-    display.printf("Gps %s at %dHz", gpsChip(1), config.sample_rate);
-  }
-
-  return r;
-}
-#define DEVICE_BOOT_LOG(rows) device_boot_log(rows, 0)
 
 void Boot_screen(void) {
   display.init();
@@ -564,7 +594,7 @@ void Bat_level_Simon(int offset) {
   int batW = 8;
   int batL = 15;
   int posX = display.width() - batW - 6;  //was -10
-  int posY = displayHeight - batL;
+  int posY = display.height() - batL;
   int line = 2;
   int seg = 3;
   int segW = batW - 2 * line;
@@ -574,7 +604,7 @@ void Bat_level_Simon(int offset) {
   if (bat_perc < 67) display.fillRect(offset + posX - 0.25 * batW + line, posY + 0.25 * batW + line, segW, segL, GxEPD_WHITE);
   if (bat_perc < 33) display.fillRect(offset + posX - 0.25 * batW + line, posY + 0.25 * batW + line + 1 * (segL + 1), segW, segL, GxEPD_WHITE);
   if (bat_perc < 1) display.fillRect(offset + posX - 0.25 * batW + line, posY + 0.25 * batW + line + 2 * (segL + 1), segW, segL, GxEPD_WHITE);
-  //Serial.printf("info bar cursor pos: %d, display height: %d\n", INFO_BAR_ROW,displayHeight);
+  //Serial.printf("info bar cursor pos: %d, display height: %d\n", INFO_BAR_ROW,display.height());
   display.setFont(Fonts::Body9);
   //display.setCursor(display.width()-8,(INFO_BAR_ROW-ROW_9PT));
   //display.print("-");
@@ -597,40 +627,7 @@ void Sats_level(int offset) {
   display.setCursor(posX - (satnum < 10 ? 9 : 18), INFO_BAR_ROW);
   display.print(satnum);
 }
-const char* gpsChip(int longname) {
-  switch (config.ublox_type) {
-    case M8_9600BD:
-      return longname ? "M8 9.6Kbd" : "M8";
-      break;
-    case M8_38400BD:
-      return longname ? "M8 38.4Kbd" : "M8";
-      break;
-    case M8_115200BD:
-      return longname ? "M8 115.2Kbd" : "M8";
-      break;
-    case M9_9600BD:
-      return longname ? "M9 9.6Kbd" : "M9";
-      break;
-    case M9_38400BD:
-      return longname ? "M9 38.4Kbd" : "M9";
-      break;
-    case M9_115200BD:
-      return longname ? "M9 115.2Kbd" : "M9";
-      break;
-    case M10_9600BD:
-      return longname ? "M10 9.6Kbd" : "M10";
-      break;
-    case M10_38400BD:
-      return longname ? "M10 38.4Kbd" : "M10";
-      break;
-    case M10_115200BD:
-      return longname ? "M10 115.2Kbd" : "M10";
-      break;
-    default:
-      return "unknown";
-      break;
-  }
-}
+
 void M8_M10(int offset) {
   display.setFont(Fonts::Body9);
   display.setCursor(offset + 60, INFO_BAR_ROW);

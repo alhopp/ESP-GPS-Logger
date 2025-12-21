@@ -1,6 +1,7 @@
 #include "Ublox.h"
 #include "Definitions.h"
 #include <EEPROM.h>
+
 int Time_Set_OK;
 bool Nav_rate_NACK = false;
 bool High_nav_rate_ACK = false;
@@ -10,6 +11,42 @@ UBXMessage ubxMessage = {000000000000};//definition here, declaration in ublox.h
 struct tm tmstruct ;
 struct tm my_time;  // time elements structure
 time_t unix_timestamp; // a timestamp
+
+
+const char* gpsChip(int longname) {
+  switch (config.ublox_type) {
+    case M8_9600BD:
+      return longname ? "M8 9.6Kbd" : "M8";
+      break;
+    case M8_38400BD:
+      return longname ? "M8 38.4Kbd" : "M8";
+      break;
+    case M8_115200BD:
+      return longname ? "M8 115.2Kbd" : "M8";
+      break;
+    case M9_9600BD:
+      return longname ? "M9 9.6Kbd" : "M9";
+      break;
+    case M9_38400BD:
+      return longname ? "M9 38.4Kbd" : "M9";
+      break;
+    case M9_115200BD:
+      return longname ? "M9 115.2Kbd" : "M9";
+      break;
+    case M10_9600BD:
+      return longname ? "M10 9.6Kbd" : "M10";
+      break;
+    case M10_38400BD:
+      return longname ? "M10 38.4Kbd" : "M10";
+      break;
+    case M10_115200BD:
+      return longname ? "M10 115.2Kbd" : "M10";
+      break;
+    default:
+      return "unknown";
+      break;
+  }
+}
 
 void Ublox_on(){
   pinMode(UBLOX_POWER1, OUTPUT);//Power beitian //default drive strength 2, only 2.7V @ ublox gps

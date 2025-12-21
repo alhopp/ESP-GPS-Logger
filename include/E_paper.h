@@ -13,7 +13,8 @@ extern int bar_position;
 extern int total_bar_length;
 extern int bar_length;
 
-
+void sdCardInfo(void);
+int device_boot_log(int rows, int ws);
 
 
 struct UBXMessage;

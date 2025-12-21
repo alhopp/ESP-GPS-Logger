@@ -34,7 +34,7 @@ void taskTwo(void* parameter)
 
 
    Serial.println("[TASK2] display task entered");
-
+/*
         display.init(115200);
         display.setRotation(1);
 
@@ -59,7 +59,7 @@ void taskTwo(void* parameter)
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
-
+*/
 
   while (true) {
 
