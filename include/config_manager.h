@@ -2,7 +2,7 @@
 
 void initConfig();
 void ensureConfigExistsOnSD();
-
+void saveConfig();
 
 struct Config {
   float cal_bat=1.74;//calibration for read out bat voltage

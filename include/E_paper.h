@@ -36,19 +36,6 @@ class GPS_Track;
 
 
 // ============================================================================
-//  Legacy logo macros (no-op, statement-safe)
-//  These remain ONLY for backward compatibility
-// ============================================================================
-
-#ifndef ESP_GPS_LOGO_40
-#define ESP_GPS_LOGO_40 do {} while (0)
-#endif
-
-#ifndef ESP_GPS_LOGO_48
-#define ESP_GPS_LOGO_48 do {} while (0)
-#endif
-
-// ============================================================================
 //  E-paper hardware pins (public constants)
 // ============================================================================
 
@@ -193,7 +180,7 @@ extern GPS_Track M_500;
 //  Public E-paper API
 // ============================================================================
 
-void Boot_screen(void);
+
 void Off_screen(int choice);
 void Sleep_screen(int choice);
 void Update_screen(int screen);

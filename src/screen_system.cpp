@@ -6,7 +6,7 @@
 #include "Fonts.h"
 #include "screen_ui.h"
 #include "storage_manager.h"
-
+#include "esp_logo.h"
 
 /* =========================================================
  * Local helpers (cpp-only)
@@ -50,7 +50,7 @@ void Off_screen(int choice)
       (millis() - start_logging_millis) / 1000.0f;
 
   beginScreen();
-  ESP_GPS_LOGO_40;
+
 
   drawTitle("ESP-GPS saving");
   device_boot_log(4, 0);
@@ -114,42 +114,56 @@ void Boot_screen(void)
     display.setCursor(offset, 14);
  
 
-    // ------------------------------
-    // LOW BATTERY PATH
-    // ------------------------------
-    if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
+                // ------------------------------
+                // LOW BATTERY PATH
+                // ------------------------------
+                if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
 
-      display.println("ESP-GPS sleeping");
-      display.print("Go back to sleep...");
+                display.println("ESP-GPS sleeping");
+                display.print("Go back to sleep...");
 
-      display.setFont(Fonts::Body12);
-      display.setCursor(offset, 60);
-      display.printf("Voltage too low: %.2f", RTC_voltage_bat);
+                display.setFont(Fonts::Body12);
+                display.setCursor(offset, 60);
+                display.printf("Voltage too low: %.2f", RTC_voltage_bat);
 
-      display.setCursor(offset, 80);
-      display.println("Please charge lipo!");
+                display.setCursor(offset, 80);
+                display.println("Please charge lipo!");
 
-      display.setCursor(offset, 100);
-      display.print(RTC_Sleep_txt);
+                display.setCursor(offset, 100);
+                display.print(RTC_Sleep_txt);
 
-      // Draw once, no follow-on redraw
-      break;
-    }
+                // Draw once, no follow-on redraw
+                break;
+                }
+
+
+    display.setFullWindow();
+    display.firstPage();
+    do {
+    display.fillScreen(GxEPD_WHITE);
+
+    // Centered ESP logo
+
+
+    } while (display.nextPage());
+
+    // Short pause so logo is visible
+    delay(1200);
 
     // ------------------------------
     // NORMAL BOOT PATH
     // ------------------------------
-    display.println("ESP-GPS booting");
-    display.print(E_paper_version);
-    display.println(SW_version);
+    //display.println("ESP-GPS booting");
+    //display.print(E_paper_version);
+    //display.println(SW_version);
 
-    sdCardInfo();
+    //sdCardInfo();
 
-    display.setCursor(offset, 102);
-    display.printf(
-      "Logspace left : %d hour",
-      storageLogTimeLeftMinutes() / 60
-    );
+    //display.setCursor(offset, 102);
+    //display.printf(
+    //  "Logspace left : %d hour",
+    //  storageLogTimeLeftMinutes() / 60
+    //);
 
   } while (display.nextPage());
 }

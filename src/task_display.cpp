@@ -8,6 +8,8 @@
 #include "E_paper.h"
 #include "Fonts.h"
 #include "config_manager.h"
+#include "screen_system.h"
+
 
 // ----------------------------------------------------
 // Task handle (owned here)
@@ -31,6 +33,17 @@ static void updateDisplay();
 // ----------------------------------------------------
 void taskTwo(void* parameter)
 {
+
+
+     Serial.println("[TASK2] Display task disabled (stub)");
+
+  // TESTING TESTING Just idle forever 
+  while (true) {
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+
+
+
    Serial.println("[TASK2] display task entered");
 
       

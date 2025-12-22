@@ -3,6 +3,7 @@
 #include "E_paper.h"
 #include "config_manager.h"
 
+#include "screen_system.h"
 
 String IP_adress="0.0.0.0";
 const char SW_version[16]="Ver 6.01c";
@@ -182,11 +183,11 @@ void print_wakeup_reason(){
                                  reed=1;   
                                 // esp_sleep_disableRTC_minimum_voltage_batESP_SLEEP_WAKEUP_ALL);
                                  if(RTC_voltage_bat<RTC_minimum_voltage_bat){
-                                      Boot_screen();
+                                 
                                       sleeping_time=40000;//sleep much longer
                                       go_to_sleep(sleeping_time,1); //was 4000
                                     }
-                                 Boot_screen();
+                               
                                  break;
     case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); 
                                  break;
@@ -207,7 +208,7 @@ void print_wakeup_reason(){
                                     RTC_old_voltage_bat=RTC_voltage_bat;
                                     }
                                   if(RTC_voltage_bat<RTC_minimum_voltage_bat){
-                                      Boot_screen();
+                              
                                       display.powerOff();
                                       delay(100);
                                       pinMode(GO_TO_SLEEP_GPIO,INPUT_PULLUP);

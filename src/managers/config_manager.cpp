@@ -29,7 +29,6 @@ void initConfig()
   ensureConfigExistsOnSD();
   loadConfiguration(filename, filename_backup, config);
 
-
   printFile(filename);
 }
 
@@ -76,7 +75,7 @@ void loadConfiguration(const char *filename,
       return true;
     }
     if (fs.exists(filename_backup)) {
-      Serial.println(F("[CONFIG] open config_backup.txt"));
+      Serial.println(F("[CONFIG ] open config_backup.txt"));
       file = fs.open(filename_backup, FILE_READ);
       return true;
     }
@@ -155,6 +154,9 @@ void loadConfiguration(const char *filename,
   strlcpy(config.ssid2,        doc["ssid2"]        | "ESP_GPS", sizeof(config.ssid2));
   strlcpy(config.password2,    doc["password2"]    | "password2", sizeof(config.password2));
 
+
+  
+
   // --------------------------------------------------
   // 4. Post-load fixes & derived values
   // --------------------------------------------------
@@ -179,5 +181,83 @@ void loadConfiguration(const char *filename,
 
   TimeZone_env(config.timezone);
 }
+
+void saveConfig()
+{
+  if (!(sdOK || LITTLEFS_OK)) {
+    Serial.println(F("[CONFIG ] No storage available — cannot save config"));
+    return;
+  }
+
+  fs::FS* fs = nullptr;
+
+  if (sdOK) {
+    fs = &SD_MMC;
+  } else if (LITTLEFS_OK) {
+    fs = &LITTLEFS;
+  }
+
+  if (!fs) {
+    Serial.println(F("[CONFIG ] No filesystem available"));
+    return;
+  }
+
+  Serial.println(F("[CONFIG ] Saving configuration"));
+
+  File f = fs->open("/config.txt", FILE_WRITE);
+  if (!f) {
+    Serial.println(F("[CONFIG ] Failed to open config.txt for writing"));
+    return;
+  }
+
+  StaticJsonDocument<1536> doc;
+
+  // ---- mirror loadConfiguration() ----
+  doc["cal_bat"]              = config.cal_bat;
+  doc["shutdown_voltage"]     = config.shutdown_voltage;
+  doc["cal_speed"]            = config.cal_speed;
+  doc["sample_rate"]          = config.sample_rate;
+  doc["cpu_freq"]             = config.cpu_freq;
+  doc["gnss"]                 = config.gnss;
+  doc["speed_field"]          = config.field;
+  doc["speed_large_font"]     = config.speed_large_font;
+  doc["bar_length"]           = config.bar_length;
+  doc["Stat_screens"]         = config.Stat_screens;
+  doc["Stat_screens_time"]    = config.Stat_screens_time;
+  doc["stat_speed"]           = config.stat_speed;
+  doc["start_logging_speed"]  = config.start_logging_speed;
+  doc["archive_days"]         = config.archive_days;
+  doc["Board_Logo"]           = config.Board_Logo;
+  doc["Sail_Logo"]            = config.Sail_Logo;
+  doc["sleep_off_screen"]     = config.sleep_off_screen;
+  doc["bat_choice"]           = config.bat_choice;
+  doc["logTXT"]               = config.logTXT;
+  doc["logUBX"]               = config.logUBX;
+  doc["logSBP"]               = config.logSBP;
+  doc["logGPY"]               = config.logGPY;
+  doc["logGPX"]               = config.logGPX;
+  doc["file_date_time"]       = config.file_date_time;
+  doc["dynamic_model"]        = config.dynamic_model;
+  doc["timezone"]             = config.timezone;
+  doc["timezone_DST"]         = config.timezone_DST;
+  doc["track_distance"]       = config.track_distance;
+
+  // Strings
+  doc["speed_screen"]   = config.speed_screen;
+  doc["stat_screen"]    = config.stat_screen;
+  doc["gpio12_screen"]  = config.gpio12_screen;
+  doc["UBXfile"]        = config.UBXfile;
+  doc["Sleep_info"]     = config.Sleep_info;
+  doc["ssid"]           = config.ssid;
+  doc["password"]       = config.password;
+  doc["ssid2"]          = config.ssid2;
+  doc["password2"]      = config.password2;
+
+  serializeJsonPretty(doc, f);
+  f.close();
+
+  Serial.println(F("[CONFIG ] Configuration saved"));
+}
+
 
 

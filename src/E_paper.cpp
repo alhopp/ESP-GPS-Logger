@@ -21,7 +21,7 @@
 #include "screen_system.h"
 #include "config_manager.h"
 #include "storage_manager.h"
-
+#include "esp_logo.h"
 
 GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
   GxEPD2_213_B74(ELINK_SS, ELINK_DC, ELINK_RESET, ELINK_BUSY)
@@ -361,7 +361,7 @@ void Update_screen(int screen)
       // --------------------------------------------------
       case BOOT_SCREEN:
         update_delay = 1000;
-        ESP_GPS_LOGO_40;
+  
         drawTopLeftTitle("ESP-GPS config");
         device_boot_log(234);
         Speed_in_Unit(offset);
@@ -371,7 +371,7 @@ void Update_screen(int screen)
       // --------------------------------------------------
       case GPS_INIT_SCREEN:
         update_delay = 100;
-        ESP_GPS_LOGO_40;
+
         drawTopLeftTitle("ESP-GPS GPS init");
         device_boot_log(24);
 
@@ -414,7 +414,7 @@ void Update_screen(int screen)
     update_delay = 100;
     offset += (count % 20 < 10) ? 1 : -1;
 
-    ESP_GPS_LOGO_40;
+
     drawTopLeftTitle("ESP-GPS connect");
     device_boot_log(2);
 
@@ -444,7 +444,7 @@ void Update_screen(int screen)
     else {
       display.fillRect(0, 0, 250, 122, GxEPD_WHITE);
 
-      ESP_GPS_LOGO_40;
+
       drawTopLeftTitle("ESP-GPS ready");
       device_boot_log(24);
 
@@ -479,7 +479,6 @@ void Update_screen(int screen)
   else if (screen == WIFI_STATION) {
     update_delay = 100;
 
-    ESP_GPS_LOGO_40;
     drawTopLeftTitle("ESP-GPS try to connect");
     device_boot_log(2);
 
@@ -502,7 +501,7 @@ void Update_screen(int screen)
   else if (screen == WIFI_SOFT_AP) {
     update_delay = 100;
 
-    ESP_GPS_LOGO_40;
+
     drawTopLeftTitle("Connect to ESP-GPS");
     device_boot_log(2);
 
