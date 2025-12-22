@@ -99,7 +99,6 @@ extern float Mean_heading, heading_SD;
 
 extern int wdt_task0, wdt_task1;
 extern int max_count_wdt_task0;
-extern int freeSpace;
 
 extern String actual_ssid;
 

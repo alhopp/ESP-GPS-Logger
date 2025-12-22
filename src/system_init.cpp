@@ -1,10 +1,9 @@
-#include "system_init.h"
-
 #include <Arduino.h>
+#include "system_init.h"
 #include <SPI.h>
 #include <sys/time.h>
-
 #include "ESP_functions.h"
+#include "config_manager.h"
 
 // ----------------------------------------------------
 // Early system bring-up
@@ -12,7 +11,11 @@
 void systemInitEarly()
 {
   Serial.begin(115200);
-  delay(1000); // allow USB/Serial to settle
+  
+  uint32_t t0 = millis();
+   while (!Serial && millis() - t0 < 2000) {
+   delay(100);
+  }
 
   Serial.println(F("System initializing..."));
 }

@@ -28,6 +28,7 @@
 #include "SD_MMC.h"
 #include "SPI.h"
 #include "SD_card.h"
+#include "config_manager.h"
 
 //changes JH 20/02/2021, added for timestamp file ftp
 

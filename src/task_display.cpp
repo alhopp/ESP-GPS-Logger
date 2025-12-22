@@ -7,7 +7,7 @@
 #include "ESP_functions.h"
 #include "E_paper.h"
 #include "Fonts.h"
-
+#include "config_manager.h"
 
 // ----------------------------------------------------
 // Task handle (owned here)

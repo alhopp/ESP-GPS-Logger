@@ -6,13 +6,12 @@
 #include "Definitions.h"
 #include "screen_ui.h"
 #include "Layout.h"
+#include "config_manager.h"
+#include "storage_manager.h"
+
 
 #define INFO_BAR_TOP 12   // use your original value
 static char bar_info[16];
-
-
-
-
 
   void Speed_font0(
     const char* message1,

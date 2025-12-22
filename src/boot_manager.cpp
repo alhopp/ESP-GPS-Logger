@@ -5,6 +5,7 @@
 
 #include "ESP_functions.h"
 #include "E_paper.h"
+#include "config_manager.h"
 
 // ----------------------------------------------------
 // External state used during boot checks

@@ -1,4 +1,5 @@
 #include "task_gps.h"
+#include "config_manager.h"
 
 TaskHandle_t t1 = nullptr;
 

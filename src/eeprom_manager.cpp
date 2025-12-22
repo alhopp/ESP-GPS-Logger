@@ -4,6 +4,7 @@
 #include <EEPROM.h>
 
 #include "ESP_functions.h"
+#include "config_manager.h"
 
 // ----------------------------------------------------
 // EEPROM layout (fixed offsets)

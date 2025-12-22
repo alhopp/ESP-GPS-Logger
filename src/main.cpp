@@ -8,7 +8,6 @@
 #include "system_init.h"
 #include "task_gps.h"
 #include "task_display.h"
-#include "system_phase.h"
 #include "E_paper.h"
 #include "screen_system.h"
 
@@ -22,27 +21,19 @@ extern bool reset_boot;
 
 
 void setup() {
-  Serial.begin(115200);
-  delay(200);
 
-  display.init();
+  //display.init();
   
-  PHASE(PH_BOOT_START, "systemInitEarly");
   systemInitEarly();
 
-  PHASE(PH_STORAGE_INIT, "initStorage");
   initStorage();
 
-  PHASE(PH_CONFIG_LOADED, "initConfig");
   initConfig();
 
-  PHASE(PH_WIFI_INIT, "wifi_init");
   wifi_init();
 
-  PHASE(PH_TASKS_CREATED, "startTasks");
   startTasks();
 
-  PHASE(PH_RUNNING, "SETUP_DONE");
 }
 
 

@@ -5,6 +5,8 @@
 #include "Layout.h"
 #include "Fonts.h"
 #include "screen_ui.h"
+#include "storage_manager.h"
+
 
 /* =========================================================
  * Local helpers (cpp-only)
@@ -146,7 +148,7 @@ void Boot_screen(void)
     display.setCursor(offset, 102);
     display.printf(
       "Logspace left : %d hour",
-      Logtime_left(Free_space()) / 60
+      storageLogTimeLeftMinutes() / 60
     );
 
   } while (display.nextPage());
@@ -162,8 +164,8 @@ void Sleep_screen(int choice)
   // keep offset sane
   offset = constrain(offset, 1, 9);
 
-//  display.init();
-  Serial.println("[DISPLAY] init()");
+  display.init();
+
   beginScreen();
 
   drawChrome(offset, true);

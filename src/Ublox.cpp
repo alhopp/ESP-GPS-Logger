@@ -1,6 +1,7 @@
 #include "Ublox.h"
 #include "Definitions.h"
 #include <EEPROM.h>
+#include "config_manager.h"
 
 int Time_Set_OK;
 bool Nav_rate_NACK = false;

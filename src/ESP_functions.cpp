@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "ESP_functions.h"
 #include "E_paper.h"
+#include "config_manager.h"
 
 
 String IP_adress="0.0.0.0";

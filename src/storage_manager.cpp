@@ -6,13 +6,13 @@
 
 #include "SD_card.h"
 #include "ESP_functions.h"
+#include "config_manager.h"
 
 // ----------------------------------------------------
 // External state
 // ----------------------------------------------------
 extern bool sdOK;
 extern bool LITTLEFS_OK;
-extern int  freeSpace;
 
 // ----------------------------------------------------
 // Internal helpers
@@ -20,30 +20,76 @@ extern int  freeSpace;
 static void reportSDStats();
 static bool mountSD();
 static bool mountLittleFS();
+static void storageBannerStart();
+static void storageBannerEnd();
+static bool storageQuickCheck(fs::FS &fs, const char *path);
 
 // ----------------------------------------------------
 // Public API
 // ----------------------------------------------------
 void initStorage()
 {
+  storageBannerStart();
+
+  // ------------------------------
   // Try SD card first
+  // ------------------------------
   if (mountSD()) {
+    Serial.println("[STORAGE] SD_MMC mounted successfully");
+
+    // Report SD statistics
     reportSDStats();
-    testFileIO(SD_MMC, "/test.txt");
+
+    if (!storageQuickCheck(SD_MMC, "/.io_test")) {
+     Serial.println(F("[STORAGE] SD I/O        : failed"));
+     } else {
+     Serial.println(F("[STORAGE] SD I/O        : OK"));
+    }
+
+    storageBannerEnd();
     return;
   }
 
+  // ------------------------------
   // Fallback to LittleFS
-  Serial.println(F("No SDCard found — trying LITTLEFS"));
+  // ------------------------------
+  Serial.println("[STORAGE] No SD card found — trying LittleFS");
 
-  if (!mountLittleFS()) {
-    Serial.println(F("LITTLEFS mount failed"));
+  if (mountLittleFS()) {
+    Serial.println("[STORAGE] LittleFS mounted successfully");
+
+    size_t total = LittleFS.totalBytes();
+    size_t used  = LittleFS.usedBytes();
+
+    Serial.printf(
+      "[STORAGE] LittleFS total: %u KB, used: %u KB, free: %u KB\n",
+      used  / 1024,
+      (total - used) / 1024
+    );
+
+    Serial.println("[STORAGE] Using LittleFS");
+  } else {
+    Serial.println("[STORAGE] ERROR: LittleFS mount failed");
   }
 }
+
 
 // ----------------------------------------------------
 // Helpers
 // ----------------------------------------------------
+
+static void storageBannerStart()
+{
+  Serial.println(F("[STORAGE] ****************************"));
+  Serial.println(F("[STORAGE] *        STORAGE INIT      *"));
+  Serial.println(F("[STORAGE] ****************************"));
+}
+
+static void storageBannerEnd()
+{
+  Serial.println(F("[STORAGE] ****************************"));
+}
+
 static bool mountSD()
 {
   if (!SD_MMC.begin("/sdcard", true)) {
@@ -52,7 +98,7 @@ static bool mountSD()
   }
 
   sdOK = true;
-  Serial.println(F("SDCard found"));
+  Serial.println(F("[STORAGE] SDCard found"));
   return true;
 }
 
@@ -64,10 +110,59 @@ static bool mountLittleFS()
   }
 
   LITTLEFS_OK = true;
-  Serial.print(F("LITTLEFS mounted, total bytes = "));
+  Serial.println(F("[STORAGE] SDCard found"));
+  Serial.print(F("[STORAGE] LITTLEFS mounted, total bytes = "));
   Serial.println(LITTLEFS.totalBytes());
   return true;
 }
+
+static bool storageQuickCheck(fs::FS &fs, const char *path)
+{
+  File f = fs.open(path, FILE_WRITE);
+  if (!f) {
+    return false;
+  }
+
+  f.println("ok");
+  f.flush();
+  f.close();
+
+  fs.remove(path);
+  return true;
+}
+
+uint64_t storageFreeKBytes()
+{
+  if (sdOK) {
+    return (SD_MMC.totalBytes() - SD_MMC.usedBytes()) / 1024;
+  }
+
+  if (LITTLEFS_OK) {
+    return (LITTLEFS.totalBytes() - LITTLEFS.usedBytes()) / 1024;
+  }
+
+  return 0;
+}
+
+int storageLogTimeLeftMinutes()
+{
+  uint64_t free_kbytes = storageFreeKBytes();
+  if (free_kbytes == 0) return 0;
+
+  int data_rate =
+      (config.logGPY * 24 +
+       config.logUBX * 100 +
+       config.logSBP * 32 +
+       1) * config.sample_rate +
+      config.logGPX * 230;
+
+  uint64_t seconds = (free_kbytes * 1024ULL) / data_rate;
+  return seconds / 60;
+}
+
+
+
+
 
 static void reportSDStats()
 {
@@ -83,11 +178,8 @@ static void reportSDStats()
   uint32_t used_mb  = used_bytes  / (1024ULL * 1024ULL);
   uint32_t free_mb  = free_bytes  / (1024ULL * 1024ULL);
 
-  // Store free space in MB (matches usage elsewhere)
-  freeSpace = free_mb;
-
-  Serial.printf("SD Card Size  : %lu MB\n", card_mb);
-  Serial.printf("SD Total      : %lu MB\n", total_mb);
-  Serial.printf("SD Used       : %lu MB\n", used_mb);
-  Serial.printf("SD Free       : %lu MB\n", free_mb);
+  Serial.printf("[STORAGE] SD Card Size  : %lu MB\n", card_mb);
+  Serial.printf("[STORAGE] SD Total      : %lu MB\n", total_mb);
+  Serial.printf("[STORAGE] SD Used       : %lu MB\n", used_mb);
+  Serial.printf("[STORAGE] SD Free       : %lu MB\n", free_mb);
 }

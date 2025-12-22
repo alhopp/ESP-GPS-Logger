@@ -8,6 +8,8 @@
 #include "gpx.h"
 #include "sbp.h"
 #include "gpy.h"
+#include "config_manager.h"
+
 
 File ubxfile;
 File errorfile;
@@ -28,31 +30,6 @@ int SD_MMC_write_speed;
 
 struct Config config;
 
-
-void ensureConfigExistsOnSD() {
-  if (!SD_MMC.exists("/config.txt")) {
-    Serial.println("config.txt missing on SD → creating default");
-
-    File f = SD_MMC.open("/config.txt", FILE_WRITE);
-    if (!f) {
-      Serial.println("Failed to create /config.txt on SD");
-      return;
-    }
-
-    StaticJsonDocument<512> doc;
-    doc["cal_bat"] = 1.75;
-    doc["cal_speed"] = 3.6;
-    doc["sample_rate"] = 5;
-    doc["gnss"] = 2;
-    doc["ssid"] = "ssid_not_set";
-    doc["password"] = "password";
-
-    serializeJsonPretty(doc, f);
-    f.close();
-
-    Serial.println("Default config.txt written to SD");
-  }
-}
 
 
 
@@ -229,144 +206,7 @@ void Log_to_SD(void) {
     }
   }
 }
-// Loads the configuration from a file
-void loadConfiguration(const char *filename, const char *filename_backup, Config &config) {
-  // Open file for reading
-  File file;
-  if (sdOK){
-    if (SD_MMC.exists(filename)) {
-      Serial.println(F("open the config.txt"));
-      file = SD_MMC.open(filename);
-    } else if (SD_MMC.exists(filename_backup)) {
-      Serial.println(F("open the config_backup.txt"));
-      file = SD_MMC.open(filename_backup);
-    } else {
-      Serial.println(F("no configuration file found"));
-      //wifi_search = 120;  //elongation SoftAP mode to 120s !!!
-    }
-  }
-  if (LITTLEFS_OK){
-    if (LITTLEFS.exists(filename)) {
-      Serial.println(F("open the config.txt"));
-      file = LITTLEFS.open(filename);
-    } else if (LITTLEFS.exists(filename_backup)) {
-      Serial.println(F("open the config_backup.txt"));
-      file = LITTLEFS.open(filename_backup);
-    } else {
-      Serial.println(F("no configuration file found"));
-      //wifi_search = 120;  //elongation SoftAP mode to 120s !!!
-    }
-  }
-  StaticJsonDocument<1536> doc;
-  // Deserialize the JSON document
-  DeserializationError error = deserializeJson(doc, file);
-  if (error) {
-    Serial.println(F("Failed to deserialize file, using default configuration"));
-    Serial.println(error.f_str());
-    config.config_fail = 1;
-  }
-  // Copy values from the JsonDocument to the Config
-  config.cal_bat = doc["cal_bat"] | 1.75;
-  config.shutdown_voltage = doc["shutdown_voltage"] | 3.2;
-  RTC_minimum_voltage_bat=config.shutdown_voltage;
-  config.cal_speed = doc["cal_speed"] | 3.6;
-  config.sample_rate = doc["sample_rate"] | 5;
-  config.cpu_freq = doc["cpu_freq"] | 80;
-  config.gnss = doc["gnss"] | 3;
-  config.field = doc["speed_field"] | 1;
-  config.speed_large_font = doc["speed_large_font"] | 0;
-  config.bar_length = doc["bar_length"] | 1852;
-  config.Stat_screens = doc["Stat_screens"] | 12;
-  strlcpy(config.speed_screen,                      // <- destination
-          doc["speed_screen"] | "1",          // <- source
-          sizeof(config.speed_screen)); 
-  strlcpy(config.stat_screen,                      // <- destination
-          doc["stat_screen"] | "12",          // <- source
-          sizeof(config.stat_screen)); 
-  strlcpy(config.gpio12_screen,                      // <- destination
-          doc["gpio12_screen"] | "4",          // <- source
-          sizeof(config.gpio12_screen));         
-  config.Stat_screens_time = doc["Stat_screens_time"] | 4;
-  config.stat_speed = doc["stat_speed"] | 1;
-  config.start_logging_speed = doc["start_logging_speed"] | 1;
-  config.archive_days = doc["archive_days"] | 10;
-  config.Board_Logo = doc["Board_Logo"] | 1;
-  config.Sail_Logo = doc["Sail_Logo"] | 1;
-  config.sleep_off_screen = doc["sleep_off_screen"] | 11;
-  config.bat_choice = doc["bat_choice"]|0;
-  config.logTXT = doc["logTXT"] | 1;
-  config.logUBX = doc["logUBX"] | 0;
-  if (config.sample_rate < 10) {
-    config.logUBX_nav_sat = doc["logUBX_nav_sat"] | 0;
-  } else {
-    config.logUBX_nav_sat = 0;
-  }
-  config.logSBP = doc["logSBP"] | 0;
-  config.logGPY = doc["logGPY"] | 1;
-  config.logGPX = doc["logGPX"] | 0;
-  config.file_date_time = doc["file_date_time"] | 1;
-  config.dynamic_model = doc["dynamic_model"] | 0;  //sea model does not give a gps-fix if actual height is not on sea-level, better use model "portable"=0 !!!
-  config.timezone = doc["timezone"] | 1.0;
-  config.timezone_DST = doc["timezone_DST"]|1;
-  config.track_distance = doc["track_distance"] | 1852;
-  config.p1_lon = doc["p1_lon"];
-  config.p1_lat = doc["p1_lat"];
-  config.p2_lon = doc["p2_lon"];
-  config.p2_lat = doc["p2_lat"];
-  config.p3_lon = doc["p3_lon"];
-  config.p3_lat = doc["p3_lat"];
-  config.p4_lon = doc["p4_lon"];
-  config.p4_lat = doc["p4_lat"];
-  strlcpy(config.UBXfile,                      // <- destination
-          doc["UBXfile"] | "/ubxGPS",          // <- source
-          sizeof(config.UBXfile));             // <- destination's capacity
-  strlcpy(config.Sleep_info,                   // <- destination
-          doc["Sleep_info"] | "My ID",         // <- source
-          sizeof(config.Sleep_info));          // <- destination's capacity
-  strcpy(RTC_Sleep_txt, config.Sleep_info);    //copy into RTC mem
-  strlcpy(config.ssid,                         // <- destination
-          doc["ssid"] | "ssid_not_set",             // <- source
-          sizeof(config.ssid));                // <- destination's capacity
-  strlcpy(config.password,                     // <- destination
-          doc["password"] | "password",  // <- source
-          sizeof(config.password));            // <- destination's capacity
-  strlcpy(config.ssid2,                         // <- destination
-          doc["ssid2"] | "ESP_GPS",             // <- source
-          sizeof(config.ssid2));                // <- destination's capacity
-  strlcpy(config.password2,                     // <- destination
-          doc["password2"] | "password2",  // <- source
-          sizeof(config.password2));            // <- destination's capacity        
-                                               // Close the file (Curiously, File's destructor doesn't close the file)
-  file.close();
-  if (error) {
-    Serial.println(config.cal_bat);
-    Serial.println(config.cal_speed);
-    Serial.println(config.sample_rate);
-    Serial.println(config.logSBP);
-    Serial.println(config.logUBX);
-    Serial.println(config.ssid);
-    Serial.println(config.password);
-    Serial.println(config.Sail_Logo);
-  }
-  RTC_Board_Logo = config.Board_Logo;  //copy RTC memory !!
-  RTC_Sail_Logo = config.Sail_Logo;    //copy to RTC memory !!
 
-  config.cal_bat=RTC_calibration_bat; //stored in EEPROM !!!
-  calibration_speed = config.cal_speed / 1000;  //3.6=km/h, 1.94384449 = knots, speed is now in mm/s
-  //time_out_nav_pvt=(1000/config.sample_rate+75);//max time out = 175 ms
-  RTC_SLEEP_screen = config.sleep_off_screen % 10;
-  RTC_OFF_screen = config.sleep_off_screen / 10 % 10;
-  //int Logo_choice=config.Logo_choice;//preserve value config.Logo_choice for config.txt update !!
-  int stat_screen = config.Stat_screens;              //preserve value config
-  int GPIO_12_screens = config.GPIO12_screens;        //preserve value config
-  int speed_screens = config.field;                   //preserve speed_screen setting
-  if (config.file_date_time == 0) config.logTXT = 1;  //because txt file is needed for generating new file count !!
-  config.screen_count= strlen(config.stat_screen)-1;
-  config.speed_count =strlen(config.speed_screen)-1;
-  config.gpio12_count =strlen(config.gpio12_screen)-1;
-  config.field_actual=config.speed_screen[0];
-  TimeZone_env(config.timezone);//to set the correct posic TZ string
-}
 // Prints the content of a file to the Serial
 void printFile(const char *filename) {
   // Open file for reading
@@ -612,68 +452,4 @@ void TimeZone_env (float timezone){     //without daylight saving, standard TZ s
 
     } 
   }
-}
-uint64_t Free_space(void){
-  uint64_t free_kbytes=0;
-  if(LITTLEFS_OK) free_kbytes = (LITTLEFS.totalBytes() - LITTLEFS.usedBytes())/1024;
-  if(sdOK) {
-    uint64_t totalBytes=SD_MMC.totalBytes();
-    uint64_t usedBytes=SD_MMC.usedBytes();
-    free_kbytes=(totalBytes-usedBytes)/1024;
-    }
-  return free_kbytes;
-}
-int Logtime_left (uint64_t kbytes){
-  uint64_t free_kbytes=0;
-    if(LITTLEFS_OK) free_kbytes = (LITTLEFS.totalBytes() - LITTLEFS.usedBytes())/1024;
-    if(sdOK) {
-        uint64_t totalBytes=SD_MMC.totalBytes();
-        uint64_t usedBytes=SD_MMC.usedBytes();
-        free_kbytes=(totalBytes-usedBytes)/1024;
-        }
-    int data_rate = (config.logGPY*24+config.logUBX*100+config.logSBP*32+1)*config.sample_rate+config.logGPX*230;//+1 to prevent divide by 0 !!!
-    uint64_t logtime_left_sec = free_kbytes/data_rate*1024;
-    int logtime_left_min = logtime_left_sec/60; 
-    return logtime_left_min;   
-}
-void testFileIO(fs::FS &fs, const char * path){
-  File file = fs.open(path);
-  static uint8_t buf[512];
-  size_t len = 0;
-  uint32_t start = millis();
-  uint32_t end = start;
-  if(file){
-    len = file.size();
-    size_t flen = len;
-    start = millis();
-    while(len){
-      size_t toRead = len;
-      if(toRead > 512){
-        toRead = 512;
-      }
-      file.read(buf, toRead);
-      len -= toRead;
-    }
-    end = millis() - start;
-    SD_MMC_read_speed=end;
-    Serial.printf("%u bytes read for %u ms\n", flen, end);
-    file.close();
-  } else {
-    Serial.println("Failed to open file for reading");
-  }
-  file = fs.open(path, FILE_WRITE);
-  if(!file){
-    Serial.println("Failed to open file for writing");
-    return;
-  }
-
-  size_t i;
-  start = millis();
-  for(i=0; i<2048; i++){
-    file.write(buf, 512);
-  }
-  end = millis() - start;
-  SD_MMC_write_speed=end;
-  Serial.printf("%u bytes written for %u ms\n", 2048 * 512, end);
-  file.close();
 }

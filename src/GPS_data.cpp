@@ -2,6 +2,7 @@
 #include "GPS_data.h"
 #include "Ublox.h"
 #include "Definitions.h"
+#include "config_manager.h"
 
 uint16_t _gSpeed[BUFFER_SIZE]; 
 float _lat[BUFFER_ALFA]; 

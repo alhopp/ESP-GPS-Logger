@@ -1,5 +1,6 @@
 #include "screen_context.h"
 #include "Layout.h"
+#include "config_manager.h"
 
 /* =========================================================
  * Local helpers

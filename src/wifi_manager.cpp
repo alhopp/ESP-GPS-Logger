@@ -4,6 +4,7 @@
 #include <WiFi.h>
 
 #include "ESP_functions.h"   // config, mac, ftpSrv (optional)
+#include "config_manager.h"
 
 // ----------------------------------------------------------------------------
 // Simple STA-only WiFi

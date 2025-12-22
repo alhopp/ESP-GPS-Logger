@@ -19,6 +19,9 @@
 #include "Layout.h"
 
 #include "screen_system.h"
+#include "config_manager.h"
+#include "storage_manager.h"
+
 
 GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
   GxEPD2_213_B74(ELINK_SS, ELINK_DC, ELINK_RESET, ELINK_BUSY)
@@ -293,9 +296,16 @@ void Speed_in_Unit(int offset) {
   display.setRotation(1);
 }
 
-void sdCardInfo(void) {
-  if (sdOK) display.printf("SD : %d Mb\n", freeSpace);
-  if (LITTLEFS_OK) display.printf("Local : %d kb\n", (LITTLEFS.totalBytes() - LITTLEFS.usedBytes()) / 1024);
+void sdCardInfo()
+{
+  if (sdOK) {
+    uint64_t free_mb = storageFreeKBytes() / 1024;
+    display.printf("SD    : %llu MB\n", free_mb);
+  }
+  else if (LITTLEFS_OK) {
+    uint64_t free_kb = storageFreeKBytes();
+    display.printf("Local : %llu KB\n", free_kb);
+  }
 }
 
 
@@ -411,7 +421,7 @@ void Update_screen(int screen)
     if (!SoftAP_connection) {
       display.setCursor(offset, 102);
       display.printf("Logspace left : %d hour",
-        Logtime_left(Free_space()) / 60);
+        storageLogTimeLeftMinutes() / 60);
     }
 
     if (Wifi_on) {
@@ -475,7 +485,7 @@ void Update_screen(int screen)
 
     display.setCursor(offset, 102);
     display.printf("Logspace left : %d hour",
-      Logtime_left(Free_space()) / 60);
+      Logtime_left(storageLogTimeLeftMinutes()) / 60);
 
     display.setFont(Fonts::Body12);
     display.setCursor(offset,

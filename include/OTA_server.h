@@ -297,23 +297,23 @@ void SD_dir(int archive) {
     String font_color_start = "<FONT COLOR=\"RED\">";
     String font_color_end ="</FONT>"; 
     String voltage_percent;
-    String free_space = "Free storage space = " + file_size(Free_space()) + ". Logspace left: "+logtime_left(Logtime_left(Free_space()));
-    if(Logtime_left(Free_space())<200)free_space= "<h3>"+ font_color_start+free_space+font_color_end + "</h3>";
+
+    uint64_t free_kb = storageFreeKBytes();
+    int log_minutes  = storageLogTimeLeftMinutes();
+
+    String free_space =
+    "Free storage space = " + file_size(free_kb) +
+    " Logspace left: " + String(log_minutes) + " min";
+
+
+    if(Logtime_left(storageLogTimeLeftMinutes())<200)free_space= "<h3>"+ font_color_start+free_space+font_color_end + "</h3>";
     String voltage_lipo = "&emsp;Bat voltage = " + String(RTC_voltage_bat, 2) + " Volt";
     String firmware = "Firmware "+ String(SW_version);
     String gps_warning = "<h3>"+ font_color_start+"Sample-rate too high for the actual gnss setting, possible lost points in the log file !!"+font_color_end + "</h3>";
     String CPU_freq =  "<h3>"+ font_color_start+"For 5 Hz sample_rate, CPU freq of 80 MHz is sufficient. For 10 Hz, CPU freq of 160 MHz gives the maximal performance."+font_color_end + "</h3>";
     String Data_rate_high = "<h3>"+ font_color_start+"Max 2 file types set to ON, otherwise data rate too high and lost points possible !!"+font_color_end + "</h3>";
     String Shutdown_low = "<h3>"+ font_color_start+"Shutdown voltage in config lower then 3.1V, power down when lipo goes low !!"+font_color_end + "</h3>";
-    /*
-    .gpy = ca 24 byte/datapoint
-    .ubx = 100 byte/datapoint
-    .gpx = 230 byte/sekonde
-    .sbp = 32 bytes/datapoint
-  Datarate/sek = (sum)*data_rate+ .gpx
-  Free_space/datarate/60 = minutes Logspace left
-*/
-    
+   
     
     bool GPS_warning=false;
     bool CPU_freq_warning = false;
