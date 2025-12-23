@@ -1,29 +1,44 @@
+
 #include "system_mode.h"
 #include "wifi_manager.h"
 
 volatile SystemMode currentMode = MODE_BOOT;
 
-SystemMode getMode() {
+SystemMode getMode()
+{
   return currentMode;
 }
 
-void setMode(SystemMode newMode) {
+void setMode(SystemMode newMode)
+{
+
   if (newMode == currentMode) return;
 
-  // -------- EXIT actions --------
+  // ---------------------------------------------------------------------------
+  // EXIT actions (based on OLD mode)
+  // ---------------------------------------------------------------------------
   switch (currentMode) {
     case MODE_FIELD_CONFIG:
     case MODE_HOME:
       wifi_stop();
       break;
+
     default:
       break;
   }
 
-  // -------- ENTER actions --------
-  switch (newMode) {
+  // ---------------------------------------------------------------------------
+  // STATE TRANSITION (THIS MUST HAPPEN BEFORE ENTER ACTIONS)
+  // ---------------------------------------------------------------------------
+  currentMode = newMode;
+
+  // ---------------------------------------------------------------------------
+  // ENTER actions (based on NEW mode)
+  // ---------------------------------------------------------------------------
+  switch (currentMode) {
 
     case MODE_LOGGING:
+      // Wi-Fi must be OFF
       wifi_stop();
       break;
 
@@ -42,6 +57,4 @@ void setMode(SystemMode newMode) {
     default:
       break;
   }
-
-  currentMode = newMode;
 }

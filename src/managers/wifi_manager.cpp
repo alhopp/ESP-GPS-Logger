@@ -17,16 +17,16 @@ static const char* HOSTNAME = "esp32";
 static const char* AP_SSID = "ESP32 GPS";
 static const char* AP_PASS = "12345678";   // iOS requires 8+
 
-static IPAddress apIP(192,168,4,1);
-static IPAddress netMask(255,255,255,0);
+static IPAddress apIP(192, 168, 4, 1);
+static IPAddress netMask(255, 255, 255, 0);
 
 #define WIFI_FILE "/wifi.txt"
 
 // ==================================================
-// GLOBALS (owned ONLY here)
+// OWNED GLOBALS (this file only)
 // ==================================================
-WebServer server(80);
-DNSServer dnsServer;
+static WebServer server(80);
+static DNSServer dnsServer;
 
 static bool serverStarted = false;
 static bool apMode = false;
@@ -35,7 +35,7 @@ static String savedSSID;
 static String savedPASS;
 
 // ==================================================
-// WIFI SETUP PAGE (FILE SCOPE – IMPORTANT)
+// WIFI SETUP PAGE
 // ==================================================
 static const char* wifiForm = R"rawliteral(
 <!DOCTYPE html>
@@ -62,9 +62,10 @@ static const char* wifiForm = R"rawliteral(
 )rawliteral";
 
 // ==================================================
-// CREDENTIAL STORAGE
+// CREDENTIAL STORAGE (FS already mounted elsewhere)
 // ==================================================
-static bool loadCreds() {
+static bool loadCreds()
+{
   if (!LittleFS.exists(WIFI_FILE)) return false;
 
   File f = LittleFS.open(WIFI_FILE, "r");
@@ -72,49 +73,46 @@ static bool loadCreds() {
 
   savedSSID = f.readStringUntil('\n');
   savedPASS = f.readStringUntil('\n');
+
   savedSSID.trim();
   savedPASS.trim();
+
   f.close();
 
-  return savedSSID.length() > 0;
+  return !savedSSID.isEmpty();
 }
 
-static void saveCreds(const String& ssid, const String& pass) {
+static void saveCreds(const String& ssid, const String& pass)
+{
   File f = LittleFS.open(WIFI_FILE, "w");
   if (!f) return;
+
   f.println(ssid);
   f.println(pass);
   f.close();
 }
 
-
-void wifi_init()
+// ==================================================
+// INIT (MODE DECISION ONLY)
+// ==================================================
+void initWifi()
 {
   Serial.println("[WiFi   ] Initialising");
 
-  // Ensure filesystem is available
-  if (!LittleFS.begin(true)) {
-    Serial.println("[WiFi   ] LittleFS mount failed");
-    return;
-  }
-
-  // Decide mode based on saved credentials
   if (loadCreds()) {
-    Serial.println("[WiFi   ] Credentials found → STA");
-    wifi_start_sta();
+    Serial.println("[WiFi   ] Credentials found → MODE_HOME");
+    setMode(MODE_HOME);
   } else {
-    Serial.println("[WiFi   ] No credentials → AP setup");
-    wifi_start_ap();
+    Serial.println("[WiFi   ] No credentials → MODE_FIELD_CONFIG");
+    setMode(MODE_FIELD_CONFIG);
   }
 }
-
-
 
 // ==================================================
 // INTERNAL HELPERS
 // ==================================================
-static void startServer() {
-
+static void startServer()
+{
   if (serverStarted) return;
 
   server.on("/", HTTP_GET, []() {
@@ -122,12 +120,14 @@ static void startServer() {
   });
 
   server.on("/save", HTTP_POST, []() {
-    String ssid = server.arg("ssid");
-    String pass = server.arg("pass");
+    const String ssid = server.arg("ssid");
+    const String pass = server.arg("pass");
 
     saveCreds(ssid, pass);
 
-    server.send(200, "text/html",
+    server.send(
+      200,
+      "text/html",
       "<h3>Saved. Connecting…</h3><p>You may close this page.</p>"
     );
 
@@ -140,12 +140,6 @@ static void startServer() {
     server.send(200, "text/html", wifiForm);
   });
 
-server.onNotFound([]() {
-  server.send(200, "text/html", wifiForm);
-});
-
-
-
   server.begin();
   serverStarted = true;
 
@@ -153,10 +147,10 @@ server.onNotFound([]() {
 }
 
 // ==================================================
-// PUBLIC API
+// MODE ENTRY / EXIT ACTIONS
 // ==================================================
-void wifi_start_sta() {
-
+void wifi_start_sta()
+{
   Serial.println("[WiFi   ] Starting STA mode");
 
   wifi_stop();
@@ -167,6 +161,7 @@ void wifi_start_sta() {
   }
 
   apMode = false;
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(savedSSID.c_str(), savedPASS.c_str());
 
@@ -177,13 +172,14 @@ void wifi_start_sta() {
   startServer();
 }
 
-void wifi_start_ap() {
-
+void wifi_start_ap()
+{
   Serial.println("[WiFi   ] Starting AP mode");
 
   wifi_stop();
 
   apMode = true;
+
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, netMask);
   WiFi.softAP(AP_SSID, AP_PASS);
@@ -193,8 +189,8 @@ void wifi_start_ap() {
   startServer();
 }
 
-void wifi_stop() {
-
+void wifi_stop()
+{
   if (!serverStarted && WiFi.getMode() == WIFI_OFF) return;
 
   Serial.println("[WiFi   ] Stopping WiFi");
@@ -209,8 +205,11 @@ void wifi_stop() {
   apMode = false;
 }
 
-void wifi_loop() {
-
+// ==================================================
+// LOOP SERVICE
+// ==================================================
+void wifi_loop()
+{
   if (!serverStarted) return;
 
   server.handleClient();

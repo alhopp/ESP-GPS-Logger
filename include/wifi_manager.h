@@ -1,6 +1,6 @@
 #pragma once
 
-void wifi_init();
+void initWifi();
 
 void wifi_start_sta();
 void wifi_start_ap();
