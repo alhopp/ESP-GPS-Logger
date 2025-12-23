@@ -1,218 +1,217 @@
 #include <Arduino.h>
+#include <LittleFS.h>
+#include <ArduinoJson.h>
+
 #include "config_manager.h"
-#include "SD_card.h"
 #include "ESP_functions.h"
 
 // ----------------------------------------------------
-// External state required for configuration loading
+// CONFIG LOCATION (LittleFS ONLY)
 // ----------------------------------------------------
-extern bool sdOK;
-extern bool LITTLEFS_OK;
+#define CONFIG_FILE "/config.txt"
 
-extern Config      config;
-extern const char* filename;
-extern const char* filename_backup;
+// ----------------------------------------------------
+// External state
+// ----------------------------------------------------
+extern Config config;
+
+// RTC / derived globals already used elsewhere
+extern float RTC_calibration_bat;
+extern float calibration_speed;
+extern float RTC_minimum_voltage_bat;
+extern char  RTC_Sleep_txt[32];
+extern int   RTC_Board_Logo;
+extern int   RTC_Sail_Logo;
+extern int   RTC_SLEEP_screen;
+extern int   RTC_OFF_screen;
+
+// ----------------------------------------------------
+// Forward declarations
+// ----------------------------------------------------
+static void setDefaultConfig();
+static bool loadConfigFromFile(File &file);
+static void applyDerivedConfig();
+static void writeConfigToFile(File &file);
 
 // ----------------------------------------------------
 // Public API
 // ----------------------------------------------------
 void initConfig()
 {
-  // Configuration requires persistent storage
-  if (!(sdOK || LITTLEFS_OK)) {
-    Serial.println(F("No storage available — skipping config load"));
+  Serial.println("[CONFIG ] Loading configuration...");
+
+  // LittleFS MUST be available
+  if (!LittleFS.begin(true)) {
+    Serial.println("[CONFIG ] FATAL: LittleFS not mounted");
     return;
   }
 
-  Serial.println(F("[CONFIG ] Loading configuration..."));
+  // --------------------------------------------------
+  // Create default config if missing
+  // --------------------------------------------------
+  if (!LittleFS.exists(CONFIG_FILE)) {
+    Serial.println("[CONFIG ] No config found → creating default");
 
-  ensureConfigExistsOnSD();
-  loadConfiguration(filename, filename_backup, config);
+    setDefaultConfig();
 
-  printFile(filename);
-}
-
-
-void ensureConfigExistsOnSD() {
-  if (!SD_MMC.exists("/config.txt")) {
-    Serial.println("config.txt missing on SD → creating default");
-
-    File f = SD_MMC.open("/config.txt", FILE_WRITE);
+    File f = LittleFS.open(CONFIG_FILE, FILE_WRITE);
     if (!f) {
-      Serial.println("Failed to create /config.txt on SD");
+      Serial.println("[CONFIG ] ERROR: Cannot create config.txt");
       return;
     }
 
-    StaticJsonDocument<512> doc;
-    doc["cal_bat"] = 1.75;
-    doc["cal_speed"] = 3.6;
-    doc["sample_rate"] = 5;
-    doc["gnss"] = 2;
-    doc["ssid"] = "ssid_not_set";
-    doc["password"] = "password";
-
-    serializeJsonPretty(doc, f);
+    writeConfigToFile(f);
     f.close();
 
-    Serial.println("Default config.txt written to SD");
-  }
-}
-
-
-void loadConfiguration(const char *filename,
-                       const char *filename_backup,
-                       Config &config)
-{
-  File file;
-
-  // --------------------------------------------------
-  // 1. Open config file (SD first, then LittleFS)
-  // --------------------------------------------------
-  auto openFromFS = [&](fs::FS &fs) -> bool {
-    if (fs.exists(filename)) {
-      Serial.println(F("[CONFIG] open config.txt"));
-      file = fs.open(filename, FILE_READ);
-      return true;
-    }
-    if (fs.exists(filename_backup)) {
-      Serial.println(F("[CONFIG ] open config_backup.txt"));
-      file = fs.open(filename_backup, FILE_READ);
-      return true;
-    }
-    return false;
-  };
-
-  bool opened = false;
-
-  if (sdOK)        opened = openFromFS(SD_MMC);
-  if (!opened && LITTLEFS_OK) opened = openFromFS(LITTLEFS);
-
-  if (!opened || !file) {
-    Serial.println(F("[CONFIG] No configuration file found"));
-    config.config_fail = 1;
+    applyDerivedConfig();
     return;
   }
 
   // --------------------------------------------------
-  // 2. Parse JSON
+  // Load existing config
   // --------------------------------------------------
-  StaticJsonDocument<1536> doc;
-  DeserializationError error = deserializeJson(doc, file);
-  file.close();
-
-  if (error) {
-    Serial.println(F("[CONFIG] Failed to deserialize config"));
-    Serial.println(error.f_str());
-    config.config_fail = 1;
+  File f = LittleFS.open(CONFIG_FILE, FILE_READ);
+  if (!f) {
+    Serial.println("[CONFIG ] ERROR: Failed to open config.txt");
+    setDefaultConfig();
+    applyDerivedConfig();
     return;
   }
 
-  // --------------------------------------------------
-  // 3. Load values with defaults
-  // --------------------------------------------------
-  config.cal_bat            = doc["cal_bat"]            | 1.75f;
-  config.shutdown_voltage   = doc["shutdown_voltage"]   | 3.2f;
-  config.cal_speed          = doc["cal_speed"]          | 3.6f;
-  config.sample_rate        = doc["sample_rate"]        | 5;
-  config.cpu_freq           = doc["cpu_freq"]           | 80;
-  config.gnss               = doc["gnss"]               | 3;
-  config.field              = doc["speed_field"]        | 1;
-  config.speed_large_font   = doc["speed_large_font"]   | 0;
-  config.bar_length         = doc["bar_length"]         | 1852;
-  config.Stat_screens       = doc["Stat_screens"]       | 12;
-  config.Stat_screens_time  = doc["Stat_screens_time"]  | 4;
-  config.stat_speed         = doc["stat_speed"]         | 1;
-  config.start_logging_speed= doc["start_logging_speed"]| 1;
-  config.archive_days       = doc["archive_days"]       | 10;
-  config.Board_Logo         = doc["Board_Logo"]         | 1;
-  config.Sail_Logo          = doc["Sail_Logo"]          | 1;
-  config.sleep_off_screen   = doc["sleep_off_screen"]   | 11;
-  config.bat_choice         = doc["bat_choice"]         | 0;
-  config.logTXT             = doc["logTXT"]             | 1;
-  config.logUBX             = doc["logUBX"]             | 0;
-  config.logSBP             = doc["logSBP"]             | 0;
-  config.logGPY             = doc["logGPY"]             | 1;
-  config.logGPX             = doc["logGPX"]             | 0;
-  config.file_date_time     = doc["file_date_time"]     | 1;
-  config.dynamic_model      = doc["dynamic_model"]      | 0;
-  config.timezone           = doc["timezone"]           | 1.0f;
-  config.timezone_DST       = doc["timezone_DST"]       | 1;
-  config.track_distance     = doc["track_distance"]     | 1852;
+  if (!loadConfigFromFile(f)) {
+    Serial.println("[CONFIG ] ERROR: Invalid config → reset defaults");
+    f.close();
 
-  // Conditional flags
-  config.logUBX_nav_sat =
-    (config.sample_rate < 10) ? (doc["logUBX_nav_sat"] | 0) : 0;
+    setDefaultConfig();
+    File fw = LittleFS.open(CONFIG_FILE, FILE_WRITE);
+    if (fw) {
+      writeConfigToFile(fw);
+      fw.close();
+    }
+  } else {
+    f.close();
+  }
 
-  // Strings
-  strlcpy(config.speed_screen, doc["speed_screen"] | "1",  sizeof(config.speed_screen));
-  strlcpy(config.stat_screen,  doc["stat_screen"]  | "12", sizeof(config.stat_screen));
-  strlcpy(config.gpio12_screen,doc["gpio12_screen"]| "4",  sizeof(config.gpio12_screen));
-  strlcpy(config.UBXfile,      doc["UBXfile"]      | "/ubxGPS", sizeof(config.UBXfile));
-  strlcpy(config.Sleep_info,   doc["Sleep_info"]   | "My ID",   sizeof(config.Sleep_info));
-  strlcpy(config.ssid,         doc["ssid"]         | "ssid_not_set", sizeof(config.ssid));
-  strlcpy(config.password,     doc["password"]     | "password",     sizeof(config.password));
-  strlcpy(config.ssid2,        doc["ssid2"]        | "ESP_GPS", sizeof(config.ssid2));
-  strlcpy(config.password2,    doc["password2"]    | "password2", sizeof(config.password2));
-
-
-  
-
-  // --------------------------------------------------
-  // 4. Post-load fixes & derived values
-  // --------------------------------------------------
-  RTC_minimum_voltage_bat = config.shutdown_voltage;
-  strcpy(RTC_Sleep_txt, config.Sleep_info);
-
-  RTC_Board_Logo = config.Board_Logo;
-  RTC_Sail_Logo  = config.Sail_Logo;
-
-  config.cal_bat = RTC_calibration_bat;
-  calibration_speed = config.cal_speed / 1000.0f;
-
-  RTC_SLEEP_screen = config.sleep_off_screen % 10;
-  RTC_OFF_screen   = (config.sleep_off_screen / 10) % 10;
-
-  if (config.file_date_time == 0) config.logTXT = 1;
-
-  config.screen_count  = strlen(config.stat_screen)  - 1;
-  config.speed_count   = strlen(config.speed_screen) - 1;
-  config.gpio12_count  = strlen(config.gpio12_screen)- 1;
-  config.field_actual  = config.speed_screen[0];
-
-  TimeZone_env(config.timezone);
+  applyDerivedConfig();
+  Serial.println("[CONFIG ] Configuration loaded");
 }
 
+// ----------------------------------------------------
+// Save config (called from Wi-Fi / UI)
+// ----------------------------------------------------
 void saveConfig()
 {
-  if (!(sdOK || LITTLEFS_OK)) {
-    Serial.println(F("[CONFIG ] No storage available — cannot save config"));
-    return;
-  }
-
-  fs::FS* fs = nullptr;
-
-  if (sdOK) {
-    fs = &SD_MMC;
-  } else if (LITTLEFS_OK) {
-    fs = &LITTLEFS;
-  }
-
-  if (!fs) {
-    Serial.println(F("[CONFIG ] No filesystem available"));
-    return;
-  }
-
-  Serial.println(F("[CONFIG ] Saving configuration"));
-
-  File f = fs->open("/config.txt", FILE_WRITE);
+  File f = LittleFS.open(CONFIG_FILE, FILE_WRITE);
   if (!f) {
-    Serial.println(F("[CONFIG ] Failed to open config.txt for writing"));
+    Serial.println("[CONFIG ] ERROR: Cannot save config");
     return;
   }
 
+  writeConfigToFile(f);
+  f.close();
+
+  Serial.println("[CONFIG ] Configuration saved");
+}
+
+// ----------------------------------------------------
+// Internal helpers
+// ----------------------------------------------------
+static void setDefaultConfig()
+{
+  config.cal_bat              = 1.75f;
+  config.shutdown_voltage     = 3.2f;
+  config.cal_speed            = 3.6f;
+  config.sample_rate          = 5;
+  config.cpu_freq             = 80;
+  config.gnss                 = 2;
+  config.field                = 1;
+  config.speed_large_font     = 0;
+  config.bar_length           = 1852;
+  config.Stat_screens         = 12;
+  config.Stat_screens_time    = 4;
+  config.stat_speed           = 1;
+  config.start_logging_speed  = 1;
+  config.archive_days         = 10;
+  config.Board_Logo           = 1;
+  config.Sail_Logo            = 1;
+  config.sleep_off_screen     = 11;
+  config.bat_choice           = 0;
+  config.logTXT               = 1;
+  config.logUBX               = 0;
+  config.logSBP               = 0;
+  config.logGPY               = 1;
+  config.logGPX               = 0;
+  config.file_date_time       = 1;
+  config.dynamic_model        = 0;
+  config.timezone             = 1.0f;
+  config.timezone_DST         = 1;
+  config.track_distance       = 1852;
+
+  strlcpy(config.speed_screen,  "1",        sizeof(config.speed_screen));
+  strlcpy(config.stat_screen,   "12",       sizeof(config.stat_screen));
+  strlcpy(config.gpio12_screen, "4",        sizeof(config.gpio12_screen));
+  strlcpy(config.UBXfile,       "/ubxGPS",  sizeof(config.UBXfile));
+  strlcpy(config.Sleep_info,    "ESP32 GPS",sizeof(config.Sleep_info));
+  strlcpy(config.ssid,          "",         sizeof(config.ssid));
+  strlcpy(config.password,      "",         sizeof(config.password));
+  strlcpy(config.ssid2,         "ESP32_GPS", sizeof(config.ssid2));
+  strlcpy(config.password2,     "",         sizeof(config.password2));
+}
+
+// ----------------------------------------------------
+static bool loadConfigFromFile(File &file)
+{
+  StaticJsonDocument<1536> doc;
+  DeserializationError err = deserializeJson(doc, file);
+  if (err) return false;
+
+  config.cal_bat             = doc["cal_bat"]             | config.cal_bat;
+  config.shutdown_voltage    = doc["shutdown_voltage"]    | config.shutdown_voltage;
+  config.cal_speed           = doc["cal_speed"]           | config.cal_speed;
+  config.sample_rate         = doc["sample_rate"]         | config.sample_rate;
+  config.cpu_freq            = doc["cpu_freq"]            | config.cpu_freq;
+  config.gnss                = doc["gnss"]                | config.gnss;
+  config.field               = doc["speed_field"]         | config.field;
+  config.speed_large_font    = doc["speed_large_font"]    | config.speed_large_font;
+  config.bar_length          = doc["bar_length"]          | config.bar_length;
+  config.Stat_screens        = doc["Stat_screens"]        | config.Stat_screens;
+  config.Stat_screens_time   = doc["Stat_screens_time"]   | config.Stat_screens_time;
+  config.stat_speed          = doc["stat_speed"]          | config.stat_speed;
+  config.start_logging_speed = doc["start_logging_speed"] | config.start_logging_speed;
+  config.archive_days        = doc["archive_days"]        | config.archive_days;
+  config.Board_Logo          = doc["Board_Logo"]          | config.Board_Logo;
+  config.Sail_Logo           = doc["Sail_Logo"]           | config.Sail_Logo;
+  config.sleep_off_screen    = doc["sleep_off_screen"]    | config.sleep_off_screen;
+  config.bat_choice          = doc["bat_choice"]          | config.bat_choice;
+  config.logTXT              = doc["logTXT"]              | config.logTXT;
+  config.logUBX              = doc["logUBX"]              | config.logUBX;
+  config.logSBP              = doc["logSBP"]              | config.logSBP;
+  config.logGPY              = doc["logGPY"]              | config.logGPY;
+  config.logGPX              = doc["logGPX"]              | config.logGPX;
+  config.file_date_time      = doc["file_date_time"]      | config.file_date_time;
+  config.dynamic_model       = doc["dynamic_model"]       | config.dynamic_model;
+  config.timezone            = doc["timezone"]            | config.timezone;
+  config.timezone_DST        = doc["timezone_DST"]        | config.timezone_DST;
+  config.track_distance      = doc["track_distance"]      | config.track_distance;
+
+  strlcpy(config.speed_screen,  doc["speed_screen"]  | config.speed_screen,  sizeof(config.speed_screen));
+  strlcpy(config.stat_screen,   doc["stat_screen"]   | config.stat_screen,   sizeof(config.stat_screen));
+  strlcpy(config.gpio12_screen, doc["gpio12_screen"] | config.gpio12_screen, sizeof(config.gpio12_screen));
+  strlcpy(config.UBXfile,       doc["UBXfile"]       | config.UBXfile,       sizeof(config.UBXfile));
+  strlcpy(config.Sleep_info,    doc["Sleep_info"]    | config.Sleep_info,    sizeof(config.Sleep_info));
+  strlcpy(config.ssid,          doc["ssid"]          | config.ssid,          sizeof(config.ssid));
+  strlcpy(config.password,      doc["password"]      | config.password,      sizeof(config.password));
+  strlcpy(config.ssid2,         doc["ssid2"]         | config.ssid2,         sizeof(config.ssid2));
+  strlcpy(config.password2,     doc["password2"]     | config.password2,     sizeof(config.password2));
+
+  return true;
+}
+
+// ----------------------------------------------------
+static void writeConfigToFile(File &file)
+{
   StaticJsonDocument<1536> doc;
 
-  // ---- mirror loadConfiguration() ----
   doc["cal_bat"]              = config.cal_bat;
   doc["shutdown_voltage"]     = config.shutdown_voltage;
   doc["cal_speed"]            = config.cal_speed;
@@ -242,22 +241,40 @@ void saveConfig()
   doc["timezone_DST"]         = config.timezone_DST;
   doc["track_distance"]       = config.track_distance;
 
-  // Strings
-  doc["speed_screen"]   = config.speed_screen;
-  doc["stat_screen"]    = config.stat_screen;
-  doc["gpio12_screen"]  = config.gpio12_screen;
-  doc["UBXfile"]        = config.UBXfile;
-  doc["Sleep_info"]     = config.Sleep_info;
-  doc["ssid"]           = config.ssid;
-  doc["password"]       = config.password;
-  doc["ssid2"]          = config.ssid2;
-  doc["password2"]      = config.password2;
+  doc["speed_screen"]  = config.speed_screen;
+  doc["stat_screen"]   = config.stat_screen;
+  doc["gpio12_screen"] = config.gpio12_screen;
+  doc["UBXfile"]       = config.UBXfile;
+  doc["Sleep_info"]    = config.Sleep_info;
+  doc["ssid"]          = config.ssid;
+  doc["password"]      = config.password;
+  doc["ssid2"]         = config.ssid2;
+  doc["password2"]     = config.password2;
 
-  serializeJsonPretty(doc, f);
-  f.close();
-
-  Serial.println(F("[CONFIG ] Configuration saved"));
+  serializeJsonPretty(doc, file);
 }
 
+// ----------------------------------------------------
+static void applyDerivedConfig()
+{
+  RTC_minimum_voltage_bat = config.shutdown_voltage;
+  strcpy(RTC_Sleep_txt, config.Sleep_info);
 
+  RTC_Board_Logo = config.Board_Logo;
+  RTC_Sail_Logo  = config.Sail_Logo;
 
+  config.cal_bat = RTC_calibration_bat;
+  calibration_speed = config.cal_speed / 1000.0f;
+
+  RTC_SLEEP_screen = config.sleep_off_screen % 10;
+  RTC_OFF_screen   = (config.sleep_off_screen / 10) % 10;
+
+  if (config.file_date_time == 0) config.logTXT = 1;
+
+  config.screen_count = strlen(config.stat_screen) - 1;
+  config.speed_count  = strlen(config.speed_screen) - 1;
+  config.gpio12_count = strlen(config.gpio12_screen) - 1;
+
+  config.field_actual = config.speed_screen[0];
+  TimeZone_env(config.timezone);
+}

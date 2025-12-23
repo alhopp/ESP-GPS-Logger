@@ -1,287 +1,221 @@
 #include "wifi_manager.h"
+#include "system_mode.h"
 
-#include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
+#include <ESPmDNS.h>
+#include <Update.h>
+#include <LittleFS.h>
 
-#include "ESP_functions.h"
-#include "config_manager.h"
-#include "E_paper.h"
+// ==================================================
+// CONFIG
+// ==================================================
+static const char* HOSTNAME = "esp32";
 
-#include <Fonts/FreeSansBold9pt7b.h>
-#include <QRCode.h>
+// AP (field mode)
+static const char* AP_SSID = "ESP32 GPS";
+static const char* AP_PASS = "12345678";   // iOS requires 8+
 
-// -----------------------------------------------------------------------------
-// RP6 Hall switch
-// GPIO12 LOW = setup / network mode
-// -----------------------------------------------------------------------------
-#define WIFI_MODE_PIN 12
+static IPAddress apIP(192,168,4,1);
+static IPAddress netMask(255,255,255,0);
 
-// -----------------------------------------------------------------------------
-// Captive portal
-// -----------------------------------------------------------------------------
-static DNSServer dnsServer;
-static WebServer server(80);
-static const byte DNS_PORT = 53;
-static IPAddress apIP(192, 168, 4, 1);
+#define WIFI_FILE "/wifi.txt"
 
-// -----------------------------------------------------------------------------
-// Internal state
-// -----------------------------------------------------------------------------
-static bool wifi_started = false;
+// ==================================================
+// GLOBALS (owned ONLY here)
+// ==================================================
+WebServer server(80);
+DNSServer dnsServer;
 
-// -----------------------------------------------------------------------------
-// QR helper
-// -----------------------------------------------------------------------------
-static void drawQRCode(const char* text, int x0, int y0, int scale)
-{
-  QRCode qrcode;
-  uint8_t qrcodeData[qrcode_getBufferSize(3)];
+static bool serverStarted = false;
+static bool apMode = false;
 
-  qrcode_initText(&qrcode, qrcodeData, 3, ECC_LOW, text);
+static String savedSSID;
+static String savedPASS;
 
-  for (uint8_t y = 0; y < qrcode.size; y++) {
-    for (uint8_t x = 0; x < qrcode.size; x++) {
-      if (qrcode_getModule(&qrcode, x, y)) {
-        display.fillRect(
-          x0 + x * scale,
-          y0 + y * scale,
-          scale,
-          scale,
-          GxEPD_BLACK
-        );
-      }
-    }
-  }
-}
-
-// -----------------------------------------------------------------------------
-// SETUP DISPLAY (QR + text only)
-// -----------------------------------------------------------------------------
-static void displaySetup()
-{
-  // Force full clear to kill ghosting
-  display.setFullWindow();
-
-  display.firstPage();
-  do {
-    display.fillScreen(GxEPD_WHITE);
-    display.setTextColor(GxEPD_BLACK);
-
-    // QR code (moved UP)
-    drawQRCode(
-      "http://captive.apple.com",
-      85,   // X (centered)
-      5,   // Y (higher)
-      3
-    );
-
-    // Instruction text
-    display.setFont(&FreeSansBold9pt7b);
-
-    display.setCursor(28, 118);
-    display.print("Join ESP and then Scan QR");
-
-  } while (display.nextPage());
-}
-
-// -----------------------------------------------------------------------------
-// HTML UI
-// -----------------------------------------------------------------------------
-static const char WIFI_SETUP_PAGE[] PROGMEM = R"rawliteral(
+// ==================================================
+// WIFI SETUP PAGE (FILE SCOPE – IMPORTANT)
+// ==================================================
+static const char* wifiForm = R"rawliteral(
 <!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ESP GPS Setup</title>
+<title>ESP32 GPS Wi-Fi</title>
 <style>
-body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background:#f4f4f4;
-  margin:0; padding:20px;
-}
-.card {
-  background:#fff;
-  max-width:360px;
-  margin:auto;
-  padding:20px;
-  border-radius:10px;
-  box-shadow:0 2px 8px rgba(0,0,0,.1);
-}
-h1 { text-align:center; }
-label { font-size:14px; margin-top:12px; display:block; }
-input {
-  width:100%; padding:10px; font-size:16px;
-  margin-top:6px; border-radius:6px; border:1px solid #ccc;
-}
-button {
-  margin-top:20px; width:100%;
-  padding:12px; font-size:16px;
-  border:none; border-radius:8px;
-  background:#007aff; color:white;
-}
+ body { font-family: monospace; text-align: center; }
+ input { font-size: 18px; padding: 8px; width: 90%; max-width: 300px; }
+ button { font-size: 20px; padding: 10px 30px; }
 </style>
 </head>
 <body>
-<div class="card">
-<h1>ESP GPS Setup</h1>
+<h2>ESP32 GPS</h2>
+<h3>Wi-Fi Setup</h3>
 <form action="/save" method="POST">
-<label>WiFi SSID</label>
-<input name="ssid" required>
-<label>Password</label>
-<input name="pass" type="password">
-<button type="submit">Save & Reboot</button>
+  <p><input name="ssid" placeholder="Wi-Fi SSID" required></p>
+  <p><input name="pass" type="password" placeholder="Wi-Fi Password"></p>
+  <p><button type="submit">Save & Connect</button></p>
 </form>
-</div>
 </body>
 </html>
 )rawliteral";
 
-// -----------------------------------------------------------------------------
-// Web handlers
-// -----------------------------------------------------------------------------
-static void handleRoot()
-{
-  server.send_P(200, "text/html", WIFI_SETUP_PAGE);
+// ==================================================
+// CREDENTIAL STORAGE
+// ==================================================
+static bool loadCreds() {
+  if (!LittleFS.exists(WIFI_FILE)) return false;
+
+  File f = LittleFS.open(WIFI_FILE, "r");
+  if (!f) return false;
+
+  savedSSID = f.readStringUntil('\n');
+  savedPASS = f.readStringUntil('\n');
+  savedSSID.trim();
+  savedPASS.trim();
+  f.close();
+
+  return savedSSID.length() > 0;
 }
 
-static void handleAppleProbe()
-{
-  // Serve the real setup page so iOS opens the captive UI
-  server.send_P(200, "text/html", WIFI_SETUP_PAGE);
+static void saveCreds(const String& ssid, const String& pass) {
+  File f = LittleFS.open(WIFI_FILE, "w");
+  if (!f) return;
+  f.println(ssid);
+  f.println(pass);
+  f.close();
 }
 
 
-static void handleNotFound()
-{
-  server.sendHeader("Location", "/", true);
-  server.send(302, "text/plain", "");
-}
-
-// -----------------------------------------------------------------------------
-// Save WiFi config
-// -----------------------------------------------------------------------------
-static void handleSave()
-{
-  if (!server.hasArg("ssid")) {
-    server.send(400, "text/plain", "Missing SSID");
-    return;
-  }
-
-  strncpy(config.ssid, server.arg("ssid").c_str(), sizeof(config.ssid) - 1);
-  strncpy(config.password, server.arg("pass").c_str(), sizeof(config.password) - 1);
-
-  Serial.println(F("[WIFI  ] Saving WiFi config"));
-  saveConfig();
-
-  server.send(200, "text/html",
-    "<html><body><h2>Saved</h2><p>Rebooting…</p></body></html>");
-
-  delay(1000);
-  ESP.restart();
-}
-
-// -----------------------------------------------------------------------------
-// Start AP + captive portal
-// -----------------------------------------------------------------------------
-static void startCaptivePortal()
-{
-  WiFi.disconnect(true);
-  delay(50);
-
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP("ESP-GPS-SETUP");
-  WiFi.softAPConfig(apIP, apIP, IPAddress(255,255,255,0));
-
-  Serial.print(F("[WIFI  ] AP ACTIVE, IP="));
-  Serial.println(WiFi.softAPIP());
-
-  displaySetup();
-
-  dnsServer.start(DNS_PORT, "*", apIP);
-
-  server.on("/", handleRoot);
-  server.on("/save", HTTP_POST, handleSave);
-
-  // captive probes → SUCCESS ONLY
-  server.on("/hotspot-detect.html", handleAppleProbe);
-
-  // everything else → redirect to /
-  server.onNotFound(handleNotFound);
-  server.begin();
-
-  Serial.println(F("[WIFI  ] Captive portal started"));
-}
-
-// -----------------------------------------------------------------------------
-// Start STA
-// -----------------------------------------------------------------------------
-static void startSTA(const char* ssid, const char* pass)
-{
-  WiFi.disconnect(true);
-  delay(50);
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, pass);
-
-  Serial.print(F("[WIFI  ] STA begin: "));
-  Serial.println(ssid);
-
-  wifi_started = true;
-  Wifi_on = false;
-}
-
-// -----------------------------------------------------------------------------
-// WiFi init
-// -----------------------------------------------------------------------------
 void wifi_init()
 {
-  pinMode(WIFI_MODE_PIN, INPUT);
-  delay(50);
+  Serial.println("[WiFi   ] Initialising");
 
-  bool hallActive = (digitalRead(WIFI_MODE_PIN) == LOW);
-  bool ssidValid  = strlen(config.ssid) && strcmp(config.ssid, "ssid_not_set") != 0;
-
-  if (!hallActive) {
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
-    wifi_started = false;
-    Wifi_on = false;
-    Serial.println(F("[WIFI  ] GPS mode (WiFi off)"));
+  // Ensure filesystem is available
+  if (!LittleFS.begin(true)) {
+    Serial.println("[WiFi   ] LittleFS mount failed");
     return;
   }
 
-  if (ssidValid) {
-    displaySetup();
-    startSTA(config.ssid, config.password);
-    return;
+  // Decide mode based on saved credentials
+  if (loadCreds()) {
+    Serial.println("[WiFi   ] Credentials found → STA");
+    wifi_start_sta();
+  } else {
+    Serial.println("[WiFi   ] No credentials → AP setup");
+    wifi_start_ap();
   }
-
-  Serial.println(F("[WIFI  ] Setup mode (QR)"));
-  startCaptivePortal();
 }
 
-// -----------------------------------------------------------------------------
-// Background handler
-// -----------------------------------------------------------------------------
-void wifi_handle()
-{
-  if (WiFi.getMode() == WIFI_AP) {
+
+
+// ==================================================
+// INTERNAL HELPERS
+// ==================================================
+static void startServer() {
+
+  if (serverStarted) return;
+
+  server.on("/", HTTP_GET, []() {
+    server.send(200, "text/html", wifiForm);
+  });
+
+  server.on("/save", HTTP_POST, []() {
+    String ssid = server.arg("ssid");
+    String pass = server.arg("pass");
+
+    saveCreds(ssid, pass);
+
+    server.send(200, "text/html",
+      "<h3>Saved. Connecting…</h3><p>You may close this page.</p>"
+    );
+
+    delay(300);
+
+    setMode(MODE_HOME);
+  });
+
+  server.onNotFound([]() {
+    server.send(200, "text/html", wifiForm);
+  });
+
+server.onNotFound([]() {
+  server.send(200, "text/html", wifiForm);
+});
+
+
+
+  server.begin();
+  serverStarted = true;
+
+  Serial.println("[WiFi   ] Web server started");
+}
+
+// ==================================================
+// PUBLIC API
+// ==================================================
+void wifi_start_sta() {
+
+  Serial.println("[WiFi   ] Starting STA mode");
+
+  wifi_stop();
+
+  if (!loadCreds()) {
+    Serial.println("[WiFi   ] No saved credentials");
+    return;
+  }
+
+  apMode = false;
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(savedSSID.c_str(), savedPASS.c_str());
+
+  if (!MDNS.begin(HOSTNAME)) {
+    Serial.println("[WiFi   ] mDNS failed");
+  }
+
+  startServer();
+}
+
+void wifi_start_ap() {
+
+  Serial.println("[WiFi   ] Starting AP mode");
+
+  wifi_stop();
+
+  apMode = true;
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(apIP, apIP, netMask);
+  WiFi.softAP(AP_SSID, AP_PASS);
+
+  dnsServer.start(53, "*", apIP);
+
+  startServer();
+}
+
+void wifi_stop() {
+
+  if (!serverStarted && WiFi.getMode() == WIFI_OFF) return;
+
+  Serial.println("[WiFi   ] Stopping WiFi");
+
+  server.stop();
+  dnsServer.stop();
+
+  WiFi.disconnect(true, true);
+  WiFi.mode(WIFI_OFF);
+
+  serverStarted = false;
+  apMode = false;
+}
+
+void wifi_loop() {
+
+  if (!serverStarted) return;
+
+  server.handleClient();
+
+  if (apMode) {
     dnsServer.processNextRequest();
-    server.handleClient();
-    return;
   }
-
-  if (wifi_started && WiFi.status() == WL_CONNECTED && !Wifi_on) {
-    Wifi_on = true;
-    Serial.print(F("[WIFI  ] Connected, IP="));
-    Serial.println(WiFi.localIP());
-  }
-}
-
-// -----------------------------------------------------------------------------
-bool wifi_is_connected()
-{
-  return WiFi.status() == WL_CONNECTED;
 }

@@ -60,7 +60,6 @@ extern char Ublox_type[20];
 extern char TimeZone[64];
 
 extern int sdTrouble;
-extern bool sdOK;
 extern bool button;
 extern bool LITTLEFS_OK;
 extern bool reed;

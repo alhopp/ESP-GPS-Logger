@@ -1,7 +1,8 @@
 #pragma once
-#include <Arduino.h>
 
 void wifi_init();
-void wifi_handle();      // called from taskOne
 
-
+void wifi_start_sta();
+void wifi_start_ap();
+void wifi_stop();
+void wifi_loop();
