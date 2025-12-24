@@ -159,3 +159,26 @@ extern Button_push Long_push19;
 #define EEPROM_SIZE               32
 #define TIME_OUT_NAV_PVT          10000  // ms
 #define FORMAT_LITTLEFS_IF_FAILED true
+
+
+// Widths (tune once, applies everywhere)
+#define LOG_TAG_W   7
+#define LOG_ITEM_W  12
+
+// Core formatter
+#define LOG_FMT(tag, item, fmt, ...)                                      \
+  do {                                                                    \
+    Serial.printf("[%-*s] %-*s : " fmt "\n",                              \
+                  LOG_TAG_W, tag,                                          \
+                  LOG_ITEM_W, item,                                       \
+                  ##__VA_ARGS__);                                          \
+  } while (0)
+
+// Convenience wrappers
+#define LOG_BOOT(item, fmt, ...)     LOG_FMT("BOOT",    item, fmt, ##__VA_ARGS__)
+#define LOG_STORAGE(item, fmt, ...)  LOG_FMT("STORAGE", item, fmt, ##__VA_ARGS__)
+#define LOG_CONFIG(item, fmt, ...)   LOG_FMT("CONFIG",  item, fmt, ##__VA_ARGS__)
+#define LOG_WIFI(item, fmt, ...)     LOG_FMT("WiFi",    item, fmt, ##__VA_ARGS__)
+#define LOG_TASK(item, fmt, ...)     LOG_FMT("TASK",    item, fmt, ##__VA_ARGS__)
+#define LOG_LOOP(item, fmt, ...)     LOG_FMT("LOOP",    item, fmt, ##__VA_ARGS__)
+#define LOG_ERROR(item, fmt, ...)    LOG_FMT("ERROR",   item, fmt, ##__VA_ARGS__)

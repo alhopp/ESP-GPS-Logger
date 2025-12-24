@@ -1,3 +1,12 @@
+// ---------------------------------------------------------------------------
+// Wi-Fi mode selection:
+// - Loads saved Wi-Fi credentials (if present)
+// - Selects initial system mode (HOME or FIELD_CONFIG)
+//
+// Does NOT start Wi-Fi or networking yet.
+// Actual Wi-Fi setup is handled later by the mode manager.
+// ---------------------------------------------------------------------------
+
 #include "wifi_manager.h"
 #include "system_mode.h"
 
@@ -7,6 +16,9 @@
 #include <ESPmDNS.h>
 #include <Update.h>
 #include <LittleFS.h>
+
+// Logging macros
+#include "Definitions.h"
 
 // ==================================================
 // CONFIG
@@ -66,30 +78,46 @@ static const char* wifiForm = R"rawliteral(
 // ==================================================
 static bool loadCreds()
 {
-  if (!LittleFS.exists(WIFI_FILE)) return false;
+  if (!LittleFS.exists(WIFI_FILE)) {
+    LOG_WIFI("Creds", "file missing");
+    return false;
+  }
 
   File f = LittleFS.open(WIFI_FILE, "r");
-  if (!f) return false;
+  if (!f) {
+    LOG_WIFI("Creds", "open failed");
+    return false;
+  }
 
   savedSSID = f.readStringUntil('\n');
   savedPASS = f.readStringUntil('\n');
 
   savedSSID.trim();
   savedPASS.trim();
-
   f.close();
 
-  return !savedSSID.isEmpty();
+  if (savedSSID.isEmpty()) {
+    LOG_WIFI("Creds", "empty");
+    return false;
+  }
+
+  LOG_WIFI("Creds", "loaded");
+  return true;
 }
 
 static void saveCreds(const String& ssid, const String& pass)
 {
   File f = LittleFS.open(WIFI_FILE, "w");
-  if (!f) return;
+  if (!f) {
+    LOG_ERROR("WiFi", "save failed");
+    return;
+  }
 
   f.println(ssid);
   f.println(pass);
   f.close();
+
+  LOG_WIFI("Creds", "saved");
 }
 
 // ==================================================
@@ -97,13 +125,13 @@ static void saveCreds(const String& ssid, const String& pass)
 // ==================================================
 void initWifi()
 {
-  Serial.println("[WiFi   ] Initialising");
+  LOG_WIFI("Init", "starting");
 
   if (loadCreds()) {
-    Serial.println("[WiFi   ] Credentials found → MODE_HOME");
+    LOG_WIFI("Mode", "HOME");
     setMode(MODE_HOME);
   } else {
-    Serial.println("[WiFi   ] No credentials → MODE_FIELD_CONFIG");
+    LOG_WIFI("Mode", "FIELD_CONFIG");
     setMode(MODE_FIELD_CONFIG);
   }
 }
@@ -132,7 +160,6 @@ static void startServer()
     );
 
     delay(300);
-
     setMode(MODE_HOME);
   });
 
@@ -143,7 +170,7 @@ static void startServer()
   server.begin();
   serverStarted = true;
 
-  Serial.println("[WiFi   ] Web server started");
+  LOG_WIFI("Web", "server started");
 }
 
 // ==================================================
@@ -151,12 +178,12 @@ static void startServer()
 // ==================================================
 void wifi_start_sta()
 {
-  Serial.println("[WiFi   ] Starting STA mode");
+  LOG_WIFI("STA", "starting");
 
   wifi_stop();
 
   if (!loadCreds()) {
-    Serial.println("[WiFi   ] No saved credentials");
+    LOG_WIFI("STA", "no credentials");
     return;
   }
 
@@ -165,16 +192,37 @@ void wifi_start_sta()
   WiFi.mode(WIFI_STA);
   WiFi.begin(savedSSID.c_str(), savedPASS.c_str());
 
+  LOG_WIFI("STA", "connecting");
+
   if (!MDNS.begin(HOSTNAME)) {
-    Serial.println("[WiFi   ] mDNS failed");
+    LOG_WIFI("mDNS", "failed");
+  } else {
+    LOG_WIFI("mDNS", "started");
+  }
+
+  // Wait briefly for IP (non-blocking friendly)
+  unsigned long t0 = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 3000) {
+    delay(50);
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    LOG_WIFI(
+      "IP",
+      "%s",
+      WiFi.localIP().toString().c_str()
+    );
+  } else {
+    LOG_WIFI("IP", "not assigned");
   }
 
   startServer();
 }
 
+
 void wifi_start_ap()
 {
-  Serial.println("[WiFi   ] Starting AP mode");
+  LOG_WIFI("AP", "starting");
 
   wifi_stop();
 
@@ -184,16 +232,20 @@ void wifi_start_ap()
   WiFi.softAPConfig(apIP, apIP, netMask);
   WiFi.softAP(AP_SSID, AP_PASS);
 
+  LOG_WIFI("AP IP", "%s", WiFi.softAPIP().toString().c_str());
+
   dnsServer.start(53, "*", apIP);
+  LOG_WIFI("DNS", "captive portal");
 
   startServer();
 }
+
 
 void wifi_stop()
 {
   if (!serverStarted && WiFi.getMode() == WIFI_OFF) return;
 
-  Serial.println("[WiFi   ] Stopping WiFi");
+  LOG_WIFI("Stop", "WiFi");
 
   server.stop();
   dnsServer.stop();

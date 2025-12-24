@@ -18,7 +18,6 @@
 #include "wifi_manager.h"
 #include "storage_manager.h"
 #include "config_manager.h"
-#include "eeprom_manager.h"
 #include "watchdog_manager.h"
 
 // Tasks

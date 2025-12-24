@@ -1,3 +1,16 @@
+// -----------------------------------------------------------------------------
+// storage_manager.cpp
+//
+// Storage initialization and space tracking:
+// - Mounts SD card if present (optional)
+// - Mounts LittleFS (mandatory, formats if corrupt)
+// - Performs basic I/O sanity check
+// - Reports storage capacity and usage
+//
+// Provides unified helpers for free space and
+// estimated logging time remaining.
+// -----------------------------------------------------------------------------
+
 #include "storage_manager.h"
 
 #include <Arduino.h>
@@ -7,6 +20,7 @@
 #include "SD_card.h"
 #include "ESP_functions.h"
 #include "config_manager.h"
+#include "Definitions.h"   // logging macros
 
 // ----------------------------------------------------
 // Global storage state (DEFINED ONCE HERE)
@@ -17,8 +31,6 @@ bool LITTLEFS_OK = false;
 // ----------------------------------------------------
 // Internal helpers
 // ----------------------------------------------------
-static void storageBannerStart();
-static void storageBannerEnd();
 static bool mountSD();
 static bool mountLittleFS();
 static void reportSDStats();
@@ -29,32 +41,32 @@ static bool storageQuickCheck(fs::FS &fs, const char *path);
 // ----------------------------------------------------
 void initStorage()
 {
-  storageBannerStart();
+  LOG_STORAGE("Init", "start");
 
   // ------------------------------
   // SD Card (optional)
   // ------------------------------
   if (mountSD()) {
-    Serial.println("[STORAGE] SD_MMC mounted successfully");
+    LOG_STORAGE("SD", "mounted");
     reportSDStats();
 
     if (storageQuickCheck(SD_MMC, "/.io_test")) {
-      Serial.println("[STORAGE] SD I/O        : OK");
+      LOG_STORAGE("SD I/O", "OK");
     } else {
-      Serial.println("[STORAGE] SD I/O        : FAILED");
+      LOG_ERROR("SD I/O", "FAILED");
     }
   } else {
-    Serial.println("[STORAGE] No SD card detected");
+    LOG_STORAGE("SD", "not present");
   }
 
   // ------------------------------
   // LittleFS (mandatory)
   // ------------------------------
   if (!mountLittleFS()) {
-    Serial.println("[STORAGE] FATAL: LittleFS unavailable");
+    LOG_ERROR("LittleFS", "unavailable");
   }
 
-  storageBannerEnd();
+  LOG_STORAGE("Init", "done");
 }
 
 // ----------------------------------------------------
@@ -100,7 +112,7 @@ static bool mountSD()
   }
 
   sdOK = true;
-  Serial.println("[STORAGE] SD card detected");
+  LOG_STORAGE("SD Detect", "yes");
   return true;
 }
 
@@ -108,14 +120,15 @@ static bool mountLittleFS()
 {
   if (!LittleFS.begin(true)) {   // format if corrupt
     LITTLEFS_OK = false;
-    Serial.println("[STORAGE] LittleFS mount failed");
+    LOG_ERROR("LittleFS", "mount failed");
     return false;
   }
 
   LITTLEFS_OK = true;
 
-  Serial.printf(
-    "[STORAGE] LittleFS total: %u KB, used: %u KB, free: %u KB\n",
+  LOG_STORAGE(
+    "LittleFS",
+    "total=%uKB used=%uKB free=%uKB",
     LittleFS.totalBytes() / 1024,
     LittleFS.usedBytes()  / 1024,
     (LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024
@@ -144,20 +157,8 @@ static void reportSDStats()
   uint64_t used_bytes  = SD_MMC.usedBytes();
   uint64_t free_bytes  = total_bytes - used_bytes;
 
-  Serial.printf("[STORAGE] SD Card Size  : %lu MB\n", card_bytes  / (1024ULL * 1024ULL));
-  Serial.printf("[STORAGE] SD Total      : %lu MB\n", total_bytes / (1024ULL * 1024ULL));
-  Serial.printf("[STORAGE] SD Used       : %lu MB\n", used_bytes  / (1024ULL * 1024ULL));
-  Serial.printf("[STORAGE] SD Free       : %lu MB\n", free_bytes  / (1024ULL * 1024ULL));
-}
-
-static void storageBannerStart()
-{
-  Serial.println("[STORAGE] ****************************");
-  Serial.println("[STORAGE] *        STORAGE INIT      *");
-  Serial.println("[STORAGE] ****************************");
-}
-
-static void storageBannerEnd()
-{
-  Serial.println("[STORAGE] ****************************");
+  LOG_STORAGE("SD Size",  "%lu MB", card_bytes  / (1024ULL * 1024ULL));
+  LOG_STORAGE("SD Total", "%lu MB", total_bytes / (1024ULL * 1024ULL));
+  LOG_STORAGE("SD Used",  "%lu MB", used_bytes  / (1024ULL * 1024ULL));
+  LOG_STORAGE("SD Free",  "%lu MB", free_bytes  / (1024ULL * 1024ULL));
 }
