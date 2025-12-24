@@ -9,6 +9,8 @@
 #include "esp_logo.h"
 #include "rtc_state.h"
 
+static int ui_offset = 0;
+
 /* =========================================================
  * Local helpers (cpp-only)
  * ========================================================= */
@@ -23,7 +25,7 @@ static inline void beginScreen()
 static inline void drawTitle(const char* txt)
 {
   display.setFont(Fonts::Body12);
-  display.setCursor(offset, Layout::ROW9(1));
+  display.setCursor(ui_offset, Layout::ROW9(1));
   display.print(txt);
 }
 
@@ -57,7 +59,7 @@ void Off_screen(int choice)
   device_boot_log(4, 0);
 
   int cursor = Layout::ROW9(3) + Layout::STEP12;
-  display.setCursor(offset, cursor);
+  display.setCursor(ui_offset, cursor);
 
   // --- LOW BATTERY ---
   if (choice == 2) {
@@ -73,16 +75,16 @@ void Off_screen(int choice)
     display.println("Saving session");
     display.setFont(Fonts::Body9);
 
-    display.setCursor(offset, cursor += Layout::STEP9);
+    display.setCursor(ui_offset, cursor += Layout::STEP9);
     display.print("Time: ");
     display.print(session_time, 0);
     display.print(" s");
 
-    display.setCursor(offset, cursor += Layout::STEP9);
+    display.setCursor(ui_offset, cursor += Layout::STEP9);
     display.print("AVG: ");
     display.print(RTC_avg_10s, 2);
 
-    display.setCursor(offset + 120, cursor);
+    display.setCursor(ui_offset + 120, cursor);
     display.print("Dist: ");
     display.print(Ublox.total_distance / 1000, 0);
   }
@@ -91,7 +93,7 @@ void Off_screen(int choice)
     display.println("Going back to sleep");
   }
 
-  drawChrome(offset, false);
+  drawChrome(ui_offset, false);
   display.display(true);
 }
 
@@ -108,11 +110,11 @@ void Boot_screen(void)
     beginScreen();
 
     // Draw static chrome (RTC / boot mode)
-    drawChrome(offset, true);
+    drawChrome(ui_offset, true);
 
     // Header text
     display.setFont(Fonts::Body9);
-    display.setCursor(offset, 14);
+    display.setCursor(ui_offset, 14);
  
 
                 // ------------------------------
@@ -124,13 +126,13 @@ void Boot_screen(void)
                 display.print("Go back to sleep...");
 
                 display.setFont(Fonts::Body12);
-                display.setCursor(offset, 60);
+                display.setCursor(ui_offset, 60);
                 display.printf("Voltage too low: %.2f", RTC_voltage_bat);
 
-                display.setCursor(offset, 80);
+                display.setCursor(ui_offset, 80);
                 display.println("Please charge lipo!");
 
-                display.setCursor(offset, 100);
+                display.setCursor(ui_offset, 100);
                 display.print(RTC_Sleep_txt);
 
                 // Draw once, no follow-on redraw
@@ -160,7 +162,7 @@ void Boot_screen(void)
 
     //sdCardInfo();
 
-    //display.setCursor(offset, 102);
+    //display.setCursor(ui_offset, 102);
     //display.printf(
     //  "Logspace left : %d hour",
     //  storageLogTimeLeftMinutes() / 60
@@ -177,25 +179,25 @@ void Boot_screen(void)
 void Sleep_screen(int choice)
 {
   // keep offset sane
-  offset = constrain(offset, 1, 9);
+  ui_offset = constrain(ui_offset, 1, 9);
 
   display.init();
 
   beginScreen();
 
-  drawChrome(offset, true);
+  drawChrome(ui_offset, true);
 
   /* ---------------- SIMPLE MODE ---------------- */
   if (choice == 0) {
     display.setFont(Fonts::Body18);
 
-    display.setCursor(offset, 24);
+    display.setCursor(ui_offset, 24);
     display.printf("Dist: %.0f", RTC_distance);
 
-    display.setCursor(offset, 56);
+    display.setCursor(ui_offset, 56);
     display.printf("AVG: %.2f", RTC_avg_10s);
 
-    display.setCursor(offset, 88);
+    display.setCursor(ui_offset, 88);
     display.printf("2s: %.2f", RTC_max_2s);
 
     display.display();
@@ -213,10 +215,10 @@ void Sleep_screen(int choice)
   const int row5 = row4 + rowStep;
   const int row6 = row5 + rowStep;
 
-  const int col1 = offset;
-  const int col2 = offset + 34;
-  const int col3 = offset + 90;
-  const int col4 = offset + 146;
+  const int col1 = ui_offset;
+  const int col2 = ui_offset + 34;
+  const int col3 = ui_offset + 90;
+  const int col4 = ui_offset + 146;
 
   display.setCursor(col1, 105);
   display.setFont(&SF_Distant_Galaxy9pt7b);

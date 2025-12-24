@@ -7,7 +7,6 @@
 #include <stdint.h>
 
 // ---- Display ----
-extern int offset;
 extern int16_t displayWidth;
 extern int16_t displayHeight;
 

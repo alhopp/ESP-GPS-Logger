@@ -1182,7 +1182,7 @@
 							+ " }";
 						if(image != images.last()){ code += ","; }
 						code += "// '" + image.glyph + "'\n";
-						offset += image.canvas.width;
+						ui_offset += image.canvas.width;
 					});
 					code += "};\n";
 					output_string += code;

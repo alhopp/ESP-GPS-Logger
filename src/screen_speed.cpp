@@ -9,6 +9,7 @@
 #include "config_manager.h"
 #include "storage_manager.h"
 
+static int ui_offset = 0;
 
 #define INFO_BAR_TOP 12   // use your original value
 static char bar_info[16];
@@ -26,7 +27,7 @@ static char bar_info[16];
     display.setFont(Fonts::Body12);
     display.setTextColor(GxEPD_BLACK);
 
-    display.setCursor(offset, Layout::ROW12(1));
+    display.setCursor(ui_offset, Layout::ROW12(1));
     display.print(message1);
 
     if (screen <= 2) {
@@ -35,14 +36,14 @@ static char bar_info[16];
     }
 
     display.setFont(Fonts::Body12);
-    display.setCursor(offset + 122, Layout::ROW12(1));
+    display.setCursor(ui_offset + 122, Layout::ROW12(1));
     display.print(message2);
 
     display.setFont(Fonts::Body18);
     display.print(speed2, decimals_small);
 
     display.setFont(Fonts::SpeedXL);
-    display.setCursor(offset, 120);
+    display.setCursor(ui_offset, 120);
     display.print(speed, 1);
 }
 
@@ -55,14 +56,14 @@ void Speed_font1(
     float speed,
     int screen
 ) {
-    display.setCursor(offset, 36);
+    display.setCursor(ui_offset, 36);
 
     if (screen == 0) {
         display.setFont(Fonts::SpeedM);
         display.print(speed1, 1);
 
         display.setFont(Fonts::Body12);
-        display.setCursor(offset + 113, 36);
+        display.setCursor(ui_offset + 113, 36);
         display.print(message2);
 
         display.setFont(Fonts::SpeedM);
@@ -94,7 +95,7 @@ void Speed_font1(
     }
 
     display.setFont(Fonts::SpeedXL);
-    display.setCursor(offset, 120);
+    display.setCursor(ui_offset, 120);
     display.println(speed, 1);
 }
 
@@ -103,11 +104,11 @@ void Speed_font3(
     float speed
 ) {
     display.setFont(&FreeSansBold24pt7b);
-    display.setCursor(offset, 36);
+    display.setCursor(ui_offset, 36);
     bar_position = 40;
     display.print(message1);
 
-    display.setCursor(offset, 120);
+    display.setCursor(ui_offset, 120);
     display.setFont(Fonts::SpeedXL);
     display.print(speed, 1);
 }
@@ -158,14 +159,14 @@ void draw_SPEED()
       if (config.speed_large_font == 2) {
         int komma = int(gps_speed * calibration_speed * 10) % 10;
         display.setFont(Fonts::Huge75);
-        display.setCursor(offset - 6, 115);
+        display.setCursor(ui_offset - 6, 115);
         display.print(int(gps_speed * calibration_speed));
         display.setFont(Fonts::Big30);  display.print(".");
         display.setFont(Fonts::SpeedL); display.println(komma);
       }
     } else {
       display.setFont(Fonts::Body18);
-      display.setCursor(offset, 60);
+      display.setCursor(ui_offset, 60);
       display.print("Low GPS signal !");
     }
 
@@ -272,7 +273,7 @@ void draw_SPEED()
      if (config.speed_large_font == 4) {
       double speed = gps_speed * calibration_speed;
       display.setFont(Fonts::Huge75);
-      display.setCursor(offset - 6, 118);
+      display.setCursor(ui_offset - 6, 118);
       display.print(speed, 0);
       display.setFont(Fonts::SpeedL);
       display.print(".");
@@ -339,23 +340,23 @@ void draw_SPEED()
     if (config.speed_large_font == 1 && run_rectangle_length < 180) {
       display.setTextWrap(false);
       display.setFont(Fonts::Mono9);
-      display.setCursor(offset + 186, 48);
+      display.setCursor(ui_offset + 186, 48);
       display.print(bar_info);
     }
 
     if (config.speed_large_font == 0) {
       display.setFont(Fonts::Body12);
-      display.setCursor(offset + 180, 43);
+      display.setCursor(ui_offset + 180, 43);
       display.print(time_now);
     }
 
     if (config.speed_large_font == 2 && run_rectangle_length < 160) {
       display.setTextWrap(false);
       display.setFont(Fonts::Mono9);
-      display.setCursor(offset + 186, 10);
+      display.setCursor(ui_offset + 186, 10);
       display.print(bar_info);
     }
 
-    display.fillRect(offset, bar_position, run_rectangle_length, 8, GxEPD_BLACK);
+    display.fillRect(ui_offset, bar_position, run_rectangle_length, 8, GxEPD_BLACK);
   
 }

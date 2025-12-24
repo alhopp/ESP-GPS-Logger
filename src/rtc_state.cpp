@@ -8,8 +8,6 @@
 // ---------------------------------------------------------------------------
 // UI / layout
 // ---------------------------------------------------------------------------
-RTC_DATA_ATTR int RTC_offset = 0;   // main UI offset
-RTC_DATA_ATTR int offset     = 0;   // legacy alias still used in code
 
 RTC_DATA_ATTR char RTC_Sleep_txt[32] = "Your ID";
 RTC_DATA_ATTR int  RTC_Sail_Logo     = 0;

@@ -2,6 +2,8 @@
 #include "Layout.h"
 #include "config_manager.h"
 
+static int ui_offset = 0;
+
 /* =========================================================
  * Local helpers
  * ========================================================= */
@@ -78,13 +80,13 @@ static void drawDualRows(
   const T* rightData
 ) {
   display.setFont(Fonts::Body12);
-  display.setCursor(offset, Layout::ROW18(1));
+  display.setCursor(ui_offset, Layout::ROW18(1));
   display.print(title);
 
   for (int i = 9; i > 6; i--) {
     int y = Layout::ROW18(2) + (9 - i) * Layout::STEP18;
 
-    display.setCursor(offset, y);
+    display.setCursor(ui_offset, y);
     display.print(leftPrefix);
     display.print(10 - i);
     display.print(" ");
@@ -92,7 +94,7 @@ static void drawDualRows(
     display.print(cal(leftData[i]), 1);
 
     if (i > 7) {
-      display.setCursor(offset + 118, y);
+      display.setCursor(ui_offset + 118, y);
       display.setFont(Fonts::Body12);
       display.print(" ");
       display.print(rightPrefix);
@@ -113,7 +115,7 @@ static void drawTimedList(
   display.setFont(Fonts::Body12);
 
   for (int i = 9; i > 4; i--) {
-    display.setCursor(offset, rowFromIndex(i));
+    display.setCursor(ui_offset, rowFromIndex(i));
     display.print(label);
     display.print(10 - i);
     display.print(": ");
@@ -128,7 +130,7 @@ static void drawTimedList(
  * ========================================================= */
 void draw_STATS4() {
   display.setFont(Fonts::Body12);
-  display.setCursor(offset, Layout::ROW18(1));
+  display.setCursor(ui_offset, Layout::ROW18(1));
   display.print("10s Avg: ");
   display.setFont(Fonts::Body18);
   display.println(cal(S10.avg_5runs), 2);
@@ -152,10 +154,10 @@ void draw_STATS6() {
   int row[ROWS];
   for (int i = 0; i < ROWS; i++) row[i] = row0 + i * step;
 
-  const int col1 = offset;
-  const int col2 = offset + 46;
-  const int col3 = offset + 114;
-  const int col4 = offset + 182;
+  const int col1 =ui_offset;
+  const int col2 = ui_offset + 46;
+  const int col3 = ui_offset + 114;
+  const int col4 = ui_offset + 182;
 
   const float leftVal[ROWS] = {
     cal(S10.avg_5runs),
@@ -228,8 +230,8 @@ void draw_STATS7() {
   display.setFont(Fonts::Small6);
   for (int i = 0; i < 9; i++) {
     int y = posY - i * 10;
-    display.fillRect(offset + posX, y, GraphWidth, 1, GxEPD_BLACK);
-    display.setCursor(offset + 225, y);
+    display.fillRect(ui_offset + posX, y, GraphWidth, 1, GxEPD_BLACK);
+    display.setCursor(ui_offset + 225, y);
     display.print(min_bar + i * step);
   }
 
@@ -248,7 +250,7 @@ void draw_STATS7() {
   for (int i = 0; i < bars; i++) {
     int idx = (run_count < MaxBars) ? i : (i + r) % MaxBars;
     int h = (cal(S10.speed_run[idx]) - min_bar) * scale;
-    display.fillRect(offset + posX + i * barPitch, posY - h, barWidth, h, GxEPD_BLACK);
+    display.fillRect(ui_offset + posX + i * barPitch, posY - h, barWidth, h, GxEPD_BLACK);
   }
 }
 
@@ -288,7 +290,7 @@ void Stats_4lines(
   for (int i = 0; i < 4; ++i) {
     int y = Layout::ROW18(i + 1);
 
-    display.setCursor(offset, y);
+    display.setCursor(ui_offset, y);
     display.print(labels[i]);
 
     display.setCursor(VALUE_COL, y);
@@ -306,14 +308,14 @@ void Stats_2s_3_lines(
 ) {
   // Top row: 2s info
   display.setFont(Fonts::Body12);
-  display.setCursor(offset, Layout::ROW18(1));
+  display.setCursor(ui_offset, Layout::ROW18(1));
   display.print("2l: ");
 
   display.setFont(Fonts::Body18);
   display.print(S2.display_last_run * calibration_speed, 1);
 
   display.setFont(Fonts::Body12);
-  display.setCursor(offset + 120, Layout::ROW18(1));
+  display.setCursor(ui_offset + 120, Layout::ROW18(1));
   display.print("2s: ");
 
   display.setFont(Fonts::Body18);
@@ -322,15 +324,15 @@ void Stats_2s_3_lines(
   // Remaining rows
   display.setFont(Fonts::Body12);
 
-  display.setCursor(offset, Layout::ROW18(2));
+  display.setCursor(ui_offset, Layout::ROW18(2));
   display.print(m1);
   display.println(v1);
 
-  display.setCursor(offset, Layout::ROW18(3));
+  display.setCursor(ui_offset, Layout::ROW18(3));
   display.print(m2);
   display.println(v2);
 
-  display.setCursor(offset, Layout::ROW18(4));
+  display.setCursor(ui_offset, Layout::ROW18(4));
   display.print(m3);
   display.println(v3);
 }

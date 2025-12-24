@@ -158,8 +158,8 @@ void Sleep_screen(int choice);
 void Update_screen(int screen);
 
 void Bat_level(int X_offset, int Y_offset);
-void Bat_level_Simon(int offset);
-void Sat_level(int offset);
+void Bat_level_Simon(int ui_offset);
+void Sat_level(int ui_offset);
 void time_print(int time);
 
 
