@@ -49,26 +49,7 @@ const char* gpsChip(int longname) {
   }
 }
 
-void Ublox_on(){
-  pinMode(UBLOX_POWER1, OUTPUT);//Power beitian //default drive strength 2, only 2.7V @ ublox gps
-  pinMode(UBLOX_POWER2, OUTPUT);//Power beitian
-  pinMode(UBLOX_POWER3, OUTPUT);//Power beitiansee
-  rtc_gpio_set_drive_capability(UBLOX_RTC_GPIO1,GPIO_DRIVE_CAP_3);// https://www.esp32.com/viewtopic.php?t=5840
-  rtc_gpio_set_drive_capability(UBLOX_RTC_GPIO2,GPIO_DRIVE_CAP_3);//3.0V @ ublox gps current 50 mA
-  gpio_set_drive_capability(UBLOX_GPIO3,GPIO_DRIVE_CAP_3);//rtc_gpio_ necessary, if not no output on RTC_pins 25 en 26, 13/3/2022
-  delay(50);
-  digitalWrite(UBLOX_POWER1, HIGH); 
-  digitalWrite(UBLOX_POWER2, HIGH);
-  digitalWrite(UBLOX_POWER3, HIGH);
-  delay(100);
-}
-void Ublox_off(){
-  digitalWrite(UBLOX_POWER1, LOW);
-  digitalWrite(UBLOX_POWER2, LOW);
-  digitalWrite(UBLOX_POWER3, LOW);
- // rtc_gpio_deinit(UBLOX_RTC_GPIO1);
- // rtc_gpio_deinit(UBLOX_RTC_GPIO2);
-}
+
 void Ublox_serial2(int delay_ms){
  for(int i=0;i<delay_ms;i++){
     int msgType = processGPS();

@@ -18,6 +18,7 @@
 #include "wifi_manager.h"
 #include "storage_manager.h"
 #include "config_manager.h"
+#include "gps_manager.h"
 #include "watchdog_manager.h"
 
 // Tasks
@@ -81,7 +82,11 @@ void setup()
   // ---------------------------------------------------------------------------
   initConfig();      // JSON config
  
- 
+  // ---------------------------------------------------------------------------
+  // GPS detection & configuration
+  // ---------------------------------------------------------------------------
+  initGPS();
+
 
   // ---------------------------------------------------------------------------
   // Wi-Fi mode selection:
@@ -93,7 +98,7 @@ void setup()
   // ---------------------------------------------------------------------------
   initWifi();
 
-
+  
   // Start FreeRTOS tasks
   startTasks();
 }

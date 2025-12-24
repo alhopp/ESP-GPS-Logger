@@ -1,14 +1,15 @@
 // -----------------------------------------------------------------------------
 // storage_manager.cpp
 //
-// Storage initialization and space tracking:
-// - Mounts SD card if present (optional)
-// - Mounts LittleFS (mandatory, formats if corrupt)
-// - Performs basic I/O sanity check
-// - Reports storage capacity and usage
+// SIMPLE storage initialization:
+// - SD card is ASSUMED PRESENT
+// - SD_MMC is initialised unconditionally (1-bit mode)
+// - LittleFS is also mounted (mandatory fallback / config)
+// - sdOK reflects SD_MMC.begin() result only
 //
-// Provides unified helpers for free space and
-// estimated logging time remaining.
+// NOTE:
+//   If no SD card is present, SD_MMC.begin() MAY BLOCK.
+//   We will handle SD-missing cases later.
 // -----------------------------------------------------------------------------
 
 #include "storage_manager.h"
@@ -20,32 +21,32 @@
 #include "SD_card.h"
 #include "ESP_functions.h"
 #include "config_manager.h"
-#include "Definitions.h"   // logging macros
+#include "Definitions.h"
 
-// ----------------------------------------------------
-// Global storage state (DEFINED ONCE HERE)
-// ----------------------------------------------------
-bool sdOK = false;
+// -----------------------------------------------------------------------------
+// GLOBAL STORAGE STATE (DEFINED ONCE HERE)
+// -----------------------------------------------------------------------------
+bool sdOK        = false;
 bool LITTLEFS_OK = false;
 
-// ----------------------------------------------------
-// Internal helpers
-// ----------------------------------------------------
+// -----------------------------------------------------------------------------
+// INTERNAL HELPERS
+// -----------------------------------------------------------------------------
 static bool mountSD();
 static bool mountLittleFS();
-static void reportSDStats();
 static bool storageQuickCheck(fs::FS &fs, const char *path);
+static void reportSDStats();
 
-// ----------------------------------------------------
-// Public API
-// ----------------------------------------------------
+// -----------------------------------------------------------------------------
+// PUBLIC API
+// -----------------------------------------------------------------------------
 void initStorage()
 {
   LOG_STORAGE("Init", "start");
 
-  // ------------------------------
-  // SD Card (optional)
-  // ------------------------------
+  // ---------------------------------------------------------------------------
+  // SD CARD (ASSUMED PRESENT)
+  // ---------------------------------------------------------------------------
   if (mountSD()) {
     LOG_STORAGE("SD", "mounted");
     reportSDStats();
@@ -56,12 +57,12 @@ void initStorage()
       LOG_ERROR("SD I/O", "FAILED");
     }
   } else {
-    LOG_STORAGE("SD", "not present");
+    LOG_ERROR("SD", "mount failed");
   }
 
-  // ------------------------------
-  // LittleFS (mandatory)
-  // ------------------------------
+  // ---------------------------------------------------------------------------
+  // LITTLEFS (MANDATORY)
+  // ---------------------------------------------------------------------------
   if (!mountLittleFS()) {
     LOG_ERROR("LittleFS", "unavailable");
   }
@@ -69,17 +70,17 @@ void initStorage()
   LOG_STORAGE("Init", "done");
 }
 
-// ----------------------------------------------------
-// Space helpers
-// ----------------------------------------------------
+// -----------------------------------------------------------------------------
+// SPACE HELPERS
+// -----------------------------------------------------------------------------
 uint64_t storageFreeKBytes()
 {
   if (sdOK) {
-    return (SD_MMC.totalBytes() - SD_MMC.usedBytes()) / 1024;
+    return (SD_MMC.totalBytes() - SD_MMC.usedBytes()) / 1024ULL;
   }
 
   if (LITTLEFS_OK) {
-    return (LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024;
+    return (LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024ULL;
   }
 
   return 0;
@@ -97,22 +98,29 @@ int storageLogTimeLeftMinutes()
        1) * config.sample_rate +
       config.logGPX * 230;
 
+  if (data_rate <= 0) return 0;
+
   uint64_t seconds = (free_kbytes * 1024ULL) / data_rate;
   return seconds / 60;
 }
 
-// ----------------------------------------------------
-// Internal helpers
-// ----------------------------------------------------
+// -----------------------------------------------------------------------------
+// INTERNAL IMPLEMENTATION
+// -----------------------------------------------------------------------------
 static bool mountSD()
 {
+  sdOK = false;
+
+  // ---------------------------------------------------------------------------
+  // ASSUME SD IS PRESENT
+  // 1-bit SDMMC mode (safe for LilyGO / T5)
+  // ---------------------------------------------------------------------------
   if (!SD_MMC.begin("/sdcard", true)) {
-    sdOK = false;
+    LOG_ERROR("SD", "SD_MMC.begin failed");
     return false;
   }
 
   sdOK = true;
-  LOG_STORAGE("SD Detect", "yes");
   return true;
 }
 
