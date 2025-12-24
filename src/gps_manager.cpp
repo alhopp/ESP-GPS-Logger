@@ -1,71 +1,135 @@
+// -----------------------------------------------------------------------------
+// gps_manager.cpp
+//
+// Minimal, SAFE GPS bring-up for ESP32 + u-blox
+// - Powers GPS
+// - Scans baud rates
+// - Confirms GPS presence via UBX-MON-VER
+// - No UBX config, no parsing (yet)
+// -----------------------------------------------------------------------------
+
 #include "gps_manager.h"
-#include "Ublox.h"
-#include "config_manager.h"
-#include "Definitions.h"
+
 #include <Arduino.h>
+#include <HardwareSerial.h>
+#include <driver/rtc_io.h>
+#include <driver/gpio.h>
 
-// --------------------------------------------------
-// Internal state
-// --------------------------------------------------
-static GpsChip detectedChip = GpsChip::UNKNOWN;
+#include "Definitions.h"
+#include "ESP_functions.h"
 
-// --------------------------------------------------
-// Public API
-// --------------------------------------------------
-void initGPS()
+// -----------------------------------------------------------------------------
+// SERIAL + PINS
+// -----------------------------------------------------------------------------
+static HardwareSerial GPSSerial(2);
+
+#define GPS_RX_PIN  32
+#define GPS_TX_PIN  33
+
+
+// -----------------------------------------------------------------------------
+// POWER CONTROL
+// -----------------------------------------------------------------------------
+static void gps_power_on()
 {
-  Serial.println("[GPS    ] Init         : starting");
+  pinMode(UBLOX_POWER1, OUTPUT);
+  pinMode(UBLOX_POWER2, OUTPUT);
+  pinMode(UBLOX_POWER3, OUTPUT);
 
-  Ublox_on();              
-  Ublox_serial2(300);         
+  rtc_gpio_set_drive_capability(UBLOX_RTC_GPIO1, GPIO_DRIVE_CAP_3);
+  rtc_gpio_set_drive_capability(UBLOX_RTC_GPIO2, GPIO_DRIVE_CAP_3);
+  gpio_set_drive_capability(UBLOX_GPIO3, GPIO_DRIVE_CAP_3);
 
-  delay(400);                 
-
-  detectedChip = static_cast<GpsChip>(Auto_detect_ublox());
-
-  switch (detectedChip) {
-    case GpsChip::UBLOX_M8:
-    case GpsChip::UBLOX_M9:
-      Serial.println("[GPS    ] Chip         : u-blox M8/M9");
-      Init_ublox();
-      Set_rate_ublox(config.sample_rate);
-      break;
-
-    case GpsChip::UBLOX_M10:
-      Serial.println("[GPS    ] Chip         : u-blox M10");
-      Init_ubloxM10();
-
-      if (Check_M10_nav_rate() == 0) {
-        Serial.println("[GPS    ] Nav rate     : enabling high-rate");
-        Set_M10_high_nav_rate();
-      }
-
-      Set_rate_ubloxM10(config.sample_rate);
-      break;
-
-    default:
-      Serial.println("[GPS    ] Init         : no GPS detected");
-      break;
-  }
-}
-
-void Ublox_on(){
-  pinMode(UBLOX_POWER1, OUTPUT);//Power beitian //default drive strength 2, only 2.7V @ ublox gps
-  pinMode(UBLOX_POWER2, OUTPUT);//Power beitian
-  pinMode(UBLOX_POWER3, OUTPUT);//Power beitian
-  rtc_gpio_set_drive_capability(UBLOX_RTC_GPIO1,GPIO_DRIVE_CAP_3);// https://www.esp32.com/viewtopic.php?t=5840
-  rtc_gpio_set_drive_capability(UBLOX_RTC_GPIO2,GPIO_DRIVE_CAP_3);//3.0V @ ublox gps current 50 mA
-  gpio_set_drive_capability(UBLOX_GPIO3,GPIO_DRIVE_CAP_3);//rtc_gpio_ necessary, if not no output on RTC_pins 25 en 26, 13/3/2022
   delay(50);
-  digitalWrite(UBLOX_POWER1, HIGH); 
+
+  digitalWrite(UBLOX_POWER1, HIGH);
   digitalWrite(UBLOX_POWER2, HIGH);
   digitalWrite(UBLOX_POWER3, HIGH);
-  delay(100);
+
+  delay(150);
 }
 
-void Ublox_off(){
+static void gps_power_off()
+{
   digitalWrite(UBLOX_POWER1, LOW);
   digitalWrite(UBLOX_POWER2, LOW);
   digitalWrite(UBLOX_POWER3, LOW);
 }
 
+// -----------------------------------------------------------------------------
+// HELPERS
+// -----------------------------------------------------------------------------
+static bool probe_gps(uint32_t baud)
+{
+  GPSSerial.begin(baud, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+  delay(120);
+
+  // Flush startup noise
+  while (GPSSerial.available()) GPSSerial.read();
+
+  // Send MON-VER poll (reuse global UBX_MON_VER)
+    GPSSerial.write(
+    (const uint8_t*)UBX_MON_VER,
+    sizeof(UBX_MON_VER)
+    );
+
+  GPSSerial.flush();
+
+  uint32_t start = millis();
+  while (millis() - start < 300) {
+    if (GPSSerial.available()) {
+      return true;   // Any response = GPS alive
+    }
+  }
+
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+// PUBLIC API
+// -----------------------------------------------------------------------------
+bool initGPS()
+{
+  LOG_GPS("Init", "starting");
+
+  gps_power_on();
+
+  LOG_GPS("Detect", "baud scan");
+
+  if (probe_gps(9600)) {
+    LOG_GPS("Detect", "baud=9600");
+    return true;
+  }
+
+  if (probe_gps(38400)) {
+    LOG_GPS("Detect", "baud=38400");
+    return true;
+  }
+
+  if (probe_gps(115200)) {
+    LOG_GPS("Detect", "baud=115200");
+    return true;
+  }
+
+  LOG_GPS("Init", "no GPS detected");
+  return false;
+}
+
+void gps_shutdown()
+{
+  LOG_GPS("Power", "off");
+  gps_power_off();
+}
+
+// -----------------------------------------------------------------------------
+// LEGACY COMPATIBILITY WRAPPERS
+// -----------------------------------------------------------------------------
+void Ublox_on()
+{
+  gps_power_on();
+}
+
+void Ublox_off()
+{
+  gps_power_off();
+}

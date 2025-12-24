@@ -1,18 +1,8 @@
 #pragma once
+#include <stdint.h>
 
-enum class GpsChip {
-  UNKNOWN,
-  UBLOX_M8,
-  UBLOX_M9,
-  UBLOX_M10
-};
-
-enum class M10NavMode {
-  NAV_DEFAULT,
-  NAV_HIGH_RATE
-};
-
-void initGPS();
-void Ublox_on();
-void Ublox_off();   
-GpsChip getGpsChip();
+bool     initGPS();
+bool     gps_is_ok();
+uint32_t gps_get_baud();
+void     gps_shutdown();
+void     gps_debug_dump(uint32_t ms);
