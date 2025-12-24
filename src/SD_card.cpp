@@ -85,7 +85,7 @@ void Open_files(void) {
         }
       }
       if (LITTLEFS_OK) {
-        if (!LITTLEFS.exists(filenameERR)) {
+        if (!LittleFS.exists(filenameERR)) {
           break;
         }
       }
@@ -103,30 +103,30 @@ void Open_files(void) {
   strcat(filenameGPX, "gpx");
   if (config.logUBX == true) {
     if (sdOK) ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
-    if (LITTLEFS_OK) ubxfile = LITTLEFS.open(filenameUBX, FILE_APPEND);
+    if (LITTLEFS_OK) ubxfile = LittleFS.open(filenameUBX, FILE_APPEND);
     //ubxfile.setBufferSize(4096);
     //if(setvbuf(file, NULL, _IOFBF, 4096) != 0) {}//enlarge buffer SD handle error
   }
 #if defined(GPY_H)
   if (config.logGPY == true) {
     if (sdOK) gpyfile = SD_MMC.open(filenameGPY, FILE_APPEND);
-    if (LITTLEFS_OK) gpyfile = LITTLEFS.open(filenameGPY, FILE_APPEND);
+    if (LITTLEFS_OK) gpyfile = LittleFS.open(filenameGPY, FILE_APPEND);
     log_GPY_Header(gpyfile);
   }
 #endif
   if (config.logSBP == true) {
     if (sdOK) sbpfile = SD_MMC.open(filenameSBP, FILE_APPEND);
-    if (LITTLEFS_OK) sbpfile = LITTLEFS.open(filenameSBP, FILE_APPEND);
+    if (LITTLEFS_OK) sbpfile = LittleFS.open(filenameSBP, FILE_APPEND);
     log_header_SBP(sbpfile);
   }
   if (config.logGPX == true) {
     if (sdOK) gpxfile = SD_MMC.open(filenameGPX, FILE_APPEND);
-    if (LITTLEFS_OK) gpxfile = LITTLEFS.open(filenameGPX, FILE_APPEND);
+    if (LITTLEFS_OK) gpxfile = LittleFS.open(filenameGPX, FILE_APPEND);
     log_GPX(GPX_HEADER, gpxfile);
   }
   if (config.logTXT == true) {
     if (sdOK) errorfile = SD_MMC.open(filenameERR, FILE_APPEND);
-    if (LITTLEFS_OK) errorfile = LITTLEFS.open(filenameERR, FILE_APPEND);
+    if (LITTLEFS_OK) errorfile = LittleFS.open(filenameERR, FILE_APPEND);
   }
 }
 void Close_files(void) {
@@ -212,7 +212,7 @@ void printFile(const char *filename) {
   // Open file for reading
   File file;
   if(sdOK) file = SD_MMC.open(filename);
-  if(LITTLEFS_OK) file = LITTLEFS.open(filename);
+  if(LITTLEFS_OK) file = LittleFS.open(filename);
   if (!file.available()) {
     Serial.println(F("Failed to read file"));
     return;

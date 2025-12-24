@@ -16,8 +16,6 @@
 #include "Button_push.h"
 #include <LittleFS.h>
 
-// Legacy compatibility
-#define LITTLEFS LittleFS
 
 // ============================================================================
 // Boot mode & buttons

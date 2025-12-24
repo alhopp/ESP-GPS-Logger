@@ -106,7 +106,7 @@ void SD_file_download(String filename) {
   if (sdOK | LITTLEFS_OK) {
     File download;
     if (sdOK) download = SD_MMC.open("/" + filename);
-    if (LITTLEFS_OK) download = LITTLEFS.open("/" + filename);
+    if (LITTLEFS_OK) download = LittleFS.open("/" + filename);
     if (download) {
       downloading_file = true;
       if (sdOK|LITTLEFS_OK) filename.remove(0, 1);  //remove 1 character starting at index 0, this is /, after downloading -> _filename....
@@ -127,7 +127,7 @@ void SD_file_download(String filename) {
 void printDirectory(const char* dirname, uint8_t levels) {
   File root;
   if (sdOK) root = SD_MMC.open(dirname);
-  if (LITTLEFS_OK) root = LITTLEFS.open(dirname);
+  if (LITTLEFS_OK) root = LittleFS.open(dirname);
   if (!root) {
     return;
   }
@@ -202,7 +202,7 @@ void SD_file_delete(String filename) {
     //SendHTML_Header();
     File dataFile;
     if (sdOK) dataFile = SD_MMC.open("/" + filename, FILE_READ);               //Now read data from SD Card
-    if (LITTLEFS_OK) dataFile = LITTLEFS.open("/" + filename, FILE_READ);  //Now read data from SD Card
+    if (LITTLEFS_OK) dataFile = LittleFS.open("/" + filename, FILE_READ);  //Now read data from SD Card
     if (dataFile) {
       if (sdOK) {
         if (SD_MMC.remove("/" + filename)) {
@@ -211,7 +211,7 @@ void SD_file_delete(String filename) {
       }
       if (LITTLEFS_OK) {
         dataFile.close();
-        if (LITTLEFS.remove("/" + filename)) {
+        if (LittleFS.remove("/" + filename)) {
           Serial.println(F("LITTLEFS File deleted successfully"));
         }
       }
@@ -279,10 +279,10 @@ void SD_dir(int archive) {
     }
     File root;
     if (sdOK) root = SD_MMC.open("/");
-    if (LITTLEFS_OK) root = LITTLEFS.open("/");
+    if (LITTLEFS_OK) root = LittleFS.open("/");
     /*
     uint64_t free_kbytes=0;
-    if(LITTLEFS_OK) free_kbytes = (LITTLEFS.totalBytes() - LITTLEFS.usedBytes())/1024;
+    if(LITTLEFS_OK) free_kbytes = (LittleFS.totalBytes() - LittleFS.usedBytes())/1024;
     if(sdOK) {
         uint64_t totalBytes=SD_MMC.totalBytes();
         uint64_t usedBytes=SD_MMC.usedBytes();
@@ -393,8 +393,8 @@ void handleFileUpload() {
       UploadFile = SD_MMC.open(filename, FILE_WRITE);  //Open the file for writing in SD (create it, if doesn't exist)
     }
     if (LITTLEFS_OK) {
-      LITTLEFS.remove(filename);                         //Remove a previous version, otherwise data is appended the file again
-      UploadFile = LITTLEFS.open(filename, FILE_WRITE);  //Open the file for writing in SD (create it, if doesn't exist)
+      LittleFS.remove(filename);                         //Remove a previous version, otherwise data is appended the file again
+      UploadFile = LittleFS.open(filename, FILE_WRITE);  //Open the file for writing in SD (create it, if doesn't exist)
     }
     filename = String();
   } else if (uploadfile.status == UPLOAD_FILE_WRITE) {
@@ -447,11 +447,11 @@ void handleConfigUpload() {
       }
     }
     if (LITTLEFS_OK) {
-      LITTLEFS.remove("/config_backup.txt");
-      LITTLEFS.rename("/config.txt", "/config_backup.txt");
-      LITTLEFS.remove("/config.txt");
+      LittleFS.remove("/config_backup.txt");
+      LittleFS.rename("/config.txt", "/config_backup.txt");
+      LittleFS.remove("/config.txt");
       // Open file for writing
-      file = LITTLEFS.open("/config.txt", FILE_WRITE);
+      file = LittleFS.open("/config.txt", FILE_WRITE);
       if (!file) {
         Serial.println(F("Failed to create file"));
         return;
