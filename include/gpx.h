@@ -33,7 +33,6 @@ SOFTWARE.
 #define GPX_FRAME 1
 #define GPX_END 2
 extern const char SW_version[16];
-//extern UBXMessage ubxMessage; 
 void log_GPX(int part,File file){
 char bufferTx[512]; 
 int i,y; 

@@ -24,14 +24,11 @@ extern int start_logging_millis;
 extern bool sdOK,button,LITTLEFS_OK;
 extern bool GPS_logging;
 extern float Mean_heading,heading_SD;
-extern float RTC_calibration_bat;
 extern float calibration_speed;
-//extern int time_out_nav_pvt;
 extern int next_gpy_full_frame;
 extern byte mac[6];
 extern const char SW_version[16];
 extern char Ublox_type[20];
-extern char RTC_Sleep_txt[32];
 extern char TimeZone[64];
 extern GPS_speed M100;
 extern GPS_speed M250;
@@ -45,12 +42,6 @@ extern GPS_data Ublox; // create an object storing GPS_data, definition in RTOS
 extern GPS_SAT_info Ublox_Sat;//create an object storing GPS_SAT info !
 extern int nav_pvt_message; 
 extern int nav_sat_message;
-extern int RTC_Board_Logo;
-extern int RTC_Sail_Logo;
-extern int RTC_bat_choice;
-extern int RTC_SLEEP_screen;
-extern int RTC_OFF_screen;
-extern float RTC_minimum_voltage_bat;
 
 
 void AddString();

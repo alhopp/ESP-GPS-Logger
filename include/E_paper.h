@@ -117,8 +117,6 @@ extern int   run_count;
 extern int   stat_count;
 extern int   GPIO12_screen;
 
-extern float RTC_voltage_bat;
-extern float RTC_minimum_voltage_bat;
 extern float alfa_window;
 extern double delta_heading;
 extern double ref_heading;

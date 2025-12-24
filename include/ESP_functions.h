@@ -29,14 +29,6 @@ class GPS_Track;
 class FtpServer;
 
 
-
-
-// Display (defined elsewhere)
-//extern GxEPD_Class display;
-// -------------------------------------------------
-// Global state (extern ONLY)
-// -------------------------------------------------
-
 extern const char* filename;
 extern const char* filename_backup;
 

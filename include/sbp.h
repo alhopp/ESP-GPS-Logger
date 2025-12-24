@@ -1,12 +1,6 @@
 #ifndef SBP_H
 #define SBP_H
 
-/*Function declarations*/
-//void log_header_SBP(File file);
-//void log_SBP(File file);
-
-//extern File sbpfile;
-//extern UBXMessage ubxMessage; 
 /* Locosys SBP structures */
 struct SBP_Header{//length = 64 bytes
    uint16_t Text_length = 30;//byte 0-1 : nr of meaningfull bytes in header (MID_FILE_ID)

@@ -9,9 +9,6 @@
 #define T5_E_PAPER           // Compile without display functions
 #define GPIO12_ACTIF         // GPIO12 used as wake-up pin (normal GPIO disabled)
 
-//#define USE_AUTO_OTA_UPDATE
-//#define TRACK_SPEED
-
 // ============================================================================
 // Includes
 // ============================================================================

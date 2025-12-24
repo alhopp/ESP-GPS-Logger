@@ -337,7 +337,6 @@ struct UBXMessage {//was union, but messages are overwritten by next message
 
 extern UBXMessage ubxMessage;  //declaration here, definition in Ublox.cpp
 extern bool sdOK;
-//extern int config.ublox_type;
 extern char dataStr[255];  //string for logging NMEA in txt, test for write 2000 chars !!
 extern char Buffer[50];
 
