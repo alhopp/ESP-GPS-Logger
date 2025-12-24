@@ -22,11 +22,7 @@
 // ESP32 heap stats
 #include <esp_system.h>
 
-// -----------------------------------------------------------------------------
-// EXTERNAL / RTC STATE
-// -----------------------------------------------------------------------------
-extern RTC_DATA_ATTR int  RTC_Sail_Logo;
-extern RTC_DATA_ATTR char RTC_Sleep_txt[32];
+#include "rtc_state.h"
 
 bool sleep_mode = false;
 extern bool reset_boot;

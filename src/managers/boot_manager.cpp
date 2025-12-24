@@ -6,6 +6,7 @@
 #include "ESP_functions.h"
 #include "config_manager.h"
 #include "E_paper.h"
+#include "rtc_state.h"
 
 // Fonts (e-paper friendly)
 #include "Fonts.h"
@@ -16,7 +17,6 @@
 extern float RTC_voltage_bat;
 extern float RTC_minimum_voltage_bat;
 extern int   RTC_OFF_screen;
-extern RTC_DATA_ATTR char RTC_Sleep_txt[32];
 extern bool reset_boot;
 
 // Battery scaling (must match hardware divider)

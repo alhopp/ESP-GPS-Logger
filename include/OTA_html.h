@@ -1,9 +1,5 @@
 #include "ESP_functions.h"
 
-
-
-//html files readable
-extern RTC_DATA_ATTR float RTC_calibration_bat;
 //header file readable
 const char html_header[] PROGMEM = R"=====(
 <html><head><meta charset="UTF-8"><title>ESP-GPS-Logger</title>

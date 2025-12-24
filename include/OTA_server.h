@@ -10,12 +10,13 @@ https://github.com/italocjs/ESP32_OTA_APMODE/blob/main/Main.cpp
 #include <LittleFS.h>
 #include "Definitions.h"
 #include "OTA_html.h"
+#include "rtc_state.h"
+
 //#include "ESP_functions.h"
 bool downloading_file = false;
 const char* host = "esp32";
 extern const char E_paper_version[16];
-extern RTC_DATA_ATTR float RTC_calibration_bat;
-extern RTC_DATA_ATTR int RTC_highest_read;
+
 WebServer server(80);
 
 //SD Card webinterface download section

@@ -5,6 +5,8 @@
 #include "config_manager.h"
 #include "ESP_functions.h"
 
+#include "rtc_state.h"
+
 // ----------------------------------------------------
 // CONFIG LOCATION (LittleFS ONLY)
 // ----------------------------------------------------

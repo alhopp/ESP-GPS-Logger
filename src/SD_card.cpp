@@ -9,7 +9,7 @@
 #include "sbp.h"
 #include "gpy.h"
 #include "config_manager.h"
-
+#include "rtc_state.h"
 
 File ubxfile;
 File errorfile;

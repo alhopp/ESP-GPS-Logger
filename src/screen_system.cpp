@@ -7,6 +7,7 @@
 #include "screen_ui.h"
 #include "storage_manager.h"
 #include "esp_logo.h"
+#include "rtc_state.h"
 
 /* =========================================================
  * Local helpers (cpp-only)

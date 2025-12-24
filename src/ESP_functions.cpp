@@ -4,14 +4,10 @@
 #include "config_manager.h"
 
 #include "screen_system.h"
+#include "rtc_state.h"
 
 String IP_adress="0.0.0.0";
 const char SW_version[16]="Ver 6.01c";
-
-
-extern RTC_DATA_ATTR int RTC_Sail_Logo ;
-extern RTC_DATA_ATTR char RTC_Sleep_txt[32];
-
 const char *filename = "/config.txt";
 const char *filename_backup = "/config_backup.txt";
 
@@ -71,43 +67,7 @@ IPAddress local_IP(192,168,4,1);
 IPAddress gateway(192,168,1,1);
 IPAddress subnet(255,255,255,0);
 
-RTC_DATA_ATTR float calibration_speed=3.6;
-RTC_DATA_ATTR int offset = 0;
-RTC_DATA_ATTR float RTC_distance;
-RTC_DATA_ATTR float RTC_avg_10s;
-RTC_DATA_ATTR float RTC_max_2s;
-RTC_DATA_ATTR float RTC_1h;
-RTC_DATA_ATTR float RTC_alp;
-RTC_DATA_ATTR float RTC_mile;
-RTC_DATA_ATTR float RTC_avg_10s_knots;
-RTC_DATA_ATTR float RTC_max_2s_knots;
-RTC_DATA_ATTR float RTC_alp_knots;
-RTC_DATA_ATTR float RTC_1h_knots;
-RTC_DATA_ATTR float RTC_mile_knots;
-//Simon
-RTC_DATA_ATTR short RTC_year;
-RTC_DATA_ATTR short RTC_month;
-RTC_DATA_ATTR short RTC_day;
-RTC_DATA_ATTR short RTC_hour;
-RTC_DATA_ATTR short RTC_min;
-RTC_DATA_ATTR float RTC_500m;
 
-RTC_DATA_ATTR float RTC_R1_10s;
-RTC_DATA_ATTR float RTC_R2_10s;
-RTC_DATA_ATTR float RTC_R3_10s;
-RTC_DATA_ATTR float RTC_R4_10s;
-RTC_DATA_ATTR float RTC_R5_10s;
-RTC_DATA_ATTR int RTC_Board_Logo;
-RTC_DATA_ATTR int RTC_SLEEP_screen=0;
-RTC_DATA_ATTR int RTC_OFF_screen=0;
-RTC_DATA_ATTR int RTC_counter=0;
-
-RTC_DATA_ATTR float RTC_calibration_bat; //t=1.75;
-RTC_DATA_ATTR float RTC_voltage_bat=3.6;
-RTC_DATA_ATTR float RTC_old_voltage_bat=3.6;
-RTC_DATA_ATTR float RTC_minimum_voltage_bat=MINIMUM_VOLTAGE;
-RTC_DATA_ATTR int RTC_bat_choice = 0;
-RTC_DATA_ATTR int RTC_highest_read = STARTVALUE_HIGHEST_READ;
 
 
 Button_push::Button_push(int GPIO_pin,

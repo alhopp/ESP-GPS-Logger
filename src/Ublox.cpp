@@ -2,6 +2,7 @@
 #include "Definitions.h"
 #include <EEPROM.h>
 #include "config_manager.h"
+#include "rtc_state.h"
 
 int Time_Set_OK;
 bool Nav_rate_NACK = false;

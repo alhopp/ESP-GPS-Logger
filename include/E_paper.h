@@ -4,6 +4,7 @@
 #include <GxEPD2_BW.h>
 #include <epd/GxEPD2_213_B74.h>
 #include <screen_draw.h>
+#include "rtc_state.h"
 
 extern GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display;
 
@@ -130,34 +131,7 @@ extern const char SW_version[16];
 
 extern UBXMessage ubxMessage;
 
-// ============================================================================
-//  RTC persistent values
-// ============================================================================
 
-extern RTC_DATA_ATTR int   offset;
-extern RTC_DATA_ATTR float RTC_distance;
-extern RTC_DATA_ATTR float RTC_avg_10s;
-extern RTC_DATA_ATTR float RTC_max_2s;
-
-// RTC stats
-extern RTC_DATA_ATTR short RTC_year;
-extern RTC_DATA_ATTR short RTC_month;
-extern RTC_DATA_ATTR short RTC_day;
-extern RTC_DATA_ATTR short RTC_hour;
-extern RTC_DATA_ATTR short RTC_min;
-
-extern RTC_DATA_ATTR float RTC_alp;
-extern RTC_DATA_ATTR float RTC_500m;
-extern RTC_DATA_ATTR float RTC_1h;
-extern RTC_DATA_ATTR float RTC_mile;
-
-extern RTC_DATA_ATTR float RTC_R1_10s;
-extern RTC_DATA_ATTR float RTC_R2_10s;
-extern RTC_DATA_ATTR float RTC_R3_10s;
-extern RTC_DATA_ATTR float RTC_R4_10s;
-extern RTC_DATA_ATTR float RTC_R5_10s;
-
-extern RTC_DATA_ATTR int   RTC_counter;
 
 // ============================================================================
 //  Navigation / statistics objects
