@@ -19,27 +19,58 @@ void taskTwo(void* parameter)
   LOG_TASK("Display", "test mode start");
 
   int value = 1;
+  bool first = true;
+
+  // Define the area that will change
+  const int X = 0;
+  const int Y = 0;
+  const int W = 200;
+  const int H = 120;
 
   for (;;)
   {
-    display.setFullWindow();
-    display.firstPage();
-    do {
-      display.fillScreen(GxEPD_WHITE);
-      display.setTextColor(GxEPD_BLACK);
+    if (first)
+    {
+      // -------------------------------------------------
+      // ONE-TIME full refresh to initialise panel
+      // -------------------------------------------------
+      display.setFullWindow();
+      display.firstPage();
+      do {
+        display.fillScreen(GxEPD_WHITE);
+        display.setTextColor(GxEPD_BLACK);
 
-      display.setFont(Fonts::SpeedXL);   // big, obvious
-      display.setCursor(40, 120);
-      display.print(value);
+        display.setFont(Fonts::SpeedXL);
+        display.setCursor(X, Y + H);
+        display.print(value);
+      } while (display.nextPage());
 
-    } while (display.nextPage());
+      first = false;
+    }
+    else
+    {
+      // -------------------------------------------------
+      // PARTIAL refresh only (NO FLICKER)
+      // -------------------------------------------------
+      display.setPartialWindow(X, Y, W, H);
+      display.firstPage();
+      do {
+        // IMPORTANT: clear only the partial area
+        display.fillRect(X, Y, W, H, GxEPD_WHITE);
+
+        display.setTextColor(GxEPD_BLACK);
+        display.setFont(Fonts::SpeedXL);
+        display.setCursor(X, Y + H);
+        display.print(value);
+      } while (display.nextPage());
+    }
 
     LOG_TASK("Display", "show %d", value);
 
     value++;
     if (value > 4) value = 1;
 
-    vTaskDelay(pdMS_TO_TICKS(2000)); // 2 seconds per number
+    vTaskDelay(pdMS_TO_TICKS(2000));
   }
 }
 
