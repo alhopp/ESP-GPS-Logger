@@ -162,8 +162,6 @@ void Bat_level_Simon(int ui_offset);
 void Sat_level(int ui_offset);
 void time_print(int time);
 
-
-
 void Stats_4lines(
   String Message1,
   String Message2,

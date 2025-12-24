@@ -1,3 +1,16 @@
+// -----------------------------------------------------------------------------
+// main.cpp
+//
+// System entry point:
+// - Runs ordered startup (boot → storage → config → Wi-Fi mode selection)
+// - Starts core FreeRTOS tasks (GPS, display)
+// - Services Wi-Fi and watchdog in the main loop
+// - Provides a lightweight heartbeat for bring-up diagnostics
+//
+// All hardware and subsystem initialization is delegated to managers.
+// -----------------------------------------------------------------------------
+
+
 #include <Arduino.h>
 
 // Managers
@@ -39,13 +52,48 @@ static const char* modeToString(SystemMode mode);
 // -----------------------------------------------------------------------------
 void setup()
 {
-  initBoot();        // hardware + boot screen
-  initStorage();     // SD + LittleFS
-  initConfig();      // JSON config
 
-  // Decide initial system mode ONLY
-  // (does not start Wi-Fi directly)
+  // ---------------------------------------------------------------------------
+  // Early boot:
+  // - Initializes Serial, battery ADC, SPI, system time
+  // - Brings up the e-paper display and shows the boot screen
+  // - Enforces hard shutdown on low battery or reset boot
+  //
+  // Must run before storage, config, Wi-Fi, or tasks.
+  // ---------------------------------------------------------------------------
+  initBoot();        // hardware + boot screen
+  
+  // ---------------------------------------------------------------------------
+  // Storage:
+  // - Mounts SD card if present (optional)
+  // - Mounts LittleFS (mandatory)
+  // - Performs basic I/O sanity check
+  // Must run before config loading, logging, or data access.
+  // ---------------------------------------------------------------------------
+  initStorage();     // SD + LittleFS
+
+  // ---------------------------------------------------------------------------
+  // Configuration:
+  // - Loads configuration from LittleFS (config.txt)
+  // - Creates and saves defaults if missing or invalid
+  // - Applies derived runtime values (RTC, calibration, UI settings)
+  //
+  // Must run after storage init and before Wi-Fi, logging, or tasks.
+  // ---------------------------------------------------------------------------
+  initConfig();      // JSON config
+ 
+ 
+
+  // ---------------------------------------------------------------------------
+  // Wi-Fi mode selection:
+  // - Loads saved Wi-Fi credentials (if present)
+  // - Selects initial system mode (HOME or FIELD_CONFIG)
+  //
+  // Does NOT start Wi-Fi or networking yet.
+  // Actual Wi-Fi setup is handled later by the mode manager.
+  // ---------------------------------------------------------------------------
   initWifi();
+
 
   // Start FreeRTOS tasks
   startTasks();

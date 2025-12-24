@@ -1,3 +1,16 @@
+
+  // ---------------------------------------------------------------------------
+  // Configuration:
+  // - Loads configuration from LittleFS (config.txt)
+  // - Creates and saves defaults if missing or invalid
+  // - Applies derived runtime values (RTC, calibration, UI settings)
+  //
+  // Must run after storage init and before Wi-Fi, logging, or tasks.
+  // ---------------------------------------------------------------------------
+  initConfig();      // JSON config
+
+
+  
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
