@@ -14,9 +14,7 @@
 // -----------------------------------------------------------------------------
 // EXTERNAL / RTC STATE
 // -----------------------------------------------------------------------------
-extern float RTC_voltage_bat;
-extern float RTC_minimum_voltage_bat;
-extern int   RTC_OFF_screen;
+
 extern bool reset_boot;
 
 // Battery scaling (must match hardware divider)

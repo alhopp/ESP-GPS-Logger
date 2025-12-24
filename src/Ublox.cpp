@@ -8,7 +8,6 @@ int Time_Set_OK;
 bool Nav_rate_NACK = false;
 bool High_nav_rate_ACK = false;
 bool check_M10_nav_rate = false;
-//extern File errorfile;
 UBXMessage ubxMessage = {000000000000};//definition here, declaration in ublox.h !!
 struct tm tmstruct ;
 struct tm my_time;  // time elements structure

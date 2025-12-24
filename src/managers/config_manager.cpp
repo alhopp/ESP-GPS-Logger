@@ -17,16 +17,6 @@
 // ----------------------------------------------------
 extern Config config;
 
-// RTC / derived globals already used elsewhere
-extern float RTC_calibration_bat;
-extern float calibration_speed;
-extern float RTC_minimum_voltage_bat;
-extern char  RTC_Sleep_txt[32];
-extern int   RTC_Board_Logo;
-extern int   RTC_Sail_Logo;
-extern int   RTC_SLEEP_screen;
-extern int   RTC_OFF_screen;
-
 // ----------------------------------------------------
 // Forward declarations
 // ----------------------------------------------------
