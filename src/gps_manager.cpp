@@ -1,12 +1,12 @@
-// -----------------------------------------------------------------------------
+// ============================================================================
 // gps_manager.cpp
 //
 // SAFE GPS bring-up for ESP32 + u-blox
-// - Uses RTC-cached baud on warm boot
-// - Falls back to full scan if needed
-// - Confirms GPS via UBX-MON-VER response
-// -----------------------------------------------------------------------------
-
+// - RTC-cached baud (warm boot)
+// - Full scan fallback
+// - UBX-MON-VER probe
+// - RTC time injection (UBX-CFG-TIMEUTC)
+// ============================================================================
 
 #include "gps_manager.h"
 
@@ -17,9 +17,11 @@
 
 #include "Definitions.h"
 #include "ESP_functions.h"
+#include "rtc_state.h"     // RTC_gps_* + RTC time fields
+#include "Ublox.h"         // UBX_MON_VER definition
 
 // -----------------------------------------------------------------------------
-// SERIAL + PINS
+// SERIAL
 // -----------------------------------------------------------------------------
 static HardwareSerial GPSSerial(2);
 
@@ -27,10 +29,10 @@ static HardwareSerial GPSSerial(2);
 #define GPS_TX_PIN  TXD2
 
 // -----------------------------------------------------------------------------
-// RTC CACHE (declared elsewhere)
+// RTC CACHE (defined in rtc_state.cpp)
 // -----------------------------------------------------------------------------
-extern RTC_DATA_ATTR uint8_t RTC_gps_baud_index;  // 0=unknown
 extern RTC_DATA_ATTR bool    RTC_gps_valid;
+extern RTC_DATA_ATTR uint8_t RTC_gps_baud_index;
 
 // -----------------------------------------------------------------------------
 // BAUD TABLE
@@ -72,7 +74,67 @@ static void gps_power_off()
 }
 
 // -----------------------------------------------------------------------------
-// PROBE HELPER
+// UBX SEND HELPER
+// -----------------------------------------------------------------------------
+static void ubxSend(const uint8_t* msg, size_t len)
+{
+  GPSSerial.write(msg, len);
+  GPSSerial.flush();
+}
+
+// -----------------------------------------------------------------------------
+// RTC TIME INJECTION (UBX-CFG-TIMEUTC)
+// -----------------------------------------------------------------------------
+static void gps_send_time_from_rtc()
+{
+  if (RTC_year < 2020 || RTC_month == 0 || RTC_day == 0) {
+    LOG_GPS("Time", "RTC invalid, skip");
+    return;
+  }
+
+  LOG_GPS("Time", "inject %04d-%02d-%02d %02d:%02d",
+          RTC_year, RTC_month, RTC_day, RTC_hour, RTC_min);
+
+  uint8_t payload[20] = {0};
+
+  // iTOW = 0
+  // tAcc ≈ 5000 ns
+  payload[4] = 0x88;
+  payload[5] = 0x13;
+
+  payload[12] = RTC_year & 0xFF;
+  payload[13] = RTC_year >> 8;
+  payload[14] = RTC_month;
+  payload[15] = RTC_day;
+  payload[16] = RTC_hour;
+  payload[17] = RTC_min;
+  payload[18] = 0;      // seconds unknown
+  payload[19] = 0x07;   // valid date + time + resolved
+
+  uint8_t msg[28];
+  msg[0] = 0xB5;
+  msg[1] = 0x62;
+  msg[2] = 0x06;
+  msg[3] = 0x5C;
+  msg[4] = sizeof(payload);
+  msg[5] = 0x00;
+
+  memcpy(&msg[6], payload, sizeof(payload));
+
+  uint8_t ckA = 0, ckB = 0;
+  for (int i = 2; i < 6 + sizeof(payload); i++) {
+    ckA += msg[i];
+    ckB += ckA;
+  }
+
+  msg[26] = ckA;
+  msg[27] = ckB;
+
+  ubxSend(msg, sizeof(msg));
+}
+
+// -----------------------------------------------------------------------------
+// PROBE HELPER (MON-VER)
 // -----------------------------------------------------------------------------
 static bool probe_gps(uint32_t baud)
 {
@@ -89,9 +151,7 @@ static bool probe_gps(uint32_t baud)
 
   uint32_t start = millis();
   while (millis() - start < 300) {
-    if (GPSSerial.available()) {
-      return true;
-    }
+    if (GPSSerial.available()) return true;
   }
   return false;
 }
@@ -106,14 +166,17 @@ bool initGPS()
   gps_power_on();
 
   // ---------------------------------------------------------------------------
-  // 1️⃣ FAST PATH — try cached baud first
+  // 1️⃣ FAST PATH — RTC cached baud
   // ---------------------------------------------------------------------------
-  if (RTC_gps_valid && RTC_gps_baud_index >= 1 && RTC_gps_baud_index <= 3) {
-    uint32_t baud = gpsBauds[RTC_gps_baud_index];
+  if (RTC_gps_valid &&
+      RTC_gps_baud_index >= 1 &&
+      RTC_gps_baud_index <= 3) {
 
+    uint32_t baud = gpsBauds[RTC_gps_baud_index];
     LOG_GPS("Detect", "cached baud=%lu", baud);
 
     if (probe_gps(baud)) {
+      gps_send_time_from_rtc();
       LOG_GPS("Detect", "cache hit");
       return true;
     }
@@ -123,7 +186,7 @@ bool initGPS()
   }
 
   // ---------------------------------------------------------------------------
-  // 2️⃣ FULL SCAN FALLBACK
+  // 2️⃣ FULL BAUD SCAN
   // ---------------------------------------------------------------------------
   LOG_GPS("Detect", "baud scan");
 
@@ -132,6 +195,7 @@ bool initGPS()
       RTC_gps_baud_index = i;
       RTC_gps_valid      = true;
 
+      gps_send_time_from_rtc();
       LOG_GPS("Detect", "baud=%lu", gpsBauds[i]);
       return true;
     }
