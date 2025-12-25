@@ -79,11 +79,8 @@ void initBoot()
   LOG_BOOT("Battery", "%.2f V", RTC_voltage_bat);
 
   // ---------------------------------------------------------------------------
-  // SPI + Timebase
+  // Timebase
   // ---------------------------------------------------------------------------
-  LOG_BOOT("SPI", "init");
-  SPI.begin(SPI_CLK, SPI_MISO, SPI_MOSI, ELINK_SS);
-
   struct timeval tv = {};
   settimeofday(&tv, nullptr);
 

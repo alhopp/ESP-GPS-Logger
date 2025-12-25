@@ -1,41 +1,73 @@
 // -----------------------------------------------------------------------------
 // storage_manager.cpp
 //
-// SIMPLE storage initialization:
-// - SD card is ASSUMED PRESENT
-// - SD_MMC is initialised unconditionally (1-bit mode)
-// - LittleFS is also mounted (mandatory fallback / config)
-// - sdOK reflects SD_MMC.begin() result only
+// Robust storage manager for ESP32
+// - SD_MMC FIRST (SDNAND / SD slot, 1-bit default for safety)
+// - SD over SPI fallback
+// - LittleFS always available (mandatory control-plane / config fallback)
 //
-// NOTE:
-//   If no SD card is present, SD_MMC.begin() MAY BLOCK.
-//   We will handle SD-missing cases later.
+// Design goals:
+// - Never block forever if no SD_MMC card present (DAT0 pull-up preflight)
+// - Single source of truth for active backend + filesystem
+// - Backend-correct space accounting + I/O self-test on the active FS
+// - Clean logs + minimal globals
 // -----------------------------------------------------------------------------
 
 #include "storage_manager.h"
 
 #include <Arduino.h>
+#include <SPI.h>
+#include <SD.h>
 #include <SD_MMC.h>
 #include <LittleFS.h>
 
-#include "SD_card.h"
 #include "ESP_functions.h"
 #include "config_manager.h"
 #include "Definitions.h"
 
+// Prefer MMC first, SPI fallback
+#ifndef ENABLE_SD_MMC
+#define ENABLE_SD_MMC   1
+#endif
+#ifndef ENABLE_SD_SPI
+#define ENABLE_SD_SPI   1
+#endif
+
+
 // -----------------------------------------------------------------------------
-// GLOBAL STORAGE STATE (DEFINED ONCE HERE)
+// BACKEND STATE
+// -----------------------------------------------------------------------------
+enum class StorageBackend : uint8_t {
+  NONE = 0,
+  SD_MMC,
+  SD_SPI
+};
+
+// -----------------------------------------------------------------------------
+// GLOBAL STATE (externs used elsewhere)
 // -----------------------------------------------------------------------------
 bool sdOK        = false;
 bool LITTLEFS_OK = false;
 
 // -----------------------------------------------------------------------------
+// INTERNAL STATE
+// -----------------------------------------------------------------------------
+static StorageBackend s_backend = StorageBackend::NONE;
+static SPIClass       s_sdSPI(VSPI);
+
+// -----------------------------------------------------------------------------
 // INTERNAL HELPERS
 // -----------------------------------------------------------------------------
-static bool mountSD();
+static bool mountSD_MMC();
+static bool mountSD_SPI();
 static bool mountLittleFS();
-static bool storageQuickCheck(fs::FS &fs, const char *path);
-static void reportSDStats();
+
+static fs::FS& activeFS();
+static bool quickIOTest(fs::FS& fs, const char* path);
+
+static void logLittleFSStats();
+static void logSDStats();
+static void sdBytes(uint64_t& total, uint64_t& used);
 
 // -----------------------------------------------------------------------------
 // PUBLIC API
@@ -44,54 +76,85 @@ void initStorage()
 {
   LOG_STORAGE("Init", "start");
 
-  // ---------------------------------------------------------------------------
-  // SD CARD (ASSUMED PRESENT)
-  // ---------------------------------------------------------------------------
-  if (mountSD()) {
-    LOG_STORAGE("SD", "mounted");
-    reportSDStats();
+  sdOK = false;
+  s_backend = StorageBackend::NONE;
 
-    if (storageQuickCheck(SD_MMC, "/.io_test")) {
+  // 1) Prefer SD_MMC (SDNAND / SD slot)
+#if ENABLE_SD_MMC
+  if (mountSD_MMC()) {
+    sdOK = true;
+    s_backend = StorageBackend::SD_MMC;
+    LOG_STORAGE("SD", "MMC mounted");
+  }
+#endif
+
+  // 2) Fallback: SPI SD
+#if ENABLE_SD_SPI
+  if (!sdOK && mountSD_SPI()) {
+    sdOK = true;
+    s_backend = StorageBackend::SD_SPI;
+    LOG_STORAGE("SD", "SPI mounted");
+  }
+#endif
+
+  // Post-mount verification
+  if (sdOK) {
+    logSDStats();
+
+    if (quickIOTest(activeFS(), "/.io_test")) {
       LOG_STORAGE("SD I/O", "OK");
     } else {
       LOG_ERROR("SD I/O", "FAILED");
+      // If you want to be super strict:
+      // sdOK = false; s_backend = StorageBackend::NONE;
     }
   } else {
-    LOG_ERROR("SD", "mount failed");
+    LOG_STORAGE("SD", "not available");
   }
 
-  // ---------------------------------------------------------------------------
-  // LITTLEFS (MANDATORY)
-  // ---------------------------------------------------------------------------
+  // 3) Always mount LittleFS (control plane + fallback)
   if (!mountLittleFS()) {
-    LOG_ERROR("LittleFS", "unavailable");
+    LOG_ERROR("LittleFS", "mount failed");
+  } else {
+    logLittleFSStats();
   }
 
   LOG_STORAGE("Init", "done");
 }
 
-// -----------------------------------------------------------------------------
-// SPACE HELPERS
-// -----------------------------------------------------------------------------
+fs::FS& storageFS()
+{
+  // Public accessor used by the rest of the code
+  return activeFS();
+}
+
+bool storageHasSD()
+{
+  return sdOK;
+}
+
 uint64_t storageFreeKBytes()
 {
+  uint64_t total = 0, used = 0;
+
   if (sdOK) {
-    return (SD_MMC.totalBytes() - SD_MMC.usedBytes()) / 1024ULL;
+    sdBytes(total, used);
+  } else if (LITTLEFS_OK) {
+    total = LittleFS.totalBytes();
+    used  = LittleFS.usedBytes();
   }
 
-  if (LITTLEFS_OK) {
-    return (LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024ULL;
-  }
-
-  return 0;
+  if (total <= used) return 0;
+  return (total - used) / 1024ULL;
 }
 
 int storageLogTimeLeftMinutes()
 {
-  uint64_t free_kbytes = storageFreeKBytes();
-  if (free_kbytes == 0) return 0;
+  const uint64_t free_kbytes = storageFreeKBytes();
+  if (!free_kbytes) return 0;
 
-  int data_rate =
+  // Your existing rate model (bytes/sec-ish)
+  const int data_rate =
       (config.logGPY * 24 +
        config.logUBX * 100 +
        config.logSBP * 32 +
@@ -100,52 +163,68 @@ int storageLogTimeLeftMinutes()
 
   if (data_rate <= 0) return 0;
 
-  uint64_t seconds = (free_kbytes * 1024ULL) / data_rate;
-  return seconds / 60;
+  const uint64_t seconds = (free_kbytes * 1024ULL) / (uint64_t)data_rate;
+  return (int)(seconds / 60ULL);
 }
 
 // -----------------------------------------------------------------------------
 // INTERNAL IMPLEMENTATION
 // -----------------------------------------------------------------------------
-static bool mountSD()
+static fs::FS& activeFS()
 {
-  sdOK = false;
+  if (sdOK) {
+    if (s_backend == StorageBackend::SD_MMC) return SD_MMC;
+    if (s_backend == StorageBackend::SD_SPI) return SD;
+  }
+  return LittleFS;
+}
 
-  // ---------------------------------------------------------------------------
-  // ASSUME SD IS PRESENT
-  // 1-bit SDMMC mode (safe for LilyGO / T5)
-  // ---------------------------------------------------------------------------
-  if (!SD_MMC.begin("/sdcard", true)) {
-    LOG_ERROR("SD", "SD_MMC.begin failed");
+static bool mountSD_MMC()
+{
+  LOG_STORAGE("SD MMC", "preflight");
+
+  // DAT0 pull-up prevents some boards from hanging when no card is present.
+  pinMode(SDMMC_DAT0_PIN, INPUT_PULLUP);
+  delay(2);
+
+  LOG_STORAGE("SD MMC", "init");
+
+  // 1-bit mode is the most tolerant default across “weird wiring”.
+  if (!SD_MMC.begin(SD_MMC_MOUNTPOINT, SD_MMC_1BIT_MODE)) {
+    LOG_STORAGE("SD MMC", "no card");
     return false;
   }
 
-  sdOK = true;
+  return true;
+}
+
+static bool mountSD_SPI()
+{
+  LOG_STORAGE("SD SPI", "init");
+
+  s_sdSPI.begin(SD_SPI_SCK, SD_SPI_MISO, SD_SPI_MOSI, SD_SPI_CS);
+
+  if (!SD.begin(SD_SPI_CS, s_sdSPI, SD_SPI_FREQ_HZ)) {
+    LOG_ERROR("SD SPI", "begin failed");
+    return false;
+  }
+
   return true;
 }
 
 static bool mountLittleFS()
 {
-  if (!LittleFS.begin(true)) {   // format if corrupt
+  // formatOnFail=true is good for field robustness.
+  if (!LittleFS.begin(true)) {
     LITTLEFS_OK = false;
-    LOG_ERROR("LittleFS", "mount failed");
     return false;
   }
 
   LITTLEFS_OK = true;
-
-  LOG_STORAGE(
-    "LittleFS",
-    "total=%uKB used=%uKB free=%uKB",
-    LittleFS.totalBytes() / 1024,
-    LittleFS.usedBytes()  / 1024,
-    (LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024
-  );
-
   return true;
 }
 
-static bool storageQuickCheck(fs::FS &fs, const char *path)
+static bool quickIOTest(fs::FS& fs, const char* path)
 {
   File f = fs.open(path, FILE_WRITE);
   if (!f) return false;
@@ -158,15 +237,39 @@ static bool storageQuickCheck(fs::FS &fs, const char *path)
   return true;
 }
 
-static void reportSDStats()
+static void sdBytes(uint64_t& total, uint64_t& used)
 {
-  uint64_t card_bytes  = SD_MMC.cardSize();
-  uint64_t total_bytes = SD_MMC.totalBytes();
-  uint64_t used_bytes  = SD_MMC.usedBytes();
-  uint64_t free_bytes  = total_bytes - used_bytes;
+  total = 0;
+  used  = 0;
 
-  LOG_STORAGE("SD Size",  "%lu MB", card_bytes  / (1024ULL * 1024ULL));
-  LOG_STORAGE("SD Total", "%lu MB", total_bytes / (1024ULL * 1024ULL));
-  LOG_STORAGE("SD Used",  "%lu MB", used_bytes  / (1024ULL * 1024ULL));
-  LOG_STORAGE("SD Free",  "%lu MB", free_bytes  / (1024ULL * 1024ULL));
+  if (s_backend == StorageBackend::SD_MMC) {
+    total = SD_MMC.totalBytes();
+    used  = SD_MMC.usedBytes();
+  } else if (s_backend == StorageBackend::SD_SPI) {
+    total = SD.totalBytes();
+    used  = SD.usedBytes();
+  }
+}
+
+static void logSDStats()
+{
+  uint64_t total = 0, used = 0;
+  sdBytes(total, used);
+
+  const uint64_t freeb = (total > used) ? (total - used) : 0;
+
+  LOG_STORAGE("SD Total", "%lu MB", total / (1024ULL * 1024ULL));
+  LOG_STORAGE("SD Used",  "%lu MB", used  / (1024ULL * 1024ULL));
+  LOG_STORAGE("SD Free",  "%lu MB", freeb / (1024ULL * 1024ULL));
+}
+
+static void logLittleFSStats()
+{
+  LOG_STORAGE(
+    "LittleFS",
+    "total=%uKB used=%uKB free=%uKB",
+    (unsigned)(LittleFS.totalBytes() / 1024),
+    (unsigned)(LittleFS.usedBytes()  / 1024),
+    (unsigned)((LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024)
+  );
 }
