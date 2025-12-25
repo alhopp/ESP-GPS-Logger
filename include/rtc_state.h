@@ -75,3 +75,11 @@ extern RTC_DATA_ATTR float RTC_minimum_voltage_bat;
 
 extern RTC_DATA_ATTR int   RTC_bat_choice;
 extern RTC_DATA_ATTR int   RTC_highest_read;
+
+// ---------------------------------------------------------------------------
+// GPS state (RTC cached)
+// ---------------------------------------------------------------------------
+
+extern RTC_DATA_ATTR bool    RTC_gps_valid;
+extern RTC_DATA_ATTR uint8_t RTC_gps_baud_index;
+
