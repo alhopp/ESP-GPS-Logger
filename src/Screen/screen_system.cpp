@@ -200,12 +200,26 @@ void FieldAP_screen()
     display.print("Connect via phone");
 
     // ---- NETWORK INFO ----
+
+    // WiFi label (mono, aligned)
+    display.setFont(Fonts::Mono12);
     display.setCursor(ui_offset, Layout::ROW9(5));
-    display.printf("%-5s %s", "WiFi:", wifi_ap_name());
+    display.printf("%4s:", "WiFi");
 
+    // WiFi value (readable)
+    display.setFont(Fonts::Body9);
+    display.print(" ");
+    display.print(wifi_ap_name());
+
+    // IP label (mono, aligned)
+    display.setFont(Fonts::Mono12);
     display.setCursor(ui_offset, Layout::ROW9(6));
-    display.printf("%-5s %s", "IP:", WiFi.softAPIP().toString().c_str());
+    display.printf("%4s:", "IP");
 
+    // IP value (readable)
+    display.setFont(Fonts::Body9);
+    display.print(" ");
+    display.print(WiFi.softAPIP().toString().c_str());
 
   } while (display.nextPage());
 }
@@ -234,15 +248,29 @@ void HomeSTA_screen()
     display.print("Connect via web browser");
 
     // ---- NETWORK INFO ----
-    display.setCursor(ui_offset, Layout::ROW9(5));
-    display.printf("WiFi: %s", WiFi.SSID().c_str());
 
+    // WiFi label (mono, aligned)
+    display.setFont(Fonts::Mono12);
+    display.setCursor(ui_offset, Layout::ROW9(5));
+    display.printf("%4s:", "WiFi");
+
+    // WiFi value (readable)
+    display.setFont(Fonts::Body12);
+    display.print(" ");
+    display.print(WiFi.SSID().c_str());
+
+    // IP label (mono, aligned)
+    display.setFont(Fonts::Mono12);
     display.setCursor(ui_offset, Layout::ROW9(6));
-    display.printf("IP  : %s", WiFi.localIP().toString().c_str());
+    display.printf("%4s:", "IP");
+
+    // IP value (readable)
+    display.setFont(Fonts::Body12);
+    display.print(" ");
+    display.print(WiFi.localIP().toString().c_str());
 
   } while (display.nextPage());
 }
-
 
 /* =========================================================
  * Sleep screen (RTC summary)
