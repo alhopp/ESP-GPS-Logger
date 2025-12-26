@@ -1,19 +1,29 @@
 // -----------------------------------------------------------------------------
 // main.cpp
 //
-// System entry point:
-// - Runs ordered startup (boot → storage → config → Wi-Fi mode selection)
-// - Starts core FreeRTOS tasks (GPS, display)
-// - Services Wi-Fi and watchdog in the main loop
-// - Provides a lightweight heartbeat for bring-up diagnostics
+// System entry point.
 //
-// All hardware and subsystem initialization is delegated to managers.
+// Responsibilities:
+// - Perform ordered system startup:
+//     boot → storage → configuration → GPS
+// - Select the initial operating mode (default: GPS logging)
+// - Launch core FreeRTOS tasks (GPS + display)
+// - Service watchdog, Wi-Fi, and sealed-user controls (magnet)
+// - Provide a lightweight runtime heartbeat for diagnostics
+//
+// Design notes:
+// - Wi-Fi is OFF by default and only enabled via explicit user action
+// - GPS logging is the primary operating mode
+// - A single sealed Hall/reed switch (magnet) controls power + configuration
+// - All hardware-specific initialization is delegated to managers
 // -----------------------------------------------------------------------------
 
 
 #include <Arduino.h>
 
-// Managers
+// -----------------------------------------------------------------------------
+// MANAGERS
+// -----------------------------------------------------------------------------
 #include "boot_manager.h"
 #include "wifi_manager.h"
 #include "storage_manager.h"
@@ -21,24 +31,53 @@
 #include "gps_manager.h"
 #include "watchdog_manager.h"
 
-// Tasks
+// -----------------------------------------------------------------------------
+// TASKS
+// -----------------------------------------------------------------------------
 #include "task_gps.h"
 #include "task_display.h"
 
-// System
+// -----------------------------------------------------------------------------
+// SYSTEM / UI
+// -----------------------------------------------------------------------------
 #include "system_mode.h"
-
-// UI / misc
 #include "E_paper.h"
 #include "screen_system.h"
-
-// ESP32 heap stats
-#include <esp_system.h>
-
 #include "rtc_state.h"
 
+// ESP32 heap diagnostics
+#include <esp_system.h>
+
+// -----------------------------------------------------------------------------
+// GLOBAL SYSTEM STATE
+// -----------------------------------------------------------------------------
+
+// Indicates whether the system is currently sleeping (deep sleep)
 bool sleep_mode = false;
+
+// Flag set during early boot to force shutdown (e.g. brown-out / reset)
 extern bool reset_boot;
+
+// -----------------------------------------------------------------------------
+// SEALED USER INPUT (MAGNET / HALL SWITCH)
+// -----------------------------------------------------------------------------
+
+// GPIO connected to reed / Hall switch (input-only, RTC-capable)
+static constexpr uint8_t  MAGNET_PIN     = 39;
+
+// Gesture timing thresholds
+static constexpr uint32_t TAP_MAX_MS     = 500;   // short tap → power toggle
+static constexpr uint32_t WIFI_HOLD_MS   = 6000;  // long hold → Wi-Fi config
+static constexpr uint32_t BOOT_IGNORE_MS = 1500;  // ignore magnet immediately after wake
+
+// Debounce / stability thresholds
+static constexpr uint32_t LOW_STABLE_MS      = 30;  // confirm magnet LOW
+static constexpr uint32_t RELEASE_STABLE_MS  = 40;  // confirm magnet release
+
+// Magnet gesture state (private to this file)
+static uint32_t bootTime           = 0;
+static uint32_t magnetPressTime    = 0;
+static bool     magnetLongHandled  = false;
 
 // -----------------------------------------------------------------------------
 // FORWARD DECLARATIONS
@@ -46,6 +85,81 @@ extern bool reset_boot;
 static void startTasks();
 static void heartbeat();
 static const char* modeToString(SystemMode mode);
+static void magnet_init();
+static void magnet_poll();
+
+// -----------------------------------------------------------------------------
+// MAGNET INPUT HANDLING
+// -----------------------------------------------------------------------------
+
+// Initialise the sealed magnet input.
+// Must be called once during setup().
+static void magnet_init()
+{
+  // GPIO 39 has no internal pull-ups or pull-downs
+  pinMode(MAGNET_PIN, INPUT);
+
+  // Record boot time to suppress false triggers immediately after wake
+  bootTime = millis();
+}
+
+// Poll magnet state and interpret user gestures.
+// Called repeatedly from the main loop.
+static void magnet_poll()
+{
+  const uint32_t now = millis();
+
+  // Safety: never act on magnet immediately after boot/wake
+  if (now - bootTime < BOOT_IGNORE_MS) return;
+
+  // LOW is meaningful. HIGH is floating/noise.
+  const bool rawLow = (digitalRead(MAGNET_PIN) == LOW);
+
+  // Debounce LOW assertion
+  static uint32_t lowSince = 0;
+  if (rawLow) {
+    if (lowSince == 0) lowSince = now;
+  } else {
+    lowSince = 0;
+  }
+  const bool active = (lowSince != 0) && (now - lowSince >= LOW_STABLE_MS);
+
+  // Debounce release / inactivity (only matters after we were active)
+  static uint32_t inactiveSince = 0;
+  if (!active) {
+    if (inactiveSince == 0) inactiveSince = now;
+  } else {
+    inactiveSince = 0;
+  }
+  const bool inactiveStable = (inactiveSince != 0) && (now - inactiveSince >= RELEASE_STABLE_MS);
+
+  // Track edges based on "active" (not raw pin)
+  static bool prevActive = false;
+
+  // Press edge
+  if (active && !prevActive) {
+    magnetPressTime   = now;
+    magnetLongHandled = false;
+  }
+
+  // Long hold → enter Wi-Fi configuration
+  if (active && !magnetLongHandled && (now - magnetPressTime >= WIFI_HOLD_MS)) {
+    magnetLongHandled = true;
+    setMode(MODE_FIELD_CONFIG);
+  }
+
+  // Release edge (stable inactivity after previously active)
+  if (!active && prevActive && inactiveStable) {
+    const uint32_t held = now - magnetPressTime;
+
+    // If we already consumed it as a long-hold, do nothing on release
+    if (!magnetLongHandled && held <= TAP_MAX_MS) {
+      setMode(getMode() == MODE_SLEEP ? MODE_LOGGING : MODE_SLEEP);
+    }
+  }
+
+  prevActive = active;
+}
 
 // -----------------------------------------------------------------------------
 // SETUP
@@ -53,56 +167,54 @@ static const char* modeToString(SystemMode mode);
 void setup()
 {
   // ---------------------------------------------------------------------------
-  // Early boot:
-  // - Initializes Serial, battery ADC, SPI, system time
-  // - Brings up the e-paper display and shows the boot screen
-  // - Enforces hard shutdown on low battery or reset boot
+  // Early boot
   //
-  // Must run before storage, config, Wi-Fi, or tasks.
+  // - Serial, battery ADC, SPI, system timing
+  // - E-paper bring-up and boot screen
+  // - Enforces shutdown on low battery or forced reset
+  //
+  // Must run before storage, config, GPS, or tasks.
   // ---------------------------------------------------------------------------
-  initBoot();        // hardware + boot screen
-  
-  // ---------------------------------------------------------------------------
-  // Storage:
-  // - Mounts SD card if present (optional)
-  // - Mounts LittleFS (mandatory)
-  // - Performs basic I/O sanity check
-  // Must run before config loading, logging, or data access.
-  // ---------------------------------------------------------------------------
-  initStorage();     // SD + LittleFS
+  initBoot();
 
   // ---------------------------------------------------------------------------
-  // Configuration:
-  // - Loads configuration from LittleFS (config.txt)
-  // - Creates and saves defaults if missing or invalid
-  // - Applies derived runtime values (RTC, calibration, UI settings)
+  // Storage
   //
-  // Must run after storage init and before Wi-Fi, logging, or tasks.
+  // - Mount SD card (optional)
+  // - Mount LittleFS (mandatory)
+  // - Perform basic I/O sanity checks
+  //
+  // Required before configuration loading or logging.
   // ---------------------------------------------------------------------------
-  initConfig();      // JSON config
- 
+  initStorage();
+
   // ---------------------------------------------------------------------------
-  // GPS detection & configuration
+  // Configuration
+  //
+  // - Load config.txt from LittleFS
+  // - Create defaults if missing or invalid
+  // - Apply derived runtime values (RTC, calibration, UI)
+  // ---------------------------------------------------------------------------
+  initConfig();
+
+  // ---------------------------------------------------------------------------
+  // GPS detection and configuration
   // ---------------------------------------------------------------------------
   initGPS();
 
+  // ---------------------------------------------------------------------------
+  // Sealed user input + default mode
+  // ---------------------------------------------------------------------------
+  magnet_init();
+
+  // Default power-on behaviour:
+  // - Start immediately in GPS logging mode
+  // - Wi-Fi remains OFF unless explicitly requested
+  setMode(MODE_LOGGING);
 
   // ---------------------------------------------------------------------------
-  // Wi-Fi mode selection:
-  // - Loads saved Wi-Fi credentials (if present)
-  // - Selects initial system mode (HOME or FIELD_CONFIG)
-  //
-  // Does NOT start Wi-Fi or networking yet.
-  // Actual Wi-Fi setup is handled later by the mode manager.
+  // Start core FreeRTOS tasks
   // ---------------------------------------------------------------------------
-  
-  // Uncomment to test AP mode on startup
-  wifi_factory_reset();
-  
-  initWifi();
-
-  
-  // Start FreeRTOS tasks
   startTasks();
 }
 
@@ -111,44 +223,46 @@ void setup()
 // -----------------------------------------------------------------------------
 static void startTasks()
 {
+  BaseType_t ok;
+
   // GPS task (core 1)
-  xTaskCreatePinnedToCore(
-    taskOne,
-    "TaskGPS",
-    10000,
-    nullptr,
-    1,
-    &t1,
-    1
-  );
+  ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS", 10000, nullptr, 1, &t1, 1);
+  if (ok != pdPASS) {
+    Serial.println("[TASK   ] ERROR: TaskGPS create failed");
+  }
 
   // Display task (core 0)
-  xTaskCreatePinnedToCore(
-    taskTwo,
-    "TaskDisplay",
-    10000,
-    nullptr,
-    1,
-    &t2,
-    0
-  );
+  ok = xTaskCreatePinnedToCore(taskTwo, "TaskDisplay", 10000, nullptr, 1, &t2, 0);
+  if (ok != pdPASS) {
+    Serial.println("[TASK   ] ERROR: TaskDisplay create failed");
+  }
+
+  // Guard: only query stack watermark if handle is valid
+  Serial.print("[TASK   ] started");
+  if (t1) { Serial.print(" t1_hw="); Serial.print(uxTaskGetStackHighWaterMark(t1)); }
+  if (t2) { Serial.print(" t2_hw="); Serial.print(uxTaskGetStackHighWaterMark(t2)); }
+  Serial.println();
 }
 
 // -----------------------------------------------------------------------------
-// LOOP
+// MAIN LOOP
 // -----------------------------------------------------------------------------
 void loop()
 {
+  // Handle sealed user input (magnet gestures)
+  magnet_poll();
+
+  // Feed watchdog
   watchdogLoop();
 
   const SystemMode mode = getMode();
 
-  // Wi-Fi is serviced ONLY in Wi-Fi modes
+  // Service Wi-Fi stack only when Wi-Fi is enabled by mode
   if (mode == MODE_HOME || mode == MODE_FIELD_CONFIG) {
     wifi_loop();
   }
 
-  // Lightweight heartbeat for bring-up / sanity
+  // Lightweight runtime diagnostics
   heartbeat();
 
   // Yield to FreeRTOS (loop is not time-critical)
@@ -156,7 +270,7 @@ void loop()
 }
 
 // -----------------------------------------------------------------------------
-// HEARTBEAT (BRING-UP / DIAGNOSTIC)
+// HEARTBEAT (BRING-UP / DIAGNOSTICS)
 // -----------------------------------------------------------------------------
 static void heartbeat()
 {
@@ -174,7 +288,13 @@ static void heartbeat()
     Serial.print(ESP.getFreeHeap());
 
     Serial.print(" min=");
-    Serial.println(esp_get_minimum_free_heap_size());
+    Serial.print(esp_get_minimum_free_heap_size());
+
+    // Stack watermark is best-effort (only if tasks exist)
+    if (t1) { Serial.print(" t1_hw="); Serial.print(uxTaskGetStackHighWaterMark(t1)); }
+    if (t2) { Serial.print(" t2_hw="); Serial.print(uxTaskGetStackHighWaterMark(t2)); }
+
+    Serial.println();
   }
 }
 

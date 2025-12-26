@@ -19,3 +19,5 @@ void gps_shutdown();
 // Legacy compatibility (used elsewhere)
 void Ublox_on();
 void Ublox_off();
+void gps_power_off();
+

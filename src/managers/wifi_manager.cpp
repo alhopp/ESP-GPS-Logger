@@ -153,6 +153,7 @@ static void saveCreds(const String& ssid, const String& pass)
 //   where EXIT / TRANSITION / ENTER actions are executed.
 // - Wi-Fi startup (AP or STA) is triggered there, not here.
 // ==================================================
+
 void initWifi()
 {
   LOG_WIFI("Init", "starting");

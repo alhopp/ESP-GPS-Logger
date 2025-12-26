@@ -66,11 +66,16 @@ static void gps_power_on()
   delay(150);
 }
 
-static void gps_power_off()
+static void gps_power_off_impl()
 {
   digitalWrite(UBLOX_POWER1, LOW);
   digitalWrite(UBLOX_POWER2, LOW);
   digitalWrite(UBLOX_POWER3, LOW);
+}
+
+void gps_power_off()
+{
+  gps_power_off_impl();
 }
 
 // -----------------------------------------------------------------------------
