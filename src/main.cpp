@@ -2,20 +2,6 @@
 // main.cpp
 //
 // System entry point.
-//
-// Responsibilities:
-// - Perform ordered system startup:
-//     boot → storage → configuration → GPS
-// - Select the initial operating mode (default: GPS logging)
-// - Launch core FreeRTOS tasks (GPS + display)
-// - Service watchdog, Wi-Fi, and sealed-user controls (magnet)
-// - Provide a lightweight runtime heartbeat for diagnostics
-//
-// Design notes:
-// - Wi-Fi is OFF by default and only enabled via explicit user action
-// - GPS logging is the primary operating mode
-// - A single sealed Hall/reed switch (magnet) controls power + configuration
-// - All hardware-specific initialization is delegated to managers
 // -----------------------------------------------------------------------------
 
 
@@ -51,33 +37,25 @@
 // -----------------------------------------------------------------------------
 // GLOBAL SYSTEM STATE
 // -----------------------------------------------------------------------------
-
-// Indicates whether the system is currently sleeping (deep sleep)
 bool sleep_mode = false;
-
-// Flag set during early boot to force shutdown (e.g. brown-out / reset)
 extern bool reset_boot;
 
 // -----------------------------------------------------------------------------
-// SEALED USER INPUT (MAGNET / HALL SWITCH)
+// MAGNET INPUT (SEALED HALL / REED)
 // -----------------------------------------------------------------------------
-
-// GPIO connected to reed / Hall switch (input-only, RTC-capable)
 static constexpr uint8_t  MAGNET_PIN     = 39;
 
-// Gesture timing thresholds
-static constexpr uint32_t TAP_MAX_MS     = 500;   // short tap → power toggle
-static constexpr uint32_t WIFI_HOLD_MS   = 6000;  // long hold → Wi-Fi config
-static constexpr uint32_t BOOT_IGNORE_MS = 1500;  // ignore magnet immediately after wake
+static constexpr uint32_t TAP_MAX_MS     = 500;
+static constexpr uint32_t WIFI_HOLD_MS   = 6000;
+static constexpr uint32_t BOOT_IGNORE_MS = 1500;
 
-// Debounce / stability thresholds
-static constexpr uint32_t LOW_STABLE_MS      = 30;  // confirm magnet LOW
-static constexpr uint32_t RELEASE_STABLE_MS  = 40;  // confirm magnet release
+static constexpr uint32_t LOW_STABLE_MS     = 30;
+static constexpr uint32_t RELEASE_STABLE_MS = 40;
 
-// Magnet gesture state (private to this file)
-static uint32_t bootTime           = 0;
-static uint32_t magnetPressTime    = 0;
-static bool     magnetLongHandled  = false;
+// Magnet state
+static uint32_t bootTime        = 0;
+static uint32_t pressTime      = 0;
+static bool     longHandled    = false;
 
 // -----------------------------------------------------------------------------
 // FORWARD DECLARATIONS
@@ -89,106 +67,88 @@ static void magnet_init();
 static void magnet_poll();
 
 // -----------------------------------------------------------------------------
-// MAGNET INPUT HANDLING
+// MAGNET INIT
 // -----------------------------------------------------------------------------
-
-// Initialise the sealed magnet input.
-// Must be called once during setup().
 static void magnet_init()
 {
-  // GPIO 39 has no internal pull-ups or pull-downs
   pinMode(MAGNET_PIN, INPUT);
-
-  // Record boot time to suppress false triggers immediately after wake
   bootTime = millis();
 }
 
-// Poll magnet state and interpret user gestures.
-// Called repeatedly from the main loop.
+// -----------------------------------------------------------------------------
+// MAGNET POLL (FINAL, CLEAN LOGIC)
+// -----------------------------------------------------------------------------
 static void magnet_poll()
 {
   const uint32_t now = millis();
 
-  // Safety: never act on magnet immediately after boot/wake
+  // Ignore immediately after boot / wake
   if (now - bootTime < BOOT_IGNORE_MS) return;
 
-  // LOW is meaningful. HIGH is floating/noise.
+  // LOW = magnet present (meaningful)
   const bool rawLow = (digitalRead(MAGNET_PIN) == LOW);
 
-  // Debounce LOW assertion
+  // LOW debounce
   static uint32_t lowSince = 0;
   if (rawLow) {
     if (lowSince == 0) lowSince = now;
   } else {
     lowSince = 0;
   }
-  const bool active = (lowSince != 0) && (now - lowSince >= LOW_STABLE_MS);
+  const bool active = (lowSince && (now - lowSince >= LOW_STABLE_MS));
 
-  // Debounce release / inactivity (only matters after we were active)
-  static uint32_t inactiveSince = 0;
+  // Release debounce
+  static uint32_t releaseSince = 0;
   if (!active) {
-    if (inactiveSince == 0) inactiveSince = now;
+    if (releaseSince == 0) releaseSince = now;
   } else {
-    inactiveSince = 0;
+    releaseSince = 0;
   }
-  const bool inactiveStable = (inactiveSince != 0) && (now - inactiveSince >= RELEASE_STABLE_MS);
+  const bool releasedStable = (releaseSince && (now - releaseSince >= RELEASE_STABLE_MS));
 
-  // Track edges based on "active" (not raw pin)
   static bool prevActive = false;
 
-  // Press edge
+  // ---------------------------
+  // PRESS EDGE
+  // ---------------------------
   if (active && !prevActive) {
-    magnetPressTime   = now;
-    if (!active && prevActive && inactiveStable) {
-      uint32_t held = now - magnetPressTime;
-
-      if (held <= TAP_MAX_MS) {
-        const SystemMode mode = getMode();
-
-        if (mode == MODE_FIELD_CONFIG) {
-          setMode(MODE_LOGGING);
-        }
-        else if (mode == MODE_SLEEP) {
-          setMode(MODE_LOGGING);
-        }
-        else {
-          setMode(MODE_SLEEP);
-        }
-      }
-
-      magnetLongHandled = false;   // <<< CRITICAL
-    }
-
+    pressTime   = now;
+    longHandled = false;
   }
 
-  // Long hold → enter Wi-Fi configuration
-  if (active && !magnetLongHandled && (now - magnetPressTime >= WIFI_HOLD_MS)) {
-    magnetLongHandled = true;
-    setMode(MODE_FIELD_CONFIG);
-  }
+  // ---------------------------
+  // LONG HOLD → TOGGLE WIFI
+  // ---------------------------
+  if (active &&
+      !longHandled &&
+      (now - pressTime >= WIFI_HOLD_MS)) {
 
-  // Release edge (stable inactivity after previously active)
-  if (!active && prevActive && inactiveStable) {
-    const uint32_t held = now - magnetPressTime;
-
-    // If we already consumed it as a long-hold, do nothing on release
-    if (held <= TAP_MAX_MS) {
+    longHandled = true;
 
     const SystemMode mode = getMode();
 
     if (mode == MODE_FIELD_CONFIG) {
-      // Exit Beach / Config mode
-      setMode(MODE_LOGGING);
-    }
-    else if (mode == MODE_SLEEP) {
-      setMode(MODE_LOGGING);
-    }
-    else {
-      // Normal short tap → sleep
-      setMode(MODE_SLEEP);
+      setMode(MODE_LOGGING);        // Exit Beach / WiFi
+    } else {
+      setMode(MODE_FIELD_CONFIG);   // Enter Beach / WiFi
     }
   }
 
+  // ---------------------------
+  // SHORT TAP → SLEEP / WAKE
+  // ---------------------------
+  if (!active && prevActive && releasedStable && !longHandled) {
+    const uint32_t held = now - pressTime;
+
+    if (held <= TAP_MAX_MS) {
+      const SystemMode mode = getMode();
+
+      if (mode == MODE_SLEEP) {
+        setMode(MODE_LOGGING);
+      } else {
+        setMode(MODE_SLEEP);
+      }
+    }
   }
 
   prevActive = active;
@@ -199,55 +159,14 @@ static void magnet_poll()
 // -----------------------------------------------------------------------------
 void setup()
 {
-  // ---------------------------------------------------------------------------
-  // Early boot
-  //
-  // - Serial, battery ADC, SPI, system timing
-  // - E-paper bring-up and boot screen
-  // - Enforces shutdown on low battery or forced reset
-  //
-  // Must run before storage, config, GPS, or tasks.
-  // ---------------------------------------------------------------------------
   initBoot();
-
-  // ---------------------------------------------------------------------------
-  // Storage
-  //
-  // - Mount SD card (optional)
-  // - Mount LittleFS (mandatory)
-  // - Perform basic I/O sanity checks
-  //
-  // Required before configuration loading or logging.
-  // ---------------------------------------------------------------------------
   initStorage();
-
-  // ---------------------------------------------------------------------------
-  // Configuration
-  //
-  // - Load config.txt from LittleFS
-  // - Create defaults if missing or invalid
-  // - Apply derived runtime values (RTC, calibration, UI)
-  // ---------------------------------------------------------------------------
   initConfig();
-
-  // ---------------------------------------------------------------------------
-  // GPS detection and configuration
-  // ---------------------------------------------------------------------------
   initGPS();
 
-  // ---------------------------------------------------------------------------
-  // Sealed user input + default mode
-  // ---------------------------------------------------------------------------
   magnet_init();
-
-  // Default power-on behaviour:
-  // - Start immediately in GPS logging mode
-  // - Wi-Fi remains OFF unless explicitly requested
   setMode(MODE_LOGGING);
 
-  // ---------------------------------------------------------------------------
-  // Start core FreeRTOS tasks
-  // ---------------------------------------------------------------------------
   startTasks();
 }
 
@@ -258,19 +177,12 @@ static void startTasks()
 {
   BaseType_t ok;
 
-  // GPS task (core 1)
   ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS", 10000, nullptr, 1, &t1, 1);
-  if (ok != pdPASS) {
-    Serial.println("[TASK   ] ERROR: TaskGPS create failed");
-  }
+  if (ok != pdPASS) Serial.println("[TASK   ] ERROR: TaskGPS");
 
-  // Display task (core 0)
   ok = xTaskCreatePinnedToCore(taskTwo, "TaskDisplay", 10000, nullptr, 1, &t2, 0);
-  if (ok != pdPASS) {
-    Serial.println("[TASK   ] ERROR: TaskDisplay create failed");
-  }
+  if (ok != pdPASS) Serial.println("[TASK   ] ERROR: TaskDisplay");
 
-  // Guard: only query stack watermark if handle is valid
   Serial.print("[TASK   ] started");
   if (t1) { Serial.print(" t1_hw="); Serial.print(uxTaskGetStackHighWaterMark(t1)); }
   if (t2) { Serial.print(" t2_hw="); Serial.print(uxTaskGetStackHighWaterMark(t2)); }
@@ -278,32 +190,24 @@ static void startTasks()
 }
 
 // -----------------------------------------------------------------------------
-// MAIN LOOP
+// LOOP
 // -----------------------------------------------------------------------------
 void loop()
 {
-  // Handle sealed user input (magnet gestures)
   magnet_poll();
-
-  // Feed watchdog
   watchdogLoop();
 
   const SystemMode mode = getMode();
-
-  // Service Wi-Fi stack only when Wi-Fi is enabled by mode
   if (mode == MODE_HOME || mode == MODE_FIELD_CONFIG) {
     wifi_loop();
   }
 
-  // Lightweight runtime diagnostics
   heartbeat();
-
-  // Yield to FreeRTOS (loop is not time-critical)
   delay(10);
 }
 
 // -----------------------------------------------------------------------------
-// HEARTBEAT (BRING-UP / DIAGNOSTICS)
+// HEARTBEAT
 // -----------------------------------------------------------------------------
 static void heartbeat()
 {
@@ -312,18 +216,13 @@ static void heartbeat()
   if (millis() - last > 3000) {
     last = millis();
 
-    const SystemMode mode = getMode();
-
     Serial.print("[LOOP   ] mode=");
-    Serial.print(modeToString(mode));
-
+    Serial.print(modeToString(getMode()));
     Serial.print(" heap=");
     Serial.print(ESP.getFreeHeap());
-
     Serial.print(" min=");
     Serial.print(esp_get_minimum_free_heap_size());
 
-    // Stack watermark is best-effort (only if tasks exist)
     if (t1) { Serial.print(" t1_hw="); Serial.print(uxTaskGetStackHighWaterMark(t1)); }
     if (t2) { Serial.print(" t2_hw="); Serial.print(uxTaskGetStackHighWaterMark(t2)); }
 
@@ -332,7 +231,7 @@ static void heartbeat()
 }
 
 // -----------------------------------------------------------------------------
-// MODE → STRING (UI / LOGGING ONLY)
+// MODE → STRING
 // -----------------------------------------------------------------------------
 static const char* modeToString(SystemMode mode)
 {
