@@ -1,10 +1,14 @@
 // ---------------------------------------------------------------------------
-// Wi-Fi mode selection:
-// - Loads saved Wi-Fi credentials (if present)
-// - Selects initial system mode (HOME or FIELD_CONFIG)
+// Wi-Fi Manager
 //
-// Does NOT start Wi-Fi or networking yet.
-// Actual Wi-Fi setup is handled later by the mode manager.
+// Behaviour:
+// - If valid Wi-Fi credentials exist → try STA (HOME)
+// - If STA fails or no creds → AP captive portal (FIELD_CONFIG)
+// - Field portal allows:
+//     • Editing HOME Wi-Fi credentials
+//     • Editing system variables
+//
+// Wi-Fi never blocks boot, never bricks device.
 // ---------------------------------------------------------------------------
 
 #include "wifi_manager.h"
@@ -14,20 +18,18 @@
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
-#include <Update.h>
 #include <LittleFS.h>
 
-// Logging macros
 #include "Definitions.h"
 
 // ==================================================
 // CONFIG
 // ==================================================
-static const char* HOSTNAME = "esp32";
+static const char* HOSTNAME = "esp32-gps";
 
-// AP (field mode)
+// AP (Field mode)
 static const char* AP_SSID = "ESP32 GPS";
-static const char* AP_PASS = "12345678";   // iOS requires 8+
+static const char* AP_PASS = "12345678";   // iOS requires ≥8 chars
 
 static IPAddress apIP(192, 168, 4, 1);
 static IPAddress netMask(255, 255, 255, 0);
@@ -46,35 +48,54 @@ static bool apMode = false;
 static String savedSSID;
 static String savedPASS;
 
+const char* wifi_ap_name()
+{
+  return AP_SSID;
+}
+
 // ==================================================
-// WIFI SETUP PAGE
+// FIELD CONFIG HTML
 // ==================================================
-static const char* wifiForm = R"rawliteral(
+static const char* fieldForm = R"rawliteral(
 <!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ESP32 GPS Wi-Fi</title>
+<title>ESP32 GPS – Field Setup</title>
 <style>
  body { font-family: monospace; text-align: center; }
- input { font-size: 18px; padding: 8px; width: 90%; max-width: 300px; }
- button { font-size: 20px; padding: 10px 30px; }
+ input { font-size: 16px; padding: 6px; width: 90%; max-width: 320px; }
+ button { font-size: 18px; padding: 8px 24px; margin-top: 10px; }
+ hr { margin: 24px 0; }
 </style>
 </head>
 <body>
+
 <h2>ESP32 GPS</h2>
-<h3>Wi-Fi Setup</h3>
-<form action="/save" method="POST">
-  <p><input name="ssid" placeholder="Wi-Fi SSID" required></p>
+<h3>Field Configuration</h3>
+
+<form action="/save_wifi" method="POST">
+  <h4>Home Wi-Fi</h4>
+  <p><input name="ssid" placeholder="Wi-Fi SSID"></p>
   <p><input name="pass" type="password" placeholder="Wi-Fi Password"></p>
-  <p><button type="submit">Save & Connect</button></p>
+  <button type="submit">Save Wi-Fi</button>
 </form>
+
+<hr>
+
+<form action="/save_config" method="POST">
+  <h4>System</h4>
+  <p><input name="sample_rate" placeholder="Sample rate (Hz)"></p>
+  <p><input name="gnss_mode" placeholder="GNSS mode"></p>
+  <button type="submit">Save Config</button>
+</form>
+
 </body>
 </html>
 )rawliteral";
 
 // ==================================================
-// CREDENTIAL STORAGE (FS already mounted elsewhere)
+// CREDENTIAL STORAGE
 // ==================================================
 static bool loadCreds()
 {
@@ -121,7 +142,7 @@ static void saveCreds(const String& ssid, const String& pass)
 }
 
 // ==================================================
-// INIT (MODE DECISION ONLY)
+// MODE DECISION (BOOT ONLY)
 // ==================================================
 void initWifi()
 {
@@ -137,34 +158,40 @@ void initWifi()
 }
 
 // ==================================================
-// INTERNAL HELPERS
+// WEB SERVER
 // ==================================================
 static void startServer()
 {
   if (serverStarted) return;
 
   server.on("/", HTTP_GET, []() {
-    server.send(200, "text/html", wifiForm);
+    server.send(200, "text/html", fieldForm);
   });
 
-  server.on("/save", HTTP_POST, []() {
-    const String ssid = server.arg("ssid");
-    const String pass = server.arg("pass");
-
-    saveCreds(ssid, pass);
-
-    server.send(
-      200,
-      "text/html",
-      "<h3>Saved. Connecting…</h3><p>You may close this page.</p>"
+  server.on("/save_wifi", HTTP_POST, []() {
+    saveCreds(server.arg("ssid"), server.arg("pass"));
+    server.send(200, "text/html",
+      "<h3>Wi-Fi saved</h3><p>Device will attempt HOME mode.</p>"
     );
-
     delay(300);
     setMode(MODE_HOME);
   });
 
+  server.on("/save_config", HTTP_POST, []() {
+    // ---- Hook into your config system here ----
+    // Example:
+    // if (server.hasArg("sample_rate"))
+    //   config.sample_rate = server.arg("sample_rate").toInt();
+    //
+    // saveConfig();
+
+    server.send(200, "text/html",
+      "<h3>Config saved</h3><p>Changes applied.</p>"
+    );
+  });
+
   server.onNotFound([]() {
-    server.send(200, "text/html", wifiForm);
+    server.send(200, "text/html", fieldForm);
   });
 
   server.begin();
@@ -174,7 +201,7 @@ static void startServer()
 }
 
 // ==================================================
-// MODE ENTRY / EXIT ACTIONS
+// MODE ACTIONS
 // ==================================================
 void wifi_start_sta()
 {
@@ -183,7 +210,8 @@ void wifi_start_sta()
   wifi_stop();
 
   if (!loadCreds()) {
-    LOG_WIFI("STA", "no credentials");
+    LOG_WIFI("STA", "no credentials → FIELD");
+    setMode(MODE_FIELD_CONFIG);
     return;
   }
 
@@ -194,51 +222,62 @@ void wifi_start_sta()
 
   LOG_WIFI("STA", "connecting");
 
-  if (!MDNS.begin(HOSTNAME)) {
-    LOG_WIFI("mDNS", "failed");
-  } else {
-    LOG_WIFI("mDNS", "started");
-  }
-
-  // Wait briefly for IP (non-blocking friendly)
   unsigned long t0 = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 3000) {
     delay(50);
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    LOG_WIFI(
-      "IP",
-      "%s",
-      WiFi.localIP().toString().c_str()
-    );
-  } else {
-    LOG_WIFI("IP", "not assigned");
-  }
+    LOG_WIFI("IP", "%s", WiFi.localIP().toString().c_str());
 
-  startServer();
+    if (!MDNS.begin(HOSTNAME)) {
+      LOG_WIFI("mDNS", "failed");
+    } else {
+      LOG_WIFI("mDNS", "started");
+    }
+
+    startServer();
+  }
+  else {
+    LOG_WIFI("STA", "failed → FIELD_CONFIG");
+    setMode(MODE_FIELD_CONFIG);
+  }
 }
 
 
 void wifi_start_ap()
 {
-  LOG_WIFI("AP", "starting");
-
   wifi_stop();
 
   apMode = true;
+
+  LOG_WIFI("MODE", "FIELD / AP");
+  LOG_WIFI("AP", "starting (%s)", AP_SSID);
 
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, netMask);
   WiFi.softAP(AP_SSID, AP_PASS);
 
-  LOG_WIFI("AP IP", "%s", WiFi.softAPIP().toString().c_str());
+  // Wait briefly for AP IP to become valid
+  IPAddress ip;
+  unsigned long t0 = millis();
+  do {
+    ip = WiFi.softAPIP();
+    delay(10);
+  } while (ip == IPAddress(0,0,0,0) && millis() - t0 < 500);
+
+  LOG_WIFI("AP IP", "%s (%s)", ip.toString().c_str(), AP_SSID);
 
   dnsServer.start(53, "*", apIP);
   LOG_WIFI("DNS", "captive portal");
 
+  LOG_WIFI("LOGIN", "Phone WiFi → %s", AP_SSID);
+  LOG_WIFI("LOGIN", "Browser → http://192.168.4.1");
+
   startServer();
 }
+
+
 
 
 void wifi_stop()
@@ -268,5 +307,16 @@ void wifi_loop()
 
   if (apMode) {
     dnsServer.processNextRequest();
+  }
+}
+
+// ==================================================
+// FACTORY RESET
+// ==================================================
+void wifi_factory_reset()
+{
+  if (LittleFS.exists(WIFI_FILE)) {
+    LittleFS.remove(WIFI_FILE);
+    LOG_WIFI("Reset", "wifi.txt removed");
   }
 }

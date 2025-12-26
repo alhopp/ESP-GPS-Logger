@@ -52,7 +52,6 @@ static const char* modeToString(SystemMode mode);
 // -----------------------------------------------------------------------------
 void setup()
 {
-
   // ---------------------------------------------------------------------------
   // Early boot:
   // - Initializes Serial, battery ADC, SPI, system time
@@ -96,6 +95,10 @@ void setup()
   // Does NOT start Wi-Fi or networking yet.
   // Actual Wi-Fi setup is handled later by the mode manager.
   // ---------------------------------------------------------------------------
+  
+  // Uncomment to test AP mode on startup
+  wifi_factory_reset();
+  
   initWifi();
 
   
