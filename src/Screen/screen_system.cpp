@@ -190,34 +190,58 @@ void FieldAP_screen()
     drawChrome(ui_offset, true);
 
     // ---- TITLE ----
-    display.setFont(Fonts::Body18);
+    display.setFont(Fonts::Body12);
     display.setCursor(ui_offset, Layout::ROW9(2));
-    display.println("FIELD MODE");
+    display.print("BEACH MODE");
+
+    // ---- MODE / INSTRUCTION ----
+    display.setFont(Fonts::Body9);
+    display.setCursor(ui_offset, Layout::ROW9(3));
+    display.print("Connect via phone");
 
     // ---- NETWORK INFO ----
-    display.setFont(Fonts::Body12);
-    display.setCursor(ui_offset, Layout::ROW9(4));
-    display.print("WiFi: ");
-    display.println(wifi_ap_name());
-
     display.setCursor(ui_offset, Layout::ROW9(5));
-    display.print("IP:   ");
-    display.println(WiFi.softAPIP().toString());
+    display.printf("%-5s %s", "WiFi:", wifi_ap_name());
 
-    // ---- USER INSTRUCTIONS ----
-    display.setFont(Fonts::Body9);
-    display.setCursor(ui_offset, Layout::ROW9(7));
-    display.println("Phone WiFi -> join");
+    display.setCursor(ui_offset, Layout::ROW9(6));
+    display.printf("%-5s %s", "IP:", WiFi.softAPIP().toString().c_str());
 
-    display.setCursor(ui_offset, Layout::ROW9(8));
-    display.print(wifi_ap_name());
-
-    display.setCursor(ui_offset, Layout::ROW9(9));
-    display.println("Browser -> 192.168.4.1");
 
   } while (display.nextPage());
 }
 
+/* =========================================================
+ * Home / STA screen
+ * ========================================================= */
+
+void HomeSTA_screen()
+{
+  display.firstPage();
+  do {
+    beginScreen();
+
+    // Top chrome (RTC / icons)
+    drawChrome(ui_offset, true);
+
+    // ---- TITLE ----
+    display.setFont(Fonts::Body12);
+    display.setCursor(ui_offset, Layout::ROW9(2));
+    display.print("HOME MODE");
+
+    // ---- MODE / STATUS ----
+    display.setFont(Fonts::Body9);
+    display.setCursor(ui_offset, Layout::ROW9(3));
+    display.print("Connect via web browser");
+
+    // ---- NETWORK INFO ----
+    display.setCursor(ui_offset, Layout::ROW9(5));
+    display.printf("WiFi: %s", WiFi.SSID().c_str());
+
+    display.setCursor(ui_offset, Layout::ROW9(6));
+    display.printf("IP  : %s", WiFi.localIP().toString().c_str());
+
+  } while (display.nextPage());
+}
 
 
 /* =========================================================

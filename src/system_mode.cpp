@@ -21,7 +21,7 @@
 #include "Definitions.h"
 #include "esp_sleep.h"
 #include "gps_manager.h"
-
+#include "screen_system.h"
 
 // -----------------------------------------------------------------------------
 // INTERNAL STATE
@@ -82,14 +82,15 @@ void setMode(SystemMode newMode)
       break;
 
     case MODE_FIELD_CONFIG:
-      LOG_SYS("MODE", "ENTER FIELD_CONFIG → WiFi AP");
       wifi_start_ap();
+      FieldAP_screen();
       break;
 
     case MODE_HOME:
-      LOG_SYS("MODE", "ENTER HOME → WiFi STA");
       wifi_start_sta();
+      HomeSTA_screen();
       break;
+
 
     case MODE_SLEEP:
       LOG_SYS("MODE", "ENTER SLEEP → power off");

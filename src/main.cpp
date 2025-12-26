@@ -139,7 +139,26 @@ static void magnet_poll()
   // Press edge
   if (active && !prevActive) {
     magnetPressTime   = now;
-    magnetLongHandled = false;
+    if (!active && prevActive && inactiveStable) {
+      uint32_t held = now - magnetPressTime;
+
+      if (held <= TAP_MAX_MS) {
+        const SystemMode mode = getMode();
+
+        if (mode == MODE_FIELD_CONFIG) {
+          setMode(MODE_LOGGING);
+        }
+        else if (mode == MODE_SLEEP) {
+          setMode(MODE_LOGGING);
+        }
+        else {
+          setMode(MODE_SLEEP);
+        }
+      }
+
+      magnetLongHandled = false;   // <<< CRITICAL
+    }
+
   }
 
   // Long hold → enter Wi-Fi configuration
@@ -153,9 +172,23 @@ static void magnet_poll()
     const uint32_t held = now - magnetPressTime;
 
     // If we already consumed it as a long-hold, do nothing on release
-    if (!magnetLongHandled && held <= TAP_MAX_MS) {
-      setMode(getMode() == MODE_SLEEP ? MODE_LOGGING : MODE_SLEEP);
+    if (held <= TAP_MAX_MS) {
+
+    const SystemMode mode = getMode();
+
+    if (mode == MODE_FIELD_CONFIG) {
+      // Exit Beach / Config mode
+      setMode(MODE_LOGGING);
     }
+    else if (mode == MODE_SLEEP) {
+      setMode(MODE_LOGGING);
+    }
+    else {
+      // Normal short tap → sleep
+      setMode(MODE_SLEEP);
+    }
+  }
+
   }
 
   prevActive = active;

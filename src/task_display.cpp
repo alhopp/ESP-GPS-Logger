@@ -6,22 +6,27 @@
 #include "Fonts.h"
 #include "Definitions.h"
 
+#include "system_mode.h"
+#include "screen_system.h"
+
 // ----------------------------------------------------
 // Task handle (owned here)
 // ----------------------------------------------------
 TaskHandle_t t2 = nullptr;
 
 // ----------------------------------------------------
-// Display task (TEST MODE)
+// Display task (MODE-AWARE, E-PAPER SAFE)
 // ----------------------------------------------------
 void taskTwo(void* parameter)
 {
-  LOG_TASK("Display", "test mode start");
+  LOG_TASK("Display", "task started");
 
   int value = 1;
-  bool first = true;
 
-  // Define the area that will change
+  // Track last mode so we act only on transitions
+  SystemMode lastMode = MODE_BOOT;
+
+  // Partial update region for logging/test content
   const int X = 0;
   const int Y = 0;
   const int W = 200;
@@ -29,41 +34,57 @@ void taskTwo(void* parameter)
 
   for (;;)
   {
-    if (first)
-    {
-      // -------------------------------------------------
-      // ONE-TIME full refresh to initialise panel
-      // -------------------------------------------------
+    const SystemMode mode = getMode();
+
+    // --------------------------------------------------
+    // MODE CHANGE → CLEAR + DRAW ONCE
+    // --------------------------------------------------
+    if (mode != lastMode) {
+
+      // Full refresh on mode transition
       display.setFullWindow();
       display.firstPage();
       do {
         display.fillScreen(GxEPD_WHITE);
-        display.setTextColor(GxEPD_BLACK);
-
-        display.setFont(Fonts::SpeedXL);
-        display.setCursor(X, Y + H);
-        display.print(value);
       } while (display.nextPage());
 
-      first = false;
-    }
-    else
-    {
-      // -------------------------------------------------
-      // PARTIAL refresh only (NO FLICKER)
-      // -------------------------------------------------
-      display.setPartialWindow(X, Y, W, H);
-      display.firstPage();
-      do {
-        // IMPORTANT: clear only the partial area
-        display.fillRect(X, Y, W, H, GxEPD_WHITE);
+      // Draw the new mode's screen ONCE
+      if (mode == MODE_FIELD_CONFIG) {
+        FieldAP_screen();        // BEACH MODE / WiFi AP
+      }
+      else if (mode == MODE_HOME) {
+        HomeSTA_screen();        // STA MODE
+      }
+      else if (mode == MODE_SLEEP) {
+        Sleep_screen(0);
+      }
 
-        display.setTextColor(GxEPD_BLACK);
-        display.setFont(Fonts::SpeedXL);
-        display.setCursor(X, Y + H);
-        display.print(value);
-      } while (display.nextPage());
+      lastMode = mode;
     }
+
+    // --------------------------------------------------
+    // HOLD MODES (NO REDRAW, NO FLICKER)
+    // --------------------------------------------------
+    if (mode == MODE_FIELD_CONFIG ||
+        mode == MODE_HOME ||
+        mode == MODE_SLEEP) {
+
+      vTaskDelay(pdMS_TO_TICKS(500));
+      continue;
+    }
+
+    // --------------------------------------------------
+    // LOGGING MODE → TEST COUNTER (TEMPORARY)
+    // --------------------------------------------------
+    display.setPartialWindow(X, Y, W, H);
+    display.firstPage();
+    do {
+      display.fillRect(X, Y, W, H, GxEPD_WHITE);
+      display.setTextColor(GxEPD_BLACK);
+      display.setFont(Fonts::SpeedXL);
+      display.setCursor(X, Y + H);
+      display.print(value);
+    } while (display.nextPage());
 
     LOG_TASK("Display", "show %d", value);
 
@@ -73,64 +94,3 @@ void taskTwo(void* parameter)
     vTaskDelay(pdMS_TO_TICKS(2000));
   }
 }
-
-/* ========================================================================== */
-/* ======================= ORIGINAL CODE (PARKED) =========================== */
-/* ========================================================================== */
-
-/*
-
-// ----------------------------------------------------
-// External state used by display task
-// ----------------------------------------------------
-extern bool sleep_mode;
-
-// ----------------------------------------------------
-// Internal helpers
-// ----------------------------------------------------
-static void handleSleep();
-static void handleLowBattery();
-static void updateDisplay();
-
-// ----------------------------------------------------
-// Display / UI task (ORIGINAL)
-// ----------------------------------------------------
-void taskTwo(void* parameter)
-{
-  Serial.println("[TASK2] display task entered");
-
-  Boot_screen();
-
-  while (true) {
-
-    wdt_task1 = millis();
-
-    if (config.Stat_screens_time != 0) {
-      stat_count++;
-    }
-    if (stat_count > config.screen_count) {
-      stat_count = 0;
-    }
-
-    Update_bat();
-
-    if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
-      low_bat_count++;
-    } else {
-      low_bat_count = 0;
-    }
-
-    if (sleep_mode) {
-      handleSleep();
-    }
-    else if (low_bat_count > 10) {
-      handleLowBattery();
-    }
-    else {
-      updateDisplay();
-    }
-  }
-}
-
-*/
-
