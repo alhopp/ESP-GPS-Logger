@@ -143,6 +143,15 @@ static void saveCreds(const String& ssid, const String& pass)
 
 // ==================================================
 // MODE DECISION (BOOT ONLY)
+//
+// Decides the initial SYSTEM MODE based on stored
+// Wi-Fi credentials.
+//
+// IMPORTANT:
+// - This function does NOT start Wi-Fi directly.
+// - Calling setMode() transfers control to system_mode.cpp,
+//   where EXIT / TRANSITION / ENTER actions are executed.
+// - Wi-Fi startup (AP or STA) is triggered there, not here.
 // ==================================================
 void initWifi()
 {
@@ -150,9 +159,20 @@ void initWifi()
 
   if (loadCreds()) {
     LOG_WIFI("Mode", "HOME");
+
+    // Jump to system_mode.cpp:
+    // - currentMode is updated
+    // - ENTER actions for MODE_HOME are executed
+    //   (wifi_start_sta() is called there)
     setMode(MODE_HOME);
+
   } else {
     LOG_WIFI("Mode", "FIELD_CONFIG");
+
+    // Jump to system_mode.cpp:
+    // - currentMode is updated
+    // - ENTER actions for MODE_FIELD_CONFIG are executed
+    //   (wifi_start_ap() is called there)
     setMode(MODE_FIELD_CONFIG);
   }
 }

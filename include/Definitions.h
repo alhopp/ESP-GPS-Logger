@@ -1,21 +1,17 @@
 #pragma once
 
 // ============================================================================
-// Build / feature switches
+// Definitions.h
+//
+// Compile-time configuration, hardware wiring, thresholds, and logging macros.
+// No runtime state or logic should live here.
 // ============================================================================
+
 
 //#define STATIC_DEBUG            // GPS test without speed, WiFi active
 //#define DLS                     // Force daylight saving test
 #define T5_E_PAPER               // Compile without display functions
 #define GPIO12_ACTIF             // GPIO12 used as wake-up pin (normal GPIO disabled)
-
-
-// ============================================================================
-// Includes
-// ============================================================================
-
-#include "Button_push.h"
-#include <LittleFS.h>
 
 
 // ============================================================================
@@ -28,14 +24,6 @@ enum BootMode {
 };
 
 extern BootMode bootMode;
-
-extern Button_push Short_push12;
-extern Button_push Long_push12;
-extern Button_push Short_push39;
-extern Button_push Long_push39;
-extern Button_push Short_push19;
-extern Button_push Long_push19;
-
 
 // ============================================================================
 // Firmware / timing
@@ -206,3 +194,7 @@ extern Button_push Long_push19;
 #define LOG_LOOP(item, fmt, ...)     LOG_FMT("LOOP",    item, fmt, ##__VA_ARGS__)
 #define LOG_ERROR(item, fmt, ...)    LOG_FMT("ERROR",   item, fmt, ##__VA_ARGS__)
 #define LOG_GPS(item, fmt, ...)      LOG_FMT("GPS",     item, fmt, ##__VA_ARGS__)
+#define LOG_SYS(item, fmt, ...)      LOG_FMT("MODE",    item, fmt, ##__VA_ARGS__)
+
+
+

@@ -1,3 +1,6 @@
+#include <Arduino.h>
+#include "Globals.h"
+
 #include "task_gps.h"
 #include "config_manager.h"
 #include "system_mode.h"

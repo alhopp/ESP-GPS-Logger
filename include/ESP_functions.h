@@ -15,9 +15,8 @@
 #include "SD_card.h"
 #include "ESP32FtpServerJH.h"
 #include "E_paper.h"
-#include "Button_push.h"
 
-#include "GxEPD.h"
+//#include "GxEPD.h"
 
 // Forward declarations
 class GPS_data;
@@ -123,17 +122,6 @@ extern Alfa_speed A500;
 extern Alfa_speed a500;
 
 extern GPS_Track M_500;
-
-
-
-
-extern Button_push Short_push12;
-extern Button_push Short_push19;
-extern Button_push Short_push39;
-
-extern Button_push Long_push12;
-extern Button_push Long_push19;
-extern Button_push Long_push39;
 
 // -------------------------------------------------
 // Functions

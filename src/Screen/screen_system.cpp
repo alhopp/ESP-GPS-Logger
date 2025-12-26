@@ -8,6 +8,9 @@
 #include "storage_manager.h"
 #include "esp_logo.h"
 #include "rtc_state.h"
+#include <WiFi.h>
+#include "wifi_manager.h"
+
 
 static int ui_offset = 0;
 
@@ -170,6 +173,51 @@ void Boot_screen(void)
 
   } while (display.nextPage());
 }
+
+
+
+/* =========================================================
+ * Field / AP screen
+ * ========================================================= */
+
+void FieldAP_screen()
+{
+  display.firstPage();
+  do {
+    beginScreen();
+
+    // Top chrome (RTC / icons etc.)
+    drawChrome(ui_offset, true);
+
+    // ---- TITLE ----
+    display.setFont(Fonts::Body18);
+    display.setCursor(ui_offset, Layout::ROW9(2));
+    display.println("FIELD MODE");
+
+    // ---- NETWORK INFO ----
+    display.setFont(Fonts::Body12);
+    display.setCursor(ui_offset, Layout::ROW9(4));
+    display.print("WiFi: ");
+    display.println(wifi_ap_name());
+
+    display.setCursor(ui_offset, Layout::ROW9(5));
+    display.print("IP:   ");
+    display.println(WiFi.softAPIP().toString());
+
+    // ---- USER INSTRUCTIONS ----
+    display.setFont(Fonts::Body9);
+    display.setCursor(ui_offset, Layout::ROW9(7));
+    display.println("Phone WiFi -> join");
+
+    display.setCursor(ui_offset, Layout::ROW9(8));
+    display.print(wifi_ap_name());
+
+    display.setCursor(ui_offset, Layout::ROW9(9));
+    display.println("Browser -> 192.168.4.1");
+
+  } while (display.nextPage());
+}
+
 
 
 /* =========================================================

@@ -5,6 +5,8 @@
 
 #include "screen_system.h"
 #include "rtc_state.h"
+#include "Definitions.h"
+#include "Button_push.h"
 
 String IP_adress="0.0.0.0";
 const char SW_version[16]="Ver 6.01c";
