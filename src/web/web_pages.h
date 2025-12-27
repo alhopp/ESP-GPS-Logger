@@ -10,140 +10,39 @@ static const char PAGE_CONFIG_APP[] PROGMEM = R"rawliteral(
 
 <style>
 :root{
-  --bg:#f4f7fb;
-  --card:#ffffff;
-  --header:#0b2a4a;
-  --accent:#1e88e5;
-  --text:#0f172a;
-  --muted:#5b6b82;
-  --border:#dbe2ee;
+  --bg:#f4f7fb;--card:#fff;--header:#0b2a4a;
+  --accent:#1e88e5;--text:#0f172a;
+  --muted:#5b6b82;--border:#dbe2ee;
   --danger:#d32f2f;
 }
-
 *{box-sizing:border-box}
-
-body{
-  margin:0;
-  font:15px system-ui;
-  background:var(--bg);
-  color:var(--text);
-}
-
-/* Header */
-header{
-  padding:14px;
-  text-align:center;
-  font-weight:600;
-  background:var(--header);
-  color:white;
-}
-
-/* Tabs */
-nav{
-  display:flex;
-  background:#e9eff7;
-  border-bottom:1px solid var(--border);
-}
-
-nav button{
-  flex:1;
-  padding:12px;
-  border:0;
-  background:none;
-  color:var(--muted);
-  font-weight:500;
-}
-
-nav button.a{
-  color:var(--accent);
-  border-bottom:3px solid var(--accent);
-  background:#f8fbff;
-}
-
-/* Sections */
-section{
-  display:none;
-  padding:16px;
-}
-
+body{margin:0;font:15px system-ui;background:var(--bg);color:var(--text)}
+header{padding:14px;text-align:center;font-weight:600;background:var(--header);color:#fff}
+nav{display:flex;background:#e9eff7;border-bottom:1px solid var(--border)}
+nav button{flex:1;padding:12px;border:0;background:none;color:var(--muted);font-weight:500}
+nav button.a{color:var(--accent);border-bottom:3px solid var(--accent);background:#f8fbff}
+section{display:none;padding:16px}
 section.a{display:block}
-
-/* Cards */
-.card{
-  background:var(--card);
-  border-radius:10px;
-  padding:14px;
-  margin-bottom:14px;
-  border:1px solid var(--border);
-}
-
-/* Inputs */
-label{
-  display:block;
-  margin-top:12px;
-  font-size:13px;
-  color:var(--muted);
-}
-
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px}
+label{display:block;margin-top:12px;font-size:13px;color:var(--muted)}
 input,select{
-  width:100%;
-  padding:10px;
-  margin-top:4px;
-  border-radius:6px;
-  border:1px solid var(--border);
-  background:#f9fbfe;
-  color:var(--text);
-  font-size:15px;
+  width:100%;padding:10px;margin-top:4px;
+  border:1px solid var(--border);border-radius:6px;
+  background:#fff;color:var(--text);
+  font-size:15px;caret-color:var(--accent)
 }
-
-input:focus,select:focus{
-  outline:none;
-  border-color:var(--accent);
-  background:white;
-}
-
-/* Advanced */
+input:focus,select:focus{outline:none;border-color:var(--accent)}
 details{margin-top:12px}
-summary{
-  cursor:pointer;
-  font-size:13px;
-  color:var(--accent);
-}
-
-/* Footer */
-footer{
-  position:sticky;
-  bottom:0;
-  background:#f0f4fa;
-  padding:12px;
-  display:flex;
-  gap:10px;
-  border-top:1px solid var(--border);
-}
-
-footer button{
-  flex:1;
-  padding:12px;
-  border-radius:8px;
-  border:0;
-  font-weight:600;
-  font-size:15px;
-}
-
-.save{
-  background:var(--accent);
-  color:white;
-}
-
-.reboot{
-  background:var(--danger);
-  color:white;
-}
+summary{cursor:pointer;font-size:13px;color:var(--accent)}
+footer{position:sticky;bottom:0;background:#f0f4fa;padding:12px;display:flex;gap:10px;border-top:1px solid var(--border)}
+footer button{flex:1;padding:12px;border-radius:8px;border:0;font-weight:600;font-size:15px}
+.save{background:var(--accent);color:#fff}
+.reboot{background:var(--danger);color:#fff}
+.small{font-size:12px;color:var(--muted);margin-top:6px}
 </style>
 </head>
 
 <body>
-
 <header>ESP32 GPS Configuration</header>
 
 <nav>
@@ -155,138 +54,114 @@ footer button{
 
 <section id="wifi" class="a">
 <div class="card">
-<label>SSID</label>
-<input id="ssid">
+  <label>Home Wi-Fi Network</label>
+  <select id="ssid">
+    <option value="">– Select network –</option>
+  </select>
+
+  <label>Password</label>
+  <input id="password" type="password" placeholder="Wi-Fi password">
+
+  <button style="margin-top:12px" onclick="scan()">Scan Networks</button>
+  <div class="small">Scanning may take ~5 seconds</div>
 </div>
 </section>
 
 <section id="system">
 <div class="card">
-<label>CPU Frequency (MHz)</label>
-<select id="cpu_freq">
-  <option value="80">80</option>
-  <option value="160">160</option>
-  <option value="240">240</option>
-</select>
-
-<label>Timezone</label>
-<input id="timezone" type="number" step="0.5">
-
-<details>
-<summary>Advanced</summary>
-<label><input type="checkbox" id="timezone_dst"> Daylight saving</label>
-</details>
+  <label>CPU Frequency (MHz)</label>
+  <select id="cpu_freq"><option>80<option>160<option>240</select>
+  <label>Timezone</label>
+  <input id="timezone" type="number" step="0.5">
+  <details>
+    <summary>Advanced</summary>
+    <label><input type="checkbox" id="timezone_dst"> Daylight saving</label>
+  </details>
 </div>
 </section>
 
 <section id="gps">
 <div class="card">
-<label>Sample Rate (Hz)</label>
-<select id="sample_rate">
-  <option value="1">1</option>
-  <option value="5">5</option>
-  <option value="10">10</option>
-</select>
-
-<label>GNSS</label>
-<select id="gnss">
-  <option value="1">GPS</option>
-  <option value="2">GPS + GLONASS</option>
-  <option value="3">GPS + GALILEO</option>
-</select>
-
-<details>
-<summary>Advanced</summary>
-<label>Dynamic Model</label>
-<select id="dynamic_model">
-  <option value="0">Portable</option>
-  <option value="1">Sea</option>
-  <option value="2">Automotive</option>
-</select>
-
-<label>Speed Calibration</label>
-<input id="cal_speed" type="number" step="0.01">
-</details>
+  <label>Sample Rate (Hz)</label>
+  <select id="sample_rate"><option>1<option>5<option>10</select>
+  <label>GNSS</label>
+  <select id="gnss">
+    <option value="1">GPS</option>
+    <option value="2">GPS + GLONASS</option>
+    <option value="3">GPS + GALILEO</option>
+  </select>
+  <details>
+    <summary>Advanced</summary>
+    <label>Dynamic Model</label>
+    <select id="dynamic_model"><option value="0">Portable<option value="1">Sea<option value="2">Auto</select>
+    <label>Speed Calibration</label>
+    <input id="cal_speed" type="number" step="0.01">
+  </details>
 </div>
 </section>
 
 <section id="power">
 <div class="card">
-<label>Shutdown Voltage</label>
-<input id="shutdown_voltage" type="number" step="0.1">
-
-<details>
-<summary>Advanced</summary>
-<label><input type="checkbox" id="bat_choice"> Show battery %</label>
-</details>
+  <label>Shutdown Voltage</label>
+  <input id="shutdown_voltage" type="number" step="0.1">
+  <details>
+    <summary>Advanced</summary>
+    <label><input type="checkbox" id="bat_choice"> Show battery %</label>
+  </details>
 </div>
 </section>
 
 <footer>
-<button class="save" onclick="save()">Save</button>
-<button class="reboot" onclick="reboot()">Reboot</button>
+  <button class="save" onclick="save()">Save</button>
+  <button class="reboot" onclick="reboot()">Reboot</button>
 </footer>
 
 <script>
-const $ = id => document.getElementById(id);
-
-function tab(id,btn){
-  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("a"));
-  document.querySelectorAll("section").forEach(s=>s.classList.remove("a"));
-  btn.classList.add("a");
-  $(id).classList.add("a");
-}
-
-function setVal(el,val){
-  if(!el) return;
-  if(el.type==="checkbox") el.checked=!!val;
-  else el.value=val ?? "";
-}
+const $=id=>document.getElementById(id);
+function tab(id,b){document.querySelectorAll("nav button,section").forEach(e=>e.classList.remove("a"));b.classList.add("a");$(id).classList.add("a");}
+function set(el,v){if(!el)return;el.type==="checkbox"?el.checked=!!v:el.value=v??"";}
 
 async function load(){
   const c=await (await fetch("/api/config")).json();
+  set($("cpu_freq"),c.system?.cpu_freq);
+  set($("timezone"),c.system?.timezone);
+  set($("timezone_dst"),c.system?.timezone_dst);
+  set($("sample_rate"),c.gps?.sample_rate);
+  set($("gnss"),c.gps?.gnss);
+  set($("dynamic_model"),c.gps?.dynamic_model);
+  set($("cal_speed"),c.gps?.cal_speed);
+  set($("shutdown_voltage"),c.power?.shutdown_voltage);
+  set($("bat_choice"),c.power?.bat_choice);
+  if(c.wifi?.ssid)addSSID(c.wifi.ssid,true);
+}
 
-  setVal($("ssid"),c.wifi?.ssid);
-  setVal($("cpu_freq"),c.system?.cpu_freq);
-  setVal($("timezone"),c.system?.timezone);
-  setVal($("timezone_dst"),c.system?.timezone_dst);
+function addSSID(name,sel){
+  if([...$("ssid").options].some(o=>o.value===name))return;
+  $("ssid").add(new Option(name,name,sel,sel));
+}
 
-  setVal($("sample_rate"),c.gps?.sample_rate);
-  setVal($("gnss"),c.gps?.gnss);
-  setVal($("dynamic_model"),c.gps?.dynamic_model);
-  setVal($("cal_speed"),c.gps?.cal_speed);
-
-  setVal($("shutdown_voltage"),c.power?.shutdown_voltage);
-  setVal($("bat_choice"),c.power?.bat_choice);
+async function scan(){
+  $("ssid").innerHTML='<option>Scanning…</option>';
+  const r=await fetch("/api/wifi/scan");
+  const a=await r.json();
+  $("ssid").innerHTML='<option value="">– Select network –</option>';
+  a.sort((x,y)=>y.rssi-x.rssi).forEach(n=>{
+    addSSID(n.ssid,false);
+  });
 }
 
 async function save(){
-  const payload={
-    wifi:{ssid:$("ssid").value},
-    system:{
-      cpu_freq:+$("cpu_freq").value,
-      timezone:+$("timezone").value,
-      timezone_dst:$("timezone_dst").checked
-    },
-    gps:{
-      sample_rate:+$("sample_rate").value,
-      gnss:+$("gnss").value,
-      dynamic_model:+$("dynamic_model").value,
-      cal_speed:+$("cal_speed").value
-    },
-    power:{
-      shutdown_voltage:+$("shutdown_voltage").value,
-      bat_choice:$("bat_choice").checked
-    }
+  const p={
+    wifi:{ssid:$("ssid").value,password:$("password").value},
+    system:{cpu_freq:+$("cpu_freq").value,timezone:+$("timezone").value,timezone_dst:$("timezone_dst").checked},
+    gps:{sample_rate:+$("sample_rate").value,gnss:+$("gnss").value,dynamic_model:+$("dynamic_model").value,cal_speed:+$("cal_speed").value},
+    power:{shutdown_voltage:+$("shutdown_voltage").value,bat_choice:$("bat_choice").checked}
   };
-  await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-  alert("Saved");
+  await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
+  alert("Saved. Reboot to connect.");
 }
 
-function reboot(){
-  fetch("/api/reboot",{method:"POST"});
-}
-
+function reboot(){fetch("/api/reboot",{method:"POST"});}
 load();
 </script>
 </body>

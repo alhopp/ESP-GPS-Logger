@@ -2,124 +2,237 @@
 #include "web_pages.h"
 
 #include <Arduino.h>
-#include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <WiFi.h>
+#include <SD_MMC.h>
 
 #include "Definitions.h"
-#include "system_mode.h"
 #include "config_manager.h"
 #include "wifi_manager.h"
+#include "system_mode.h"
 
 static bool webStarted = false;
 
-// ============================================================================
-// Web server start
-// ============================================================================
+// ------------------------------------------------------------
+// helpers
+// ------------------------------------------------------------
+
+static void sendJson(WebServer &s, JsonDocument &doc)
+{
+  String out;
+  serializeJson(doc, out);
+  s.send(200, "application/json", out);
+}
+
+static bool isUserFile(const String& name)
+{
+  return !(name.startsWith("config") ||
+           name.startsWith("emmc")  ||
+           name.endsWith(".cfg"));
+}
+
+// ------------------------------------------------------------
+// start server
+// ------------------------------------------------------------
 
 void webserver_start(WebServer &server)
 {
   if (webStarted) return;
 
   // ------------------------------------------------------------
-  // Root: main config app
+  // SPA root
   // ------------------------------------------------------------
-  server.on("/", HTTP_GET, [&server]() {
+  server.on("/", HTTP_GET, [&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
   // ------------------------------------------------------------
-  // API: GET current configuration (READ ONLY)
+  // GET config
   // ------------------------------------------------------------
-  server.on("/api/config", HTTP_GET, [&server]() {
+  server.on("/api/config", HTTP_GET, [&] {
+    StaticJsonDocument<1024> j;
 
-    StaticJsonDocument<1024> doc;
+    j["wifi"]["ssid"] = config.ssid;
 
-    // -------------------------
-    // Wi-Fi
-    // -------------------------
-    doc["wifi"]["ssid"] = config.ssid;
+    j["system"]["cpu_freq"]     = config.cpu_freq;
+    j["system"]["timezone"]     = config.timezone;
+    j["system"]["timezone_dst"] = config.timezone_DST;
 
-    // -------------------------
-    // System
-    // -------------------------
-    doc["system"]["cpu_freq"]     = config.cpu_freq;
-    doc["system"]["timezone"]     = config.timezone;
-    doc["system"]["timezone_dst"] = config.timezone_DST;
+    j["gps"]["sample_rate"]   = config.sample_rate;
+    j["gps"]["gnss"]          = config.gnss;
+    j["gps"]["dynamic_model"] = config.dynamic_model;
+    j["gps"]["cal_speed"]     = config.cal_speed;
 
-    // -------------------------
-    // GPS
-    // -------------------------
-    doc["gps"]["sample_rate"]   = config.sample_rate;
-    doc["gps"]["gnss"]          = config.gnss;
-    doc["gps"]["dynamic_model"] = config.dynamic_model;
-    doc["gps"]["cal_speed"]     = config.cal_speed;
+    j["power"]["shutdown_voltage"] = config.shutdown_voltage;
+    j["power"]["bat_choice"]       = config.bat_choice;
 
-    // -------------------------
-    // Power
-    // -------------------------
-    doc["power"]["shutdown_voltage"] = config.shutdown_voltage;
-    doc["power"]["bat_choice"]       = config.bat_choice;
-
-    // -------------------------
-    // Meta / diagnostics
-    // -------------------------
-    doc["meta"]["ublox_type"]   = config.ublox_type;
-    doc["meta"]["m10_high_nav"] = config.M10_high_nav;
-
-    String json;
-    serializeJson(doc, json);
-
-    server.send(200, "application/json", json);
+    sendJson(server, j);
   });
 
   // ------------------------------------------------------------
-  // Save Wi-Fi (legacy HTML POST)
+  // POST config
   // ------------------------------------------------------------
-  server.on("/save_wifi", HTTP_POST, [&server]() {
+  server.on("/api/config", HTTP_POST, [] {}, [&] {
 
-    wifi_set_credentials(
-      server.arg("ssid"),
-      server.arg("pass")
-    );
+    StaticJsonDocument<1024> j;
+    if (deserializeJson(j, server.arg("plain"))) {
+      server.send(400, "text/plain", "Bad JSON");
+      return;
+    }
 
-    server.send(200, "text/html",
-      "<h3>Wi-Fi saved</h3><p>Switching to HOME mode.</p>"
-    );
+    if (j["wifi"]["ssid"]) {
+      strncpy(config.ssid, j["wifi"]["ssid"], sizeof(config.ssid) - 1);
+      config.ssid[sizeof(config.ssid) - 1] = '\0';
+    }
 
-    delay(300);
-    setMode(MODE_HOME);
-  });
+    if (j["system"]) {
+      config.cpu_freq     = j["system"]["cpu_freq"]     | config.cpu_freq;
+      config.timezone     = j["system"]["timezone"]     | config.timezone;
+      config.timezone_DST = j["system"]["timezone_dst"] | config.timezone_DST;
+    }
 
-  // ------------------------------------------------------------
-  // Save config (HTML form – mapping later)
-  // ------------------------------------------------------------
-  server.on("/save_config", HTTP_POST, [&server]() {
+    if (j["gps"]) {
+      config.sample_rate   = j["gps"]["sample_rate"]   | config.sample_rate;
+      config.gnss          = j["gps"]["gnss"]          | config.gnss;
+      config.dynamic_model = j["gps"]["dynamic_model"] | config.dynamic_model;
+      config.cal_speed     = j["gps"]["cal_speed"]     | config.cal_speed;
+    }
 
-    // TODO:
-    //  - Map fields to config
-    //  - Validate
-    //  - saveConfig()
+    if (j["power"]) {
+      config.shutdown_voltage = j["power"]["shutdown_voltage"] | config.shutdown_voltage;
+      config.bat_choice       = j["power"]["bat_choice"]       | config.bat_choice;
+    }
 
     saveConfig();
-
-    server.send(200, "text/html",
-      "<h3>Config saved</h3><p>Changes applied.</p>"
-    );
+    server.send(200, "text/plain", "OK");
   });
 
   // ------------------------------------------------------------
-  // API: reboot
+  // Wi-Fi scan
   // ------------------------------------------------------------
-  server.on("/api/reboot", HTTP_POST, [&server]() {
+  server.on("/api/wifi/scan", HTTP_GET, [&] {
+
+    StaticJsonDocument<2048> j;
+    JsonArray a = j.to<JsonArray>();
+
+    int n = WiFi.scanNetworks(false, false); // sync scan, no hidden
+
+    for (int i = 0; i < n; i++) {
+      String ssid = WiFi.SSID(i);
+      if (ssid.isEmpty()) continue;
+
+      // Deduplicate
+      bool seen = false;
+      for (JsonObject o : a) {
+        if (o["ssid"] == ssid) { seen = true; break; }
+      }
+      if (seen) continue;
+
+      JsonObject o = a.createNestedObject();
+      o["ssid"]   = ssid;
+      o["rssi"]   = WiFi.RSSI(i);
+      o["secure"] = (WiFi.encryptionType(i) != WIFI_AUTH_OPEN);
+    }
+
+    WiFi.scanDelete(); // free heap
+    sendJson(server, j);
+  });
+
+  // ------------------------------------------------------------
+  // SD file list (filtered)
+  // ------------------------------------------------------------
+  server.on("/api/files", HTTP_GET, [&] {
+
+    StaticJsonDocument<1024> j;
+    JsonArray a = j.to<JsonArray>();
+
+    File root = SD_MMC.open("/");
+    File f;
+
+    while ((f = root.openNextFile())) {
+
+      if (!f.isDirectory()) {
+
+        String name = f.name();
+        int slash = name.lastIndexOf('/');
+        if (slash >= 0) name = name.substring(slash + 1);
+
+        if (!isUserFile(name)) {
+          f.close();
+          continue;
+        }
+
+        for (size_t i = 0; i < name.length(); i++) {
+          if (name[i] < 32 || name[i] > 126) name[i] = '_';
+        }
+
+        JsonObject o = a.createNestedObject();
+        o["name"] = name;
+        o["size"] = f.size();
+      }
+
+      f.close();
+    }
+
+    sendJson(server, j);
+  });
+
+  // ------------------------------------------------------------
+  // SD file download
+  // ------------------------------------------------------------
+  server.on("/api/file", HTTP_GET, [&] {
+
+    if (!server.hasArg("name")) {
+      server.send(400, "text/plain", "Missing name");
+      return;
+    }
+
+    String name = server.arg("name");
+
+    if (name.indexOf("..") >= 0 || name.indexOf('/') >= 0) {
+      server.send(403, "text/plain", "Invalid filename");
+      return;
+    }
+
+    if (!isUserFile(name)) {
+      server.send(403, "text/plain", "Forbidden");
+      return;
+    }
+
+    String path = "/Archive/" + name;
+    File f = SD_MMC.open(path, FILE_READ);
+
+    if (!f || f.isDirectory()) {
+      server.send(404, "text/plain", "Not found");
+      return;
+    }
+
+    String ct = "application/octet-stream";
+    if (name.endsWith(".json")) ct = "application/json";
+    else if (name.endsWith(".txt")) ct = "text/plain";
+    else if (name.endsWith(".gpx")) ct = "application/gpx+xml";
+
+    server.sendHeader("Content-Disposition",
+      "attachment; filename=\"" + name + "\"");
+    server.sendHeader("Cache-Control", "no-store");
+
+    server.streamFile(f, ct);
+    f.close();
+  });
+
+  // ------------------------------------------------------------
+  // reboot
+  // ------------------------------------------------------------
+  server.on("/api/reboot", HTTP_POST, [&] {
     server.send(200, "text/plain", "Rebooting");
     delay(200);
     ESP.restart();
   });
 
   // ------------------------------------------------------------
-  // Fallback
+  // SPA fallback
   // ------------------------------------------------------------
-  server.onNotFound([&server]() {
+  server.onNotFound([&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
@@ -129,9 +242,9 @@ void webserver_start(WebServer &server)
   LOG_WIFI("Web", "started");
 }
 
-// ============================================================================
-// Web server stop
-// ============================================================================
+// ------------------------------------------------------------
+// stop
+// ------------------------------------------------------------
 
 void webserver_stop()
 {

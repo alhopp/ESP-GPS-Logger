@@ -1,19 +1,11 @@
 // ============================================================================
 // Wi-Fi Manager
-//
-// Behaviour:
-//  - If valid Wi-Fi credentials exist → try STA (HOME)
-//  - If STA fails or no credentials → AP captive portal (FIELD_CONFIG)
-//  - Field portal allows:
-//      • Editing HOME Wi-Fi credentials
-//      • Editing system variables
-//
-// Design principles:
-//  - Wi-Fi never blocks boot
-//  - Wi-Fi never bricks device
-//  - UI / HTML is delegated to web_server.cpp
+//  - STA if creds exist
+//  - AP captive portal if not
+//  - Wi-Fi scan ONCE when AP starts
 // ============================================================================
 
+#include <ArduinoJson.h>
 #include "wifi_manager.h"
 #include "system_mode.h"
 
@@ -26,25 +18,23 @@
 #include "Definitions.h"
 #include "web/web_server.h"
 
-
 // ============================================================================
 // Configuration
 // ============================================================================
 
 static const char* HOSTNAME = "esp32-gps";
 
-// Access Point (FIELD_CONFIG mode)
+// FIELD CONFIG (AP)
 static const char* AP_SSID = "ESP32 GPS";
-static const char* AP_PASS = "12345678";   // iOS requires ≥ 8 chars
+static const char* AP_PASS = "12345678";   // iOS requires ≥8 chars
 
-static IPAddress apIP(192, 168, 4, 1);
-static IPAddress netMask(255, 255, 255, 0);
+static IPAddress apIP(192,168,4,1);
+static IPAddress netMask(255,255,255,0);
 
 #define WIFI_FILE "/wifi.txt"
 
-
 // ============================================================================
-// Owned state (this file only)
+// State
 // ============================================================================
 
 static WebServer server(80);
@@ -56,6 +46,9 @@ static bool apMode        = false;
 static String savedSSID;
 static String savedPASS;
 
+// Cached scan results (FIELD mode only)
+static bool scanDone = false;
+static String scanJSON;
 
 // ============================================================================
 // Public helpers
@@ -66,6 +59,15 @@ const char* wifi_ap_name()
   return AP_SSID;
 }
 
+bool wifi_is_ap_mode()
+{
+  return apMode;
+}
+
+String wifi_get_scan_json()
+{
+  return scanJSON;
+}
 
 // ============================================================================
 // Credential storage
@@ -73,47 +75,29 @@ const char* wifi_ap_name()
 
 static bool loadCreds()
 {
-  if (!LittleFS.exists(WIFI_FILE)) {
-    LOG_WIFI("Creds", "file missing");
-    return false;
-  }
+  if (!LittleFS.exists(WIFI_FILE)) return false;
 
   File f = LittleFS.open(WIFI_FILE, "r");
-  if (!f) {
-    LOG_WIFI("Creds", "open failed");
-    return false;
-  }
+  if (!f) return false;
 
   savedSSID = f.readStringUntil('\n');
   savedPASS = f.readStringUntil('\n');
-
   f.close();
 
   savedSSID.trim();
   savedPASS.trim();
 
-  if (savedSSID.isEmpty()) {
-    LOG_WIFI("Creds", "empty");
-    return false;
-  }
-
-  LOG_WIFI("Creds", "loaded");
-  return true;
+  return !savedSSID.isEmpty();
 }
 
 static void saveCreds(const String& ssid, const String& pass)
 {
   File f = LittleFS.open(WIFI_FILE, "w");
-  if (!f) {
-    LOG_ERROR("WiFi", "save failed");
-    return;
-  }
+  if (!f) return;
 
   f.println(ssid);
   f.println(pass);
   f.close();
-
-  LOG_WIFI("Creds", "saved");
 }
 
 void wifi_set_credentials(const String& ssid, const String& pass)
@@ -121,141 +105,138 @@ void wifi_set_credentials(const String& ssid, const String& pass)
   saveCreds(ssid, pass);
 }
 
-
 // ============================================================================
-// Boot-time mode decision
-//
-// Decides the initial SYSTEM MODE based on stored Wi-Fi credentials.
-//
-// IMPORTANT:
-//  - This function does NOT start Wi-Fi directly
-//  - setMode() transfers control to system_mode.cpp
-//  - Wi-Fi startup (STA/AP) happens in ENTER actions there
+// Boot-time decision
 // ============================================================================
 
 void initWifi()
 {
-  LOG_WIFI("Init", "starting");
-
-  if (loadCreds()) {
-    LOG_WIFI("Mode", "HOME");
-    setMode(MODE_HOME);
-  }
-  else {
-    LOG_WIFI("Mode", "FIELD_CONFIG");
-    setMode(MODE_FIELD_CONFIG);
-  }
+  if (loadCreds()) setMode(MODE_HOME);
+  else             setMode(MODE_FIELD_CONFIG);
 }
 
-
 // ============================================================================
-// Web server lifecycle (delegated)
+// Web server lifecycle
 // ============================================================================
 
 static void startServer()
 {
   if (serverStarted) return;
-
   webserver_start(server);
   serverStarted = true;
 }
 
-
 // ============================================================================
-// Mode actions
+// STA mode (NO SCANS EVER)
 // ============================================================================
 
 void wifi_start_sta()
 {
-  LOG_WIFI("STA", "starting");
-
   wifi_stop();
 
   if (!loadCreds()) {
-    LOG_WIFI("STA", "no credentials → FIELD");
     setMode(MODE_FIELD_CONFIG);
     return;
   }
 
-  apMode = false;
+  apMode   = false;
+  scanDone = false;
+  scanJSON = "";
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(savedSSID.c_str(), savedPASS.c_str());
 
-  LOG_WIFI("STA", "connecting");
-
-  const unsigned long t0 = millis();
+  unsigned long t0 = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 3000) {
     delay(50);
   }
 
-  if (WiFi.status() == WL_CONNECTED) {
-    LOG_WIFI("IP", "%s", WiFi.localIP().toString().c_str());
-
-    if (!MDNS.begin(HOSTNAME)) {
-      LOG_WIFI("mDNS", "failed");
-    } else {
-      LOG_WIFI("mDNS", "started");
-    }
-
-    startServer();
-  }
-  else {
-    LOG_WIFI("STA", "failed → FIELD_CONFIG");
+  if (WiFi.status() != WL_CONNECTED) {
     setMode(MODE_FIELD_CONFIG);
+    return;
   }
+
+  if (MDNS.begin(HOSTNAME)) {
+    MDNS.addService("http","tcp",80);
+  }
+
+  startServer();
 }
 
+// ============================================================================
+// AP + Captive Portal (SCAN ONCE HERE)
+// ============================================================================
+
+static void scanOnce()
+{
+  if (scanDone) return;
+
+  StaticJsonDocument<2048> j;
+  JsonArray a = j.to<JsonArray>();
+
+  int n = WiFi.scanNetworks(false, false);
+
+  for (int i = 0; i < n; i++) {
+    String ssid = WiFi.SSID(i);
+    if (!ssid.length()) continue;
+
+    bool dup = false;
+    for (JsonObject o : a)
+      if (o["ssid"] == ssid) { dup = true; break; }
+
+    if (dup) continue;
+
+    JsonObject o = a.createNestedObject();
+    o["ssid"]   = ssid;
+    o["rssi"]   = WiFi.RSSI(i);
+    o["secure"] = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+  }
+
+  WiFi.scanDelete();
+  serializeJson(j, scanJSON);
+  scanDone = true;
+}
 
 void wifi_start_ap()
 {
   wifi_stop();
 
-  apMode = true;
-
-  LOG_WIFI("MODE", "FIELD / AP");
-  LOG_WIFI("AP", "starting (%s)", AP_SSID);
+  apMode   = true;
+  scanDone = false;
+  scanJSON = "";
 
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, netMask);
   WiFi.softAP(AP_SSID, AP_PASS);
 
-  // Wait briefly for AP IP to become valid
-  IPAddress ip;
-  const unsigned long t0 = millis();
-  do {
-    ip = WiFi.softAPIP();
+  unsigned long t0 = millis();
+  while (WiFi.softAPIP() == IPAddress(0,0,0,0) && millis() - t0 < 500)
     delay(10);
-  } while (ip == IPAddress(0, 0, 0, 0) && millis() - t0 < 500);
 
-  LOG_WIFI("AP IP", "%s (%s)", ip.toString().c_str(), AP_SSID);
+  dnsServer.start(53, "*", WiFi.softAPIP());
 
-  dnsServer.start(53, "*", apIP);
-  LOG_WIFI("DNS", "captive portal");
-
-  LOG_WIFI("LOGIN", "Phone WiFi → %s", AP_SSID);
-  LOG_WIFI("LOGIN", "Browser → http://192.168.4.1");
-
+  scanOnce();          // ⭐ ONE AND ONLY SCAN
   startServer();
 }
 
+// ============================================================================
+// Stop Wi-Fi
+// ============================================================================
 
 void wifi_stop()
 {
   if (!serverStarted && WiFi.getMode() == WIFI_OFF) return;
 
-  LOG_WIFI("Stop", "WiFi");
-
   webserver_stop();
   server.stop();
+  dnsServer.stop();
 
-  WiFi.disconnect(true, true);
+  WiFi.disconnect(true,true);
   WiFi.mode(WIFI_OFF);
 
   serverStarted = false;
   apMode        = false;
 }
-
 
 // ============================================================================
 // Loop service
@@ -267,11 +248,9 @@ void wifi_loop()
 
   server.handleClient();
 
-  if (apMode) {
+  if (apMode)
     dnsServer.processNextRequest();
-  }
 }
-
 
 // ============================================================================
 // Factory reset
@@ -279,10 +258,6 @@ void wifi_loop()
 
 void wifi_factory_reset()
 {
-  if (LittleFS.exists(WIFI_FILE)) {
+  if (LittleFS.exists(WIFI_FILE))
     LittleFS.remove(WIFI_FILE);
-    LOG_WIFI("Reset", "wifi.txt removed");
-  }
 }
-
-
