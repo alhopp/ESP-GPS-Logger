@@ -589,15 +589,15 @@ int setupGPS(void) {
   Serial.print("XTAL freq  ?= "); Serial.println(Xtal_freq);
   Ublox_on();//beitian bn220 power supply over output 25,26,27
   Serial2.setRxBufferSize(2048); // increasing buffer size ?
-  Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2); //default connection to ublox over serial2
+  Serial2.begin(9600, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN); //default connection to ublox over serial2
    if((config.ublox_type==M8_115200BD)||(config.ublox_type==M9_115200BD)||(config.ublox_type==M10_115200BD)){
-    Serial2.begin(115200, SERIAL_8N1, RXD2, TXD2); //connection to ublox over serial2  
+    Serial2.begin(115200, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN); //connection to ublox over serial2  
     }
   if((config.ublox_type==M8_38400BD)||(config.ublox_type==M9_38400BD)|  (config.ublox_type==M10_38400BD)){
-    Serial2.begin(38400, SERIAL_8N1, RXD2, TXD2); //connection to ublox over serial2  
+    Serial2.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN); //connection to ublox over serial2  
     }  
-  Serial.println("Serial2 Txd is on pin: "+String(TXD2));
-  Serial.println("Serial2 Rxd is on pin: "+String(RXD2));
+  Serial.println("Serial2 Txd is on pin: "+String(GPS_UART_TX_PIN));
+  Serial.println("Serial2 Rxd is on pin: "+String(GPS_UART_RX_PIN));
   for(int i=0;i<425;i++){//Startup string van ublox to serial, ca 424 char !!
      while (Serial2.available()) {
               Serial.print(char(Serial2.read()));
@@ -621,7 +621,7 @@ int setupGPS(void) {
         Serial2.write( pgm_read_byte(UBLOX_UBX_BD38400+i) );
         }
       delay(100) ; 
-      Serial2.begin(38400, SERIAL_8N1, RXD2, TXD2);  
+      Serial2.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);  
   }      
   if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)||(config.ublox_type==M8_115200BD)){
     Init_ublox(); //switch to ubx protocol

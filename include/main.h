@@ -18,5 +18,3 @@
 // Indicates whether the system is currently in sleep mode
 extern bool sleep_mode;
 
-// Indicates a forced reset-boot condition (set during early boot)
-extern bool reset_boot;

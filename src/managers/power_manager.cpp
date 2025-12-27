@@ -2,10 +2,10 @@
 #include <Arduino.h>
 #include "Definitions.h"
 #include "rtc_state.h"
+#include "Globals.h"
 
 // INTERNAL state (owned here)
-static int   analog_bat  = 0;
-static float analog_mean = 2000.0f;
+
 
 void Update_bat(void)
 {

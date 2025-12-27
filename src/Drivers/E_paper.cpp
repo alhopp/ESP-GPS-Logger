@@ -37,7 +37,6 @@ static int ui_offset = 0;
 
 // bottom area 15px reserved to info bar
 #define INFO_BAR_HEIGHT 15
-#define INFO_BAR_TOP (display.height() - INFO_BAR_HEIGHT)
 #define INFO_BAR_ROW (display.height() - 2)
 
   // --- Chrome helpers (forward declarations) ---
@@ -231,7 +230,6 @@ void Sats_level(int ui_offset) {
   // int circelL = 5;
   //int circelS = 2;
   int posX = 120 + ui_offset;  //was 176
-  int posY = INFO_BAR_TOP;  //-(circelL+2*circelS);
   int satnum = ubxMessage.navPvt.numSV;
   //display.drawExampleBitmap(ESP_Sat_15, posX, posY, 15, 15, GxEPD_BLACK);
   display.setFont(Fonts::Body9);
@@ -304,13 +302,6 @@ void sdCardInfo()
 }
 
 
-static void printValueSmart(float v) {
-  if (v < 100.0f)      display.println(v, 2);
-  else if (v < 1000.0f) display.println(v, 1);
-  else                 display.println(v, 0);
-}
-
-
 
 
 
@@ -318,7 +309,7 @@ void Update_screen(int screen)
 {
   static int count = 0;
   static int old_screen = -1;
-  static int update_delay = 0;
+
 
   update_time();
   update_epaper = 1;
@@ -349,7 +340,7 @@ void Update_screen(int screen)
 
       // --------------------------------------------------
       case BOOT_SCREEN:
-        update_delay = 1000;
+      
   
         drawTopLeftTitle("ESP-GPS config");
         device_boot_log(234);
@@ -359,7 +350,7 @@ void Update_screen(int screen)
 
       // --------------------------------------------------
       case GPS_INIT_SCREEN:
-        update_delay = 100;
+     
 
         drawTopLeftTitle("ESP-GPS GPS init");
         device_boot_log(24);
@@ -400,7 +391,7 @@ void Update_screen(int screen)
   // ==================================================
 
   if (screen == WIFI_ON) {
-    update_delay = 100;
+ 
     ui_offset += (count % 20 < 10) ? 1 : -1;
 
 
@@ -450,7 +441,7 @@ void Update_screen(int screen)
   }
 
   else if (screen == WIFI_STATION) {
-    update_delay = 100;
+
 
     drawTopLeftTitle("ESP-GPS try to connect");
     device_boot_log(2);
@@ -472,7 +463,7 @@ void Update_screen(int screen)
   }
 
   else if (screen == WIFI_SOFT_AP) {
-    update_delay = 100;
+
 
 
     drawTopLeftTitle("Connect to ESP-GPS");

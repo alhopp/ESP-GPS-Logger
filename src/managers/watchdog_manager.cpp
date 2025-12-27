@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include <esp_task_wdt.h>
 #include "ESP_functions.h"
+#include "Definitions.h"  
+
 
 void watchdogInit() {
   Serial.println("Configuring WDT...");

@@ -10,25 +10,22 @@
 #include <SD_MMC.h>
 #include <SD.h>
 #include "ArduinoJson.h"
-
+#include "Globals.h"
  
 extern struct tm tmstruct ;
 extern int Time_Set_OK;
-extern int NTP_time_set;
-extern int Gps_time_set;
-extern long _timezone;//library time.h !!
+
+extern long _timezone;
 extern int first_fix_GPS;
 extern int wifi_search;
-extern int sdTrouble;
+
 extern int start_logging_millis;
-extern bool sdOK,button,LITTLEFS_OK;
+
 extern bool GPS_logging;
 extern float Mean_heading,heading_SD;
 extern float calibration_speed;
 extern int next_gpy_full_frame;
 
-extern char Ublox_type[20];
-extern char TimeZone[64];
 extern GPS_speed M100;
 extern GPS_speed M250;
 extern GPS_speed M1852;
@@ -39,7 +36,7 @@ extern GPS_time s10;
 extern Alfa_speed A250;
 extern GPS_data Ublox; // create an object storing GPS_data, definition in RTOS
 extern GPS_SAT_info Ublox_Sat;//create an object storing GPS_SAT info !
-extern int nav_pvt_message; 
+
 extern int nav_sat_message;
 
 
@@ -56,7 +53,7 @@ void Session_results_M(GPS_speed M);
 void Session_results_S(GPS_time S);
 void Session_results_Alfa(Alfa_speed A,GPS_speed M);
 void Session_gpstc(char* gpstc);
-void TimeZone_env (float timezone);
+
 int Logtime_left (uint64_t);
 void testFileIO(fs::FS &fs, const char * path);
 

@@ -1,4 +1,5 @@
 #include "ESP_functions.h"
+#include "rtc_state.h"
 
 //header file readable
 const char html_header[] PROGMEM = R"=====(

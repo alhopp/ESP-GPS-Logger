@@ -3,6 +3,7 @@
 void initConfig();
 void ensureConfigExistsOnSD();
 void saveConfig();
+void TimeZone_env (float timezone);
 
 struct Config {
   float cal_bat=1.74;//calibration for read out bat voltage

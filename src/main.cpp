@@ -36,7 +36,7 @@
 // GLOBAL STATE
 // -----------------------------------------------------------------------------
 bool sleep_mode = false;
-extern bool reset_boot;
+
 
 
 
@@ -100,8 +100,7 @@ static void magnet_poll()
   } else {
     releaseSince = 0;
   }
-  const bool releasedStable =
-      (releaseSince && (now - releaseSince >= RELEASE_STABLE_MS));
+
 
   static bool prevActive = false;
 

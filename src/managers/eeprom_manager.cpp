@@ -5,6 +5,9 @@
 
 #include "ESP_functions.h"
 #include "config_manager.h"
+#include "rtc_state.h"
+#include "Definitions.h"
+
 
 // ----------------------------------------------------
 // EEPROM layout (fixed offsets)

@@ -8,9 +8,6 @@
 #include <driver/rtc_io.h>
 #include <driver/gpio.h>
 
-#define RXD2 32  //geel is Tx Ublox, Beitian wit is Tx
-#define TXD2 33  //groen is Rx Ublox, Beitian groen is Rx
-
 const char* gpsChip(int longname);
 
 //ublox M8, baudrate setting and only ubx out is one command !!!!

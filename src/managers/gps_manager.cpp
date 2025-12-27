@@ -25,9 +25,6 @@
 // -----------------------------------------------------------------------------
 static HardwareSerial GPSSerial(2);
 
-#define GPS_RX_PIN  RXD2
-#define GPS_TX_PIN  TXD2
-
 // -----------------------------------------------------------------------------
 // BAUD TABLE
 // -----------------------------------------------------------------------------
@@ -47,9 +44,21 @@ static void gps_power_on()
   pinMode(UBLOX_POWER2, OUTPUT);
   pinMode(UBLOX_POWER3, OUTPUT);
 
-  rtc_gpio_set_drive_capability(UBLOX_RTC_GPIO1, GPIO_DRIVE_CAP_3);
-  rtc_gpio_set_drive_capability(UBLOX_RTC_GPIO2, GPIO_DRIVE_CAP_3);
-  gpio_set_drive_capability(UBLOX_GPIO3, GPIO_DRIVE_CAP_3);
+  rtc_gpio_set_drive_capability(
+    static_cast<gpio_num_t>(UBLOX_RTC_GPIO1),
+    GPIO_DRIVE_CAP_3
+  );
+
+  rtc_gpio_set_drive_capability(
+    static_cast<gpio_num_t>(UBLOX_RTC_GPIO2),
+    GPIO_DRIVE_CAP_3
+  );
+
+  gpio_set_drive_capability(
+    static_cast<gpio_num_t>(UBLOX_GPIO3),
+    GPIO_DRIVE_CAP_3
+  );
+
 
   delay(50);
 
@@ -137,7 +146,7 @@ static void gps_send_time_from_rtc()
 // -----------------------------------------------------------------------------
 static bool probe_gps(uint32_t baud)
 {
-  GPSSerial.begin(baud, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+  GPSSerial.begin(baud, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
   delay(120);
 
   while (GPSSerial.available()) GPSSerial.read();
@@ -172,7 +181,8 @@ bool initGPS()
       RTC_gps_baud_index <= 3) {
 
     uint32_t baud = gpsBauds[RTC_gps_baud_index];
-    LOG_GPS("Detect", "cached baud=%lu", baud);
+    LOG_GPS("Detect", "cached baud=%lu", (unsigned long)baud);
+
 
     if (probe_gps(baud)) {
       gps_send_time_from_rtc();
@@ -195,7 +205,8 @@ bool initGPS()
       RTC_gps_valid      = true;
 
       gps_send_time_from_rtc();
-      LOG_GPS("Detect", "baud=%lu", gpsBauds[i]);
+      LOG_GPS("Detect", "baud=%lu", (unsigned long)gpsBauds[i]);
+
       return true;
     }
   }

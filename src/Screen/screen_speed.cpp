@@ -11,7 +11,6 @@
 
 static int ui_offset = 0;
 
-#define INFO_BAR_TOP 12   // use your original value
 static char bar_info[16];
 
   void Speed_font0(
@@ -115,7 +114,6 @@ void Speed_font3(
 
 void draw_SPEED() 
 {
-    int update_delay = 50;
 
     int field = config.field_actual;
     bool alfa_screen =
@@ -127,7 +125,7 @@ void draw_SPEED()
       (Ublox.alfa_distance / 1000 > 1000);
 
     display.setFont(Fonts::Small6);
-    display.setCursor(display.width() - 20, INFO_BAR_TOP);
+    display.setCursor(display.width() - 20, 0);
     display.print((char)config.field_actual);
 
     switch (config.field_actual) {

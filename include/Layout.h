@@ -24,7 +24,6 @@ namespace Layout {
   constexpr int ROW12(int n) { return H12 + (n - 1) * STEP12; }
   constexpr int ROW18(int n) { return H18 + (n - 1) * STEP18; }
 
-  constexpr int INFO_BAR_TOP    = 0;
   constexpr int INFO_BAR_HEIGHT = H12 + SPACING;
 
   constexpr int CONTENT_TOP = INFO_BAR_HEIGHT + SPACING;

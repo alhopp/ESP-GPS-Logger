@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h> 
+#include <stdint.h>
 
 // ============================================================================
 // Definitions.h
@@ -8,6 +8,10 @@
 // No runtime state or logic should live here.
 // ============================================================================
 
+
+// ============================================================================
+// Build / feature flags
+// ============================================================================
 
 //#define STATIC_DEBUG            // GPS test without speed, WiFi active
 //#define DLS                     // Force daylight saving test
@@ -26,159 +30,183 @@ enum BootMode {
 
 extern BootMode bootMode;
 
+
 // ============================================================================
 // Firmware / timing
 // ============================================================================
 
-#define VERSION                     0
-#define TIME_DELAY_FIRST_FIX        10      // navPVT messages before logging
-#define TIME_DELAY_NEW_RUN          10
-#define EPOCH_2022                  1640995200UL   // 2022-01-01
+constexpr int VERSION                = 0;
+constexpr int TIME_DELAY_FIRST_FIX   = 10;     // navPVT messages before logging
+constexpr int TIME_DELAY_NEW_RUN     = 10;
+
+constexpr uint32_t EPOCH_2022        = 1640995200UL;   // 2022-01-01
 
 
 // ============================================================================
 // u-blox configuration
 // ============================================================================
 
-#define UBLOX_TYPE_UNKNOWN          0
+constexpr uint8_t UBLOX_TYPE_UNKNOWN = 0;
 
-#define M8_9600BD                   1
-#define M10_9600BD                  2
-#define M8_38400BD                  3
-#define M10_38400BD                 4
-#define M9_9600BD                   5
-#define M9_38400BD                  6
-#define M8_115200BD                 7
-#define M9_115200BD                 8
-#define M10_115200BD                9
+constexpr uint8_t M8_9600BD          = 1;
+constexpr uint8_t M10_9600BD         = 2;
+constexpr uint8_t M8_38400BD         = 3;
+constexpr uint8_t M10_38400BD        = 4;
+constexpr uint8_t M9_9600BD          = 5;
+constexpr uint8_t M9_38400BD         = 6;
+constexpr uint8_t M8_115200BD        = 7;
+constexpr uint8_t M9_115200BD        = 8;
+constexpr uint8_t M10_115200BD       = 9;
 
-#define NO_M10_GPS                  0
-#define M10_DEFAULT_NAV             1
-#define SET_M10_HIGH_NAV            2
-#define M10_HIGH_NAV_RATE           3
-#define AUTO_DETECT                 0xFF
+constexpr uint8_t M10_DEFAULT_NAV    = 1;
+constexpr uint8_t SET_M10_HIGH_NAV   = 2;
+constexpr uint8_t M10_HIGH_NAV_RATE  = 3;
+constexpr uint8_t AUTO_DETECT        = 0xFF;
 
 
 // ============================================================================
 // Reference points (GPS test / calibration)
 // ============================================================================
 
-#define Punt1_lat                   51.341970
-#define Punt1_lon                    3.244888
-#define Punt2_lat                   51.342876
-#define Punt2_lon                    3.245013
-#define Punt3_lat                   51.341907
-#define Punt3_lon                    3.245205
-#define Punt4_lat                   51.342886
-#define Punt4_lon                    3.245366
+constexpr double Punt1_lat = 51.341970;
+constexpr double Punt1_lon =  3.244888;
+
+constexpr double Punt2_lat = 51.342876;
+constexpr double Punt2_lon =  3.245013;
+
+constexpr double Punt3_lat = 51.341907;
+constexpr double Punt3_lon =  3.245205;
+
+constexpr double Punt4_lat = 51.342886;
+constexpr double Punt4_lon =  3.245366;
 
 
 // ============================================================================
-// STORAGE CONFIG (policy / behaviour)
+// Storage configuration (policy / behaviour)
 // ============================================================================
 
 // SPI SD tuning
-#define SD_SPI_FREQ_HZ              25000000UL   // drop to 10MHz if cards are flaky
+constexpr uint32_t SD_SPI_FREQ_HZ = 25000000UL;   // drop to 10MHz if cards are flaky
 
 // SD_MMC behaviour
-#define SD_MMC_MOUNTPOINT           "/sdcard"
-#define SD_MMC_1BIT_MODE            true         // safest default across SD / SDNAND
+constexpr const char* SD_MMC_MOUNTPOINT = "/sdcard";
+constexpr bool SD_MMC_1BIT_MODE         = true;  // safest default across SD / SDNAND
 
 
 // ============================================================================
-// BOARD WIRING
+// Board wiring
 // ============================================================================
 
 // SPI SD
-#define SD_SPI_CS                   13
-#define SD_SPI_SCK                  14
-#define SD_SPI_MOSI                 15
-#define SD_SPI_MISO                  2
+constexpr uint8_t SD_SPI_CS   = 13;
+constexpr uint8_t SD_SPI_SCK  = 14;
+constexpr uint8_t SD_SPI_MOSI = 15;
+constexpr uint8_t SD_SPI_MISO =  2;
 
 // SD_MMC
-#define SDMMC_DAT0_PIN               2    // MUST be pulled HIGH when no card present
+// NOTE: GPIO2 is shared between SPI MISO and SD_MMC DAT0.
+// Only one SD interface may be active at a time.
+constexpr uint8_t SDMMC_DAT0_PIN = 2;   // MUST be pulled HIGH when no card present
 
 // GPS (UART2)
-#define RXD2                        32    // u-blox TX
-#define TXD2                        33    // u-blox RX
+constexpr uint8_t GPS_UART_RX_PIN = 32;   // u-blox TX
+constexpr uint8_t GPS_UART_TX_PIN = 33;   // u-blox RX
 
-#define UBLOX_POWER1                25
-#define UBLOX_RTC_GPIO1             GPIO_NUM_25
-#define UBLOX_POWER2                26
-#define UBLOX_RTC_GPIO2             GPIO_NUM_26
-#define UBLOX_POWER3                27
-#define UBLOX_GPIO3                 GPIO_NUM_27
+// u-blox power / control pins (GPIO numbers only — no ESP-IDF types here)
+constexpr uint8_t UBLOX_POWER1     = 25;
+constexpr uint8_t UBLOX_POWER2     = 26;
+constexpr uint8_t UBLOX_POWER3     = 27;
+
+constexpr uint8_t UBLOX_RTC_GPIO1  = 25;
+constexpr uint8_t UBLOX_RTC_GPIO2  = 26;
+constexpr uint8_t UBLOX_GPIO3      = 27;
 
 // Sleep / wake / control
-#define GO_TO_SLEEP_GPIO            39
-#define WAKE_UP_GPIO_NUM            GPIO_NUM_39
-#define GO_TO_SLEEP_PULLDOWN        19
-#define HOLD_PIN                    21
+// GPIO39 is input-only, used for magnet detect / wake / sleep request
+constexpr uint8_t GO_TO_SLEEP_GPIO = 39;
+constexpr uint8_t WAKE_UP_GPIO_NUM = 39;
+
+constexpr uint8_t GO_TO_SLEEP_PULLDOWN = 19;
+constexpr uint8_t HOLD_PIN             = 21;
 
 
 // ============================================================================
 // Battery & voltage calibration
 // ============================================================================
 
-#define CALIBRATION_BAT_V            1.7
-#define VOLTAGE_100                 4.15
-#define VOLTAGE_0                   3.4
-#define VOLTAGE_LOW                 25
+constexpr float CALIBRATION_BAT_V      = 1.7f;
 
-#define MINIMUM_VOLTAGE             0
-#define MINIMUM_VOLTAGE_CHANGE      0.1
+constexpr float VOLTAGE_100            = 4.15f;
+constexpr float VOLTAGE_0              = 3.4f;
 
-#define STARTVALUE_HIGHEST_READ     2300
-#define MAXVALUE_HIGHEST_READ       2700
-#define TOLERANCE                   100
+constexpr int   VOLTAGE_LOW            = 25;
 
-#define FULLY_CHARGED_LIPO_VOLTAGE  4200.0
+constexpr float MINIMUM_VOLTAGE        = 0.0f;
+constexpr float MINIMUM_VOLTAGE_CHANGE = 0.1f;
+
+constexpr int   TOLERANCE              = 100;
 
 
 // ============================================================================
 // Sleep / watchdog / timing
 // ============================================================================
 
-#define uS_TO_S_FACTOR              1000000UL
-#define TIME_TO_SLEEP               3600UL
-#define WDT_TIMEOUT                 120
-#define MAX_COUNT_WDT_TASK0         10
+constexpr uint32_t uS_TO_S_FACTOR = 1000000UL;
+constexpr uint32_t TIME_TO_SLEEP  = 3600UL;
+
+constexpr int WDT_TIMEOUT         = 120;
+constexpr int MAX_COUNT_WDT_TASK0 = 10;
 
 
 // ============================================================================
 // GPS quality thresholds
 // ============================================================================
 
-#define MIN_numSV_FIRST_FIX          5
-#define MAX_Sacc_FIRST_FIX           2
+constexpr int MIN_numSV_FIRST_FIX    = 5;
+constexpr int MAX_Sacc_FIRST_FIX     = 2;
 
-#define MIN_numSV_GPS_SPEED_OK       4
-#define MAX_Sacc_GPS_SPEED_OK        1
-#define MAX_GPS_SPEED_OK             40    // m/s
+constexpr int MIN_numSV_GPS_SPEED_OK = 4;
+constexpr int MAX_Sacc_GPS_SPEED_OK  = 1;
+constexpr int MAX_GPS_SPEED_OK       = 40;    // m/s
 
 
 // ============================================================================
 // Storage / filesystem
 // ============================================================================
 
-#define EEPROM_SIZE                 32
-#define TIME_OUT_NAV_PVT            10000
-#define FORMAT_LITTLEFS_IF_FAILED   true
+constexpr int  TIME_OUT_NAV_PVT          = 10000;
+constexpr bool FORMAT_LITTLEFS_IF_FAILED = true;
 
 
-/// ----------------------------------------------------
-// Hardware pins
-// ----------------------------------------------------
-constexpr uint8_t MAGNET_PIN  = 39;
-constexpr uint8_t PIN_BAT     = 35;       
+// ============================================================================
+// EEPROM / calibration constants
+// ============================================================================
+
+constexpr int   EEPROM_SIZE                = 512;
+
+constexpr int   STARTVALUE_HIGHEST_READ    = 1800;
+constexpr int   MAXVALUE_HIGHEST_READ      = 2600;
+
+constexpr float FULLY_CHARGED_LIPO_VOLTAGE = 4.20f;
+
+constexpr int   NO_M10_GPS                 = 0;
+
+
+// ============================================================================
+// Hardware pins (misc)
+// ============================================================================
+
+constexpr uint8_t MAGNET_PIN = 39;
+constexpr uint8_t PIN_BAT    = 35;
+
 
 // ============================================================================
 // Logging
 // ============================================================================
 
 // Widths (tune once, applies everywhere)
-#define LOG_TAG_W                   7
-#define LOG_ITEM_W                  12
+constexpr int LOG_TAG_W  = 7;
+constexpr int LOG_ITEM_W = 12;
 
 // Core formatter
 #define LOG_FMT(tag, item, fmt, ...)                                      \
@@ -199,6 +227,3 @@ constexpr uint8_t PIN_BAT     = 35;
 #define LOG_ERROR(item, fmt, ...)    LOG_FMT("ERROR",   item, fmt, ##__VA_ARGS__)
 #define LOG_GPS(item, fmt, ...)      LOG_FMT("GPS",     item, fmt, ##__VA_ARGS__)
 #define LOG_SYS(item, fmt, ...)      LOG_FMT("MODE",    item, fmt, ##__VA_ARGS__)
-
-
-

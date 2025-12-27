@@ -8,7 +8,9 @@ int Time_Set_OK;
 bool Nav_rate_NACK = false;
 bool High_nav_rate_ACK = false;
 bool check_M10_nav_rate = false;
-UBXMessage ubxMessage = {000000000000};//definition here, declaration in ublox.h !!
+//UBXMessage ubxMessage = {000000000000};//definition here, declaration in ublox.h !!
+UBXMessage ubxMessage = {};
+
 struct tm tmstruct ;
 struct tm my_time;  // time elements structure
 time_t unix_timestamp; // a timestamp
@@ -181,7 +183,7 @@ void Init_ublox(void){
         //delay(5); // simulating a 38400baud pace (or less), otherwise commands are not accepted by the device.
         } 
   Serial2.flush();
-  Serial2.begin(38400,SERIAL_8N1, RXD2, TXD2);//in Init_ublox last command is change baudrate to 19200, necessary for 10 Hz  NAV_PVT + NAV_DOP!!!
+  Serial2.begin(38400,SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);//in Init_ublox last command is change baudrate to 19200, necessary for 10 Hz  NAV_PVT + NAV_DOP!!!
   Ublox_serial2(wait);    
 }
 //Initialization of the ublox M8N  rate with binary commands, choice between 1..4
@@ -367,7 +369,7 @@ void Init_ubloxM10(void){
         //delay(5); // simulating a 38400baud pace (or less), otherwise commands are not accepted by the device.
         } 
   Serial2.flush();
-  Serial2.begin(38400,SERIAL_8N1, RXD2, TXD2);//in Init_ublox last command is change baudrate to 38400, necessary for 10 Hz  NAV_PVT + NAV_DOP!!!
+  Serial2.begin(38400,SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);//in Init_ublox last command is change baudrate to 38400, necessary for 10 Hz  NAV_PVT + NAV_DOP!!!
   Ublox_serial2(wait);        
 }
 //Initialization of the ublox M10N  rate with binary commands, choice between 1..5
@@ -658,7 +660,7 @@ int Auto_detect_ublox(){
     }//M10@9600 bd
   if(config.ublox_type==0){//no ublox @9600 bd detected
       //Serial2.flush();
-      Serial2.begin(38400,SERIAL_8N1, RXD2, TXD2);// Change baudrate to 38400 for new test
+      Serial2.begin(38400,SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);// Change baudrate to 38400 for new test
       Serial2.flush();
       Serial.println("Check UBX_MON_VER @38400bd ");  //check for 9600 bd ?? 
       delay(100);  
@@ -681,7 +683,7 @@ int Auto_detect_ublox(){
         }
       }
     if(config.ublox_type==0){//no ublox @9600 bd detected
-      Serial2.begin(115200,SERIAL_8N1, RXD2, TXD2);// Change baudrate to 38400 for new test
+      Serial2.begin(115200,SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);// Change baudrate to 38400 for new test
       Serial2.flush();
       Serial.println("Check UBX_MON_VER @115200bd ");  //check for 9600 bd ?? 
       delay(100);  
@@ -724,12 +726,20 @@ int Check_M10_nav_rate(void){
   if(Nav_rate_NACK){ 
     Serial.println("M10 Default Nav Rate");
     result=M10_DEFAULT_NAV;
-    if(EEPROM.readByte(1)!=M10_DEFAULT_NAV)EEPROM.writeByte(1,M10_DEFAULT_NAV); EEPROM.commit();
+    if (EEPROM.readByte(1) != M10_DEFAULT_NAV) {
+     EEPROM.writeByte(1, M10_DEFAULT_NAV);
+     EEPROM.commit();
+    }
   }
   if(High_nav_rate_ACK){
     Serial.println("M10 High Nav Rate set");
     result=M10_HIGH_NAV_RATE;
-    if(EEPROM.readByte(1)!=M10_HIGH_NAV_RATE)EEPROM.writeByte(1,M10_HIGH_NAV_RATE); EEPROM.commit();
+
+    if (EEPROM.readByte(1) != M10_HIGH_NAV_RATE) {
+     EEPROM.writeByte(1, M10_HIGH_NAV_RATE);
+     EEPROM.commit();
+    }
+
     } 
     return result;       
   }

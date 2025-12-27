@@ -3,6 +3,7 @@
 
 #include "task_gps.h"
 #include "config_manager.h"
+#include "storage_manager.h"
 #include "system_mode.h"
 
 #include "Ublox.h"
@@ -11,6 +12,9 @@
 #include "E_paper.h"
 
 #include <SD_MMC.h>
+#include "Definitions.h"
+
+int GPS_delay        = 0;
 
 // --------------------------------------------------
 // Task handle
@@ -26,7 +30,6 @@ extern bool sleep_mode;
 // Local helpers
 // --------------------------------------------------
 static void handleButtons(int &actual_speed_field);
-static void ensureArchiveDir();
 static void processGpsMessages();
 
 // --------------------------------------------------
@@ -132,15 +135,6 @@ static void handleButtons(int &actual_speed_field)
      (config.Stat_screens_time != 0));
 }
 
-// ==================================================
-// Filesystem helper
-// ==================================================
-static void ensureArchiveDir()
-{
-  if (sdOK && !SD_MMC.exists("/Archive")) {
-    SD_MMC.mkdir("/Archive");
-  }
-}
 
 // ==================================================
 // GPS message handling

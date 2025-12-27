@@ -9,6 +9,7 @@
 #include "sbp.h"
 #include "gpy.h"
 #include "config_manager.h"
+#include "storage_manager.h"
 #include "rtc_state.h"
 #include "Globals.h"  
 
@@ -159,22 +160,10 @@ void Add_String(void) {
 void Log_to_SD(void) {
   if (Time_Set_OK == true) {
     static long old_iTOW;
-    static int interval;
-    interval = ubxMessage.navPvt.iTOW - old_iTOW;
+
     old_iTOW = ubxMessage.navPvt.iTOW;
     /*
-                if((interval>time_out_nav_pvt)&&(sdOK==true)&&(nav_pvt_message>10)){//check for timeout navPvt message !!
-                     next_gpy_full_frame=1;
-                     dataStr[0] = 0;
-                     dtostrf(ubxMessage.navPvt.hour, 2, 0, Buffer);AddString(); 
-                     dtostrf(ubxMessage.navPvt.minute, 2, 0, Buffer);AddString(); 
-                     dtostrf(ubxMessage.navPvt.second, 2, 0, Buffer);AddString(); 
-                     ltoa(nav_pvt_message_nr,Buffer,10);AddString();
-                     strcat(dataStr, "Lost ubx frame!\n");
-                     if(config.logTXT) {errorfile.print(dataStr);}
-                     Serial.print("Lost ubx frame");
-                     Serial.println(interval);
-                    }
+             
 */
     if (config.logUBX == true) {
       ubxfile.write(0xB5);
@@ -422,35 +411,4 @@ void Session_results_Alfa(Alfa_speed A, GPS_speed M) {
 }
 void Session_gpstc(char* gpstc){
   errorfile.print(gpstc);
-}
-void TimeZone_env (float timezone){     //without daylight saving, standard TZ strirng
-  int hours=(int)(timezone);
-  int minutes=abs((int)(timezone*60)%60);
-  char time_noDST[64]="GMT0";
-  if(hours>0){
-    sprintf(time_noDST,"CET-%d:%02d",hours,minutes); //default TZ string is CET + timezone offset, no DST possible
-    }
-  else{
-    sprintf(time_noDST,"CET+%d:%02d",-hours,minutes);
-    }  
-  strcpy(TimeZone,time_noDST); //standard timezone without daylightsaving
-  if(config.timezone_DST){
-    switch((int)(timezone*100)){
-      case 0: strcpy (TimeZone,"GMT0BST,M3.5.0/1,M10.5.0");break;//Europe/ London
-      case 100: strcpy (TimeZone,"CET-1CEST,M3.5.0,M10.5.0/3");break;//Europe / Brussels
-      case 200: strcpy (TimeZone,"EET-2EEST,M3.5.0,M10.5.0/3");break;
-      case 300: strcpy (TimeZone,"<-03>3<-02>,M3.2.0,M11.1.0");break;
-      case 500: strcpy (TimeZone,"CST5CDT,M3.2.0/0,M11.1.0/1");break;//America/Detroit
-      case 600: strcpy (TimeZone,"CST6CDT,M3.2.0,M11.1.0");break;//America/Chicago
-      case 700: strcpy (TimeZone,"MST7MDT,M3.2.0,M11.1.0");break;//America/Boise
-      case 800: strcpy (TimeZone,"PST8PDT,M3.2.0,M11.1.0");break;//America/Los_Angeles
-      case 950: strcpy (TimeZone,"ACST-9:30ACDT,M10.1.0,M4.1.0/3");break;//Australia/Adelaide
-      case 1000: strcpy (TimeZone,"AEST-10AEDT,M10.1.0,M4.1.0/3");break;//Antarctica/Macquarie
-      case 1050: strcpy (TimeZone,"<+1030>-10:30<+11>-11,M10.1.0,M4.1.0");break;//Australia/Lord_Howe
-      case 1200: strcpy (TimeZone,"NZST-12NZDT,M9.5.0,M4.1.0/3");break;//Antarctica/McMurdo
-      case -100: strcpy (TimeZone,"<-01>1<+00>,M3.5.0/0,M10.5.0/1");break;
-      case -200: strcpy (TimeZone,"IST-2IDT,M3.4.4/26,M10.5.0");break;
-
-    } 
-  }
 }

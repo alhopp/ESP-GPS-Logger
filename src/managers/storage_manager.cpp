@@ -257,11 +257,15 @@ static void logSDStats()
   sdBytes(total, used);
 
   const uint64_t freeb = (total > used) ? (total - used) : 0;
+  LOG_STORAGE("SD Total", "%llu MB",
+              (unsigned long long)(total / (1024ULL * 1024ULL)));
 
-  LOG_STORAGE("SD Total", "%lu MB", total / (1024ULL * 1024ULL));
-  LOG_STORAGE("SD Used",  "%lu MB", used  / (1024ULL * 1024ULL));
-  LOG_STORAGE("SD Free",  "%lu MB", freeb / (1024ULL * 1024ULL));
-}
+  LOG_STORAGE("SD Used",  "%llu MB",
+              (unsigned long long)(used  / (1024ULL * 1024ULL)));
+
+  LOG_STORAGE("SD Free",  "%llu MB",
+              (unsigned long long)(freeb / (1024ULL * 1024ULL)));
+  }
 
 static void logLittleFSStats()
 {

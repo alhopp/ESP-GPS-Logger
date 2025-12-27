@@ -24,13 +24,6 @@ namespace {
 }
 
 
-static inline void printValueSmart(float v)
-{
-  if (v < 100.0f)       display.println(v, 2);
-  else if (v < 1000.0f) display.println(v, 1);
-  else                  display.println(v, 0);
-}
-
 
 /* =========================================================
  * STATS 1–3
@@ -208,7 +201,7 @@ void draw_STATS7() {
   Serial.println("STATS7_Simon_bar graph");
 
   const int posX = 5;
-  const int posY = Layout::INFO_BAR_TOP;
+  const int posY = 0;
   const int GraphWidth = 215;
 
   const int MaxBars = NR_OF_BAR;
@@ -285,7 +278,7 @@ void Stats_4lines(
   display.setFont(Fonts::Body18);
 
   const char* labels[4] = { m1, m2, m3, m4 };
-  const float values[4] = { v1, v2, v3, v4 };
+
 
   for (int i = 0; i < 4; ++i) {
     int y = Layout::ROW18(i + 1);
@@ -294,7 +287,7 @@ void Stats_4lines(
     display.print(labels[i]);
 
     display.setCursor(VALUE_COL, y);
-    printValueSmart(values[i]);
+
   }
 }
 

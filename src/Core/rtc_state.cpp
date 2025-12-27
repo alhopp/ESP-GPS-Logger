@@ -88,3 +88,5 @@ RTC_DATA_ATTR int   RTC_highest_read          = STARTVALUE_HIGHEST_READ;
 
 RTC_DATA_ATTR bool    RTC_gps_valid       = false;
 RTC_DATA_ATTR uint8_t RTC_gps_baud_index  = 0;   // index into baud table
+
+

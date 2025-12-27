@@ -22,6 +22,9 @@
 #include "rtc_state.h"
 #include "system_mode.h"
 
+#include "Globals.h"
+
+
 // Logging macros live here
 #include "Definitions.h"
 
@@ -31,7 +34,7 @@
 // -----------------------------------------------------------------------------
 // EXTERNAL / RTC STATE
 // -----------------------------------------------------------------------------
-extern bool reset_boot;
+bool reset_boot;
 
 // Battery scaling (must match hardware divider)
 #ifndef BAT_SCALE
