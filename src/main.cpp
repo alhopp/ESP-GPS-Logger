@@ -30,6 +30,7 @@
 #include "rtc_state.h"
 
 #include <esp_system.h>
+#include "Definitions.h"
 
 // -----------------------------------------------------------------------------
 // GLOBAL STATE
@@ -37,10 +38,7 @@
 bool sleep_mode = false;
 extern bool reset_boot;
 
-// -----------------------------------------------------------------------------
-// MAGNET INPUT (SEALED)
-// -----------------------------------------------------------------------------
-static constexpr uint8_t  MAGNET_PIN = 39;
+
 
 // Gesture thresholds
 static constexpr uint32_t SLEEP_HOLD_MS   = 2000;  // ~2s

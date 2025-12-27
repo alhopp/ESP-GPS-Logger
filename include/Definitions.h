@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h> 
 
 // ============================================================================
 // Definitions.h
@@ -166,6 +167,12 @@ extern BootMode bootMode;
 #define EEPROM_SIZE                 32
 #define TIME_OUT_NAV_PVT            10000
 #define FORMAT_LITTLEFS_IF_FAILED   true
+
+
+/// ----------------------------------------------------
+// Hardware pins
+// ----------------------------------------------------
+constexpr uint8_t MAGNET_PIN = 39;
 
 
 // ============================================================================

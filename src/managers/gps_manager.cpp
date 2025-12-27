@@ -29,12 +29,6 @@ static HardwareSerial GPSSerial(2);
 #define GPS_TX_PIN  TXD2
 
 // -----------------------------------------------------------------------------
-// RTC CACHE (defined in rtc_state.cpp)
-// -----------------------------------------------------------------------------
-extern RTC_DATA_ATTR bool    RTC_gps_valid;
-extern RTC_DATA_ATTR uint8_t RTC_gps_baud_index;
-
-// -----------------------------------------------------------------------------
 // BAUD TABLE
 // -----------------------------------------------------------------------------
 static const uint32_t gpsBauds[] = {

@@ -96,12 +96,17 @@ void setMode(SystemMode newMode)
       LOG_SYS("MODE", "ENTER SLEEP → power off");
 
       wifi_stop();
-      gps_power_off();   // or gps_pause()
+      gps_power_off();
 
-      delay(100);        // allow logs to flush
+      delay(100);
 
-      // Wake when magnet is applied again
-      esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 1);
+      // Ensure magnet is RELEASED before sleeping
+      while (digitalRead(MAGNET_PIN) == LOW) {
+        delay(10);
+      }
+
+      // Wake when magnet is applied (LOW)
+      esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0);
 
       esp_deep_sleep_start();
       break;
