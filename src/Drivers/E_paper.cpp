@@ -413,23 +413,7 @@ void Update_screen(int screen)
         storageLogTimeLeftMinutes() / 60);
     }
 
-    if (Wifi_on) {
-      display.setFont(Fonts::Body12);
-      display.setCursor(ui_offset,
-        cursor = Layout::ROW9(3) + Layout::STEP12);
-      display.print("Ssid: ");
-      display.print(SoftAP_connection ? "ESP32AP" : actual_ssid);
-
-      display.setFont(Fonts::Body9);
-      display.setCursor(ui_offset, cursor += Layout::STEP9);
-
-      if (SoftAP_connection) {
-        display.print("Password: password");
-        display.setCursor(ui_offset, cursor += Layout::STEP9);
-      }
-
-      display.printf("http://%s", IP_adress.c_str());
-    }
+   
     else {
       display.fillRect(0, 0, 250, 122, GxEPD_WHITE);
 

@@ -20,6 +20,7 @@
 #include "config_manager.h"
 #include "E_paper.h"
 #include "rtc_state.h"
+#include "system_mode.h"
 
 // Logging macros live here
 #include "Definitions.h"
@@ -47,7 +48,7 @@ static void shutdownWithMessage(const char* msg)
   strncpy(RTC_Sleep_txt, msg, sizeof(RTC_Sleep_txt) - 1);
   RTC_Sleep_txt[sizeof(RTC_Sleep_txt) - 1] = '\0';
 
-  Shut_down();   // does not return
+  setMode(MODE_SLEEP);    // does not return
 }
 
 // -----------------------------------------------------------------------------

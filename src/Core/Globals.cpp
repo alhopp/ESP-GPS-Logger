@@ -18,3 +18,5 @@ Button_push Long_push19  (GO_TO_SLEEP_PULLDOWN, 1700, 10, 9, 0);
 Button_push Short_push39 (GO_TO_SLEEP_GPIO, 10,   10, 9, 1);
 Button_push Long_push39  (GO_TO_SLEEP_GPIO, 1700, 10, 9, 1);
 
+bool GPS_Signal_OK = false;
+bool Field_choice  = false;

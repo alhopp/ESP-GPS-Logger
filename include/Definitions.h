@@ -102,9 +102,6 @@ extern BootMode bootMode;
 #define RXD2                        32    // u-blox TX
 #define TXD2                        33    // u-blox RX
 
-// Battery / power
-#define PIN_BAT                     35
-
 #define UBLOX_POWER1                25
 #define UBLOX_RTC_GPIO1             GPIO_NUM_25
 #define UBLOX_POWER2                26
@@ -172,8 +169,8 @@ extern BootMode bootMode;
 /// ----------------------------------------------------
 // Hardware pins
 // ----------------------------------------------------
-constexpr uint8_t MAGNET_PIN = 39;
-
+constexpr uint8_t MAGNET_PIN  = 39;
+constexpr uint8_t PIN_BAT     = 35;       
 
 // ============================================================================
 // Logging

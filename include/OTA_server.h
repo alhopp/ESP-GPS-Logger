@@ -248,7 +248,7 @@ void SD_archive_list(void) {
 void SD_archive_file(void) {
   SD_dir(2);
 }
-void GPSTC_info(char* GPSTC_post );
+
 void GPSTC_Upload(void){
   char gpstc_post[2000]="";
   GPSTC_info(gpstc_post);

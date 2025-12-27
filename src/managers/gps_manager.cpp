@@ -219,3 +219,23 @@ void gps_shutdown()
 // -----------------------------------------------------------------------------
 void Ublox_on()  { gps_power_on();  }
 void Ublox_off() { gps_power_off(); }
+
+
+
+
+GPS_data Ublox; // create an object storing GPS_data !
+GPS_SAT_info Ublox_Sat;//create an object storing GPS_SAT info !
+GPS_speed M100(100);
+GPS_speed M250(250);
+GPS_speed M500(500);
+GPS_speed M1852(1852);
+GPS_time S2(2);
+GPS_time s2(2);
+GPS_time S10(10);
+GPS_time s10(10);//for  stats GPIO_12 screens, reset possible !!
+GPS_time S1800(1800);
+GPS_time S3600(3600);
+Alfa_speed A250(50);
+Alfa_speed A500(50);
+Alfa_speed a500(50);//for  Alfa stats GPIO_12 screens, reset possible !!
+GPS_Track M_500;

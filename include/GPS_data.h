@@ -173,3 +173,33 @@ double afstandPunten(double lambda1, double phi1, double lambda2, double phi2) ;
 float Alfa_indicator(GPS_speed M250,GPS_speed M100,float actual_heading);
 int setupGPS(void);
 
+
+// Forward declarations
+class GPS_data;
+class GPS_SAT_info;
+class GPS_speed;
+class GPS_time;
+class Alfa_speed;
+class GPS_Track;
+class FtpServer;
+
+extern GPS_speed M100;
+extern GPS_speed M250;
+extern GPS_speed M500;
+extern GPS_speed M1852;
+
+extern GPS_time S2;
+extern GPS_time s2;
+extern GPS_time S10;
+extern GPS_time s10;
+extern GPS_time S1800;
+extern GPS_time S3600;
+
+extern Alfa_speed A250;
+extern Alfa_speed A500;
+extern Alfa_speed a500;
+
+extern GPS_Track M_500;
+
+
+

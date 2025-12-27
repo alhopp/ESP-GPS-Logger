@@ -12,3 +12,7 @@ extern Button_push Long_push19;
 
 extern Button_push Short_push39;
 extern Button_push Long_push39;
+
+
+extern bool GPS_Signal_OK;
+extern bool Field_choice;

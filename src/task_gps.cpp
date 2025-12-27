@@ -70,8 +70,7 @@ void taskOne(void *parameter)
 #else
     msgType = processGPS();
 
-    trouble_screen =
-      ((millis() - last_gps_msg) > TIME_OUT_NAV_PVT);
+ 
 #endif
 
     // ----------------------------------------------
@@ -129,7 +128,7 @@ static void handleButtons(int &actual_speed_field)
   config.field_actual = config.speed_screen[actual_speed_field];
 
   Field_choice =
-    ((Short_push39.long_pulse || Short_push19.long_pulse) &&
+    ((Short_push39.isLongPulse() || Short_push19.isLongPulse()) &&
      (config.Stat_screens_time != 0));
 }
 
