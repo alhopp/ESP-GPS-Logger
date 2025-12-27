@@ -34,3 +34,7 @@ void wifi_set_credentials(const String& ssid, const String& pass);
 
 // Return AP SSID (for display / QR / UI)
 const char* wifi_ap_name();
+
+bool   wifi_is_ap_mode();
+String wifi_get_scan_json();
+

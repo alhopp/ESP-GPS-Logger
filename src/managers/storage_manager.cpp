@@ -72,32 +72,52 @@ static void sdBytes(uint64_t& total, uint64_t& used);
 // -----------------------------------------------------------------------------
 // PUBLIC API
 // -----------------------------------------------------------------------------
+
 void initStorage()
 {
   LOG_STORAGE("Init", "start");
 
-  sdOK = false;
-  s_backend = StorageBackend::NONE;
+  sdOK        = false;
+  LITTLEFS_OK = false;
+  s_backend   = StorageBackend::NONE;
 
-  // 1) Prefer SD_MMC (SDNAND / SD slot)
+  // ---------------------------------------------------------------------------
+  // 0) ALWAYS mount LittleFS FIRST (control plane)
+  //    Wi-Fi creds, config, state must NEVER depend on SD
+  // ---------------------------------------------------------------------------
+  if (!LittleFS.begin(true)) {
+    LOG_ERROR("LittleFS", "mount failed");
+  } else {
+    LITTLEFS_OK = true;
+    LOG_STORAGE("LittleFS", "mounted");
+    logLittleFSStats();
+  }
+
+  // ---------------------------------------------------------------------------
+  // 1) Prefer SD_MMC (SDNAND / SD slot) for data plane
+  // ---------------------------------------------------------------------------
 #if ENABLE_SD_MMC
   if (mountSD_MMC()) {
-    sdOK = true;
+    sdOK      = true;
     s_backend = StorageBackend::SD_MMC;
     LOG_STORAGE("SD", "MMC mounted");
   }
 #endif
 
+  // ---------------------------------------------------------------------------
   // 2) Fallback: SPI SD
+  // ---------------------------------------------------------------------------
 #if ENABLE_SD_SPI
   if (!sdOK && mountSD_SPI()) {
-    sdOK = true;
+    sdOK      = true;
     s_backend = StorageBackend::SD_SPI;
     LOG_STORAGE("SD", "SPI mounted");
   }
 #endif
 
-  // Post-mount verification
+  // ---------------------------------------------------------------------------
+  // 3) Post-mount verification (SD only)
+  // ---------------------------------------------------------------------------
   if (sdOK) {
     logSDStats();
 
@@ -105,48 +125,20 @@ void initStorage()
       LOG_STORAGE("SD I/O", "OK");
     } else {
       LOG_ERROR("SD I/O", "FAILED");
-      // If you want to be super strict:
-      // sdOK = false; s_backend = StorageBackend::NONE;
+      // Optional strict mode:
+      // sdOK = false;
+      // s_backend = StorageBackend::NONE;
     }
   } else {
     LOG_STORAGE("SD", "not available");
   }
 
-  // 3) Always mount LittleFS (control plane + fallback)
-  if (!mountLittleFS()) {
-    LOG_ERROR("LittleFS", "mount failed");
-  } else {
-    logLittleFSStats();
-  }
-
   LOG_STORAGE("Init", "done");
 }
 
-fs::FS& storageFS()
-{
-  // Public accessor used by the rest of the code
-  return activeFS();
-}
 
-bool storageHasSD()
-{
-  return sdOK;
-}
 
-uint64_t storageFreeKBytes()
-{
-  uint64_t total = 0, used = 0;
 
-  if (sdOK) {
-    sdBytes(total, used);
-  } else if (LITTLEFS_OK) {
-    total = LittleFS.totalBytes();
-    used  = LittleFS.usedBytes();
-  }
-
-  if (total <= used) return 0;
-  return (total - used) / 1024ULL;
-}
 
 int storageLogTimeLeftMinutes()
 {

@@ -70,9 +70,17 @@ void webserver_start(WebServer &server)
   });
 
   // ------------------------------------------------------------
-  // POST config
+  // POST config (Wi-Fi + settings)
   // ------------------------------------------------------------
-  server.on("/api/config", HTTP_POST, [] {}, [&] {
+  server.on("/api/config", HTTP_POST, [&] {
+
+  LOG_SYS("WEB", "POST /api/config HIT");
+
+  String raw = server.arg("plain");
+  LOG_SYS("WEB", "RAW JSON: %s", raw.c_str());
+
+
+
 
     StaticJsonDocument<1024> j;
     if (deserializeJson(j, server.arg("plain"))) {
@@ -80,17 +88,28 @@ void webserver_start(WebServer &server)
       return;
     }
 
+    // ---------------- Wi-Fi ----------------
     if (j["wifi"]["ssid"]) {
-      strncpy(config.ssid, j["wifi"]["ssid"], sizeof(config.ssid) - 1);
-      config.ssid[sizeof(config.ssid) - 1] = '\0';
+
+      String ssid = j["wifi"]["ssid"].as<const char*>();
+      String pass;
+
+      if (j["wifi"]["password"] &&
+          strlen(j["wifi"]["password"]) > 0) {
+        pass = j["wifi"]["password"].as<const char*>();
+      }
+
+      wifi_set_credentials(ssid, pass);
     }
 
+    // ---------------- System ----------------
     if (j["system"]) {
       config.cpu_freq     = j["system"]["cpu_freq"]     | config.cpu_freq;
       config.timezone     = j["system"]["timezone"]     | config.timezone;
       config.timezone_DST = j["system"]["timezone_dst"] | config.timezone_DST;
     }
 
+    // ---------------- GPS ----------------
     if (j["gps"]) {
       config.sample_rate   = j["gps"]["sample_rate"]   | config.sample_rate;
       config.gnss          = j["gps"]["gnss"]          | config.gnss;
@@ -98,6 +117,7 @@ void webserver_start(WebServer &server)
       config.cal_speed     = j["gps"]["cal_speed"]     | config.cal_speed;
     }
 
+    // ---------------- Power ----------------
     if (j["power"]) {
       config.shutdown_voltage = j["power"]["shutdown_voltage"] | config.shutdown_voltage;
       config.bat_choice       = j["power"]["bat_choice"]       | config.bat_choice;
@@ -105,38 +125,27 @@ void webserver_start(WebServer &server)
 
     saveConfig();
     server.send(200, "text/plain", "OK");
+
+    // allow HTTP response to flush before mode switch
+    delay(300);
+    LOG_SYS("WEB", "POST /api/config → setMode(MODE_HOME)");
+
+    setMode(MODE_HOME);
   });
 
   // ------------------------------------------------------------
-  // Wi-Fi scan
+  // Wi-Fi scan (AP-safe)
   // ------------------------------------------------------------
   server.on("/api/wifi/scan", HTTP_GET, [&] {
 
-    StaticJsonDocument<2048> j;
-    JsonArray a = j.to<JsonArray>();
-
-    int n = WiFi.scanNetworks(false, false); // sync scan, no hidden
-
-    for (int i = 0; i < n; i++) {
-      String ssid = WiFi.SSID(i);
-      if (ssid.isEmpty()) continue;
-
-      // Deduplicate
-      bool seen = false;
-      for (JsonObject o : a) {
-        if (o["ssid"] == ssid) { seen = true; break; }
-      }
-      if (seen) continue;
-
-      JsonObject o = a.createNestedObject();
-      o["ssid"]   = ssid;
-      o["rssi"]   = WiFi.RSSI(i);
-      o["secure"] = (WiFi.encryptionType(i) != WIFI_AUTH_OPEN);
+    if (!wifi_is_ap_mode()) {
+      server.send(403, "text/plain", "Scan disabled");
+      return;
     }
 
-    WiFi.scanDelete(); // free heap
-    sendJson(server, j);
+    server.send(200, "application/json", wifi_get_scan_json());
   });
+
 
   // ------------------------------------------------------------
   // SD file list (filtered)
@@ -199,9 +208,7 @@ void webserver_start(WebServer &server)
       return;
     }
 
-    String path = "/Archive/" + name;
-    File f = SD_MMC.open(path, FILE_READ);
-
+    File f = SD_MMC.open("/Archive/" + name, FILE_READ);
     if (!f || f.isDirectory()) {
       server.send(404, "text/plain", "Not found");
       return;
@@ -212,8 +219,10 @@ void webserver_start(WebServer &server)
     else if (name.endsWith(".txt")) ct = "text/plain";
     else if (name.endsWith(".gpx")) ct = "application/gpx+xml";
 
-    server.sendHeader("Content-Disposition",
-      "attachment; filename=\"" + name + "\"");
+    server.sendHeader(
+      "Content-Disposition",
+      "attachment; filename=\"" + name + "\""
+    );
     server.sendHeader("Cache-Control", "no-store");
 
     server.streamFile(f, ct);
@@ -238,7 +247,6 @@ void webserver_start(WebServer &server)
 
   server.begin();
   webStarted = true;
-
   LOG_WIFI("Web", "started");
 }
 
