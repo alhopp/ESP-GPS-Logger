@@ -82,7 +82,7 @@ void setMode(SystemMode newMode)
       break;
 
     case MODE_FIELD_CONFIG:
-     gps_power_off(); 
+      gps_power_off(); 
       wifi_start_ap();
       FieldAP_screen();
 
