@@ -7,7 +7,7 @@
 #include "GPS_data.h"
 
 #include "Definitions.h"
-
+#include "Globals.h"  
 #include "SD_card.h"
 #include <LittleFS.h>
 

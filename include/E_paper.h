@@ -125,7 +125,7 @@ extern String IP_adress;
 extern String actual_ssid;
 
 extern const char E_paper_version[];
-extern const char SW_version[16];
+
 
 extern UBXMessage ubxMessage;
 

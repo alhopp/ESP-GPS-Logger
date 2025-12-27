@@ -1,5 +1,7 @@
-#ifndef GPY_H
-#define GPY_H
+#pragma once
+#include <Arduino.h>
+#include "Globals.h"
+
 /*
 MIT License
 First draft of C lib for creating the minimal OpenGNSS format out of the ubx nav pvt frame !
@@ -182,4 +184,3 @@ else{
     //Serial.println("compr ");
     }   
 }
-#endif

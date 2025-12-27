@@ -8,11 +8,6 @@
 #include "Definitions.h"
 
 
-String IP_adress="0.0.0.0";
-const char SW_version[16]="Ver 6.01c";
-const char *filename = "/config.txt";
-const char *filename_backup = "/config_backup.txt";
-
 
 char Ublox_type[20]="Ublox unknown...";
 char TimeZone[64] ="GMT0";
@@ -51,32 +46,11 @@ float Mean_heading,heading_SD;
 int wdt_task0,wdt_task1;
 int max_count_wdt_task0;
 int freeSpace;
-/*
-float Afstand_lijn=0;
-float Afstand_lijn2=0;
-float Afstand_sec=61.61;
-float Afstand_sec2=71.71;
-float Afstand_gps=0;
-*/
-String actual_ssid="_ssid_";
- /* variables to hold instances of tasks*/
-//TaskHandle_t t1 = NULL;
-//TaskHandle_t t2 = NULL;
-byte mac[6];  //unique mac adress of esp32
-IPAddress local_IP(192,168,4,1);
-IPAddress gateway(192,168,1,1);
-IPAddress subnet(255,255,255,0);
 
 
-FtpServer ftpSrv;  
 
 
-SPIClass sdSPI(VSPI);//was VSPI
 
-void go_to_sleep(uint64_t sleep_time,bool refresh_screen);
-
-void taskOne( void * parameter );
-void taskTwo( void * parameter);  
 
 
 /*

@@ -1,5 +1,6 @@
-#ifndef GPX_H
-#define GPX_H
+#pragma once
+#include "Globals.h"  
+
 /*
 MIT License
 First draft of C lib for creating the minimal OpenGNSS format out of the ubx nav pvt frame !
@@ -32,7 +33,7 @@ SOFTWARE.
 #define GPX_HEADER 0
 #define GPX_FRAME 1
 #define GPX_END 2
-extern const char SW_version[16];
+
 void log_GPX(int part,File file){
 char bufferTx[512]; 
 int i,y; 
@@ -85,4 +86,3 @@ if(part==GPX_FRAME){
      file.write((const uint8_t *)&bufferTx,y);
      }      
 }
-#endif

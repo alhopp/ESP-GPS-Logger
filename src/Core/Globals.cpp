@@ -20,3 +20,9 @@ Button_push Long_push39  (GO_TO_SLEEP_GPIO, 1700, 10, 9, 1);
 
 bool GPS_Signal_OK = false;
 bool Field_choice  = false;
+
+byte mac[6] = {0};   // ESP32 MAC address
+
+const char SW_version[16]="Ver 6.01c";
+
+

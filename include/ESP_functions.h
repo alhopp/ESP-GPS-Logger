@@ -18,7 +18,7 @@
 extern const char* filename;
 extern const char* filename_backup;
 
-extern const char SW_version[16];
+
 
 extern char Ublox_type[20];
 extern char TimeZone[64];
@@ -66,7 +66,6 @@ extern int max_count_wdt_task0;
 extern String actual_ssid;
 
 // Network
-extern byte mac[6];
 extern IPAddress local_IP;
 extern IPAddress gateway;
 extern IPAddress subnet;
