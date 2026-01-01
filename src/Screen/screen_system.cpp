@@ -255,7 +255,7 @@ void HomeSTA_screen()
     display.printf("%4s:", "WiFi");
 
     // WiFi value (readable)
-    display.setFont(Fonts::Body12);
+    display.setFont(Fonts::Body9);
     display.print(" ");
     display.print(WiFi.SSID().c_str());
 
@@ -265,7 +265,7 @@ void HomeSTA_screen()
     display.printf("%4s:", "IP");
 
     // IP value (readable)
-    display.setFont(Fonts::Body12);
+    display.setFont(Fonts::Body9);
     display.print(" ");
     display.print(WiFi.localIP().toString().c_str());
 

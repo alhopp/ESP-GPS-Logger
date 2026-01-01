@@ -49,50 +49,15 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 <header>ESP32 GPS Control</header>
 
 <nav>
-  <button class="a" onclick="tab('wifi',this)">Wi-Fi</button>
-  <button onclick="tab('system',this)">System</button>
+  <button class="a" onclick="tab('system',this)">System</button>
   <button onclick="tab('gps',this)">GPS</button>
   <button onclick="tab('power',this)">Power</button>
   <button onclick="tab('files',this)">Files</button>
+  <button onclick="tab('wifi',this)">Wi-Fi</button>
 </nav>
 
-<!-- ===================== Wi-Fi ===================== -->
-<section id="wifi" class="a">
-<div class="card">
-
-<label>Device Connection</label>
-<div class="small">
-You are connected directly to the device.<br>
-This connection always remains active.
-</div>
-
-<hr>
-
-<label>Join Home Wi-Fi (optional)</label>
-<input id="ssid" list="ssid_list"
-       placeholder="Select or type network name"
-       autocomplete="off">
-<datalist id="ssid_list"></datalist>
-
-<label>Password</label>
-<input id="password" type="password"
-       placeholder="Wi-Fi password"
-       autocomplete="off" autocorrect="off"
-       autocapitalize="off" spellcheck="false">
-
-<button style="margin-top:12px" onclick="scan()">Scan Networks</button>
-<button class="primary" style="margin-top:8px" onclick="joinHome()">Join Home Wi-Fi</button>
-<button style="margin-top:8px" onclick="leaveHome()">Disconnect Home Wi-Fi</button>
-
-<div class="small" id="wifiStatus">
-Home Wi-Fi is currently disconnected.
-</div>
-
-</div>
-</section>
-
 <!-- ===================== System ===================== -->
-<section id="system">
+<section id="system" class="a">
 <div class="card">
 <label>CPU Frequency (MHz)</label>
 <select id="cpu_freq"><option>80<option>160<option>240</select>
@@ -156,6 +121,41 @@ Home Wi-Fi is currently disconnected.
 </div>
 </section>
 
+<!-- ===================== Wi-Fi ===================== -->
+<section id="wifi">
+<div class="card">
+
+<label>Device Connection</label>
+<div class="small">
+You are connected directly to the device.<br>
+This connection always remains active.
+</div>
+
+<hr>
+
+<label>Join Home Wi-Fi (optional)</label>
+<input id="ssid" list="ssid_list"
+       placeholder="Select or type network name"
+       autocomplete="off">
+<datalist id="ssid_list"></datalist>
+
+<label>Password</label>
+<input id="password" type="password"
+       placeholder="Wi-Fi password"
+       autocomplete="off" autocorrect="off"
+       autocapitalize="off" spellcheck="false">
+
+<button style="margin-top:12px" onclick="scan()">Scan Networks</button>
+<button class="primary" style="margin-top:8px" onclick="joinHome()">Join Home Wi-Fi</button>
+<button style="margin-top:8px" onclick="leaveHome()">Disconnect Home Wi-Fi</button>
+
+<div class="small" id="wifiStatus">
+Home Wi-Fi is currently disconnected.
+</div>
+
+</div>
+</section>
+
 <footer>
 <button class="primary" onclick="saveConfig()">Save Settings</button>
 <button class="danger" onclick="reboot()">Reboot</button>
@@ -177,7 +177,6 @@ function set(el,v){
   el.type==="checkbox" ? el.checked=!!v : el.value=v??"";
 }
 
-// ---------- Load config ----------
 async function load(){
   const c=await (await fetch("/api/config")).json();
   set($("cpu_freq"),c.system?.cpu_freq);
@@ -191,7 +190,6 @@ async function load(){
   set($("bat_choice"),c.power?.bat_choice);
 }
 
-// ---------- Wi-Fi scan ----------
 async function scan(){
   $("ssid_list").innerHTML="";
   const a=await (await fetch("/api/wifi/scan")).json();
@@ -200,7 +198,6 @@ async function scan(){
    .appendChild(new Option(n.ssid,n.ssid)));
 }
 
-// ---------- STA control ----------
 async function joinHome(){
   const ssid=$("ssid").value.trim();
   if(!ssid){ alert("Please enter an SSID"); return; }
@@ -221,13 +218,11 @@ async function leaveHome(){
     "Home Wi-Fi disconnected. Device Wi-Fi only.";
 }
 
-// ---------- Save settings ----------
 async function saveConfig(){
   await fetch("/api/config",{method:"POST"});
   alert("Settings saved.");
 }
 
-// ---------- Files ----------
 async function loadFiles(){
   const box=$("fileList");
   box.textContent="Loading…";

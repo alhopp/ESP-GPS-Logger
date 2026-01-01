@@ -86,7 +86,7 @@ void taskTwo(void* parameter)
       display.print(value);
     } while (display.nextPage());
 
-    LOG_TASK("Display", "show %d", value);
+   //LOG_TASK("Display", "show %d", value);
 
     value++;
     if (value > 4) value = 1;

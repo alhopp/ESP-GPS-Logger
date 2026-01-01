@@ -37,9 +37,6 @@
 // -----------------------------------------------------------------------------
 bool sleep_mode = false;
 
-
-
-
 // Gesture thresholds
 static constexpr uint32_t SLEEP_HOLD_MS   = 2000;  // ~2s
 static constexpr uint32_t WIFI_HOLD_MS    = 6000;  // ~6s
@@ -49,7 +46,7 @@ static constexpr uint32_t LOW_STABLE_MS     = 30;
 static constexpr uint32_t RELEASE_STABLE_MS = 40;
 
 // Magnet state
-static uint32_t bootTime     = 0;
+static uint32_t bootTime    = 0;
 static uint32_t pressTime   = 0;
 static bool     longHandled = false;
 
@@ -152,8 +149,6 @@ static void magnet_poll()
 // -----------------------------------------------------------------------------
 void setup()
 {
-
-  
 
   initBoot();
   initStorage();
