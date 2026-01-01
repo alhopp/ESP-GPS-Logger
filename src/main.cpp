@@ -152,6 +152,9 @@ static void magnet_poll()
 // -----------------------------------------------------------------------------
 void setup()
 {
+
+  
+
   initBoot();
   initStorage();
   initConfig();
