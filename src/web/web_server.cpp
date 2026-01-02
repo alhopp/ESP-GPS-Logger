@@ -50,24 +50,31 @@ void webserver_start(WebServer &server)
   // GET config
   // ------------------------------------------------------------
   server.on("/api/config", HTTP_GET, [&] {
-    StaticJsonDocument<1024> j;
+  StaticJsonDocument<1024> j;
 
-    j["wifi"]["ssid"] = config.ssid;
+  // ---- Wi-Fi (for UI autofill) ----
+  JsonObject wifi = j.createNestedObject("wifi");
+  wifi["ssid"]     = wifi_get_saved_ssid();
+  wifi["password"] = wifi_get_saved_pass();
 
-    j["system"]["cpu_freq"]     = config.cpu_freq;
-    j["system"]["timezone"]     = config.timezone;
-    j["system"]["timezone_dst"] = config.timezone_DST;
+  // ---- System ----
+  j["system"]["cpu_freq"]     = config.cpu_freq;
+  j["system"]["timezone"]     = config.timezone;
+  j["system"]["timezone_dst"] = config.timezone_DST;
 
-    j["gps"]["sample_rate"]   = config.sample_rate;
-    j["gps"]["gnss"]          = config.gnss;
-    j["gps"]["dynamic_model"] = config.dynamic_model;
-    j["gps"]["cal_speed"]     = config.cal_speed;
+  // ---- GPS ----
+  j["gps"]["sample_rate"]   = config.sample_rate;
+  j["gps"]["gnss"]          = config.gnss;
+  j["gps"]["dynamic_model"] = config.dynamic_model;
+  j["gps"]["cal_speed"]     = config.cal_speed;
 
-    j["power"]["shutdown_voltage"] = config.shutdown_voltage;
-    j["power"]["bat_choice"]       = config.bat_choice;
+  // ---- Power ----
+  j["power"]["shutdown_voltage"] = config.shutdown_voltage;
+  j["power"]["bat_choice"]       = config.bat_choice;
 
-    sendJson(server, j);
-  });
+  sendJson(server, j);
+});
+
 
   // ------------------------------------------------------------
   // POST config (Wi-Fi + settings)

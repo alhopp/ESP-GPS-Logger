@@ -38,3 +38,10 @@ const char* wifi_ap_name();
 bool   wifi_is_ap_mode();
 String wifi_get_scan_json();
 
+// -----------------------------------------------------------------------------
+// Saved Wi-Fi credentials access (for Web UI autofill)
+// -----------------------------------------------------------------------------
+
+bool   wifi_has_credentials();
+String wifi_get_saved_ssid();
+String wifi_get_saved_pass();

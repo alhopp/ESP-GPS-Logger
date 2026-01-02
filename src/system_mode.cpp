@@ -48,11 +48,10 @@ void setMode(SystemMode newMode)
   // ---------------------------------------------------------------------------
   switch (currentMode) {
 
-    case MODE_FIELD_CONFIG:
-    case MODE_HOME:
-      // Leaving any Wi-Fi mode → shut Wi-Fi down cleanly
-      wifi_stop();
-      break;
+    case MODE_LOGGING:
+    case MODE_SLEEP:
+     wifi_stop();
+     break;
 
     default:
       break;

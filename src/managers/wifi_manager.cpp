@@ -160,10 +160,10 @@ void wifi_set_credentials(const String& ssid, const String& pass)
 
 void initWifi()
 {
-  // Decide initial mode based on whether creds exist.
-  // setMode() will execute Wi-Fi actions (STA/AP) via system_mode.cpp.
-  if (loadCreds()) setMode(MODE_HOME);
-  else             setMode(MODE_FIELD_CONFIG);
+   
+  loadCreds();             
+    setMode(MODE_FIELD_CONFIG);
+
 }
 
 // ============================================================================
@@ -190,14 +190,14 @@ void wifi_start_sta()
     return;
   }
 
-  apMode   = false;
+  apMode   = true;
   scanDone = false;
   scanJSON = "";
 
   LOG_WIFI("STA", "Connecting to '%s' pass_len=%d",
            savedSSID.c_str(), savedPASS.length());
 
-  WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_AP_STA);
   WiFi.begin(savedSSID.c_str(), savedPASS.c_str());
 
   unsigned long t0 = millis();
@@ -206,10 +206,10 @@ void wifi_start_sta()
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    LOG_WIFI("STA", "FAILED status=%d → FIELD_CFG", (int)WiFi.status());
-    setMode(MODE_FIELD_CONFIG);
-    return;
+   LOG_WIFI("STA", "Failed → AP only");
+   return;
   }
+
 
   LOG_WIFI("STA", "Connected IP=%s", WiFi.localIP().toString().c_str());
 
@@ -219,7 +219,6 @@ void wifi_start_sta()
     LOG_WIFI("MDNS", "begin failed");
   }
 
-  startServer();
 }
 
 // ============================================================================
@@ -266,7 +265,7 @@ void wifi_start_ap()
   scanDone = false;
   scanJSON = "";
 
-  WiFi.mode(WIFI_AP);
+  WiFi.mode(WIFI_AP_STA);   // AP always allowed, STA preserved if present
   WiFi.softAPConfig(apIP, apIP, netMask);
   WiFi.softAP(AP_SSID, AP_PASS);
 
@@ -297,7 +296,7 @@ void wifi_stop()
   dnsServer.stop();
 
   // full disconnect + erase old state
-  WiFi.disconnect(true, true);
+  WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
 
   serverStarted = false;
@@ -335,3 +334,19 @@ void wifi_factory_reset()
     LOG_WIFI("CREDS", "Factory reset: removed %s", WIFI_FILE);
   }
 }
+
+bool wifi_has_credentials()
+{
+  return !savedSSID.isEmpty();
+}
+
+String wifi_get_saved_ssid()
+{
+  return savedSSID;
+}
+
+String wifi_get_saved_pass()
+{
+  return savedPASS;
+}
+
