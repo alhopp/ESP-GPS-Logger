@@ -196,9 +196,8 @@ body:JSON.stringify({wifi})
 
 alert(
 "Wi-Fi saved.\n\n" +
-"The device is switching to Home Wi-Fi.\n" +
-"Reconnect your phone to your normal network.\n\n" +
-"Then open:\nhttp://esp32-gps.local"
+"Internet connection enabled\n" +
+"Stay connected to the device Wi-Fi."
 );
 }
 

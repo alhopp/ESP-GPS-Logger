@@ -45,3 +45,11 @@ String wifi_get_scan_json();
 bool   wifi_has_credentials();
 String wifi_get_saved_ssid();
 String wifi_get_saved_pass();
+
+// -----------------------------------------------------------------------------
+// Live STA status (runtime)
+// -----------------------------------------------------------------------------
+bool   wifi_sta_connected();
+String wifi_sta_ssid();
+String wifi_sta_ip();
+

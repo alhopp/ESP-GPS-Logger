@@ -23,7 +23,6 @@ enum SystemMode {
   MODE_BOOT = 0,
   MODE_LOGGING,
   MODE_FIELD_CONFIG,
-  MODE_HOME,
   MODE_SLEEP
 };
 

@@ -89,12 +89,6 @@ void setMode(SystemMode newMode)
 
       break;
 
-    case MODE_HOME:
-      wifi_start_sta();
-      HomeSTA_screen();
-      break;
-
-
     case MODE_SLEEP:
       LOG_SYS("MODE", "ENTER SLEEP → power off");
 

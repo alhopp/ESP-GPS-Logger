@@ -52,9 +52,6 @@ void taskTwo(void* parameter)
       if (mode == MODE_FIELD_CONFIG) {
         FieldAP_screen();        // BEACH MODE / WiFi AP
       }
-      else if (mode == MODE_HOME) {
-        HomeSTA_screen();        // STA MODE
-      }
       else if (mode == MODE_SLEEP) {
         Sleep_screen(0);
       }
@@ -66,7 +63,6 @@ void taskTwo(void* parameter)
     // HOLD MODES (NO REDRAW, NO FLICKER)
     // --------------------------------------------------
     if (mode == MODE_FIELD_CONFIG ||
-        mode == MODE_HOME ||
         mode == MODE_SLEEP) {
 
       vTaskDelay(pdMS_TO_TICKS(500));

@@ -163,8 +163,7 @@ void webserver_start(WebServer &server)
 
     // Allow HTTP response to flush
     delay(300);
-    LOG_SYS("WEB", "POST /api/config → setMode(MODE_HOME)");
-    setMode(MODE_HOME);
+    wifi_start_sta();   
   });
 
   // ------------------------------------------------------------
@@ -285,3 +284,22 @@ void webserver_stop()
 {
   webStarted = false;
 }
+
+
+bool wifi_sta_connected()
+{
+  return WiFi.status() == WL_CONNECTED;
+}
+
+String wifi_sta_ssid()
+{
+  return wifi_sta_connected() ? WiFi.SSID() : "";
+}
+
+String wifi_sta_ip()
+{
+  return wifi_sta_connected()
+           ? WiFi.localIP().toString()
+           : "";
+}
+

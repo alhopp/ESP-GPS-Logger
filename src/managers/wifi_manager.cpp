@@ -179,7 +179,7 @@ static void startServer()
 }
 
 // ============================================================================
-// STA mode (NO SCANS EVER)
+// STA mode - enable internet uplink
 // ============================================================================
 
 void wifi_start_sta()
@@ -206,18 +206,18 @@ void wifi_start_sta()
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-   LOG_WIFI("STA", "Failed → AP only");
-   return;
-  }
+  LOG_WIFI("STA", "Failed → AP only");
+  return;
+}
 
+LOG_WIFI("STA", "Connected IP=%s", WiFi.localIP().toString().c_str());
 
-  LOG_WIFI("STA", "Connected IP=%s", WiFi.localIP().toString().c_str());
+if (MDNS.begin(HOSTNAME)) {
+  MDNS.addService("http", "tcp", 80);
+}
 
-  if (MDNS.begin(HOSTNAME)) {
-    MDNS.addService("http", "tcp", 80);
-  } else {
-    LOG_WIFI("MDNS", "begin failed");
-  }
+//startServer();   // <-- ADD THIS
+
 
 }
 
@@ -258,6 +258,8 @@ static void scanOnce()
   serializeJson(j, scanJSON);
   scanDone = true;
 }
+
+// = device control via phone
 
 void wifi_start_ap()
 {

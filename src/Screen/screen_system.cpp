@@ -237,37 +237,70 @@ void HomeSTA_screen()
     // Top chrome (RTC / icons)
     drawChrome(ui_offset, true);
 
-    // ---- TITLE ----
+    // -------------------------------------------------------------------------
+    // TITLE
+    // -------------------------------------------------------------------------
     display.setFont(Fonts::Body12);
     display.setCursor(ui_offset, Layout::ROW9(2));
-    display.print("HOME MODE");
+    display.print("BEACH MODE");
 
-    // ---- MODE / STATUS ----
+    // -------------------------------------------------------------------------
+    // CONNECTION STATUS
+    // -------------------------------------------------------------------------
     display.setFont(Fonts::Body9);
     display.setCursor(ui_offset, Layout::ROW9(3));
-    display.print("Connect via web browser");
 
-    // ---- NETWORK INFO ----
+    bool staConnected = (WiFi.status() == WL_CONNECTED);
 
-    // WiFi label (mono, aligned)
+    if (staConnected) {
+      display.print("Internet connected");
+    } else {
+      display.print("Device Wi-Fi only");
+    }
+
+    // -------------------------------------------------------------------------
+    // NETWORK DETAILS
+    // -------------------------------------------------------------------------
+
+    // ---- WiFi label ----
     display.setFont(Fonts::Mono12);
     display.setCursor(ui_offset, Layout::ROW9(5));
     display.printf("%4s:", "WiFi");
 
-    // WiFi value (readable)
     display.setFont(Fonts::Body9);
     display.print(" ");
-    display.print(WiFi.SSID().c_str());
 
-    // IP label (mono, aligned)
+    if (staConnected) {
+      display.print(WiFi.SSID().c_str());
+    } else {
+      display.print("ESP32 GPS (AP)");
+    }
+
+    // ---- IP label ----
     display.setFont(Fonts::Mono12);
     display.setCursor(ui_offset, Layout::ROW9(6));
     display.printf("%4s:", "IP");
 
-    // IP value (readable)
     display.setFont(Fonts::Body9);
     display.print(" ");
-    display.print(WiFi.localIP().toString().c_str());
+
+    if (staConnected) {
+      display.print(WiFi.localIP().toString().c_str());
+    } else {
+      display.print(WiFi.softAPIP().toString().c_str());
+    }
+
+    // -------------------------------------------------------------------------
+    // USER HINT
+    // -------------------------------------------------------------------------
+    display.setFont(Fonts::Body9);
+    display.setCursor(ui_offset, Layout::ROW9(8));
+
+    if (staConnected) {
+      display.print("Access via home network");
+    } else {
+      display.print("Connect to device Wi-Fi");
+    }
 
   } while (display.nextPage());
 }

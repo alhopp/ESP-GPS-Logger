@@ -191,7 +191,7 @@ void loop()
   watchdogLoop();
 
   const SystemMode mode = getMode();
-  if (mode == MODE_HOME || mode == MODE_FIELD_CONFIG) {
+  if (mode == MODE_FIELD_CONFIG) {
     wifi_loop();
   }
 
@@ -219,6 +219,20 @@ static void heartbeat()
     if (t1) { Serial.print(" t1_hw="); Serial.print(uxTaskGetStackHighWaterMark(t1)); }
     if (t2) { Serial.print(" t2_hw="); Serial.print(uxTaskGetStackHighWaterMark(t2)); }
 
+
+   // --- Internet backhaul status (STA) ---
+    Serial.print(" net=");
+
+    if (wifi_sta_connected()) {
+      Serial.print("UP ssid=");
+      Serial.print(wifi_sta_ssid());
+      Serial.print(" ip=");
+      Serial.print(wifi_sta_ip());
+    } else {
+      Serial.print("DOWN");
+    }
+
+
     Serial.println();
   }
 }
@@ -232,7 +246,6 @@ static const char* modeToString(SystemMode mode)
     case MODE_BOOT:         return "BOOT";
     case MODE_LOGGING:      return "LOGGING";
     case MODE_FIELD_CONFIG: return "FIELD_CFG";
-    case MODE_HOME:         return "HOME";
     case MODE_SLEEP:        return "SLEEP";
     default:                return "?";
   }
