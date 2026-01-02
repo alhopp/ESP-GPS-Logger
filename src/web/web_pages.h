@@ -46,13 +46,14 @@ footer button{flex:1;padding:12px;border-radius:8px;border:0;font-weight:600;fon
 <header>ESP32 GPS Configuration</header>
 
 <nav>
-<button class="a" onclick="tab('wifi',this)">Wi-Fi</button>
-<button onclick="tab('system',this)">System</button>
+<button class="a" onclick="tab('system',this)">System</button>
 <button onclick="tab('gps',this)">GPS</button>
 <button onclick="tab('power',this)">Power</button>
+<button onclick="tab('wifi',this)">Wi-Fi</button>
 </nav>
 
-<section id="wifi" class="a">
+
+<section id="wifi">
 <div class="card">
 <label>Home Wi-Fi Network</label>
 <input id="ssid"
@@ -78,7 +79,7 @@ footer button{flex:1;padding:12px;border-radius:8px;border:0;font-weight:600;fon
 </div>
 </section>
 
-<section id="system">
+<section id="system" class="a">
 <div class="card">
 <label>CPU Frequency (MHz)</label>
 <select id="cpu_freq"><option>80<option>160<option>240</select>
@@ -135,10 +136,18 @@ b.classList.add("a");$(id).classList.add("a");
 }
 function set(el,v){if(!el)return;el.type==="checkbox"?el.checked=!!v:el.value=v??"";}
 
-function addSSID(name,sel){
-if([...$("ssid").options].some(o=>o.value===name))return;
-$("ssid").add(new Option(name,name,sel,sel));
+function addSSID(name){
+  const list = $("ssid_list");
+
+  if (![...list.options].some(o => o.value === name)) {
+    const o = document.createElement("option");
+    o.value = name;
+    list.appendChild(o);
+  }
+
+  $("ssid").value = name;
 }
+
 
 async function load(){
 const c=await (await fetch("/api/config")).json();

@@ -40,64 +40,92 @@ void webserver_start(WebServer &server)
   if (webStarted) return;
 
   // ------------------------------------------------------------
-  // SPA root
+  // Root / SPA entry
   // ------------------------------------------------------------
   server.on("/", HTTP_GET, [&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
   // ------------------------------------------------------------
-  // GET config
+  // Captive portal detection endpoints
+  // (forces auto-open of browser on connect)
+  // ------------------------------------------------------------
+
+  // Apple iOS / macOS
+  server.on("/hotspot-detect.html", HTTP_GET, [&] {
+    server.send(200, "text/html", PAGE_CONFIG_APP);
+  });
+
+  server.on("/library/test/success.html", HTTP_GET, [&] {
+    server.send(200, "text/html", PAGE_CONFIG_APP);
+  });
+
+  // Android
+  server.on("/generate_204", HTTP_GET, [&] {
+    server.send(200, "text/html", PAGE_CONFIG_APP);
+  });
+
+  // Windows
+  server.on("/ncsi.txt", HTTP_GET, [&] {
+    server.send(200, "text/html", PAGE_CONFIG_APP);
+  });
+
+  server.on("/connecttest.txt", HTTP_GET, [&] {
+    server.send(200, "text/html", PAGE_CONFIG_APP);
+  });
+
+  // Optional: suppress favicon noise
+  server.on("/favicon.ico", HTTP_GET, [&] {
+    server.send(204);
+  });
+
+  // ------------------------------------------------------------
+  // GET config (UI autofill)
   // ------------------------------------------------------------
   server.on("/api/config", HTTP_GET, [&] {
-  StaticJsonDocument<1024> j;
+    StaticJsonDocument<1024> j;
 
-  // ---- Wi-Fi (for UI autofill) ----
-  JsonObject wifi = j.createNestedObject("wifi");
-  wifi["ssid"]     = wifi_get_saved_ssid();
-  wifi["password"] = wifi_get_saved_pass();
+    // ---- Wi-Fi ----
+    JsonObject wifi = j.createNestedObject("wifi");
+    wifi["ssid"]     = wifi_get_saved_ssid();
+    wifi["password"] = wifi_get_saved_pass();
 
-  // ---- System ----
-  j["system"]["cpu_freq"]     = config.cpu_freq;
-  j["system"]["timezone"]     = config.timezone;
-  j["system"]["timezone_dst"] = config.timezone_DST;
+    // ---- System ----
+    j["system"]["cpu_freq"]     = config.cpu_freq;
+    j["system"]["timezone"]     = config.timezone;
+    j["system"]["timezone_dst"] = config.timezone_DST;
 
-  // ---- GPS ----
-  j["gps"]["sample_rate"]   = config.sample_rate;
-  j["gps"]["gnss"]          = config.gnss;
-  j["gps"]["dynamic_model"] = config.dynamic_model;
-  j["gps"]["cal_speed"]     = config.cal_speed;
+    // ---- GPS ----
+    j["gps"]["sample_rate"]   = config.sample_rate;
+    j["gps"]["gnss"]          = config.gnss;
+    j["gps"]["dynamic_model"] = config.dynamic_model;
+    j["gps"]["cal_speed"]     = config.cal_speed;
 
-  // ---- Power ----
-  j["power"]["shutdown_voltage"] = config.shutdown_voltage;
-  j["power"]["bat_choice"]       = config.bat_choice;
+    // ---- Power ----
+    j["power"]["shutdown_voltage"] = config.shutdown_voltage;
+    j["power"]["bat_choice"]       = config.bat_choice;
 
-  sendJson(server, j);
-});
-
+    sendJson(server, j);
+  });
 
   // ------------------------------------------------------------
   // POST config (Wi-Fi + settings)
   // ------------------------------------------------------------
   server.on("/api/config", HTTP_POST, [&] {
 
-  LOG_SYS("WEB", "POST /api/config HIT");
+    LOG_SYS("WEB", "POST /api/config HIT");
 
-  String raw = server.arg("plain");
-  LOG_SYS("WEB", "RAW JSON: %s", raw.c_str());
-
-
-
+    String raw = server.arg("plain");
+    LOG_SYS("WEB", "RAW JSON: %s", raw.c_str());
 
     StaticJsonDocument<1024> j;
-    if (deserializeJson(j, server.arg("plain"))) {
+    if (deserializeJson(j, raw)) {
       server.send(400, "text/plain", "Bad JSON");
       return;
     }
 
-    // ---------------- Wi-Fi ----------------
+    // ---- Wi-Fi ----
     if (j["wifi"]["ssid"]) {
-
       String ssid = j["wifi"]["ssid"].as<const char*>();
       String pass;
 
@@ -109,14 +137,14 @@ void webserver_start(WebServer &server)
       wifi_set_credentials(ssid, pass);
     }
 
-    // ---------------- System ----------------
+    // ---- System ----
     if (j["system"]) {
       config.cpu_freq     = j["system"]["cpu_freq"]     | config.cpu_freq;
       config.timezone     = j["system"]["timezone"]     | config.timezone;
       config.timezone_DST = j["system"]["timezone_dst"] | config.timezone_DST;
     }
 
-    // ---------------- GPS ----------------
+    // ---- GPS ----
     if (j["gps"]) {
       config.sample_rate   = j["gps"]["sample_rate"]   | config.sample_rate;
       config.gnss          = j["gps"]["gnss"]          | config.gnss;
@@ -124,7 +152,7 @@ void webserver_start(WebServer &server)
       config.cal_speed     = j["gps"]["cal_speed"]     | config.cal_speed;
     }
 
-    // ---------------- Power ----------------
+    // ---- Power ----
     if (j["power"]) {
       config.shutdown_voltage = j["power"]["shutdown_voltage"] | config.shutdown_voltage;
       config.bat_choice       = j["power"]["bat_choice"]       | config.bat_choice;
@@ -133,32 +161,27 @@ void webserver_start(WebServer &server)
     saveConfig();
     server.send(200, "text/plain", "OK");
 
-    // allow HTTP response to flush before mode switch
+    // Allow HTTP response to flush
     delay(300);
     LOG_SYS("WEB", "POST /api/config → setMode(MODE_HOME)");
-
     setMode(MODE_HOME);
   });
 
   // ------------------------------------------------------------
-  // Wi-Fi scan (AP-safe)
+  // Wi-Fi scan (AP-only)
   // ------------------------------------------------------------
   server.on("/api/wifi/scan", HTTP_GET, [&] {
-
     if (!wifi_is_ap_mode()) {
       server.send(403, "text/plain", "Scan disabled");
       return;
     }
-
     server.send(200, "application/json", wifi_get_scan_json());
   });
 
-
   // ------------------------------------------------------------
-  // SD file list (filtered)
+  // SD file list
   // ------------------------------------------------------------
   server.on("/api/files", HTTP_GET, [&] {
-
     StaticJsonDocument<1024> j;
     JsonArray a = j.to<JsonArray>();
 
@@ -166,9 +189,7 @@ void webserver_start(WebServer &server)
     File f;
 
     while ((f = root.openNextFile())) {
-
       if (!f.isDirectory()) {
-
         String name = f.name();
         int slash = name.lastIndexOf('/');
         if (slash >= 0) name = name.substring(slash + 1);
@@ -186,7 +207,6 @@ void webserver_start(WebServer &server)
         o["name"] = name;
         o["size"] = f.size();
       }
-
       f.close();
     }
 
@@ -237,7 +257,7 @@ void webserver_start(WebServer &server)
   });
 
   // ------------------------------------------------------------
-  // reboot
+  // Reboot
   // ------------------------------------------------------------
   server.on("/api/reboot", HTTP_POST, [&] {
     server.send(200, "text/plain", "Rebooting");
@@ -246,7 +266,7 @@ void webserver_start(WebServer &server)
   });
 
   // ------------------------------------------------------------
-  // SPA fallback
+  // SPA fallback (catch-all)
   // ------------------------------------------------------------
   server.onNotFound([&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
