@@ -5,13 +5,17 @@
 // ------------------------------------------------------
 // Screen render entry points
 // ======================================================
+#include "system_mode.h"
 
 void draw_BOOT();
+void draw_WIFI_SOFT_AP();
+void draw_WIFI_STATION();
+void draw_SLEEP();
+
 void draw_GPS_INIT();
 
 void draw_WIFI_ON();
-void draw_WIFI_STATION();
-void draw_WIFI_SOFT_AP();
+
 
 void draw_SPEED();
 
@@ -33,3 +37,9 @@ extern const DrawFn ScreenDrawTable[];
 void drawTopLeftTitle(const char* msg);
 int  device_boot_log(int rows, int ws = 0);
 
+
+
+// -----------------------------------------------------------------------------
+// MODE → DRAW FUNCTION (authoritative)
+// -----------------------------------------------------------------------------
+DrawFn getDrawFnForMode(SystemMode mode);

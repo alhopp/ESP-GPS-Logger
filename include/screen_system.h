@@ -1,7 +1,7 @@
 #pragma once
 
 // Existing declarations
-void Boot_screen(void);
+void draw_BOOT();
 void Off_screen(int choice);
 void Sleep_screen(int choice);
 

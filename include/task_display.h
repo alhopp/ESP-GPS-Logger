@@ -8,3 +8,6 @@ extern TaskHandle_t t2;
 
 // Display task entry point
 void taskTwo(void* parameter);
+
+extern volatile bool display_dirty;
+

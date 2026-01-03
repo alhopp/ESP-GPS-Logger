@@ -104,7 +104,7 @@ void Off_screen(int choice)
  * Boot screen
  * ========================================================= */
 
-void Boot_screen(void)
+void draw_BOOT()
 {
 
   display.firstPage();
@@ -180,7 +180,7 @@ void Boot_screen(void)
  * Field / AP screen
  * ========================================================= */
 
-void FieldAP_screen()
+void draw_WIFI_SOFT_AP()
 {
   display.firstPage();
   do {
@@ -228,7 +228,7 @@ void FieldAP_screen()
  * Home / STA screen
  * ========================================================= */
 
-void HomeSTA_screen()
+void draw_WIFI_STATION()
 {
   display.firstPage();
   do {

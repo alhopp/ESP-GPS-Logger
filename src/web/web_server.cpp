@@ -13,9 +13,9 @@
 
 static bool webStarted = false;
 
-// ------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // helpers
-// ------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
 static void sendJson(WebServer &s, JsonDocument &doc)
 {
@@ -31,27 +31,24 @@ static bool isUserFile(const String& name)
            name.endsWith(".cfg"));
 }
 
-// ------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // start server
-// ------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
 void webserver_start(WebServer &server)
 {
   if (webStarted) return;
 
-  // ------------------------------------------------------------
-  // Root / SPA entry
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Root / SPA
+  // ---------------------------------------------------------------------------
   server.on("/", HTTP_GET, [&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
-  // ------------------------------------------------------------
-  // Captive portal detection endpoints
-  // (forces auto-open of browser on connect)
-  // ------------------------------------------------------------
-
-  // Apple iOS / macOS
+  // ---------------------------------------------------------------------------
+  // Captive portal endpoints
+  // ---------------------------------------------------------------------------
   server.on("/hotspot-detect.html", HTTP_GET, [&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
@@ -60,12 +57,10 @@ void webserver_start(WebServer &server)
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
-  // Android
   server.on("/generate_204", HTTP_GET, [&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
-  // Windows
   server.on("/ncsi.txt", HTTP_GET, [&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
@@ -74,43 +69,42 @@ void webserver_start(WebServer &server)
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
-  // Optional: suppress favicon noise
   server.on("/favicon.ico", HTTP_GET, [&] {
     server.send(204);
   });
 
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // GET config (UI autofill)
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   server.on("/api/config", HTTP_GET, [&] {
     StaticJsonDocument<1024> j;
 
-    // ---- Wi-Fi ----
+    // Wi-Fi
     JsonObject wifi = j.createNestedObject("wifi");
     wifi["ssid"]     = wifi_get_saved_ssid();
     wifi["password"] = wifi_get_saved_pass();
 
-    // ---- System ----
+    // System
     j["system"]["cpu_freq"]     = config.cpu_freq;
     j["system"]["timezone"]     = config.timezone;
     j["system"]["timezone_dst"] = config.timezone_DST;
 
-    // ---- GPS ----
+    // GPS
     j["gps"]["sample_rate"]   = config.sample_rate;
     j["gps"]["gnss"]          = config.gnss;
     j["gps"]["dynamic_model"] = config.dynamic_model;
     j["gps"]["cal_speed"]     = config.cal_speed;
 
-    // ---- Power ----
+    // Power
     j["power"]["shutdown_voltage"] = config.shutdown_voltage;
     j["power"]["bat_choice"]       = config.bat_choice;
 
     sendJson(server, j);
   });
 
-  // ------------------------------------------------------------
-  // POST config (Wi-Fi + settings)
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // POST config
+  // ---------------------------------------------------------------------------
   server.on("/api/config", HTTP_POST, [&] {
 
     LOG_SYS("WEB", "POST /api/config HIT");
@@ -124,7 +118,7 @@ void webserver_start(WebServer &server)
       return;
     }
 
-    // ---- Wi-Fi ----
+    // Wi-Fi
     if (j["wifi"]["ssid"]) {
       String ssid = j["wifi"]["ssid"].as<const char*>();
       String pass;
@@ -137,14 +131,14 @@ void webserver_start(WebServer &server)
       wifi_set_credentials(ssid, pass);
     }
 
-    // ---- System ----
+    // System
     if (j["system"]) {
       config.cpu_freq     = j["system"]["cpu_freq"]     | config.cpu_freq;
       config.timezone     = j["system"]["timezone"]     | config.timezone;
       config.timezone_DST = j["system"]["timezone_dst"] | config.timezone_DST;
     }
 
-    // ---- GPS ----
+    // GPS
     if (j["gps"]) {
       config.sample_rate   = j["gps"]["sample_rate"]   | config.sample_rate;
       config.gnss          = j["gps"]["gnss"]          | config.gnss;
@@ -152,7 +146,7 @@ void webserver_start(WebServer &server)
       config.cal_speed     = j["gps"]["cal_speed"]     | config.cal_speed;
     }
 
-    // ---- Power ----
+    // Power
     if (j["power"]) {
       config.shutdown_voltage = j["power"]["shutdown_voltage"] | config.shutdown_voltage;
       config.bat_choice       = j["power"]["bat_choice"]       | config.bat_choice;
@@ -161,14 +155,39 @@ void webserver_start(WebServer &server)
     saveConfig();
     server.send(200, "text/plain", "OK");
 
-    // Allow HTTP response to flush
     delay(300);
-    wifi_start_sta();   
+    wifi_start_sta();
   });
 
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // STA network status (Leaflet / internet detection)
+  // ---------------------------------------------------------------------------
+  server.on("/api/netstatus", HTTP_GET, [&] {
+
+    bool sta = wifi_sta_connected();
+
+    String json = "{";
+    json += "\"sta\":";
+    json += sta ? "true" : "false";
+
+    if (sta) {
+      json += ",\"ssid\":\"";
+      json += wifi_sta_ssid();
+      json += "\"";
+
+      json += ",\"ip\":\"";
+      json += wifi_sta_ip();
+      json += "\"";
+    }
+
+    json += "}";
+
+    server.send(200, "application/json", json);
+  });
+
+  // ---------------------------------------------------------------------------
   // Wi-Fi scan (AP-only)
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   server.on("/api/wifi/scan", HTTP_GET, [&] {
     if (!wifi_is_ap_mode()) {
       server.send(403, "text/plain", "Scan disabled");
@@ -177,9 +196,9 @@ void webserver_start(WebServer &server)
     server.send(200, "application/json", wifi_get_scan_json());
   });
 
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // SD file list
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   server.on("/api/files", HTTP_GET, [&] {
     StaticJsonDocument<1024> j;
     JsonArray a = j.to<JsonArray>();
@@ -198,10 +217,6 @@ void webserver_start(WebServer &server)
           continue;
         }
 
-        for (size_t i = 0; i < name.length(); i++) {
-          if (name[i] < 32 || name[i] > 126) name[i] = '_';
-        }
-
         JsonObject o = a.createNestedObject();
         o["name"] = name;
         o["size"] = f.size();
@@ -212,9 +227,9 @@ void webserver_start(WebServer &server)
     sendJson(server, j);
   });
 
-  // ------------------------------------------------------------
-  // SD file download
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // File download
+  // ---------------------------------------------------------------------------
   server.on("/api/file", HTTP_GET, [&] {
 
     if (!server.hasArg("name")) {
@@ -240,33 +255,28 @@ void webserver_start(WebServer &server)
       return;
     }
 
-    String ct = "application/octet-stream";
-    if (name.endsWith(".json")) ct = "application/json";
-    else if (name.endsWith(".txt")) ct = "text/plain";
-    else if (name.endsWith(".gpx")) ct = "application/gpx+xml";
-
     server.sendHeader(
       "Content-Disposition",
       "attachment; filename=\"" + name + "\""
     );
     server.sendHeader("Cache-Control", "no-store");
 
-    server.streamFile(f, ct);
+    server.streamFile(f, "application/octet-stream");
     f.close();
   });
 
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Reboot
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   server.on("/api/reboot", HTTP_POST, [&] {
     server.send(200, "text/plain", "Rebooting");
     delay(200);
     ESP.restart();
   });
 
-  // ------------------------------------------------------------
-  // SPA fallback (catch-all)
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // SPA fallback
+  // ---------------------------------------------------------------------------
   server.onNotFound([&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
@@ -276,15 +286,18 @@ void webserver_start(WebServer &server)
   LOG_WIFI("Web", "started");
 }
 
-// ------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // stop
-// ------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
 void webserver_stop()
 {
   webStarted = false;
 }
 
+// -----------------------------------------------------------------------------
+// STA helpers (used by display + logs + UI)
+// -----------------------------------------------------------------------------
 
 bool wifi_sta_connected()
 {
@@ -302,4 +315,3 @@ String wifi_sta_ip()
            ? WiFi.localIP().toString()
            : "";
 }
-

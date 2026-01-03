@@ -1,34 +1,68 @@
+// -----------------------------------------------------------------------------
+// screen_draw.cpp
+//
+// Screen rendering dispatch layer.
+//
+// Responsibilities:
+// - Provide stateless draw functions
+// - Map authoritative SystemMode → draw function
+//
+// Design rules:
+// - No state, no caching, no side-effects
+// - No mode inference or Wi-Fi logic
+// - task_display decides *when* to draw
+// - system_mode decides *what mode we are in*
+// -----------------------------------------------------------------------------
+
 #include "screen_draw.h"
+#include "system_mode.h"
+
 #include "Fonts.h"
 #include "Layout.h"
 #include "E_paper.h"
 
-const DrawFn ScreenDrawTable[] = {
-  draw_BOOT,
-  draw_GPS_INIT,
+// -----------------------------------------------------------------------------
+// LEGACY DRAW TABLE (optional / retained for compatibility)
+//
+// NOTE:
+// - This table is no longer authoritative for rendering decisions
+// - It may still be used by legacy code paths (stats paging, etc.)
+// -----------------------------------------------------------------------------
 
-  draw_WIFI_ON,
-  draw_WIFI_STATION,
-  draw_WIFI_SOFT_AP,
 
-  draw_SPEED,
-
-  draw_STATS1,
-  draw_STATS2,
-  draw_STATS3,
-  draw_STATS4,
-  draw_STATS5,
-  draw_STATS6,
-  draw_STATS7,
-  draw_STATS8,
-  draw_STATS9,
-  draw_STATSA,
-  draw_STATSB
-};
-
-void drawTopLeftTitle(const char* msg)
+// -----------------------------------------------------------------------------
+// MODE → DRAW FUNCTION (authoritative)
+// -----------------------------------------------------------------------------
+DrawFn getDrawFnForMode(SystemMode mode)
 {
-    display.setFont(Fonts::Body9);
-    display.print(msg);
+  switch (mode) {
+
+    case MODE_BOOT:
+      return draw_BOOT;
+
+    case MODE_LOGGING:
+      // Primary runtime screen during GPS logging
+      return draw_SPEED;
+
+    case MODE_FIELD_CONFIG:
+      // Configuration UI (Wi-Fi AP)
+      return draw_WIFI_SOFT_AP;
+
+    case MODE_SLEEP:
+      // Minimal / blank screen (reuse BOOT for now)
+      return draw_BOOT;
+
+    default:
+      return draw_BOOT;
+  }
 }
 
+// -----------------------------------------------------------------------------
+// SHARED UI HELPERS
+// -----------------------------------------------------------------------------
+void drawTopLeftTitle(const char* msg)
+{
+  display.setFont(Fonts::Body9);
+  display.setCursor(0, 0);
+  display.print(msg);
+}

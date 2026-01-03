@@ -20,4 +20,5 @@ void gps_shutdown();
 void Ublox_on();
 void Ublox_off();
 void gps_power_off();
+void gps_power_on();
 

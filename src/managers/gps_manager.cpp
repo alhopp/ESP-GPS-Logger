@@ -38,7 +38,7 @@ static const uint32_t gpsBauds[] = {
 // -----------------------------------------------------------------------------
 // POWER CONTROL
 // -----------------------------------------------------------------------------
-static void gps_power_on()
+void gps_power_on()
 {
   pinMode(UBLOX_POWER1, OUTPUT);
   pinMode(UBLOX_POWER2, OUTPUT);

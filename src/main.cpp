@@ -55,7 +55,6 @@ static bool     longHandled = false;
 // -----------------------------------------------------------------------------
 static void startTasks();
 static void heartbeat();
-static const char* modeToString(SystemMode mode);
 static void magnet_init();
 static void magnet_poll();
 
@@ -210,7 +209,7 @@ static void heartbeat()
     last = millis();
 
     Serial.print("[LOOP] mode=");
-    Serial.print(modeToString(getMode()));
+    //Serial.print(modeToString(getMode()));
     Serial.print(" heap=");
     Serial.print(ESP.getFreeHeap());
     Serial.print(" min=");
@@ -237,16 +236,3 @@ static void heartbeat()
   }
 }
 
-// -----------------------------------------------------------------------------
-// MODE → STRING
-// -----------------------------------------------------------------------------
-static const char* modeToString(SystemMode mode)
-{
-  switch (mode) {
-    case MODE_BOOT:         return "BOOT";
-    case MODE_LOGGING:      return "LOGGING";
-    case MODE_FIELD_CONFIG: return "FIELD_CFG";
-    case MODE_SLEEP:        return "SLEEP";
-    default:                return "?";
-  }
-}

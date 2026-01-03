@@ -9,6 +9,11 @@
 #include "system_mode.h"
 #include "screen_system.h"
 
+// -----------------------------------------------------------------------------
+// DISPLAY REDRAW CONTROL
+// -----------------------------------------------------------------------------
+volatile bool display_dirty = true;   // start dirty → first draw happens
+
 // ----------------------------------------------------
 // Task handle (owned here)
 // ----------------------------------------------------
@@ -23,9 +28,6 @@ void taskTwo(void* parameter)
 
   int value = 1;
 
-  // Track last mode so we act only on transitions
-  SystemMode lastMode = MODE_BOOT;
-
   // Partial update region for logging/test content
   const int X = 0;
   const int Y = 0;
@@ -37,30 +39,26 @@ void taskTwo(void* parameter)
     const SystemMode mode = getMode();
 
     // --------------------------------------------------
-    // MODE CHANGE → CLEAR + DRAW ONCE
+    // REDRAW ON DEMAND (MODE CHANGE OR EXPLICIT REQUEST)
     // --------------------------------------------------
-    if (mode != lastMode) {
+    if (display_dirty) {
 
-      // Full refresh on mode transition
+      display_dirty = false;
+
+      // Full refresh on mode change
       display.setFullWindow();
       display.firstPage();
       do {
         display.fillScreen(GxEPD_WHITE);
       } while (display.nextPage());
 
-      // Draw the new mode's screen ONCE
-      if (mode == MODE_FIELD_CONFIG) {
-        FieldAP_screen();        // BEACH MODE / WiFi AP
-      }
-      else if (mode == MODE_SLEEP) {
-        Sleep_screen(0);
-      }
-
-      lastMode = mode;
+      // Draw current mode screen (authoritative mapping)
+      DrawFn fn = getDrawFnForMode(mode);
+      fn();
     }
 
     // --------------------------------------------------
-    // HOLD MODES (NO REDRAW, NO FLICKER)
+    // HOLD MODES (STATIC UI, NO PERIODIC REDRAWS)
     // --------------------------------------------------
     if (mode == MODE_FIELD_CONFIG ||
         mode == MODE_SLEEP) {
@@ -81,8 +79,6 @@ void taskTwo(void* parameter)
       display.setCursor(X, Y + H);
       display.print(value);
     } while (display.nextPage());
-
-   //LOG_TASK("Display", "show %d", value);
 
     value++;
     if (value > 4) value = 1;

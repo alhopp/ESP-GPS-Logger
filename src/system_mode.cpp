@@ -4,24 +4,26 @@
 // Central system mode state machine.
 //
 // Responsibilities:
-// - Own the current SystemMode
-// - Perform EXIT actions for the old mode
+// - Own the authoritative SystemMode
+// - Execute EXIT actions for the old mode
 // - Commit the state transition
-// - Perform ENTER actions for the new mode
+// - Execute ENTER actions for the new mode
 //
-// Notes:
-// - This module performs side-effects only (Wi-Fi, power, etc.)
-// - UI and display logic react independently via getMode()
+// Design rules:
+// - Side-effects ONLY (Wi-Fi, GPS, power, sleep)
+// - No UI, no drawing, no rendering
+// - Display logic reacts independently via getMode()
 // -----------------------------------------------------------------------------
 
 #include <Arduino.h>
 
 #include "system_mode.h"
 #include "wifi_manager.h"
-#include "Definitions.h"
-#include "esp_sleep.h"
 #include "gps_manager.h"
 #include "screen_system.h"
+
+#include "Definitions.h"
+#include "esp_sleep.h"
 
 // -----------------------------------------------------------------------------
 // INTERNAL STATE
@@ -36,12 +38,35 @@ SystemMode getMode()
   return currentMode;
 }
 
+// -----------------------------------------------------------------------------
+// MODE → STRING (debug / logging only)
+// -----------------------------------------------------------------------------
+const char* modeToString(SystemMode mode)
+{
+  switch (mode) {
+    case MODE_BOOT:         return "BOOT";
+    case MODE_LOGGING:      return "LOGGING";
+    case MODE_FIELD_CONFIG: return "FIELD_CFG";
+    case MODE_SLEEP:        return "SLEEP";
+    default:                return "?";
+  }
+}
+
+// -----------------------------------------------------------------------------
+// STATE TRANSITION
+// -----------------------------------------------------------------------------
 void setMode(SystemMode newMode)
 {
+  // ---------------------------------------------------------------------------
   // No-op if already in requested mode
+  // ---------------------------------------------------------------------------
   if (newMode == currentMode) {
     return;
   }
+
+  LOG_SYS("MODE", "EXIT %s → ENTER %s",
+          modeToString(currentMode),
+          modeToString(newMode));
 
   // ---------------------------------------------------------------------------
   // EXIT actions (based on OLD mode)
@@ -49,48 +74,58 @@ void setMode(SystemMode newMode)
   switch (currentMode) {
 
     case MODE_LOGGING:
-    case MODE_SLEEP:
-     wifi_stop();
-     break;
+      // Leaving primary mission mode
+      // (logging task reacts independently)
+      break;
 
+    case MODE_FIELD_CONFIG:
+      // Leaving configuration mode → shut down Wi-Fi
+      wifi_stop();
+      break;
+
+    case MODE_SLEEP:
+      // Should not normally exit sleep
+      break;
+
+    case MODE_BOOT:
     default:
       break;
   }
 
   // ---------------------------------------------------------------------------
-  // STATE TRANSITION
+  // STATE COMMIT
   //
   // IMPORTANT:
-  // - This assignment must occur before ENTER actions
-  // - ENTER handlers may call getMode()
+  // - Assignment MUST occur before ENTER actions
+  // - ENTER handlers may legally call getMode()
   // ---------------------------------------------------------------------------
   currentMode = newMode;
 
   // ---------------------------------------------------------------------------
   // ENTER actions (based on NEW mode)
   //
-  // NOTE:
-  // - Side-effects only (no UI or rendering)
-  // - Display task reacts independently via getMode()
+  // Rules:
+  // - Side-effects only
+  // - No UI, no drawing, no rendering
   // ---------------------------------------------------------------------------
   switch (currentMode) {
 
     case MODE_LOGGING:
-      LOG_SYS("MODE", "ENTER LOGGING → WiFi OFF");
+      LOG_SYS("MODE", "ENTER LOGGING → Wi-Fi OFF");
+
       wifi_stop();
+      gps_power_on();  
       break;
 
     case MODE_FIELD_CONFIG:
-      gps_power_off(); 
+      LOG_SYS("MODE", "ENTER FIELD CONFIG → Wi-Fi AP, GPS OFF");
+
+      gps_power_off();
       wifi_start_ap();
-      FieldAP_screen();
-
-
-
       break;
 
     case MODE_SLEEP:
-      LOG_SYS("MODE", "ENTER SLEEP → power off");
+      LOG_SYS("MODE", "ENTER SLEEP → power down");
 
       wifi_stop();
       gps_power_off();
@@ -104,13 +139,17 @@ void setMode(SystemMode newMode)
 
       // Wake when magnet is applied (LOW)
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0);
-
       esp_deep_sleep_start();
       break;
 
-
+    case MODE_BOOT:
     default:
-      LOG_SYS("MODE", "ENTER UNKNOWN (%d)", currentMode);
       break;
   }
+
+  // ---------------------------------------------------------------------------
+  // Notify display task that mode has changed
+  // (no drawing here — display task owns rendering)
+  // ---------------------------------------------------------------------------
+  // screen_request_redraw();
 }
