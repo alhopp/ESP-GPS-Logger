@@ -3,22 +3,48 @@
 #include <stdint.h>
 
 // ============================================================================
-// GPS Manager API
+// gps_manager.h
+//
+// GPS hardware bring-up and power control for ESP32 + u-blox.
+//
+// Responsibilities:
+// - Power sequencing
+// - UART bring-up
+// - Baud detection (RTC-assisted)
+// - RTC time injection for warm starts
+//
+// Non-responsibilities:
+// - GPS statistics
+// - Logging formats
+// - UI state
+// - Task control
 // ============================================================================
 
+
+// -----------------------------------------------------------------------------
+// PRIMARY API
+// -----------------------------------------------------------------------------
+
 // Bring up GPS:
-// - Uses RTC cached baud if available
-// - Falls back to baud scan
+// - Uses RTC-cached baud if available
+// - Falls back to full baud scan
 // - Injects RTC time for warm start
-// Returns true if GPS responds
+//
+// Returns:
+// - true  → GPS responded and is alive
+// - false → no GPS detected
 bool initGPS();
 
-// Graceful shutdown (power off)
-void gps_shutdown();
 
-// Legacy compatibility (used elsewhere)
-void Ublox_on();
-void Ublox_off();
-void gps_power_off();
+// -----------------------------------------------------------------------------
+// SYSTEM POWER CONTROL
+// -----------------------------------------------------------------------------
+// These are low-level power primitives.
+// Valid to call from system_mode or boot logic.
+// Must be idempotent.
+
 void gps_power_on();
+void gps_power_off();
+
+
 

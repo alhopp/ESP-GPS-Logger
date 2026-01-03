@@ -3,6 +3,7 @@
 #include "Ublox.h"
 #include "Definitions.h"
 #include "config_manager.h"
+#include "gps_manager.h"
 
 uint16_t _gSpeed[BUFFER_SIZE]; 
 float _lat[BUFFER_ALFA]; 
@@ -587,7 +588,7 @@ int setupGPS(void) {
   int Xtal_freq = getXtalFrequencyMhz();
   Serial.print("CPU freq  ?= "); Serial.println(config.cpu_freq);
   Serial.print("XTAL freq  ?= "); Serial.println(Xtal_freq);
-  Ublox_on();//beitian bn220 power supply over output 25,26,27
+  gps_power_on();
   Serial2.setRxBufferSize(2048); // increasing buffer size ?
   Serial2.begin(9600, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN); //default connection to ublox over serial2
    if((config.ublox_type==M8_115200BD)||(config.ublox_type==M9_115200BD)||(config.ublox_type==M10_115200BD)){

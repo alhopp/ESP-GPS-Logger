@@ -339,8 +339,6 @@ extern char Buffer[50];
 
 void calcChecksum(unsigned char* CK,int msgType,int msgSize);
 boolean compareMsgHeader(const unsigned char* msgHeader);
-void Ublox_on();
-void Ublox_off();
 void Ublox_serial2(int delay_ms);
 void Init_ublox(void);
 void Set_rate_ublox(int);

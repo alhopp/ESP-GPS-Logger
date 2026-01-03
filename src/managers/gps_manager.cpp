@@ -16,7 +16,6 @@
 #include <driver/gpio.h>
 
 #include "Definitions.h"
-#include "ESP_functions.h"
 #include "rtc_state.h"     // RTC_gps_* + RTC time fields
 #include "Ublox.h"         // UBX_MON_VER definition
 
@@ -219,17 +218,9 @@ bool initGPS()
   return false;
 }
 
-void gps_shutdown()
-{
-  LOG_GPS("Power", "off");
-  gps_power_off();
-}
 
-// -----------------------------------------------------------------------------
-// LEGACY COMPATIBILITY
-// -----------------------------------------------------------------------------
-void Ublox_on()  { gps_power_on();  }
-void Ublox_off() { gps_power_off(); }
+
+
 
 
 

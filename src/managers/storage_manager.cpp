@@ -21,7 +21,6 @@
 #include <SD_MMC.h>
 #include <LittleFS.h>
 
-#include "ESP_functions.h"
 #include "config_manager.h"
 #include "Definitions.h"
 
@@ -60,7 +59,6 @@ static SPIClass       s_sdSPI(VSPI);
 // -----------------------------------------------------------------------------
 static bool mountSD_MMC();
 static bool mountSD_SPI();
-static bool mountLittleFS();
 
 static fs::FS& activeFS();
 static bool quickIOTest(fs::FS& fs, const char* path);
@@ -204,17 +202,6 @@ static bool mountSD_SPI()
   return true;
 }
 
-static bool mountLittleFS()
-{
-  // formatOnFail=true is good for field robustness.
-  if (!LittleFS.begin(true)) {
-    LITTLEFS_OK = false;
-    return false;
-  }
-
-  LITTLEFS_OK = true;
-  return true;
-}
 
 static bool quickIOTest(fs::FS& fs, const char* path)
 {

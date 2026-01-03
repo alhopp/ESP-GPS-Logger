@@ -11,9 +11,8 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 
-#include "Definitions.h"        // <-- logging macros
+#include "Definitions.h"      
 #include "config_manager.h"
-#include "ESP_functions.h"
 #include "rtc_state.h"
 #include "Globals.h"
 
@@ -215,7 +214,7 @@ static void applyDerivedConfig()
   TimeZone_env(config.timezone);
 }
 
-
+// TODO: Move TimeZone_env() to RTC / time management module
 void TimeZone_env (float timezone){     //without daylight saving, standard TZ strirng
   int hours=(int)(timezone);
   int minutes=abs((int)(timezone*60)%60);

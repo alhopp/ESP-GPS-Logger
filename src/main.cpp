@@ -1,6 +1,16 @@
 // -----------------------------------------------------------------------------
 // main.cpp
-// System entry point
+//
+// System entry point.
+//
+// Responsibilities:
+// - System startup and task creation
+// - User intent interpretation (magnet)
+// - Periodic servicing (watchdog, Wi-Fi, heartbeat)
+//
+// Design rules:
+// - main.cpp owns *intent*, not side-effects
+// - All mode changes go through setMode()
 // -----------------------------------------------------------------------------
 
 #include <Arduino.h>
@@ -25,17 +35,13 @@
 // SYSTEM / UI
 // -----------------------------------------------------------------------------
 #include "system_mode.h"
-#include "E_paper.h"
-#include "screen_system.h"
-#include "rtc_state.h"
-
 #include <esp_system.h>
 #include "Definitions.h"
+#include "rtc_state.h" 
 
 // -----------------------------------------------------------------------------
-// GLOBAL STATE
+// CONFIGURATION / THRESHOLDS
 // -----------------------------------------------------------------------------
-bool sleep_mode = false;
 
 // Gesture thresholds
 static constexpr uint32_t SLEEP_HOLD_MS   = 1000;  // ~1s
@@ -45,7 +51,11 @@ static constexpr uint32_t BOOT_IGNORE_MS  = 1500;
 static constexpr uint32_t LOW_STABLE_MS     = 30;
 static constexpr uint32_t RELEASE_STABLE_MS = 40;
 
-// Magnet state
+// -----------------------------------------------------------------------------
+// RUNTIME STATE
+// -----------------------------------------------------------------------------
+
+// Magnet timing state
 static uint32_t bootTime    = 0;
 static uint32_t pressTime   = 0;
 static bool     longHandled = false;
@@ -58,6 +68,61 @@ static void heartbeat();
 static void magnet_init();
 static void magnet_poll();
 
+// ============================================================================
+// SETUP
+// ============================================================================
+void setup()
+{
+  const BootResult br = initBoot();
+
+  // Fatal boot outcomes are decided here 
+  if (br != BOOT_OK) {
+
+    // Record reason for display/sleep screen
+    RTC_OFF_screen = 1;
+
+    const char* reason = bootFailReason();
+    if (reason && reason[0]) {
+      strncpy(RTC_Sleep_txt, reason, sizeof(RTC_Sleep_txt) - 1);
+      RTC_Sleep_txt[sizeof(RTC_Sleep_txt) - 1] = '\0';
+    } else {
+      strncpy(RTC_Sleep_txt, "Boot failed", sizeof(RTC_Sleep_txt) - 1);
+      RTC_Sleep_txt[sizeof(RTC_Sleep_txt) - 1] = '\0';
+    }
+
+    // Now commit the system decision
+    setMode(MODE_SLEEP);  
+    return;
+  }
+
+  initStorage();
+  initConfig();
+  initGPS();
+
+  magnet_init();
+  setMode(MODE_LOGGING);
+
+  startTasks();
+}
+
+// ============================================================================
+// LOOP
+// ============================================================================
+void loop()
+{
+  magnet_poll();
+  watchdogLoop();
+
+  // Service Wi-Fi only in config mode
+  if (getMode() == MODE_FIELD_CONFIG) {
+    wifi_loop();
+  }
+
+  heartbeat();
+  delay(10);
+}
+
+
 // -----------------------------------------------------------------------------
 // MAGNET INIT
 // -----------------------------------------------------------------------------
@@ -68,7 +133,7 @@ static void magnet_init()
 }
 
 // -----------------------------------------------------------------------------
-// MAGNET POLL (FINAL, CORRECT)
+// MAGNET POLL (authoritative user intent interpreter)
 // -----------------------------------------------------------------------------
 static void magnet_poll()
 {
@@ -97,7 +162,6 @@ static void magnet_poll()
     releaseSince = 0;
   }
 
-
   static bool prevActive = false;
 
   // --------------------------------------------------
@@ -109,118 +173,99 @@ static void magnet_poll()
   }
 
   // --------------------------------------------------
-  // LONG HOLD (≥5s) → CONFIG MODE
+  // LONG HOLD (≥ WIFI_HOLD_MS) → CONFIG MODE
   // --------------------------------------------------
-  if (active && !longHandled &&
+  if (active &&
+      !longHandled &&
       (now - pressTime >= WIFI_HOLD_MS)) {
 
     longHandled = true;
 
     if (getMode() == MODE_FIELD_CONFIG) {
-      setMode(MODE_LOGGING);        // Exit Wi-Fi
-    } else {
-      setMode(MODE_FIELD_CONFIG);   // Enter Wi-Fi
-    }
-  }
-
-  // --------------------------------------------------
-  // RELEASE (2–6s) → SLEEP / WAKE
-  // --------------------------------------------------
- if (!active && prevActive && !longHandled) {
-
-  const uint32_t held = now - pressTime;
-
-  if (held >= SLEEP_HOLD_MS && held < WIFI_HOLD_MS) {
-    if (getMode() == MODE_SLEEP) {
       setMode(MODE_LOGGING);
     } else {
-      setMode(MODE_SLEEP);
+      setMode(MODE_FIELD_CONFIG);
     }
   }
- }
+
+  // --------------------------------------------------
+  // RELEASE (≥ SLEEP_HOLD_MS, < WIFI_HOLD_MS) → SLEEP
+  // --------------------------------------------------
+  if (!active && prevActive && !longHandled) {
+
+    const uint32_t held = now - pressTime;
+
+    if (held >= SLEEP_HOLD_MS && held < WIFI_HOLD_MS) {
+      if (getMode() == MODE_SLEEP) {
+        setMode(MODE_LOGGING);
+      } else {
+        setMode(MODE_SLEEP);
+      }
+    }
+  }
 
   prevActive = active;
 }
 
-// -----------------------------------------------------------------------------
-// SETUP
-// -----------------------------------------------------------------------------
-void setup()
-{
-
-  initBoot();
-  initStorage();
-  initConfig();
-  initGPS();
-
-  magnet_init();
-  setMode(MODE_LOGGING);
-
-  startTasks();
-}
-
-// -----------------------------------------------------------------------------
+// ============================================================================
 // TASK STARTUP
-// -----------------------------------------------------------------------------
+// ============================================================================
 static void startTasks()
 {
   BaseType_t ok;
 
   ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS",
                               10000, nullptr, 1, &t1, 1);
-  if (ok != pdPASS) Serial.println("[TASK] GPS create failed");
+  if (ok != pdPASS) {
+    Serial.println("[TASK] GPS create failed");
+  }
 
   ok = xTaskCreatePinnedToCore(taskTwo, "TaskDisplay",
                               10000, nullptr, 1, &t2, 0);
-  if (ok != pdPASS) Serial.println("[TASK] Display create failed");
+  if (ok != pdPASS) {
+    Serial.println("[TASK] Display create failed");
+  }
 
   Serial.print("[TASK] started");
-  if (t1) { Serial.print(" t1_hw="); Serial.print(uxTaskGetStackHighWaterMark(t1)); }
-  if (t2) { Serial.print(" t2_hw="); Serial.print(uxTaskGetStackHighWaterMark(t2)); }
+  if (t1) {
+    Serial.print(" t1_hw=");
+    Serial.print(uxTaskGetStackHighWaterMark(t1));
+  }
+  if (t2) {
+    Serial.print(" t2_hw=");
+    Serial.print(uxTaskGetStackHighWaterMark(t2));
+  }
   Serial.println();
 }
 
-// -----------------------------------------------------------------------------
-// LOOP
-// -----------------------------------------------------------------------------
-void loop()
-{
-  magnet_poll();
-  watchdogLoop();
-
-  const SystemMode mode = getMode();
-  if (mode == MODE_FIELD_CONFIG) {
-    wifi_loop();
-  }
-
-  heartbeat();
-  delay(10);
-}
-
-// -----------------------------------------------------------------------------
-// HEARTBEAT
-// -----------------------------------------------------------------------------
+// ============================================================================
+// HEARTBEAT / DIAGNOSTICS
+// ============================================================================
 static void heartbeat()
 {
   static uint32_t last = 0;
 
   if (millis() - last > 3000) {
     last = millis();
-
+/*
     Serial.print("[LOOP] mode=");
-    //Serial.print(modeToString(getMode()));
+    // Serial.print(modeToString(getMode()));
     Serial.print(" heap=");
     Serial.print(ESP.getFreeHeap());
     Serial.print(" min=");
     Serial.print(esp_get_minimum_free_heap_size());
 
-    if (t1) { Serial.print(" t1_hw="); Serial.print(uxTaskGetStackHighWaterMark(t1)); }
-    if (t2) { Serial.print(" t2_hw="); Serial.print(uxTaskGetStackHighWaterMark(t2)); }
-
-
-   // --- Internet backhaul status (STA) ---
+    if (t1) {
+      Serial.print(" t1_hw=");
+      Serial.print(uxTaskGetStackHighWaterMark(t1));
+    }
+    if (t2) {
+      Serial.print(" t2_hw=");
+      Serial.print(uxTaskGetStackHighWaterMark(t2));
+    }
+*/
+    // --- Internet backhaul status (STA) ---
     Serial.print(" net=");
-
     if (wifi_sta_connected()) {
       Serial.print("UP ssid=");
       Serial.print(wifi_sta_ssid());
@@ -230,8 +275,6 @@ static void heartbeat()
       Serial.print("DOWN");
     }
 
-
     Serial.println();
   }
 }
-

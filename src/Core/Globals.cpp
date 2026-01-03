@@ -19,6 +19,7 @@
 // ============================================================================
 bool wifi_configured   = false;
 bool downloading_file  = false;
+bool reset_boot = false;
 
 
 

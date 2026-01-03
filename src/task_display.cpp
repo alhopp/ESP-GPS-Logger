@@ -14,6 +14,12 @@
 // -----------------------------------------------------------------------------
 volatile bool display_dirty = true;   // start dirty → first draw happens
 
+void screen_request_redraw()
+{
+  display_dirty = true;
+}
+
+
 // ----------------------------------------------------
 // Task handle (owned here)
 // ----------------------------------------------------

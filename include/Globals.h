@@ -97,3 +97,6 @@ extern int max_count_wdt_task0;
 // SHUTDOWN / SESSION CONTROL
 // ============================================================================
 extern bool Shut_down_Save_session;
+
+extern bool reset_boot;
+

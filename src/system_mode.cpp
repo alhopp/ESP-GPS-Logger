@@ -85,8 +85,9 @@ void setMode(SystemMode newMode)
       break;
 
     case MODE_SLEEP:
-      // Should not normally exit sleep
-      break;
+      LOG_SYS("MODE", "EXIT SLEEP → power up");
+
+       break;
 
     case MODE_BOOT:
     default:
@@ -125,20 +126,21 @@ void setMode(SystemMode newMode)
       wifi_start_ap();
       break;
 
-    case MODE_SLEEP:
+       case MODE_SLEEP:
       LOG_SYS("MODE", "ENTER SLEEP → power down");
+
+      // --- Draw sleep screen synchronously ---
+      Sleep_screen(1);     // or your desired mode
+      delay(150);          // allow EPD to finish update
 
       wifi_stop();
       gps_power_off();
-
-      delay(100);
 
       // Ensure magnet is RELEASED before sleeping
       while (digitalRead(MAGNET_PIN) == LOW) {
         delay(10);
       }
 
-      // Wake when magnet is applied (LOW)
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0);
       esp_deep_sleep_start();
       break;
@@ -152,5 +154,5 @@ void setMode(SystemMode newMode)
   // Notify display task that mode has changed
   // (no drawing here — display task owns rendering)
   // ---------------------------------------------------------------------------
-  display_dirty = true;
+screen_request_redraw();
 }

@@ -4,11 +4,13 @@
 // Early boot sequence:
 // - Starts Serial with bounded wait
 // - Reads battery voltage
-// - Initializes SPI and resets system time
+// - Resets system time
 // - Initializes the e-paper display
-// - Enforces shutdown on low battery or reset boot
+// - Reports fatal boot conditions (low battery / reset boot)
 //
-// Runs once at startup.
+// NOTE:
+// - This module performs NO mode transitions.
+// - It reports BootResult; main.cpp decides what to do.
 // -----------------------------------------------------------------------------
 
 #include <Arduino.h>
@@ -16,25 +18,15 @@
 #include <sys/time.h>
 
 #include "boot_manager.h"
-#include "ESP_functions.h"
-#include "config_manager.h"
 #include "E_paper.h"
 #include "rtc_state.h"
-#include "system_mode.h"
-
 #include "Globals.h"
-
-
-// Logging macros live here
 #include "Definitions.h"
 
-// Fonts (e-paper friendly)
-#include "Fonts.h"
-
 // -----------------------------------------------------------------------------
-// EXTERNAL / RTC STATE
+// INTERNAL STATE
 // -----------------------------------------------------------------------------
-bool reset_boot;
+static const char* s_failReason = nullptr;
 
 // Battery scaling (must match hardware divider)
 #ifndef BAT_SCALE
@@ -42,25 +34,14 @@ bool reset_boot;
 #endif
 
 // -----------------------------------------------------------------------------
-// LOCAL HELPERS (file-scope only)
+// PUBLIC API
 // -----------------------------------------------------------------------------
-static void shutdownWithMessage(const char* msg)
+BootResult initBoot()
 {
-  RTC_OFF_screen = 1;
+  s_failReason = nullptr;
 
-  strncpy(RTC_Sleep_txt, msg, sizeof(RTC_Sleep_txt) - 1);
-  RTC_Sleep_txt[sizeof(RTC_Sleep_txt) - 1] = '\0';
-
-  setMode(MODE_SLEEP);    // does not return
-}
-
-// -----------------------------------------------------------------------------
-// BOOT ENTRY POINT
-// -----------------------------------------------------------------------------
-void initBoot()
-{
   // ---------------------------------------------------------------------------
-  // Serial (ESP32-correct, bounded, deterministic)
+  // Serial (bounded, deterministic)
   // ---------------------------------------------------------------------------
   Serial.begin(115200);
 
@@ -89,7 +70,7 @@ void initBoot()
   settimeofday(&tv, nullptr);
 
   // ---------------------------------------------------------------------------
-  // Display init (no dependencies on storage or Wi-Fi)
+  // Display init (early, deterministic)
   // ---------------------------------------------------------------------------
   LOG_BOOT("Display", "init");
   display.init(115200, true, 2, false);
@@ -101,19 +82,25 @@ void initBoot()
   }
 
   // ---------------------------------------------------------------------------
-  // Safety exits (hard stops)
+  // Fatal boot conditions (report only)
   // ---------------------------------------------------------------------------
   if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
     LOG_BOOT("Shutdown", "low battery");
-    shutdownWithMessage("Shut down Low Bat!");
-    return;
+    s_failReason = "Shut down Low Bat!";
+    return BOOT_LOW_BATTERY;
   }
 
   if (reset_boot) {
     LOG_BOOT("Shutdown", "after reset");
-    shutdownWithMessage("Shutdown after reset!");
-    return;
+    s_failReason = "Shutdown after reset!";
+    return BOOT_AFTER_RESET;
   }
 
   LOG_BOOT("Status", "boot checks passed");
+  return BOOT_OK;
+}
+
+const char* bootFailReason()
+{
+  return s_failReason;
 }
