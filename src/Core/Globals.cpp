@@ -1,99 +1,101 @@
+// -----------------------------------------------------------------------------
+// Globals.cpp
+//
+// Centralised global runtime state.
+//
+// Notes:
+// - This file contains ONLY data declarations
+// - No logic, no side-effects, no initialisation sequences
+// - Values are grouped by functional responsibility
+// -----------------------------------------------------------------------------
+
 #include <Arduino.h>
+
 #include "Globals.h"
 #include "Definitions.h"
 
-// Put your actual declarations exactly as in original
+// ============================================================================
+// SYSTEM / NETWORK STATE
+// ============================================================================
+bool wifi_configured   = false;
+bool downloading_file  = false;
 
-bool wifi_configured = false;
-bool downloading_file = false;
 
 
-
-Button_push Short_push12 (12, 50,   15, 1, 1);
-Button_push Long_push12  (12, 2000, 10, 4, 1);
-
-Button_push Short_push19 (GO_TO_SLEEP_PULLDOWN, 10,   10, 9, 0);
-Button_push Long_push19  (GO_TO_SLEEP_PULLDOWN, 1700, 10, 9, 0);
-
-Button_push Short_push39 (GO_TO_SLEEP_GPIO, 10,   10, 9, 1);
-Button_push Long_push39  (GO_TO_SLEEP_GPIO, 1700, 10, 9, 1);
-
+// ============================================================================
+// GPS / NAVIGATION STATE
+// ============================================================================
 bool GPS_Signal_OK = false;
 bool Field_choice  = false;
 
-byte mac[6] = {0};   // ESP32 MAC address
+char Ublox_type[20] = "Ublox unknown...";
 
-const char SW_version[16]="Ver 6.01c";
+int  last_gps_msg    = 0;
+int  nav_pvt_message = 0;
+int  nav_sat_message = 0;
+int  old_message     = 0;
+int  msgType         = 0;
 
-char Ublox_type[20]="Ublox unknown...";
+// ============================================================================
+// TIME / CLOCK / SYNC
+// ============================================================================
+int  NTP_time_set = 0;
+int  Gps_time_set = 0;
 
+char TimeZone[64] = "GMT0";
 
-char TimeZone[64] ="GMT0";
+// ============================================================================
+// DEVICE / FIRMWARE IDENTITY
+// ============================================================================
+byte mac[6] = {0};                     // ESP32 MAC address
+const char SW_version[16] = "Ver 6.01c";
 
-bool Shut_down_Save_session   = false;
+// ============================================================================
+// GPS RUN / STATISTICS
+// ============================================================================
+int   first_fix_GPS;
+int   run_count;
+int   old_run_count;
+int   stat_count;
+int   S10_previous_run;
 
-int  NTP_time_set             = 0;
-int  Gps_time_set             = 0;
-
-int last_gps_msg     = 0;
-int nav_pvt_message  = 0;
-int old_message      = 0;
-int msgType          = 0;
-int nav_sat_message = 0;
-
-
-
-// -----------------------------------------------------------------------------
-// GPS run / statistics
-// -----------------------------------------------------------------------------
-int first_fix_GPS;
-int run_count;
-int old_run_count;
-int stat_count;
-int S10_previous_run;
-
-int gps_speed;
+int   gps_speed;
 float alfa_window;
 float Mean_heading;
 float heading_SD;
 
-// -----------------------------------------------------------------------------
-// Timing / logging
-// -----------------------------------------------------------------------------
+// ============================================================================
+// LOGGING / TIMING
+// ============================================================================
 int start_logging_millis;
 int next_gpy_full_frame = 0;
 
-// -----------------------------------------------------------------------------
-// UI / screen / input
-// -----------------------------------------------------------------------------
-int GPIO12_screen = 0;   // keuze welk scherm
+// ============================================================================
+// UI / SCREEN STATE
+// ============================================================================
+int GPIO12_screen = 0;   // screen selector / UI mode
 
-// -----------------------------------------------------------------------------
-// Battery / power monitoring
-// -----------------------------------------------------------------------------
+// ============================================================================
+// BATTERY / POWER MONITORING
+// ============================================================================
 int   analog_bat;
-float analog_mean = 2000;
+float analog_mean   = 2000;
 int   low_bat_count;
 
-// -----------------------------------------------------------------------------
-// Watchdog / diagnostics
-// -----------------------------------------------------------------------------
+// ============================================================================
+// STORAGE / FILESYSTEM
+// ============================================================================
+int sdTrouble = 0;
+int freeSpace;
+
+// ============================================================================
+// WATCHDOG / DIAGNOSTICS
+// ============================================================================
 int wdt_task0;
 int wdt_task1;
 int max_count_wdt_task0;
 
-// -----------------------------------------------------------------------------
-// Storage
-// -----------------------------------------------------------------------------
-int sdTrouble = 0;
-int freeSpace;
-
-
-
-
-
-
-
-
-
-
+// ============================================================================
+// SHUTDOWN / SESSION CONTROL
+// ============================================================================
+bool Shut_down_Save_session = false;

@@ -29,7 +29,6 @@ extern bool sleep_mode;
 // --------------------------------------------------
 // Local helpers
 // --------------------------------------------------
-static void handleButtons(int &actual_speed_field);
 static void processGpsMessages();
 
 // --------------------------------------------------
@@ -52,10 +51,7 @@ void taskOne(void *parameter)
 
     wdt_task0 = millis();
 
-    // ----------------------------------------------
-    // User input
-    // ----------------------------------------------
-    handleButtons(actual_speed_field);
+
 
   
     // ----------------------------------------------
@@ -83,57 +79,7 @@ void taskOne(void *parameter)
   }
 }
 
-// ==================================================
-// Button handling
-// ==================================================
-static void handleButtons(int &actual_speed_field)
-{
-#if defined(GPIO12_ACTIF)
-  if (Short_push12.Button_pushed()) {
-    GPIO12_screen++;
-    if (GPIO12_screen > config.gpio12_count) {
-      GPIO12_screen = 0;
-    }
-  }
 
-  if (Long_push12.Button_pushed()) {
-    s10.Reset_stats();
-    s2.Reset_stats();
-    a500.Reset_stats();
-  }
-#endif
-
-  static bool buttons_enabled = false;
-
-  if (buttons_enabled) {
-    if (Long_push39.Button_pushed() || Long_push19.Button_pushed()) {
-      sleep_mode = true;
-      setMode(MODE_SLEEP);
-    }
-  }
-
-  if (Short_push39.Button_pushed() || Short_push19.Button_pushed()) {
-    if (config.Stat_screens_time == 0) {
-      stat_count++;
-    } else {
-      actual_speed_field++;
-    }
-  }
-
-  if (actual_speed_field > config.speed_count) {
-    actual_speed_field = 0;
-  }
-
-  if (stat_count > config.screen_count) {
-    stat_count = 0;
-  }
-
-  config.field_actual = config.speed_screen[actual_speed_field];
-
-  Field_choice =
-    ((Short_push39.isLongPulse() || Short_push19.isLongPulse()) &&
-     (config.Stat_screens_time != 0));
-}
 
 
 // ==================================================

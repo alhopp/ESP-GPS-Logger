@@ -38,8 +38,8 @@
 bool sleep_mode = false;
 
 // Gesture thresholds
-static constexpr uint32_t SLEEP_HOLD_MS   = 2000;  // ~2s
-static constexpr uint32_t WIFI_HOLD_MS    = 6000;  // ~6s
+static constexpr uint32_t SLEEP_HOLD_MS   = 1000;  // ~1s
+static constexpr uint32_t WIFI_HOLD_MS    = 4000;  // ~4s
 static constexpr uint32_t BOOT_IGNORE_MS  = 1500;
 
 static constexpr uint32_t LOW_STABLE_MS     = 30;
@@ -109,10 +109,9 @@ static void magnet_poll()
   }
 
   // --------------------------------------------------
-  // LONG HOLD (≥6s) → TOGGLE WIFI
+  // LONG HOLD (≥5s) → CONFIG MODE
   // --------------------------------------------------
-  if (active &&
-      !longHandled &&
+  if (active && !longHandled &&
       (now - pressTime >= WIFI_HOLD_MS)) {
 
     longHandled = true;

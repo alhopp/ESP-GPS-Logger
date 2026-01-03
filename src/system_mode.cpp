@@ -24,6 +24,7 @@
 
 #include "Definitions.h"
 #include "esp_sleep.h"
+#include "task_display.h"
 
 // -----------------------------------------------------------------------------
 // INTERNAL STATE
@@ -151,5 +152,5 @@ void setMode(SystemMode newMode)
   // Notify display task that mode has changed
   // (no drawing here — display task owns rendering)
   // ---------------------------------------------------------------------------
-  // screen_request_redraw();
+  display_dirty = true;
 }
