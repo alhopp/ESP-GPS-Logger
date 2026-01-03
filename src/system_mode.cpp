@@ -120,13 +120,14 @@ void setMode(SystemMode newMode)
       break;
 
     case MODE_FIELD_CONFIG:
-      LOG_SYS("MODE", "ENTER FIELD CONFIG → Wi-Fi AP, GPS OFF");
-
       gps_power_off();
+
+      // Wi-Fi can come up after UI is visible
       wifi_start_ap();
       break;
 
-       case MODE_SLEEP:
+
+    case MODE_SLEEP:
       LOG_SYS("MODE", "ENTER SLEEP → power down");
 
       // --- Draw sleep screen synchronously ---
