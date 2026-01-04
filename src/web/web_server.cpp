@@ -39,33 +39,8 @@ void webserver_start(WebServer &server)
 {
   if (webStarted) return;
 
-  // ---------------------------------------------------------------------------
   // Root / SPA
-  // ---------------------------------------------------------------------------
   server.on("/", HTTP_GET, [&] {
-    server.send(200, "text/html", PAGE_CONFIG_APP);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Captive portal endpoints
-  // ---------------------------------------------------------------------------
-  server.on("/hotspot-detect.html", HTTP_GET, [&] {
-    server.send(200, "text/html", PAGE_CONFIG_APP);
-  });
-
-  server.on("/library/test/success.html", HTTP_GET, [&] {
-    server.send(200, "text/html", PAGE_CONFIG_APP);
-  });
-
-  server.on("/generate_204", HTTP_GET, [&] {
-    server.send(200, "text/html", PAGE_CONFIG_APP);
-  });
-
-  server.on("/ncsi.txt", HTTP_GET, [&] {
-    server.send(200, "text/html", PAGE_CONFIG_APP);
-  });
-
-  server.on("/connecttest.txt", HTTP_GET, [&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
@@ -74,211 +49,186 @@ void webserver_start(WebServer &server)
   });
 
   // ---------------------------------------------------------------------------
-  // GET config (UI autofill)
+  // GET CONFIG  (FULL MIRROR OF Config struct)
   // ---------------------------------------------------------------------------
   server.on("/api/config", HTTP_GET, [&] {
-    StaticJsonDocument<1024> j;
+    StaticJsonDocument<2048> j;
 
+    // -------------------------------------------------------------------------
     // Wi-Fi
-    JsonObject wifi = j.createNestedObject("wifi");
-    wifi["ssid"]     = wifi_get_saved_ssid();
-    wifi["password"] = wifi_get_saved_pass();
+    // -------------------------------------------------------------------------
+    j["wifi"]["ssid"] = wifi_get_saved_ssid();
 
+    // -------------------------------------------------------------------------
     // System
+    // -------------------------------------------------------------------------
     j["system"]["cpu_freq"]     = config.cpu_freq;
     j["system"]["timezone"]     = config.timezone;
-    j["system"]["timezone_dst"] = config.timezone_DST;
+    j["system"]["timezone_DST"] = config.timezone_DST;
 
+    // -------------------------------------------------------------------------
     // GPS
+    // -------------------------------------------------------------------------
     j["gps"]["sample_rate"]   = config.sample_rate;
     j["gps"]["gnss"]          = config.gnss;
     j["gps"]["dynamic_model"] = config.dynamic_model;
     j["gps"]["cal_speed"]     = config.cal_speed;
+    j["gps"]["stat_speed"]    = config.stat_speed;
+    j["gps"]["start_logging_speed"] = config.start_logging_speed;
 
-    // Power
+    // -------------------------------------------------------------------------
+    // Power / Battery
+    // -------------------------------------------------------------------------
     j["power"]["shutdown_voltage"] = config.shutdown_voltage;
     j["power"]["bat_choice"]       = config.bat_choice;
+    j["power"]["cal_bat"]          = config.cal_bat;
+
+    // -------------------------------------------------------------------------
+    // Logging
+    // -------------------------------------------------------------------------
+    j["logging"]["track_distance"] = config.track_distance;
+    j["logging"]["archive_days"]   = config.archive_days;
+    j["logging"]["file_date_time"] = config.file_date_time;
+
+    j["logging"]["logTXT"] = config.logTXT;
+    j["logging"]["logUBX"] = config.logUBX;
+    j["logging"]["logSBP"] = config.logSBP;
+    j["logging"]["logGPY"] = config.logGPY;
+    j["logging"]["logGPX"] = config.logGPX;
+
+    // -------------------------------------------------------------------------
+    // UI / Screens
+    // -------------------------------------------------------------------------
+    j["ui"]["field"]             = config.field;
+    j["ui"]["speed_large_font"]  = config.speed_large_font;
+    j["ui"]["bar_length"]        = config.bar_length;
+    j["ui"]["sleep_off_screen"]  = config.sleep_off_screen;
+    j["ui"]["Board_Logo"]        = config.Board_Logo;
+    j["ui"]["Sail_Logo"]         = config.Sail_Logo;
+
+    j["ui"]["Stat_screens"]      = config.Stat_screens;
+    j["ui"]["Stat_screens_time"] = config.Stat_screens_time;
+
+    j["ui"]["speed_screen"]  = config.speed_screen;
+    j["ui"]["stat_screen"]   = config.stat_screen;
+    j["ui"]["gpio12_screen"] = config.gpio12_screen;
+    j["ui"]["Sleep_info"]    = config.Sleep_info;
 
     sendJson(server, j);
   });
 
   // ---------------------------------------------------------------------------
-  // POST config
+  // POST CONFIG (FULL ROUND-TRIP UPDATE)
   // ---------------------------------------------------------------------------
   server.on("/api/config", HTTP_POST, [&] {
 
-    LOG_SYS("WEB", "POST /api/config HIT");
-
-    String raw = server.arg("plain");
-    LOG_SYS("WEB", "RAW JSON: %s", raw.c_str());
-
-    StaticJsonDocument<1024> j;
-    if (deserializeJson(j, raw)) {
+    StaticJsonDocument<2048> j;
+    if (deserializeJson(j, server.arg("plain"))) {
       server.send(400, "text/plain", "Bad JSON");
       return;
     }
 
+    // -------------------------------------------------------------------------
     // Wi-Fi
+    // -------------------------------------------------------------------------
     if (j["wifi"]["ssid"]) {
       String ssid = j["wifi"]["ssid"].as<const char*>();
       String pass;
-
-      if (j["wifi"]["password"] &&
-          strlen(j["wifi"]["password"]) > 0) {
+      if (j["wifi"]["password"])
         pass = j["wifi"]["password"].as<const char*>();
-      }
-
       wifi_set_credentials(ssid, pass);
     }
 
+    // -------------------------------------------------------------------------
     // System
+    // -------------------------------------------------------------------------
     if (j["system"]) {
       config.cpu_freq     = j["system"]["cpu_freq"]     | config.cpu_freq;
       config.timezone     = j["system"]["timezone"]     | config.timezone;
-      config.timezone_DST = j["system"]["timezone_dst"] | config.timezone_DST;
+      config.timezone_DST = j["system"]["timezone_DST"] | config.timezone_DST;
     }
 
+    // -------------------------------------------------------------------------
     // GPS
+    // -------------------------------------------------------------------------
     if (j["gps"]) {
-      config.sample_rate   = j["gps"]["sample_rate"]   | config.sample_rate;
-      config.gnss          = j["gps"]["gnss"]          | config.gnss;
-      config.dynamic_model = j["gps"]["dynamic_model"] | config.dynamic_model;
-      config.cal_speed     = j["gps"]["cal_speed"]     | config.cal_speed;
+      config.sample_rate          = j["gps"]["sample_rate"] | config.sample_rate;
+      config.gnss                 = j["gps"]["gnss"] | config.gnss;
+      config.dynamic_model        = j["gps"]["dynamic_model"] | config.dynamic_model;
+      config.cal_speed            = j["gps"]["cal_speed"] | config.cal_speed;
+      config.stat_speed           = j["gps"]["stat_speed"] | config.stat_speed;
+      config.start_logging_speed  = j["gps"]["start_logging_speed"] | config.start_logging_speed;
     }
 
+    // -------------------------------------------------------------------------
     // Power
+    // -------------------------------------------------------------------------
     if (j["power"]) {
       config.shutdown_voltage = j["power"]["shutdown_voltage"] | config.shutdown_voltage;
-      config.bat_choice       = j["power"]["bat_choice"]       | config.bat_choice;
+      config.bat_choice       = j["power"]["bat_choice"] | config.bat_choice;
+      config.cal_bat          = j["power"]["cal_bat"] | config.cal_bat;
+    }
+
+    // -------------------------------------------------------------------------
+    // Logging
+    // -------------------------------------------------------------------------
+    if (j["logging"]) {
+      config.track_distance = j["logging"]["track_distance"] | config.track_distance;
+      config.archive_days   = j["logging"]["archive_days"]   | config.archive_days;
+      config.file_date_time = j["logging"]["file_date_time"] | config.file_date_time;
+
+      config.logTXT = j["logging"]["logTXT"] | config.logTXT;
+      config.logUBX = j["logging"]["logUBX"] | config.logUBX;
+      config.logSBP = j["logging"]["logSBP"] | config.logSBP;
+      config.logGPY = j["logging"]["logGPY"] | config.logGPY;
+      config.logGPX = j["logging"]["logGPX"] | config.logGPX;
+    }
+
+    // -------------------------------------------------------------------------
+    // UI / Screens
+    // -------------------------------------------------------------------------
+    if (j["ui"]) {
+      config.field            = j["ui"]["field"] | config.field;
+      config.speed_large_font = j["ui"]["speed_large_font"] | config.speed_large_font;
+      config.bar_length       = j["ui"]["bar_length"] | config.bar_length;
+      config.sleep_off_screen = j["ui"]["sleep_off_screen"] | config.sleep_off_screen;
+      config.Board_Logo       = j["ui"]["Board_Logo"] | config.Board_Logo;
+      config.Sail_Logo        = j["ui"]["Sail_Logo"] | config.Sail_Logo;
+
+      config.Stat_screens      = j["ui"]["Stat_screens"] | config.Stat_screens;
+      config.Stat_screens_time = j["ui"]["Stat_screens_time"] | config.Stat_screens_time;
+
+      if (j["ui"]["speed_screen"])
+        strlcpy(config.speed_screen, j["ui"]["speed_screen"], sizeof(config.speed_screen));
+
+      if (j["ui"]["stat_screen"])
+        strlcpy(config.stat_screen, j["ui"]["stat_screen"], sizeof(config.stat_screen));
+
+      if (j["ui"]["gpio12_screen"])
+        strlcpy(config.gpio12_screen, j["ui"]["gpio12_screen"], sizeof(config.gpio12_screen));
+
+      if (j["ui"]["Sleep_info"])
+        strlcpy(config.Sleep_info, j["ui"]["Sleep_info"], sizeof(config.Sleep_info));
     }
 
     saveConfig();
     server.send(200, "text/plain", "OK");
 
-    delay(300);
+    delay(200);
     wifi_start_sta();
   });
 
   // ---------------------------------------------------------------------------
-  // STA network status (Leaflet / internet detection)
+  // Net status
   // ---------------------------------------------------------------------------
   server.on("/api/netstatus", HTTP_GET, [&] {
-
-    bool sta = wifi_sta_connected();
-
-    String json = "{";
-    json += "\"sta\":";
-    json += sta ? "true" : "false";
-
-    if (sta) {
-      json += ",\"ssid\":\"";
-      json += wifi_sta_ssid();
-      json += "\"";
-
-      json += ",\"ip\":\"";
-      json += wifi_sta_ip();
-      json += "\"";
+    StaticJsonDocument<256> j;
+    j["sta"] = wifi_sta_connected();
+    if (wifi_sta_connected()) {
+      j["ssid"] = wifi_sta_ssid();
+      j["ip"]   = wifi_sta_ip();
     }
-
-    json += "}";
-
-    server.send(200, "application/json", json);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Wi-Fi scan (AP-only)
-  // ---------------------------------------------------------------------------
-  server.on("/api/wifi/scan", HTTP_GET, [&] {
-    if (!wifi_is_ap_mode()) {
-      server.send(403, "text/plain", "Scan disabled");
-      return;
-    }
-    server.send(200, "application/json", wifi_get_scan_json());
-  });
-
-  // ---------------------------------------------------------------------------
-  // SD file list
-  // ---------------------------------------------------------------------------
-  server.on("/api/files", HTTP_GET, [&] {
-    StaticJsonDocument<1024> j;
-    JsonArray a = j.to<JsonArray>();
-
-    File root = SD_MMC.open("/");
-    File f;
-
-    while ((f = root.openNextFile())) {
-      if (!f.isDirectory()) {
-        String name = f.name();
-        int slash = name.lastIndexOf('/');
-        if (slash >= 0) name = name.substring(slash + 1);
-
-        if (!isUserFile(name)) {
-          f.close();
-          continue;
-        }
-
-        JsonObject o = a.createNestedObject();
-        o["name"] = name;
-        o["size"] = f.size();
-      }
-      f.close();
-    }
-
     sendJson(server, j);
-  });
-
-  // ---------------------------------------------------------------------------
-  // File download
-  // ---------------------------------------------------------------------------
-  server.on("/api/file", HTTP_GET, [&] {
-
-    if (!server.hasArg("name")) {
-      server.send(400, "text/plain", "Missing name");
-      return;
-    }
-
-    String name = server.arg("name");
-
-    if (name.indexOf("..") >= 0 || name.indexOf('/') >= 0) {
-      server.send(403, "text/plain", "Invalid filename");
-      return;
-    }
-
-    if (!isUserFile(name)) {
-      server.send(403, "text/plain", "Forbidden");
-      return;
-    }
-
-    File f = SD_MMC.open("/Archive/" + name, FILE_READ);
-    if (!f || f.isDirectory()) {
-      server.send(404, "text/plain", "Not found");
-      return;
-    }
-
-    server.sendHeader(
-      "Content-Disposition",
-      "attachment; filename=\"" + name + "\""
-    );
-    server.sendHeader("Cache-Control", "no-store");
-
-    server.streamFile(f, "application/octet-stream");
-    f.close();
-  });
-
-  // ---------------------------------------------------------------------------
-  // Reboot
-  // ---------------------------------------------------------------------------
-  server.on("/api/reboot", HTTP_POST, [&] {
-    server.send(200, "text/plain", "Rebooting");
-    delay(200);
-    ESP.restart();
-  });
-
-  // ---------------------------------------------------------------------------
-  // SPA fallback
-  // ---------------------------------------------------------------------------
-  server.onNotFound([&] {
-    server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
   server.begin();
@@ -296,7 +246,7 @@ void webserver_stop()
 }
 
 // -----------------------------------------------------------------------------
-// STA helpers (used by display + logs + UI)
+// STA helpers
 // -----------------------------------------------------------------------------
 
 bool wifi_sta_connected()
@@ -311,7 +261,5 @@ String wifi_sta_ssid()
 
 String wifi_sta_ip()
 {
-  return wifi_sta_connected()
-           ? WiFi.localIP().toString()
-           : "";
+  return wifi_sta_connected() ? WiFi.localIP().toString() : "";
 }

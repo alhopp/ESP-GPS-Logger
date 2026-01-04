@@ -9,86 +9,66 @@
 #include "system_mode.h"
 #include "screen_system.h"
 
-// -----------------------------------------------------------------------------
-// DISPLAY REDRAW CONTROL
-// -----------------------------------------------------------------------------
-volatile bool display_dirty = true;   // start dirty → first draw happens
+// ============================================================================
+// Display redraw control
+// ============================================================================
+// The display task is event-driven.
+// A redraw occurs only when explicitly requested (mode change or UI event).
+// This avoids unnecessary e-paper refreshes and preserves panel health.
+//
+volatile bool display_dirty = true;   // Start dirty → first draw always happens
 
 void screen_request_redraw()
 {
   display_dirty = true;
 }
 
-
-// ----------------------------------------------------
+// ============================================================================
 // Task handle (owned here)
-// ----------------------------------------------------
+// ============================================================================
 TaskHandle_t t2 = nullptr;
 
-// ----------------------------------------------------
+// ============================================================================
 // Display task (MODE-AWARE, E-PAPER SAFE)
-// ----------------------------------------------------
+// ============================================================================
+// Responsibilities:
+//  - Render the active screen based on SystemMode
+//  - Perform full refreshes only when required
+//  - Remain idle otherwise (no periodic redraws)
+//
+// Design principles:
+//  - State-driven rendering
+//  - No animations or timers in this task
+//  - Predictable power usage
+// ============================================================================
 void taskTwo(void* parameter)
 {
   LOG_TASK("Display", "task started");
-
-  int value = 1;
-
-  // Partial update region for logging/test content
-  const int X = 0;
-  const int Y = 0;
-  const int W = 200;
-  const int H = 120;
 
   for (;;)
   {
     const SystemMode mode = getMode();
 
-    // --------------------------------------------------
-    // REDRAW ON DEMAND (MODE CHANGE OR EXPLICIT REQUEST)
-    // --------------------------------------------------
-    if (display_dirty) {
-
+    // ------------------------------------------------------------------------
+    // Redraw on demand only
+    // ------------------------------------------------------------------------
+    if (display_dirty)
+    {
       display_dirty = false;
 
-      // Full refresh on mode change
+      // Full-screen refresh (safe baseline for all modes)
       display.setFullWindow();
       display.firstPage();
       do {
         display.fillScreen(GxEPD_WHITE);
       } while (display.nextPage());
 
-      // Draw current mode screen (authoritative mapping)
-      DrawFn fn = getDrawFnForMode(mode);
-      fn();
+      // Dispatch to the active mode's draw function
+      const DrawFn draw = getDrawFnForMode(mode);
+      draw();
     }
 
-    // --------------------------------------------------
-    // HOLD MODES (STATIC UI, NO PERIODIC REDRAWS)
-    // --------------------------------------------------
-    if (mode == MODE_FIELD_CONFIG ||
-        mode == MODE_SLEEP) {
-
-      vTaskDelay(pdMS_TO_TICKS(500));
-      continue;
-    }
-
-    // --------------------------------------------------
-    // LOGGING MODE → TEST COUNTER (TEMPORARY)
-    // --------------------------------------------------
-    display.setPartialWindow(X, Y, W, H);
-    display.firstPage();
-    do {
-      display.fillRect(X, Y, W, H, GxEPD_WHITE);
-      display.setTextColor(GxEPD_BLACK);
-      display.setFont(Fonts::SpeedXL);
-      display.setCursor(X, Y + H);
-      display.print(value);
-    } while (display.nextPage());
-
-    value++;
-    if (value > 4) value = 1;
-
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    // Light idle delay — keeps task responsive without wasting power
+    vTaskDelay(pdMS_TO_TICKS(200));
   }
 }

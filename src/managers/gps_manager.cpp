@@ -219,12 +219,6 @@ bool initGPS()
 }
 
 
-
-
-
-
-
-
 GPS_data Ublox; // create an object storing GPS_data !
 GPS_SAT_info Ublox_Sat;//create an object storing GPS_SAT info !
 GPS_speed M100(100);
