@@ -101,10 +101,9 @@ extern int   gps_speed;
 extern int   S10_previous_run;
 extern int   wifi_search;
 extern int   start_logging_millis;
-extern int   freeSpace;
+
 
 extern bool  sdOK;
-extern bool  Wifi_on;
 extern bool  SoftAP_connection;
 extern bool  GPS_Signal_OK;
 

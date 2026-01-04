@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 #include <Arduino.h>
-
 #include "Globals.h"
 #include "Definitions.h"
 
@@ -21,16 +20,11 @@ bool wifi_configured   = false;
 bool downloading_file  = false;
 bool reset_boot = false;
 
-
-
 // ============================================================================
 // GPS / NAVIGATION STATE
 // ============================================================================
 bool GPS_Signal_OK = false;
-bool Field_choice  = false;
-
 char Ublox_type[20] = "Ublox unknown...";
-
 int  last_gps_msg    = 0;
 int  nav_pvt_message = 0;
 int  nav_sat_message = 0;
@@ -42,7 +36,6 @@ int  msgType         = 0;
 // ============================================================================
 int  NTP_time_set = 0;
 int  Gps_time_set = 0;
-
 char TimeZone[64] = "GMT0";
 
 // ============================================================================
@@ -59,7 +52,6 @@ int   run_count;
 int   old_run_count;
 int   stat_count;
 int   S10_previous_run;
-
 int   gps_speed;
 float alfa_window;
 float Mean_heading;
@@ -79,15 +71,7 @@ int GPIO12_screen = 0;   // screen selector / UI mode
 // ============================================================================
 // BATTERY / POWER MONITORING
 // ============================================================================
-int   analog_bat;
 float analog_mean   = 2000;
-int   low_bat_count;
-
-// ============================================================================
-// STORAGE / FILESYSTEM
-// ============================================================================
-int sdTrouble = 0;
-int freeSpace;
 
 // ============================================================================
 // WATCHDOG / DIAGNOSTICS

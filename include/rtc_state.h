@@ -79,7 +79,6 @@ extern RTC_DATA_ATTR int   RTC_highest_read;
 // ---------------------------------------------------------------------------
 // GPS state (RTC cached)
 // ---------------------------------------------------------------------------
-
 extern RTC_DATA_ATTR bool    RTC_gps_valid;
 extern RTC_DATA_ATTR uint8_t RTC_gps_baud_index;
 

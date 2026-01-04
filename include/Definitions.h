@@ -18,19 +18,6 @@
 #define T5_E_PAPER               // Compile without display functions
 #define GPIO12_ACTIF             // GPIO12 used as wake-up pin (normal GPIO disabled)
 
-
-// ============================================================================
-// Boot mode & buttons
-// ============================================================================
-
-enum BootMode {
-  MODE_CONFIG,
-  MODE_RUN
-};
-
-extern BootMode bootMode;
-
-
 // ============================================================================
 // Firmware / timing
 // ============================================================================
@@ -121,14 +108,6 @@ constexpr uint8_t UBLOX_RTC_GPIO1  = 25;
 constexpr uint8_t UBLOX_RTC_GPIO2  = 26;
 constexpr uint8_t UBLOX_GPIO3      = 27;
 
-// Sleep / wake / control
-// GPIO39 is input-only, used for magnet detect / wake / sleep request
-constexpr uint8_t GO_TO_SLEEP_GPIO = 39;
-constexpr uint8_t WAKE_UP_GPIO_NUM = 39;
-
-constexpr uint8_t GO_TO_SLEEP_PULLDOWN = 19;
-constexpr uint8_t HOLD_PIN             = 21;
-
 
 // ============================================================================
 // Battery & voltage calibration
@@ -150,10 +129,6 @@ constexpr int   TOLERANCE              = 100;
 // ============================================================================
 // Sleep / watchdog / timing
 // ============================================================================
-
-constexpr uint32_t uS_TO_S_FACTOR = 1000000UL;
-constexpr uint32_t TIME_TO_SLEEP  = 3600UL;
-
 constexpr int WDT_TIMEOUT         = 120;
 constexpr int MAX_COUNT_WDT_TASK0 = 10;
 
@@ -171,24 +146,10 @@ constexpr int MAX_GPS_SPEED_OK       = 40;    // m/s
 
 
 // ============================================================================
-// Storage / filesystem
-// ============================================================================
-
-constexpr int  TIME_OUT_NAV_PVT          = 10000;
-constexpr bool FORMAT_LITTLEFS_IF_FAILED = true;
-
-
-// ============================================================================
 // EEPROM / calibration constants
 // ============================================================================
 
-constexpr int   EEPROM_SIZE                = 512;
-
 constexpr int   STARTVALUE_HIGHEST_READ    = 1800;
-constexpr int   MAXVALUE_HIGHEST_READ      = 2600;
-
-constexpr float FULLY_CHARGED_LIPO_VOLTAGE = 4.20f;
-
 constexpr int   NO_M10_GPS                 = 0;
 
 

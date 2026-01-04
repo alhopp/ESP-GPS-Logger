@@ -17,17 +17,14 @@
 // ============================================================================
 // SYSTEM / NETWORK STATE
 // ============================================================================
-extern bool wifi_configured;
+//extern bool wifi_configured;
 extern bool downloading_file;
 
 // ============================================================================
 // GPS / NAVIGATION STATE
 // ============================================================================
 extern bool GPS_Signal_OK;
-extern bool Field_choice;
-
 extern char Ublox_type[20];
-
 extern int  last_gps_msg;
 extern int  nav_pvt_message;
 extern int  nav_sat_message;
@@ -76,15 +73,8 @@ extern int GPIO12_screen;
 // ============================================================================
 // BATTERY / POWER MONITORING
 // ============================================================================
-extern int   analog_bat;
-extern float analog_mean;
-extern int   low_bat_count;
 
-// ============================================================================
-// STORAGE / FILESYSTEM
-// ============================================================================
-extern int sdTrouble;
-extern int freeSpace;
+extern float analog_mean;
 
 // ============================================================================
 // WATCHDOG / DIAGNOSTICS
