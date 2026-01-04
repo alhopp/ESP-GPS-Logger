@@ -36,24 +36,12 @@
 DrawFn getDrawFnForMode(SystemMode mode)
 {
   switch (mode) {
-
-    case MODE_BOOT:
-      return draw_BOOT;
-
-    case MODE_LOGGING:
-      // Primary runtime screen during GPS logging
-      return draw_SPEED;
-
-    case MODE_FIELD_CONFIG:
-      // Configuration UI (Wi-Fi AP)
-      return draw_WIFI_SOFT_AP;
-
-    case MODE_SLEEP:
-      // Minimal / blank screen (reuse BOOT for now)
-      return draw_BOOT;
-
-    default:
-      return draw_BOOT;
+    case MODE_BOOT:         return draw_BOOT;
+    case MODE_FIELD_CONFIG: return draw_WIFI_SOFT_AP;
+    case MODE_WAIT_SATS:    return draw_WAIT_SATS;
+    case MODE_LOGGING:      return draw_SPEED;
+    case MODE_SLEEP:        return draw_SLEEP;
+    default:                return draw_BOOT;
   }
 }
 

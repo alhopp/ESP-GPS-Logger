@@ -23,6 +23,14 @@ static int ui_offset = 0;
 // LOCAL HELPERS (cpp-only)
 // ============================================================================
 
+
+void draw_SLEEP()
+{
+  // Reuse existing sleep renderer
+  Sleep_screen(1);   // or 0 / configurable later
+}
+
+
 static inline void beginScreen()
 {
   display.setRotation(1);
@@ -145,6 +153,28 @@ void draw_BOOT()
 
   } while (display.nextPage());
 }
+
+void draw_WAIT_SATS()
+{
+  display.setRotation(1);
+  display.fillScreen(GxEPD_WHITE);
+  display.setTextColor(GxEPD_BLACK);
+
+  drawChrome(0, true);
+
+  display.setFont(Fonts::Body12);
+  display.setCursor(0, 40);
+  display.print("Waiting for GPS");
+
+  display.setFont(Fonts::Body9);
+  display.setCursor(0, 60);
+  display.print("Acquiring satellites");
+
+  display.setCursor(0, 80);
+  display.print("Please wait...");
+}
+
+
 
 // ============================================================================
 // WIFI AP / CONFIG MODE

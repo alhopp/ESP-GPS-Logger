@@ -24,6 +24,7 @@
 // -----------------------------------------------------------------------------
 enum SystemMode : uint8_t {
   MODE_BOOT = 0,        // Transitional startup state
+  MODE_WAIT_SATS,       // Wait for Sats
   MODE_LOGGING,         // Primary mission: GPS logging, Wi-Fi OFF
   MODE_FIELD_CONFIG,    // User configuration: Wi-Fi AP, GPS OFF
   MODE_SLEEP            // Deep sleep: lowest power state

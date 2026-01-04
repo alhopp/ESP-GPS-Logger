@@ -11,6 +11,7 @@ void draw_BOOT();
 void draw_WIFI_SOFT_AP();
 void draw_WIFI_STATION();
 void draw_SLEEP();
+void draw_WAIT_SATS();
 
 void draw_GPS_INIT();
 
