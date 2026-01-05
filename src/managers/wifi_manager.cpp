@@ -9,6 +9,7 @@
 #include "wifi_manager.h"
 #include "system_mode.h"
 #include "task_display.h"
+#include "Layout.h"
 
 #include <WiFi.h>
 #include <WebServer.h>
@@ -184,11 +185,16 @@ void wifi_start_sta()
 
 LOG_WIFI("STA", "Connected IP=%s", WiFi.localIP().toString().c_str());
 
+// Only redraw rows 3–8 (status area)
+screen_request_partial(
+  Layout::ROW9(3),
+  Layout::ROW9(8) - Layout::ROW9(3) + 12
+);
+
 if (MDNS.begin(HOSTNAME)) {
   MDNS.addService("http", "tcp", 80);
 }
 
-screen_request_redraw();
 
 }
 

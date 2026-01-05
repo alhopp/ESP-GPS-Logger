@@ -131,32 +131,16 @@ void setMode(SystemMode newMode)
 
 
     case MODE_SLEEP:
-      LOG_SYS("MODE", "ENTER SLEEP → power down");
-
-      // --- Draw sleep screen synchronously ---
-      //draw_SLEEP(); //         (1);     // or your desired mode
-      delay(150);          // allow EPD to finish update
-
+      LOG_SYS("MODE", "ENTER SLEEP");
       wifi_stop();
       gps_power_off();
-
-      // Ensure magnet is RELEASED before sleeping
-      while (digitalRead(MAGNET_PIN) == LOW) {
-        delay(10);
-      }
-
-      esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0);
-      esp_deep_sleep_start();
       break;
+
 
     case MODE_BOOT:
     default:
       break;
   }
 
-  // ---------------------------------------------------------------------------
-  // Notify display task that mode has changed
-  // (no drawing here — display task owns rendering)
-  // ---------------------------------------------------------------------------
 screen_request_redraw();
 }

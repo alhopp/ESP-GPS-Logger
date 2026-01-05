@@ -14,10 +14,14 @@
 //
 // - display_dirty is the single redraw latch
 // - screen_request_redraw() is the ONLY external entry point
-// - the display task owns all rendering
+// - the display task owns all rendering and final sleep
 // ============================================================================
 
 static volatile bool display_dirty = true;
+static volatile bool partial_dirty = false;
+static int partial_y = 0;
+static int partial_h = 0;
+
 
 // Display task handle (published via task_display.h)
 TaskHandle_t t2 = nullptr;
@@ -35,87 +39,77 @@ void screen_request_redraw()
   }
 }
 
+void screen_request_partial(int y, int h)
+{
+  partial_y = y;
+  partial_h = h;
+  partial_dirty = true;
+
+  if (t2) {
+    xTaskNotifyGive(t2);
+  }
+}
+
+
+
 // ============================================================================
 // Display task
 // ============================================================================
 
 void taskTwo(void* parameter)
 {
-  // Publish our task handle for notifications
   t2 = xTaskGetCurrentTaskHandle();
-
   LOG_TASK("Display", "task started");
 
   for (;;)
   {
-  // -----------------------------------------------------------------------------
-  // Redraw handling
-  //
-  // This block is entered ONLY when a redraw has been requested.
-  // The request can come from:
-  //  - a system mode change (LOGGING / CONFIG / SLEEP / BOOT)
-  //  - an explicit screen_request_redraw() call
-  // -----------------------------------------------------------------------------
-  if (display_dirty)
-  {
-    // Clear the redraw latch immediately.
-    display_dirty = false;
+    if (display_dirty || partial_dirty)
+    {
+      const bool doPartial = partial_dirty && !display_dirty;
 
-    // ---------------------------------------------------------------------------
-    // Determine WHAT screen to draw
-    // ---------------------------------------------------------------------------
-    const SystemMode mode = getMode();              // Current system state
+      display_dirty = false;
+      partial_dirty = false;
 
-    // -----------------------------------------------------------------------------
-    // The display task uses a SINGLE draw loop.
-    // What changes is the draw() function pointer selected at runtime.
-    //
-    // Depending on the current SystemMode, the draw function pointer resolves to:
-    //
-    //   SystemMode           → draw() points to
-    //   ------------------------------------------------
-    //   MODE_LOGGING         → draw_LOGGING()
-    //   MODE_WIFI_SOFT_AP    → draw_FIELD_CFG()
-    //   MODE_WAIT_SATS       → draw_WAIT_SATS()
-    //   MODE_SLEEP           → draw_SLEEP()
-    //
-    // The draw loop itself never changes.
-    // Only the function that draw() invokes is different.
-    // -----------------------------------------------------------------------------
+      const SystemMode mode = getMode();
+      const DrawFn draw     = getDrawFnForMode(mode);
 
-
-    const DrawFn     draw = getDrawFnForMode(mode); // Mode → draw function mapping
-
-    // ---------------------------------------------------------------------------
-    // Begin a full e-paper refresh
-    // ---------------------------------------------------------------------------
-    display.setFullWindow();   // Target the entire screen
-    display.firstPage();
-
-    do {
-      // Clear the current page buffer to a known background.
-      // This ensures no ghosting or leftover pixels.
-      display.fillScreen(GxEPD_WHITE);
-
-      // -------------------------------------------------------------------------
-      // Draw the active screen
-      //
-      // The draw function:
-      //  - renders the UI for the current mode
-      // -------------------------------------------------------------------------
-      if (draw) {
-        draw();
+      // -----------------------------
+      // Select refresh window
+      // -----------------------------
+      if (doPartial) {
+        display.setPartialWindow(
+          0,
+          partial_y,
+          display.width(),
+          partial_h
+        );
+      } else {
+        display.setFullWindow();
       }
 
-    // Commit the current page and advance until the full screen is updated
-    } while (display.nextPage());
-  }
+      display.firstPage();
+      do {
+        display.fillScreen(GxEPD_WHITE);
+        if (draw) draw();
+      } while (display.nextPage());
 
-    // -------------------------------------------------------------------------
-    // Sleep until:
-    //  - a redraw is requested, or
-    //  - timeout (acts as a safety wake)
-    // -------------------------------------------------------------------------
+      // -----------------------------
+      // FINAL ACTION: sleep transition
+      // -----------------------------
+      if (mode == MODE_SLEEP) {
+
+        LOG_TASK("Display", "final refresh complete → deep sleep");
+        delay(200);
+
+        while (digitalRead(MAGNET_PIN) == LOW) {
+          delay(10);
+        }
+
+        esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0);
+        esp_deep_sleep_start();
+      }
+    }
+
     ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
   }
 }
