@@ -21,57 +21,124 @@ footer button{flex:1;padding:12px;border-radius:8px;border:0;font-weight:600;bac
 <header>ESP32 GPS</header>
 
 <nav>
-<button class=a onclick="t('system',this)">System</button>
-<button onclick="t('gps',this)">GPS</button>
-<button onclick="t('power',this)">Power</button>
-<button onclick="t('logging',this)">Logging</button>
-<button onclick="t('ui',this)">UI</button>
+<button class=a onclick="t('settings',this)">Settings</button>
+<button onclick="t('advanced',this)">Advanced</button>
 <button onclick="t('wifi',this)">Wi-Fi</button>
 </nav>
 
-<section id=system class=a><div class=card>
+<!-- SETTINGS -->
+<section id=settings class=a>
+<div class=card>
+<h3>User</h3>
+<label>Name</label><input id=Sleep_info>
+</div>
+
+<div class=card>
+<h3>Display</h3>
+<label>Bar Length (m)</label><input id=bar_length type=number>
+<label><input type=checkbox id=speed_large_font> Large Speed Font</label>
+
+<label>Board Logo</label>
+<select id=Board_Logo>
+<option value=0>Off</option>
+<option value=1>Generic</option>
+<option value=2>Slalom</option>
+<option value=3>Foil</option>
+<option value=4>Wave</option>
+<option value=5>Speed</option>
+</select>
+
+<label>Sail Logo</label>
+<select id=Sail_Logo>
+<option value=0>Off</option>
+<option value=1>Neutral</option>
+<option value=2>Race</option>
+<option value=3>Wave</option>
+<option value=4>Foil</option>
+</select>
+</div>
+
+<div class=card>
+<h3>Statistics</h3>
+<label>Stat Screens</label><input id=Stat_screens type=number>
+<label>Stat Screen Time (s)</label><input id=Stat_screens_time type=number>
+</div>
+</section>
+
+<!-- ADVANCED -->
+<section id=advanced>
+<div class=card>
 <h3>System</h3>
-<label>CPU</label><select id=cpu_freq><option>80<option>160<option>240</select>
-<label>Timezone</label><input id=timezone type=number step=.5>
-<label><input type=checkbox id=timezone_dst> DST</label>
-</div></section>
+<label>CPU Frequency</label>
+<select id=cpu_freq><option>80<option>160<option>240</select>
 
-<section id=gps><div class=card>
+<label>Timezone</label>
+<select id=timezone>
+<option value="-12">UTC-12</option>
+<option value="-8">UTC-8</option>
+<option value="-5">UTC-5 (US Eastern)</option>
+<option value="0">UTC</option>
+<option value="1">UTC+1 (Europe)</option>
+<option value="8">UTC+8 (Australia/Perth)</option>
+<option value="10">UTC+10 (Australia/Sydney)</option>
+<option value="12">UTC+12</option>
+</select>
+
+<label><input type=checkbox id=timezone_DST> DST</label>
+</div>
+
+<div class=card>
 <h3>GPS</h3>
-<label>Rate</label><select id=sample_rate><option>1<option>5<option>10</select>
-<label>GNSS</label><select id=gnss><option value=1>GPS<option value=2>GPS+GLO<option value=3>GPS+GAL</select>
-<label>Cal</label><input id=cal_speed type=number step=.01>
-</div></section>
+<label>Sample Rate</label>
+<select id=sample_rate><option>1<option>5<option>10</select>
 
-<section id=power><div class=card>
+<label>GNSS</label>
+<select id=gnss>
+<option value=1>GPS</option>
+<option value=2>GPS + GLONASS</option>
+<option value=3>GPS + GALILEO</option>
+</select>
+
+<label>Speed Units</label>
+<select id=cal_speed>
+<option value="1.9438">Knots</option>
+<option value="3.6">km/h</option>
+</select>
+</div>
+
+<div class=card>
 <h3>Power</h3>
-<label>Shutdown</label><input id=shutdown_voltage type=number step=.1>
+<label>Shutdown Voltage</label><input id=shutdown_voltage type=number step=.1>
 <label><input type=checkbox id=bat_choice> Battery %</label>
-</div></section>
+</div>
 
-<section id=logging><div class=card>
+<div class=card>
 <h3>Logging</h3>
-<label>Distance</label><input id=track_distance type=number>
+<label>Track Distance (m)</label><input id=track_distance type=number>
 <label><input type=checkbox id=logTXT> TXT</label>
 <label><input type=checkbox id=logUBX> UBX</label>
 <label><input type=checkbox id=logSBP> SBP</label>
 <label><input type=checkbox id=logGPY> GPY</label>
 <label><input type=checkbox id=logGPX> GPX</label>
-</div></section>
+</div>
 
-<section id=ui><div class=card>
-<h3>UI</h3>
-<label>Bar</label><input id=bar_length type=number>
-<label><input type=checkbox id=speed_large_font> Large Speed</label>
-<label>Sleep Code</label><input id=sleep_off_screen type=number>
-</div></section>
+<div class=card>
+<h3>Screen Sequences</h3>
+<label>Speed Screen</label><input id=speed_screen>
+<label>Stat Screen</label><input id=stat_screen>
+<label>GPIO12 Screen</label><input id=gpio12_screen>
+</div>
+</section>
 
-<section id=wifi><div class=card>
+<!-- WIFI -->
+<section id=wifi>
+<div class=card>
 <h3>Wi-Fi</h3>
 <label>SSID</label><input id=ssid>
 <label>Password</label><input id=password type=password>
 <div class=small id=wifiInfo>Checking…</div>
-</div></section>
+</div>
+</section>
 
 <footer>
 <button onclick=save()>Save</button>
@@ -81,26 +148,58 @@ footer button{flex:1;padding:12px;border-radius:8px;border:0;font-weight:600;bac
 <script>
 const $=i=>document.getElementById(i);
 function t(id,b){document.querySelectorAll("nav button,section").forEach(e=>e.classList.remove("a"));b.classList.add("a");$(id).classList.add("a")}
-function set(e,v){e&&(e.type=="checkbox"?e.checked=!!v:e.value=v??"")}
+function set(e,v){if(!e)return;e.type=="checkbox"?e.checked=!!v:e.value=v??""}
 
 async function load(){
 const c=await(await fetch("/api/config")).json();
-set(cpu_freq,c.system?.cpu_freq);set(timezone,c.system?.timezone);set(timezone_dst,c.system?.timezone_DST);
-set(sample_rate,c.gps?.sample_rate);set(gnss,c.gps?.gnss);set(cal_speed,c.gps?.cal_speed);
-set(shutdown_voltage,c.power?.shutdown_voltage);set(bat_choice,c.power?.bat_choice);
+set(cpu_freq,c.system?.cpu_freq);
+set(timezone,c.system?.timezone);
+set(timezone_DST,c.system?.timezone_DST);
+
+set(sample_rate,c.gps?.sample_rate);
+set(gnss,c.gps?.gnss);
+set(cal_speed,c.gps?.cal_speed);
+
+set(shutdown_voltage,c.power?.shutdown_voltage);
+set(bat_choice,c.power?.bat_choice);
+
 set(track_distance,c.logging?.track_distance);
 ["logTXT","logUBX","logSBP","logGPY","logGPX"].forEach(k=>set($(k),c.logging?.[k]));
-set(bar_length,c.ui?.bar_length);set(speed_large_font,c.ui?.speed_large_font);set(sleep_off_screen,c.ui?.sleep_off_screen);
+
+set(bar_length,c.ui?.bar_length);
+set(speed_large_font,c.ui?.speed_large_font);
+set(Board_Logo,c.ui?.Board_Logo);
+set(Sail_Logo,c.ui?.Sail_Logo);
+
+set(Stat_screens,c.ui?.Stat_screens);
+set(Stat_screens_time,c.ui?.Stat_screens_time);
+
+set(speed_screen,c.ui?.speed_screen);
+set(stat_screen,c.ui?.stat_screen);
+set(gpio12_screen,c.ui?.gpio12_screen);
+set(Sleep_info,c.ui?.Sleep_info);
+
 if(c.wifi?.ssid)ssid.value=c.wifi.ssid;
 update();
 }
 
 async function save(){
-const p={system:{cpu_freq:+cpu_freq.value,timezone:+timezone.value,timezone_DST:timezone_dst.checked},
+const p={
+system:{cpu_freq:+cpu_freq.value,timezone:+timezone.value,timezone_DST:timezone_DST.checked},
 gps:{sample_rate:+sample_rate.value,gnss:+gnss.value,cal_speed:+cal_speed.value},
 power:{shutdown_voltage:+shutdown_voltage.value,bat_choice:bat_choice.checked},
-logging:{track_distance:+track_distance.value},
-ui:{bar_length:+bar_length.value,speed_large_font:speed_large_font.checked,sleep_off_screen:+sleep_off_screen.value},
+logging:{track_distance:+track_distance.value,logTXT:logTXT.checked,logUBX:logUBX.checked,logSBP:logSBP.checked,logGPY:logGPY.checked,logGPX:logGPX.checked},
+ui:{
+bar_length:+bar_length.value,
+speed_large_font:speed_large_font.checked,
+Board_Logo:+Board_Logo.value,
+Sail_Logo:+Sail_Logo.value,
+Stat_screens:+Stat_screens.value,
+Stat_screens_time:+Stat_screens_time.value,
+speed_screen:speed_screen.value,
+stat_screen:stat_screen.value,
+gpio12_screen:gpio12_screen.value,
+Sleep_info:Sleep_info.value},
 wifi:{ssid:ssid.value}};
 if(password.value)p.wifi.password=password.value;
 await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
@@ -115,13 +214,8 @@ setTimeout(update,2000);
 
 async function update(){
 const s=await(await fetch("/api/netstatus")).json();
-if(s.sta){
-wifiInfo.textContent=`Connected ${s.ssid} ${s.ip}`;
-wifiBtn.textContent="Connected";wifiBtn.disabled=true;
-}else{
-wifiInfo.textContent="Not connected";
-wifiBtn.textContent="Connect";wifiBtn.disabled=false;
-}
+if(s.sta){wifiInfo.textContent=`Connected ${s.ssid} ${s.ip}`;wifiBtn.textContent="Connected";wifiBtn.disabled=true}
+else{wifiInfo.textContent="Not connected";wifiBtn.textContent="Connect";wifiBtn.disabled=false}
 }
 
 load();
