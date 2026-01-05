@@ -10,18 +10,26 @@
 #include "screen_system.h"
 
 // ============================================================================
-// Display redraw control
+// Display redraw signalling
+//
+// - display_dirty is the single redraw latch
+// - screen_request_redraw() is the ONLY external entry point
+// - the display task owns all rendering
 // ============================================================================
-volatile bool display_dirty = true;
 
-// Forward declaration of task handle
+static volatile bool display_dirty = true;
+
+// Display task handle (published via task_display.h)
 TaskHandle_t t2 = nullptr;
 
+// -----------------------------------------------------------------------------
+// Request a full display redraw
+// -----------------------------------------------------------------------------
 void screen_request_redraw()
 {
   display_dirty = true;
 
-  // Wake display task immediately
+  // Wake the display task immediately if running
   if (t2) {
     xTaskNotifyGive(t2);
   }
@@ -30,31 +38,84 @@ void screen_request_redraw()
 // ============================================================================
 // Display task
 // ============================================================================
+
 void taskTwo(void* parameter)
 {
-  // Capture our own task handle
+  // Publish our task handle for notifications
   t2 = xTaskGetCurrentTaskHandle();
 
   LOG_TASK("Display", "task started");
 
   for (;;)
   {
-    if (display_dirty)
-    {
-      display_dirty = false;
+  // -----------------------------------------------------------------------------
+  // Redraw handling
+  //
+  // This block is entered ONLY when a redraw has been requested.
+  // The request can come from:
+  //  - a system mode change (LOGGING / CONFIG / SLEEP / BOOT)
+  //  - an explicit screen_request_redraw() call
+  // -----------------------------------------------------------------------------
+  if (display_dirty)
+  {
+    // Clear the redraw latch immediately.
+    display_dirty = false;
 
-      // Safe full refresh baseline
-      display.setFullWindow();
-      display.firstPage();
-      do {
-        display.fillScreen(GxEPD_WHITE);
-      } while (display.nextPage());
+    // ---------------------------------------------------------------------------
+    // Determine WHAT screen to draw
+    // ---------------------------------------------------------------------------
+    const SystemMode mode = getMode();              // Current system state
 
-      const DrawFn draw = getDrawFnForMode(getMode());
-      draw();
-    }
+    // -----------------------------------------------------------------------------
+    // The display task uses a SINGLE draw loop.
+    // What changes is the draw() function pointer selected at runtime.
+    //
+    // Depending on the current SystemMode, the draw function pointer resolves to:
+    //
+    //   SystemMode           → draw() points to
+    //   ------------------------------------------------
+    //   MODE_LOGGING         → draw_LOGGING()
+    //   MODE_FIELD_CONFIG    → draw_FIELD_CFG()
+    //   MODE_WAIT_SATS       → draw_WAIT_SATS()
+    //   MODE_SLEEP           → draw_SLEEP()
+    //
+    // The draw loop itself never changes.
+    // Only the function that draw() invokes is different.
+    // -----------------------------------------------------------------------------
 
-    // Sleep until redraw requested or timeout
+
+    const DrawFn     draw = getDrawFnForMode(mode); // Mode → draw function mapping
+
+    // ---------------------------------------------------------------------------
+    // Begin a full e-paper refresh
+    // ---------------------------------------------------------------------------
+    display.setFullWindow();   // Target the entire screen
+    display.firstPage();
+
+    do {
+      // Clear the current page buffer to a known background.
+      // This ensures no ghosting or leftover pixels.
+      display.fillScreen(GxEPD_WHITE);
+
+      // -------------------------------------------------------------------------
+      // Draw the active screen
+      //
+      // The draw function:
+      //  - renders the UI for the current mode
+      // -------------------------------------------------------------------------
+      if (draw) {
+        draw();
+      }
+
+    // Commit the current page and advance until the full screen is updated
+    } while (display.nextPage());
+  }
+
+    // -------------------------------------------------------------------------
+    // Sleep until:
+    //  - a redraw is requested, or
+    //  - timeout (acts as a safety wake)
+    // -------------------------------------------------------------------------
     ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
   }
 }
