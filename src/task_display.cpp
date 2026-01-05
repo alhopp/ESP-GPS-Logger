@@ -75,7 +75,7 @@ void taskTwo(void* parameter)
     //   SystemMode           → draw() points to
     //   ------------------------------------------------
     //   MODE_LOGGING         → draw_LOGGING()
-    //   MODE_FIELD_CONFIG    → draw_FIELD_CFG()
+    //   MODE_WIFI_SOFT_AP    → draw_FIELD_CFG()
     //   MODE_WAIT_SATS       → draw_WAIT_SATS()
     //   MODE_SLEEP           → draw_SLEEP()
     //

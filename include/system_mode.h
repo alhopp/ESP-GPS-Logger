@@ -22,12 +22,15 @@
 // -----------------------------------------------------------------------------
 // SYSTEM MODES
 // -----------------------------------------------------------------------------
-enum SystemMode : uint8_t {
-  MODE_BOOT = 0,        // Transitional startup state
-  MODE_WAIT_SATS,       // Wait for Sats
-  MODE_LOGGING,         // Primary mission: GPS logging, Wi-Fi OFF
-  MODE_FIELD_CONFIG,    // User configuration: Wi-Fi AP, GPS OFF
-  MODE_SLEEP            // Deep sleep: lowest power state
+enum SystemMode {
+  MODE_BOOT,
+  MODE_WAIT_SATS,
+
+  MODE_WIFI_SOFT_AP,     // Config / captive portal
+  MODE_WIFI_STATION,     // Connected to home Wi-Fi
+
+  MODE_LOGGING,
+  MODE_SLEEP,
 };
 
 // -----------------------------------------------------------------------------

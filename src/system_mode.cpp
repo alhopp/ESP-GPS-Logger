@@ -45,14 +45,16 @@ SystemMode getMode()
 const char* modeToString(SystemMode mode)
 {
   switch (mode) {
-    case MODE_BOOT:         return "BOOT";
-    case MODE_WAIT_SATS:    return "WAIT_SATS";
-    case MODE_LOGGING:      return "LOGGING";
-    case MODE_FIELD_CONFIG: return "FIELD_CFG";
-    case MODE_SLEEP:        return "SLEEP";
-    default:                return "?";
+    case MODE_BOOT:          return "BOOT";
+    case MODE_WAIT_SATS:     return "WAIT_SATS";
+    case MODE_WIFI_SOFT_AP:  return "WIFI_SOFT_AP";
+    case MODE_WIFI_STATION:  return "WIFI_STATION";
+    case MODE_LOGGING:       return "LOGGING";
+    case MODE_SLEEP:         return "SLEEP";
+    default:                 return "?";
   }
 }
+
 
 
 // -----------------------------------------------------------------------------
@@ -81,7 +83,7 @@ void setMode(SystemMode newMode)
       // (logging task reacts independently)
       break;
 
-    case MODE_FIELD_CONFIG:
+    case MODE_WIFI_SOFT_AP:
       // Leaving configuration mode → shut down Wi-Fi
       wifi_stop();
       break;
@@ -121,7 +123,7 @@ void setMode(SystemMode newMode)
       gps_power_on();  
       break;
 
-    case MODE_FIELD_CONFIG:
+    case MODE_WIFI_SOFT_AP:
       gps_power_off();
 
       // Wi-Fi can come up after UI is visible

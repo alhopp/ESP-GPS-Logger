@@ -45,7 +45,7 @@ void taskOne(void *parameter)
     // ----------------------------------------------
     SystemMode mode = getMode();
    if (mode != MODE_LOGGING &&
-        mode != MODE_FIELD_CONFIG &&
+        mode != MODE_WIFI_SOFT_AP &&
         mode != MODE_WAIT_SATS) {
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;

@@ -20,6 +20,8 @@
 // -----------------------------------------------------------------------------
 #include "boot_manager.h"
 #include "wifi_manager.h"
+#include "web/web_server.h"
+
 #include "storage_manager.h"
 #include "config_manager.h"
 #include "gps_manager.h"
@@ -106,7 +108,7 @@ void setup()
   setMode(MODE_WAIT_SATS);
   screen_request_redraw();
 
-  
+
 }
 
 // ============================================================================
@@ -118,7 +120,7 @@ void loop()
   watchdogLoop();
 
   // Service Wi-Fi only in config mode
-  if (getMode() == MODE_FIELD_CONFIG) {
+  if (getMode() == MODE_WIFI_SOFT_AP) {
     wifi_loop();
   }
 
@@ -218,10 +220,10 @@ static void magnet_poll()
 
     longHandled = true;
 
-    if (getMode() == MODE_FIELD_CONFIG) {
+    if (getMode() == MODE_WIFI_SOFT_AP) {
       setMode(MODE_LOGGING);
     } else {
-      setMode(MODE_FIELD_CONFIG);
+      setMode(MODE_WIFI_SOFT_AP);
     }
   }
 
@@ -273,16 +275,22 @@ static void heartbeat()
     }
 */
     // --- Internet backhaul status (STA) ---
-    Serial.print(" net=");
-    if (wifi_sta_connected()) {
-      Serial.print("UP ssid=");
-      Serial.print(wifi_sta_ssid());
-      Serial.print(" ip=");
-      Serial.print(wifi_sta_ip());
-    } else {
-      Serial.print("DOWN");
-    }
+   Serial.print(" net=");
 
-    Serial.println();
+  if (wifi_sta_connected()) {
+    Serial.print("UP ssid=");
+    Serial.print(wifi_sta_ssid());
+    Serial.print(" ip=");
+    Serial.print(wifi_sta_ip());
+  }
+  else if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("UP (pending)");
+  }
+  else {
+    Serial.print("DOWN");
+  }
+
+  Serial.println();
+
   }
 }

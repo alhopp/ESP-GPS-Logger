@@ -8,6 +8,7 @@
 #include <ArduinoJson.h>
 #include "wifi_manager.h"
 #include "system_mode.h"
+#include "task_display.h"
 
 #include <WiFi.h>
 #include <WebServer.h>
@@ -162,7 +163,7 @@ void initWifi()
 {
    
   loadCreds();             
-    setMode(MODE_FIELD_CONFIG);
+    setMode(MODE_WIFI_SOFT_AP);
 
 }
 
@@ -186,7 +187,7 @@ void wifi_start_sta()
 {
   if (!loadCreds()) {
     LOG_WIFI("STA", "No creds → FIELD_CFG");
-    setMode(MODE_FIELD_CONFIG);
+    setMode(MODE_WIFI_SOFT_AP);
     return;
   }
 
@@ -216,8 +217,8 @@ if (MDNS.begin(HOSTNAME)) {
   MDNS.addService("http", "tcp", 80);
 }
 
-//startServer();   // <-- ADD THIS
-
+setMode(MODE_WIFI_STATION);
+screen_request_redraw();
 
 }
 
