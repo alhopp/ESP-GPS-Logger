@@ -27,7 +27,6 @@ enum SystemMode {
   MODE_WAIT_SATS,
 
   MODE_WIFI_SOFT_AP,     // Config / captive portal
-  MODE_WIFI_STATION,     // Connected to home Wi-Fi
 
   MODE_LOGGING,
   MODE_SLEEP,

@@ -37,7 +37,6 @@ static IPAddress netMask(255, 255, 255, 0);
 // ============================================================================
 // Forward decls
 // ============================================================================
-static void scanOnce();
 static void startServer();
 static bool loadCreds();
 static void saveCreds(const String& ssid, const String& pass);
@@ -56,9 +55,6 @@ static bool apMode        = false;
 static String savedSSID;
 static String savedPASS;
 
-// Cached scan results (FIELD mode only)
-static bool   scanDone = false;
-static String scanJSON;
 
 // ============================================================================
 // Public helpers
@@ -74,29 +70,6 @@ bool wifi_is_ap_mode()
   return apMode;
 }
 
-String wifi_get_scan_json()
-{
-  return scanJSON;
-}
-
-// ============================================================================
-// LittleFS mount helper
-// ============================================================================
-//
-// You likely mount LittleFS elsewhere (storage_manager). This guard prevents
-// silent failures if wifi creds are saved before storage init.
-//
-//static bool ensureLittleFSMounted()
-//{
-  // If already mounted, begin() returns true quickly on ESP32 core.
-//  if (LittleFS.begin()) return true;
-
-  // Optional: auto-format if uninitialized; comment out if you dislike this.
-  //if (LittleFS.begin(true)) return true;
-
- // LOG_WIFI("FS", "LittleFS mount failed");
-//  return false;
-//}
 
 // ============================================================================
 // Credential storage
@@ -192,8 +165,6 @@ void wifi_start_sta()
   }
 
   apMode   = true;
-  scanDone = false;
-  scanJSON = "";
 
   LOG_WIFI("STA", "Connecting to '%s' pass_len=%d",
            savedSSID.c_str(), savedPASS.length());
@@ -217,56 +188,16 @@ if (MDNS.begin(HOSTNAME)) {
   MDNS.addService("http", "tcp", 80);
 }
 
-setMode(MODE_WIFI_STATION);
 screen_request_redraw();
 
 }
 
-// ============================================================================
-// AP + Captive Portal (SCAN ONCE HERE)
-// ============================================================================
-
-static void scanOnce()
-{
-  if (scanDone) return;
-
-  StaticJsonDocument<2048> j;
-  JsonArray a = j.to<JsonArray>();
-
-  // In AP mode, you can still scan on ESP32, but it can be slow.
-  // You requested scan exactly once, so we cache results.
-  int n = WiFi.scanNetworks(false, true);
-
-  for (int i = 0; i < n; i++) {
-    String ssid = WiFi.SSID(i);
-    if (!ssid.length()) continue;
-
-    bool dup = false;
-    for (JsonObject o : a) {
-      if (o["ssid"] == ssid) { dup = true; break; }
-    }
-    if (dup) continue;
-
-    JsonObject o = a.createNestedObject();
-    o["ssid"]   = ssid;
-    o["rssi"]   = WiFi.RSSI(i);
-    o["secure"] = (WiFi.encryptionType(i) != WIFI_AUTH_OPEN);
-  }
-
-  WiFi.scanDelete();
-
-  scanJSON = "";
-  serializeJson(j, scanJSON);
-  scanDone = true;
-}
 
 // = device control via phone
 
 void wifi_start_ap()
 {
   apMode   = true;
-  scanDone = false;
-  scanJSON = "";
 
   WiFi.mode(WIFI_AP_STA);   // AP always allowed, STA preserved if present
   WiFi.softAPConfig(apIP, apIP, netMask);
@@ -279,7 +210,6 @@ void wifi_start_ap()
 
   dnsServer.start(53, "*", WiFi.softAPIP());
 
-  scanOnce();   // ONE AND ONLY SCAN
   startServer();
 
   LOG_WIFI("AP", "Started SSID='%s' IP=%s",
@@ -305,8 +235,6 @@ void wifi_stop()
   serverStarted = false;
   apMode        = false;
 
-  scanDone      = false;
-  scanJSON      = "";
 }
 
 // ============================================================================

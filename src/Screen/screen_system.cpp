@@ -97,16 +97,35 @@ void draw_BOOT()
 
 
 
-
 void draw_WIFI_SOFT_AP()
 {
+  const bool staConnected = wifi_sta_connected();
+
   drawSystemLayout(
     "CONFIG MODE",
-    "Connect via phone",
-    "WiFi", wifi_ap_name(),
-    "IP",   WiFi.softAPIP().toString().c_str()
+    staConnected
+      ? "Internet connected"
+      : "Connect via phone",
+
+    "WiFi",
+    staConnected
+      ? wifi_sta_ssid().c_str()
+      : wifi_ap_name(),
+
+    "IP",
+    staConnected
+      ? wifi_sta_ip().c_str()
+      : WiFi.softAPIP().toString().c_str()
   );
+
+  // Optional user hint (extra line, same layout family)
+  display.setFont(Fonts::Body9);
+  display.setCursor(ui_offset, Layout::ROW9(8));
+  display.print(staConnected
+                ? "Access via home network"
+                : "Connect to device Wi-Fi");
 }
+
 
 void draw_WAIT_SATS()
 {
@@ -119,38 +138,6 @@ void draw_WAIT_SATS()
     "Sats", satsBuf,
     nullptr, nullptr
   );
-}
-
-
-
-
-// ============================================================================
-// MODE: WIFI_STATION  (connected to AP / home mode)
-// ============================================================================
-void draw_WIFI_STATION()
-{
-  const bool staConnected = (WiFi.status() == WL_CONNECTED);
-
-  drawSystemLayout(
-    "BEACH MODE",
-    staConnected ? "Internet connected"
-                 : "Device Wi-Fi only",
-
-    "WiFi",
-    staConnected ? WiFi.SSID().c_str()
-                 : "ESP32 GPS (AP)",
-
-    "IP",
-    staConnected ? WiFi.localIP().toString().c_str()
-                 : WiFi.softAPIP().toString().c_str()
-  );
-
-  // --- Optional user hint (extra row, same style) ---
-  display.setFont(Fonts::Body9);
-  display.setCursor(ui_offset, Layout::ROW9(8));
-  display.print(staConnected
-                ? "Access via home network"
-                : "Connect to device Wi-Fi");
 }
 
 

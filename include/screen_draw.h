@@ -21,7 +21,6 @@ void draw_BOOT();
 void draw_WAIT_SATS();
 void draw_LOGGING();        // May internally show SPEED / STATS pages
 void draw_WIFI_SOFT_AP();
-void draw_WIFI_STATION();
 void draw_SLEEP();
 
 

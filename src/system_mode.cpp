@@ -48,7 +48,6 @@ const char* modeToString(SystemMode mode)
     case MODE_BOOT:          return "BOOT";
     case MODE_WAIT_SATS:     return "WAIT_SATS";
     case MODE_WIFI_SOFT_AP:  return "WIFI_SOFT_AP";
-    case MODE_WIFI_STATION:  return "WIFI_STATION";
     case MODE_LOGGING:       return "LOGGING";
     case MODE_SLEEP:         return "SLEEP";
     default:                 return "?";

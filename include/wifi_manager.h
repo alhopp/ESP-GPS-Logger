@@ -36,7 +36,6 @@ void wifi_set_credentials(const String& ssid, const String& pass);
 const char* wifi_ap_name();
 
 bool   wifi_is_ap_mode();
-String wifi_get_scan_json();
 
 // -----------------------------------------------------------------------------
 // Saved Wi-Fi credentials access (for Web UI autofill)
@@ -46,9 +45,8 @@ bool   wifi_has_credentials();
 String wifi_get_saved_ssid();
 String wifi_get_saved_pass();
 
-// -----------------------------------------------------------------------------
-// Live STA status (runtime)
-// -----------------------------------------------------------------------------
+
+// ---- STA status helpers (read-only) ----
+bool   wifi_sta_connected();
 String wifi_sta_ssid();
 String wifi_sta_ip();
-
