@@ -13,72 +13,32 @@
 #include "wifi_manager.h"
 #include "rtc_state.h"
 
+#include "E_paper.h"
 // ============================================================================
 // UI STATE
 // ============================================================================
 static int ui_offset = 0;
 
 // ============================================================================
-// LOCAL HELPERS (cpp-only)
-// ============================================================================
-
-
-void draw_SLEEP()
-{
-  // Reuse existing sleep renderer
-  Sleep_screen(1);   // or 0 / configurable later
-}
-
-
-static inline void beginScreen()
-{
-  display.setRotation(1);
-  display.fillScreen(GxEPD_WHITE);
-  display.setTextColor(GxEPD_BLACK);
-}
-
-static inline void drawTitle(const char* txt)
-{
-  display.setFont(Fonts::Body12);
-  display.setCursor(ui_offset, Layout::ROW9(1));
-  display.print(txt);
-}
-
-static inline void drawSpeedUnitsFooter()
-{
-  display.setRotation(0);
-  display.setCursor(30, 249);
-  display.setFont(Fonts::Small6);
-
-  if ((int)(calibration_speed * 100000) == 194) {
-    display.print("speed in knots");
-  }
-  else if ((int)(calibration_speed * 1000000) == 3600) {
-    display.print("speed in km/h");
-  }
-
-  display.setRotation(1);
-}
-
-// ============================================================================
 // OFF SCREEN (shutdown / save)
 // ============================================================================
 
-void Off_screen(int choice)
+void draw_SLEEP()
 {
   const float session_time =
       (millis() - start_logging_millis) / 1000.0f;
 
-  beginScreen();
+  drawChrome(ui_offset, false);
 
-  drawTitle("ESP-GPS saving");
+  drawTopLeftTitle("ESP-GPS saving");
   device_boot_log(4, 0);
 
   int cursor = Layout::ROW9(3) + Layout::STEP12;
   display.setCursor(ui_offset, cursor);
 
   // --- LOW BATTERY ---
-  if (choice == 2) {
+  if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
+
     display.println("Shutdown LOW Bat");
 
     display.setFont(Fonts::Body9);
@@ -109,62 +69,60 @@ void Off_screen(int choice)
   else {
     display.println("Going back to sleep");
   }
-
-  drawChrome(ui_offset, false);
-  display.display(true);
 }
+
 
 // ============================================================================
 // BOOT SCREEN
 // ============================================================================
-
 void draw_BOOT()
 {
-  display.firstPage();
-  do {
-    beginScreen();
+  // Optional chrome (battery + RTC)
+  drawChrome(ui_offset, true);
 
-    drawChrome(ui_offset, true);
+  display.setFont(Fonts::Body9);
+  display.setCursor(ui_offset, 14);
 
-    display.setFont(Fonts::Body9);
-    display.setCursor(ui_offset, 14);
+  // --------------------------------------------------
+  // LOW BATTERY PATH
+  // --------------------------------------------------
+  if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
 
-    // --------------------------------------------------
-    // LOW BATTERY PATH
-    // --------------------------------------------------
-    if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
+    display.println("ESP-GPS sleeping");
+    display.print("Go back to sleep...");
 
-      display.println("ESP-GPS sleeping");
-      display.print("Go back to sleep...");
+    display.setFont(Fonts::Body12);
+    display.setCursor(ui_offset, 60);
+    display.printf("Voltage too low: %.2f", RTC_voltage_bat);
 
-      display.setFont(Fonts::Body12);
-      display.setCursor(ui_offset, 60);
-      display.printf("Voltage too low: %.2f", RTC_voltage_bat);
+    display.setCursor(ui_offset, 80);
+    display.println("Please charge lipo!");
 
-      display.setCursor(ui_offset, 80);
-      display.println("Please charge lipo!");
+    display.setCursor(ui_offset, 100);
+    display.print(RTC_Sleep_txt);
 
-      display.setCursor(ui_offset, 100);
-      display.print(RTC_Sleep_txt);
+    return;   // explicit, clear, correct
+  }
 
-      break;   // draw once only
-    }
-
-  } while (display.nextPage());
+  // --------------------------------------------------
+  // NORMAL BOOT PATH (optional placeholder)
+  // --------------------------------------------------
+  display.println("Booting...");
 }
+
+
 
 void draw_WAIT_SATS()
 {
-  display.setRotation(1);
-  display.fillScreen(GxEPD_WHITE);
-  display.setTextColor(GxEPD_BLACK);
-
+  // Optional chrome (battery + RTC)
   drawChrome(0, true);
 
+  // --- Title ---
   display.setFont(Fonts::Body12);
   display.setCursor(0, 40);
   display.print("Waiting for GPS");
 
+  // --- Status text ---
   display.setFont(Fonts::Body9);
   display.setCursor(0, 60);
   display.print("Acquiring satellites");
@@ -181,41 +139,37 @@ void draw_WAIT_SATS()
 
 void draw_WIFI_SOFT_AP()
 {
-  display.firstPage();
-  do {
-    beginScreen();
+  // Optional chrome (keep if you want battery/time here)
+  drawChrome(ui_offset, true);
 
-    drawChrome(ui_offset, true);
+  // --- TITLE ---
+  display.setFont(Fonts::Body12);
+  display.setCursor(ui_offset, Layout::ROW9(2));
+  display.print("CONFIG MODE");
 
-    // --- TITLE ---
-    display.setFont(Fonts::Body12);
-    display.setCursor(ui_offset, Layout::ROW9(2));
-    display.print("CONFIG MODE");
+  // --- INSTRUCTION ---
+  display.setFont(Fonts::Body9);
+  display.setCursor(ui_offset, Layout::ROW9(3));
+  display.print("Connect via phone");
 
-    // --- INSTRUCTION ---
-    display.setFont(Fonts::Body9);
-    display.setCursor(ui_offset, Layout::ROW9(3));
-    display.print("Connect via phone");
+  // --- NETWORK INFO ---
+  display.setFont(Fonts::Mono12);
+  display.setCursor(ui_offset, Layout::ROW9(5));
+  display.printf("%4s:", "WiFi");
 
-    // --- NETWORK INFO ---
-    display.setFont(Fonts::Mono12);
-    display.setCursor(ui_offset, Layout::ROW9(5));
-    display.printf("%4s:", "WiFi");
+  display.setFont(Fonts::Body9);
+  display.print(" ");
+  display.print(wifi_ap_name());
 
-    display.setFont(Fonts::Body9);
-    display.print(" ");
-    display.print(wifi_ap_name());
+  display.setFont(Fonts::Mono12);
+  display.setCursor(ui_offset, Layout::ROW9(6));
+  display.printf("%4s:", "IP");
 
-    display.setFont(Fonts::Mono12);
-    display.setCursor(ui_offset, Layout::ROW9(6));
-    display.printf("%4s:", "IP");
-
-    display.setFont(Fonts::Body9);
-    display.print(" ");
-    display.print(WiFi.softAPIP().toString().c_str());
-
-  } while (display.nextPage());
+  display.setFont(Fonts::Body9);
+  display.print(" ");
+  display.print(WiFi.softAPIP().toString().c_str());
 }
+
 
 // ============================================================================
 // WIFI STATION / HOME MODE
@@ -223,52 +177,49 @@ void draw_WIFI_SOFT_AP()
 
 void draw_WIFI_STATION()
 {
-  display.firstPage();
-  do {
-    beginScreen();
+  // Chrome (optional – your choice)
+  drawChrome(ui_offset, true);
 
-    drawChrome(ui_offset, true);
+  display.setFont(Fonts::Body12);
+  display.setCursor(ui_offset, Layout::ROW9(2));
+  display.print("BEACH MODE");
 
-    display.setFont(Fonts::Body12);
-    display.setCursor(ui_offset, Layout::ROW9(2));
-    display.print("BEACH MODE");
+  display.setFont(Fonts::Body9);
+  display.setCursor(ui_offset, Layout::ROW9(3));
 
-    display.setFont(Fonts::Body9);
-    display.setCursor(ui_offset, Layout::ROW9(3));
+  const bool staConnected = (WiFi.status() == WL_CONNECTED);
+  display.print(staConnected ? "Internet connected"
+                             : "Device Wi-Fi only");
 
-    const bool staConnected = (WiFi.status() == WL_CONNECTED);
-    display.print(staConnected ? "Internet connected"
-                               : "Device Wi-Fi only");
+  // --- WIFI ---
+  display.setFont(Fonts::Mono12);
+  display.setCursor(ui_offset, Layout::ROW9(5));
+  display.printf("%4s:", "WiFi");
 
-    // --- WIFI ---
-    display.setFont(Fonts::Mono12);
-    display.setCursor(ui_offset, Layout::ROW9(5));
-    display.printf("%4s:", "WiFi");
+  display.setFont(Fonts::Body9);
+  display.print(" ");
+  display.print(staConnected ? WiFi.SSID().c_str()
+                             : "ESP32 GPS (AP)");
 
-    display.setFont(Fonts::Body9);
-    display.print(" ");
-    display.print(staConnected ? WiFi.SSID().c_str()
-                               : "ESP32 GPS (AP)");
+  // --- IP ---
+  display.setFont(Fonts::Mono12);
+  display.setCursor(ui_offset, Layout::ROW9(6));
+  display.printf("%4s:", "IP");
 
-    // --- IP ---
-    display.setFont(Fonts::Mono12);
-    display.setCursor(ui_offset, Layout::ROW9(6));
-    display.printf("%4s:", "IP");
+  display.setFont(Fonts::Body9);
+  display.print(" ");
+  display.print(staConnected
+                ? WiFi.localIP().toString().c_str()
+                : WiFi.softAPIP().toString().c_str());
 
-    display.setFont(Fonts::Body9);
-    display.print(" ");
-    display.print(staConnected
-                  ? WiFi.localIP().toString().c_str()
-                  : WiFi.softAPIP().toString().c_str());
-
-    // --- USER HINT ---
-    display.setFont(Fonts::Body9);
-    display.setCursor(ui_offset, Layout::ROW9(8));
-    display.print(staConnected ? "Access via home network"
-                               : "Connect to device Wi-Fi");
-
-  } while (display.nextPage());
+  // --- USER HINT ---
+  display.setFont(Fonts::Body9);
+  display.setCursor(ui_offset, Layout::ROW9(8));
+  display.print(staConnected
+                ? "Access via home network"
+                : "Connect to device Wi-Fi");
 }
+
 
 // ============================================================================
 // SLEEP SCREEN (RTC SUMMARY)
@@ -278,8 +229,6 @@ void Sleep_screen(int choice)
 {
   ui_offset = constrain(ui_offset, 1, 9);
 
-  display.init();
-  beginScreen();
   drawChrome(ui_offset, true);
 
   // --------------------------------------------------
@@ -322,7 +271,7 @@ void Sleep_screen(int choice)
   display.setCursor(col1, 105);
   display.print(RTC_Sleep_txt);
 
-  drawSpeedUnitsFooter();
+
 
   // --- LEFT COLUMN ---
   display.setFont(Fonts::Mono9);
@@ -358,5 +307,4 @@ void Sleep_screen(int choice)
   display.setCursor(col4, row5); display.println(RTC_mile, 2);
   display.setCursor(col4, row6); display.println(RTC_500m, 2);
 
-  display.display();
 }

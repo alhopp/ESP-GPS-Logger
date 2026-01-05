@@ -16,21 +16,15 @@
 // Mode-level screens (authoritative)
 // -----------------------------------------------------------------------------
 
+
 void draw_BOOT();
 void draw_WAIT_SATS();
-void draw_SLEEP();
-void draw_SPEED();
-
-// Primary operational screen(s)
 void draw_LOGGING();        // May internally show SPEED / STATS pages
-
-// Configuration / Wi-Fi screens
 void draw_WIFI_SOFT_AP();
 void draw_WIFI_STATION();
-void draw_WIFI_ON();
+void draw_SLEEP();
 
-// Optional transitional screens
-void draw_GPS_INIT();
+
 
 // -----------------------------------------------------------------------------
 // Draw function type

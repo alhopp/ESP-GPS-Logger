@@ -104,20 +104,6 @@ void drawChrome(int offset, bool rtcMode)
 }
 
 // ============================================================================
-// Device identification (BOOT ONLY — KEEP)
-// ============================================================================
-
-#if defined(EPD_213_B74)
-  const char E_paper_version[] = "E-paper 213B74";
-#elif defined(EPD_213_B73)
-  const char E_paper_version[] = "E-paper 213B73";
-#elif defined(EPD_266_BN)
-  const char E_paper_version[] = "E-paper 266BN";
-#else
-  const char E_paper_version[] = "E-paper unknown";
-#endif
-
-// ============================================================================
 // Boot / diagnostics drawing
 // (Used only during boot screens — KEEP)
 // ============================================================================
@@ -133,7 +119,6 @@ int device_boot_log(int rows, int ws)
   // Device + firmware header
   display.setCursor(ui_offset, Layout::ROW9(2));
   pause();
-  display.print(E_paper_version);
   display.print(SW_version);
 
   // Storage info

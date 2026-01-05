@@ -15,6 +15,7 @@
 // -----------------------------------------------------------------------------
 
 #include "screen_draw.h"
+#include "screen_speed.h"
 #include "system_mode.h"
 
 #include "Fonts.h"

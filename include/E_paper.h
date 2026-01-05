@@ -20,8 +20,6 @@ extern int bar_length;
 // -----------------------------------------------------------------------------
 void drawChrome(int offset, bool rtcMode);
 
-
-
 void sdCardInfo(void);
 
 int device_boot_log(int rows, int ws);
@@ -128,7 +126,7 @@ extern double ref_heading;
 extern String IP_adress;
 extern String actual_ssid;
 
-extern const char E_paper_version[];
+
 
 
 extern UBXMessage ubxMessage;

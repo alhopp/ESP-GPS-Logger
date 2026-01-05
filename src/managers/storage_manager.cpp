@@ -136,6 +136,33 @@ void initStorage()
 
 
 
+#include "storage_manager.h"
+
+#include <SD_MMC.h>
+#include <LittleFS.h>
+
+// If you already track mount state in storage_manager.cpp, use that instead.
+// This implementation queries the backends directly.
+
+uint64_t storageFreeKBytes()
+{
+  // Prefer SD_MMC if a card is present / mounted
+  if (SD_MMC.cardType() != CARD_NONE) {
+    const uint64_t total = SD_MMC.totalBytes();
+    const uint64_t used  = SD_MMC.usedBytes();
+    if (total >= used) return (total - used) / 1024ULL;
+    return 0;
+  }
+
+  // Fallback to LittleFS if it is mounted
+  // NOTE: Do NOT call LittleFS.begin() here (that can allocate / has side effects).
+  // This assumes you already mounted LittleFS during storage init.
+  const size_t total = LittleFS.totalBytes();
+  const size_t used  = LittleFS.usedBytes();
+  if (total >= used) return (static_cast<uint64_t>(total - used)) / 1024ULL;
+
+  return 0;
+}
 
 
 int storageLogTimeLeftMinutes()
