@@ -214,8 +214,6 @@ void webserver_start(WebServer &server)
     saveConfig();
     server.send(200, "text/plain", "OK");
 
-    delay(200);
-    wifi_start_sta();
   });
 
   // ---------------------------------------------------------------------------
@@ -234,6 +232,20 @@ void webserver_start(WebServer &server)
   server.begin();
   webStarted = true;
   LOG_WIFI("Web", "started");
+
+
+  // ---------------------------------------------------------------------------
+  // Wi-Fi connect (explicit action)
+  // ---------------------------------------------------------------------------
+  server.on("/api/wifi/connect", HTTP_POST, [&] {
+    server.send(200, "text/plain", "OK");
+    delay(50);
+    wifi_start_sta();
+  });
+
+
+
+
 }
 
 // -----------------------------------------------------------------------------
