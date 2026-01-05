@@ -1,5 +1,16 @@
-#include <Arduino.h>
+// -----------------------------------------------------------------------------
+// screen_system.cpp
+//
+// "Guru" edition: clean, predictable, display-task-friendly screens.
+//
+// RULES (enforced here):
+//  - draw_*() functions ONLY draw pixels/text. No firstPage/nextPage.
+//  - No display.display(), no fillScreen()
+//  - The display task owns paging + clearing + refresh policy.
+//  - Keep UI state minimal + explicit (no hidden allocations).
+// -----------------------------------------------------------------------------
 
+#include <Arduino.h>
 #include <WiFi.h>
 
 #include "screen_system.h"
@@ -14,20 +25,29 @@
 #include "rtc_state.h"
 
 #include "E_paper.h"
+
 // ============================================================================
-// UI STATE
+// UI STATE (avoid globals where possible; keep deterministic)
 // ============================================================================
 static int ui_offset = 0;
 
-// ============================================================================
-// OFF SCREEN (shutdown / save)
-// ============================================================================
+// Small helper: keep ui_offset within a sane range (your original intent)
+static inline int clampUiOffset(int v)
+{
+  return constrain(v, 1, 9);
+}
 
+
+
+// ============================================================================
+// MODE: SLEEP  (shutdown / save progress screen)
+// ============================================================================
 void draw_SLEEP()
 {
-  const float session_time =
-      (millis() - start_logging_millis) / 1000.0f;
+  const float session_time = (millis() - start_logging_millis) / 1000.0f;
 
+  // "Chrome" is optional and per-screen. If you want less clutter during sleep,
+  // you can remove this, but it's safe to keep.
   drawChrome(ui_offset, false);
 
   drawTopLeftTitle("ESP-GPS saving");
@@ -38,17 +58,17 @@ void draw_SLEEP()
 
   // --- LOW BATTERY ---
   if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
-
     display.println("Shutdown LOW Bat");
 
     display.setFont(Fonts::Body9);
     display.print("Bat = ");
     display.print(RTC_voltage_bat);
     display.println(" V");
+    return;
   }
-  // --- SAVE SESSION ---
-  else if (Shut_down_Save_session) {
 
+  // --- SAVE SESSION ---
+  if (Shut_down_Save_session) {
     display.println("Saving session");
     display.setFont(Fonts::Body9);
 
@@ -64,30 +84,25 @@ void draw_SLEEP()
     display.setCursor(ui_offset + 120, cursor);
     display.print("Dist: ");
     display.print(Ublox.total_distance / 1000, 0);
+    return;
   }
+
   // --- NO SAVE ---
-  else {
-    display.println("Going back to sleep");
-  }
+  display.println("Going back to sleep");
 }
 
-
 // ============================================================================
-// BOOT SCREEN
+// MODE: BOOT  (early boot screen / low-battery warning)
 // ============================================================================
 void draw_BOOT()
 {
-  // Optional chrome (battery + RTC)
   drawChrome(ui_offset, true);
 
   display.setFont(Fonts::Body9);
   display.setCursor(ui_offset, 14);
 
-  // --------------------------------------------------
-  // LOW BATTERY PATH
-  // --------------------------------------------------
+  // --- LOW BATTERY PATH ---
   if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
-
     display.println("ESP-GPS sleeping");
     display.print("Go back to sleep...");
 
@@ -100,46 +115,59 @@ void draw_BOOT()
 
     display.setCursor(ui_offset, 100);
     display.print(RTC_Sleep_txt);
-
-    return;   // explicit, clear, correct
+    return;
   }
 
-  // --------------------------------------------------
-  // NORMAL BOOT PATH (optional placeholder)
-  // --------------------------------------------------
+  // --- NORMAL BOOT PATH ---
   display.println("Booting...");
 }
 
 
-
-void draw_WAIT_SATS()
+void beginScreen()
 {
-  // Optional chrome (battery + RTC)
-  drawChrome(0, true);
-
-  // --- Title ---
-  display.setFont(Fonts::Body12);
-  display.setCursor(0, 40);
-  display.print("Waiting for GPS");
-
-  // --- Status text ---
-  display.setFont(Fonts::Body9);
-  display.setCursor(0, 60);
-  display.print("Acquiring satellites");
-
-  display.setCursor(0, 80);
-  display.print("Please wait...");
+  display.setRotation(1);
+  display.setTextColor(GxEPD_BLACK);
+  display.setCursor(0, 0);
 }
 
 
+// ============================================================================
+// MODE: WAIT_SATS  (GPS acquiring / no-fix yet)
+// ============================================================================
+void draw_WAIT_SATS()
+{
+  static int ui_offset = 0;
+
+  //beginScreen();
+  //display.setRotation(1);
+  //display.setTextColor(GxEPD_BLACK);
+  // Use ui_offset consistently (avoid magic 0 unless intentional)
+  //drawChrome(ui_offset, true);
+
+  display.setFont(Fonts::Body12);
+  display.setCursor(ui_offset, 40);
+  display.print("Waiting for GPS");
+
+  display.setFont(Fonts::Body9);
+  display.setCursor(ui_offset, 60);
+  display.print("Acquiring satellites");
+
+  display.setCursor(ui_offset, 80);
+  display.print("Please wait...");
+
+  display.print("Sats: ");
+  display.print(ubxMessage.navPvt.numSV);
+
+
+  Serial.print("wait sats");
+
+}
 
 // ============================================================================
-// WIFI AP / CONFIG MODE
+// MODE: WIFI_SOFT_AP  (config mode / captive portal)
 // ============================================================================
-
 void draw_WIFI_SOFT_AP()
 {
-  // Optional chrome (keep if you want battery/time here)
   drawChrome(ui_offset, true);
 
   // --- TITLE ---
@@ -170,14 +198,11 @@ void draw_WIFI_SOFT_AP()
   display.print(WiFi.softAPIP().toString().c_str());
 }
 
-
 // ============================================================================
-// WIFI STATION / HOME MODE
+// MODE: WIFI_STATION  (connected to AP / home mode)
 // ============================================================================
-
 void draw_WIFI_STATION()
 {
-  // Chrome (optional – your choice)
   drawChrome(ui_offset, true);
 
   display.setFont(Fonts::Body12);
@@ -208,32 +233,32 @@ void draw_WIFI_STATION()
 
   display.setFont(Fonts::Body9);
   display.print(" ");
-  display.print(staConnected
-                ? WiFi.localIP().toString().c_str()
-                : WiFi.softAPIP().toString().c_str());
+  display.print(staConnected ? WiFi.localIP().toString().c_str()
+                             : WiFi.softAPIP().toString().c_str());
 
   // --- USER HINT ---
   display.setFont(Fonts::Body9);
   display.setCursor(ui_offset, Layout::ROW9(8));
-  display.print(staConnected
-                ? "Access via home network"
-                : "Connect to device Wi-Fi");
+  display.print(staConnected ? "Access via home network"
+                             : "Connect to device Wi-Fi");
 }
 
-
 // ============================================================================
-// SLEEP SCREEN (RTC SUMMARY)
+// LEGACY BRIDGE: Sleep_screen(choice)
+//
+// This is NOT a mode-level screen. It is a view/helper used by old call sites.
+// In the new architecture, prefer MODE_SLEEP + draw_SLEEP().
+// Keep it deterministic, draw-only, and DO NOT call display.display().
 // ============================================================================
-
 void Sleep_screen(int choice)
 {
-  ui_offset = constrain(ui_offset, 1, 9);
+  ui_offset = clampUiOffset(ui_offset);
 
   drawChrome(ui_offset, true);
 
-  // --------------------------------------------------
+  // ---------------------------------------------------------------------------
   // SIMPLE MODE
-  // --------------------------------------------------
+  // ---------------------------------------------------------------------------
   if (choice == 0) {
     display.setFont(Fonts::Body18);
 
@@ -246,65 +271,54 @@ void Sleep_screen(int choice)
     display.setCursor(ui_offset, 88);
     display.printf("2s: %.2f", RTC_max_2s);
 
-    display.display();
     return;
   }
 
-  // --------------------------------------------------
-  // DETAILED MODE
-  // --------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // DETAILED MODE (RTC summary table)
+  // ---------------------------------------------------------------------------
   constexpr int rowStep = 15;
+  constexpr int row0    = 15;
 
-  const int row1 = 15;
-  const int row2 = row1 + rowStep;
-  const int row3 = row2 + rowStep;
-  const int row4 = row3 + rowStep;
-  const int row5 = row4 + rowStep;
-  const int row6 = row5 + rowStep;
+  const int rows[6] = {
+    row0 + rowStep * 0,
+    row0 + rowStep * 1,
+    row0 + rowStep * 2,
+    row0 + rowStep * 3,
+    row0 + rowStep * 4,
+    row0 + rowStep * 5
+  };
 
   const int col1 = ui_offset;
   const int col2 = ui_offset + 34;
   const int col3 = ui_offset + 90;
   const int col4 = ui_offset + 146;
 
+  // Footer message
   display.setFont(&SF_Distant_Galaxy9pt7b);
   display.setCursor(col1, 105);
   display.print(RTC_Sleep_txt);
 
+  // Labels + values (static arrays: no heap, deterministic)
+  const char* leftLbl[6]  = { "AV:", "R1:", "R2:", "R3:", "R4:", "R5:" };
+  const float leftVal[6]  = { RTC_avg_10s, RTC_R1_10s, RTC_R2_10s,
+                              RTC_R3_10s, RTC_R4_10s, RTC_R5_10s };
 
+  const char* rightLbl[6] = { "2sec:", "Dist:", "Alph:", "1h:", "NM:", "500m:" };
+  const float rightVal[6] = { RTC_max_2s, RTC_distance, RTC_alp,
+                              RTC_1h, RTC_mile, RTC_500m };
 
-  // --- LEFT COLUMN ---
+  // Column labels
   display.setFont(Fonts::Mono9);
-  display.setCursor(col1, row1); display.print("AV:");
-  display.setCursor(col1, row2); display.print("R1:");
-  display.setCursor(col1, row3); display.print("R2:");
-  display.setCursor(col1, row4); display.print("R3:");
-  display.setCursor(col1, row5); display.print("R4:");
-  display.setCursor(col1, row6); display.print("R5:");
+  for (int i = 0; i < 6; i++) {
+    display.setCursor(col1, rows[i]); display.print(leftLbl[i]);
+    display.setCursor(col3, rows[i]); display.print(rightLbl[i]);
+  }
 
+  // Column values
   display.setFont(Fonts::Body9);
-  display.setCursor(col2, row1); display.println(RTC_avg_10s, 2);
-  display.setCursor(col2, row2); display.println(RTC_R1_10s, 2);
-  display.setCursor(col2, row3); display.println(RTC_R2_10s, 2);
-  display.setCursor(col2, row4); display.println(RTC_R3_10s, 2);
-  display.setCursor(col2, row5); display.println(RTC_R4_10s, 2);
-  display.setCursor(col2, row6); display.println(RTC_R5_10s, 2);
-
-  // --- RIGHT COLUMN ---
-  display.setFont(Fonts::Mono9);
-  display.setCursor(col3, row1); display.print("2sec:");
-  display.setCursor(col3, row2); display.print("Dist:");
-  display.setCursor(col3, row3); display.print("Alph:");
-  display.setCursor(col3, row4); display.print("1h:");
-  display.setCursor(col3, row5); display.print("NM:");
-  display.setCursor(col3, row6); display.print("500m:");
-
-  display.setFont(Fonts::Body9);
-  display.setCursor(col4, row1); display.println(RTC_max_2s, 2);
-  display.setCursor(col4, row2); display.println(RTC_distance, 2);
-  display.setCursor(col4, row3); display.println(RTC_alp, 2);
-  display.setCursor(col4, row4); display.println(RTC_1h, 2);
-  display.setCursor(col4, row5); display.println(RTC_mile, 2);
-  display.setCursor(col4, row6); display.println(RTC_500m, 2);
-
+  for (int i = 0; i < 6; i++) {
+    display.setCursor(col2, rows[i]); display.println(leftVal[i], 2);
+    display.setCursor(col4, rows[i]); display.println(rightVal[i], 2);
+  }
 }

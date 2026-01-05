@@ -97,12 +97,16 @@ void setup()
 
   initStorage();
   initConfig();
-  initGPS();
 
+  initGPS();
   magnet_init();
-  setMode(MODE_LOGGING);
 
   startTasks();
+
+  setMode(MODE_WAIT_SATS);
+  screen_request_redraw();
+
+  
 }
 
 // ============================================================================
@@ -122,6 +126,39 @@ void loop()
   delay(10);
 }
 
+// ============================================================================
+// TASK STARTUP
+// ============================================================================
+static void startTasks()
+{
+  BaseType_t ok;
+
+  ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS",
+                              10000, nullptr, 1, &t1, 1);
+  if (ok != pdPASS) {
+    Serial.println("[TASK   ] GPS create failed");
+  }
+
+  ok = xTaskCreatePinnedToCore(taskTwo, "TaskDisplay",
+                              10000, nullptr, 1, &t2, 0);
+ 
+  if (ok != pdPASS) {
+    Serial.println("[TASK   ] Display create failed");
+  }
+
+  Serial.printf("[TASK   ] started\r\n");
+
+  if (t1) {Serial.printf("[TASK   ] t1_hw=%u\r\n",
+                  uxTaskGetStackHighWaterMark(t1));
+  }
+
+  if (t2) {Serial.printf("[TASK   ] t2_hw=%u\r\n",
+                  uxTaskGetStackHighWaterMark(t2));
+  }
+
+  Serial.println();
+
+}
 
 // -----------------------------------------------------------------------------
 // MAGNET INIT
@@ -207,36 +244,7 @@ static void magnet_poll()
   prevActive = active;
 }
 
-// ============================================================================
-// TASK STARTUP
-// ============================================================================
-static void startTasks()
-{
-  BaseType_t ok;
 
-  ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS",
-                              10000, nullptr, 1, &t1, 1);
-  if (ok != pdPASS) {
-    Serial.println("[TASK] GPS create failed");
-  }
-
-  ok = xTaskCreatePinnedToCore(taskTwo, "TaskDisplay",
-                              10000, nullptr, 1, &t2, 0);
-  if (ok != pdPASS) {
-    Serial.println("[TASK] Display create failed");
-  }
-
-  Serial.print("[TASK] started");
-  if (t1) {
-    Serial.print(" t1_hw=");
-    Serial.print(uxTaskGetStackHighWaterMark(t1));
-  }
-  if (t2) {
-    Serial.print(" t2_hw=");
-    Serial.print(uxTaskGetStackHighWaterMark(t2));
-  }
-  Serial.println();
-}
 
 // ============================================================================
 // HEARTBEAT / DIAGNOSTICS

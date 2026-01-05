@@ -44,7 +44,9 @@ void taskOne(void *parameter)
     // Mode gate — GPS only runs in field modes
     // ----------------------------------------------
     SystemMode mode = getMode();
-    if (mode != MODE_LOGGING && mode != MODE_FIELD_CONFIG) {
+   if (mode != MODE_LOGGING &&
+        mode != MODE_FIELD_CONFIG &&
+        mode != MODE_WAIT_SATS) {
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }
@@ -97,6 +99,13 @@ static void processGpsMessages()
 
       GPS_Signal_OK = true;
       first_fix_GPS = millis() / 1000;
+
+    if (GPS_Signal_OK && getMode() == MODE_WAIT_SATS) {
+      setMode(MODE_LOGGING);
+    }
+
+
+
     }
 
     if (GPS_Signal_OK) {

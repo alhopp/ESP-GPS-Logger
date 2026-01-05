@@ -38,13 +38,14 @@ DrawFn getDrawFnForMode(SystemMode mode)
 {
   switch (mode) {
     case MODE_BOOT:         return draw_BOOT;
-    case MODE_FIELD_CONFIG: return draw_WIFI_SOFT_AP;
     case MODE_WAIT_SATS:    return draw_WAIT_SATS;
-    case MODE_LOGGING:      return draw_SPEED;
+    case MODE_LOGGING:      return draw_SPEED;      // or draw_STATS / speed screen
+    case MODE_FIELD_CONFIG: return draw_WIFI_SOFT_AP;
     case MODE_SLEEP:        return draw_SLEEP;
-    default:                return draw_BOOT;
+    default:                return nullptr;
   }
 }
+
 
 // -----------------------------------------------------------------------------
 // SHARED UI HELPERS

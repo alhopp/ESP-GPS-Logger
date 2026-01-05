@@ -75,7 +75,8 @@ BootResult initBoot()
   LOG_BOOT("Display", "init");
   display.init(115200, true, 2, false);
   display.setRotation(1);
-
+  display.setTextColor(GxEPD_BLACK);
+  
   // Hold splash ONLY on true cold boot
   if (!reset_boot) {
     delay(1200);
@@ -98,7 +99,9 @@ BootResult initBoot()
 
   LOG_BOOT("Status", "boot checks passed");
   return BOOT_OK;
+
 }
+
 
 const char* bootFailReason()
 {

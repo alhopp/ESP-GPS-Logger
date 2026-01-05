@@ -46,12 +46,14 @@ const char* modeToString(SystemMode mode)
 {
   switch (mode) {
     case MODE_BOOT:         return "BOOT";
+    case MODE_WAIT_SATS:    return "WAIT_SATS";
     case MODE_LOGGING:      return "LOGGING";
     case MODE_FIELD_CONFIG: return "FIELD_CFG";
     case MODE_SLEEP:        return "SLEEP";
     default:                return "?";
   }
 }
+
 
 // -----------------------------------------------------------------------------
 // STATE TRANSITION
@@ -131,7 +133,7 @@ void setMode(SystemMode newMode)
       LOG_SYS("MODE", "ENTER SLEEP → power down");
 
       // --- Draw sleep screen synchronously ---
-      Sleep_screen(1);     // or your desired mode
+      //draw_SLEEP(); //         (1);     // or your desired mode
       delay(150);          // allow EPD to finish update
 
       wifi_stop();
