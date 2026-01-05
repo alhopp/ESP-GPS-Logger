@@ -187,9 +187,12 @@ LOG_WIFI("STA", "Connected IP=%s", WiFi.localIP().toString().c_str());
 
 // Only redraw rows 3–8 (status area)
 screen_request_partial(
-  Layout::ROW9(3),
-  Layout::ROW9(8) - Layout::ROW9(3) + 12
+  Layout::SNAP8(Layout::ROW9(4)),   // start ABOVE WiFi row
+  Layout::SNAP8(Layout::ROW9(7)) - Layout::SNAP8(Layout::ROW9(4)) + 16
 );
+
+
+
 
 if (MDNS.begin(HOSTNAME)) {
   MDNS.addService("http", "tcp", 80);

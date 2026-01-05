@@ -3,13 +3,24 @@
 // ======================================================
 // Layout.h
 // ------------------------------------------------------
-// Screen geometry & vertical rhythm helpers
-// NO fonts, NO display objects, NO globals
-// Header-only, constexpr-only
+// 8-pixel aligned layout system (EPD-safe)
+// Backwards compatible with existing ROW9 / ROW12 / ROW18
 // ======================================================
 
 namespace Layout {
 
+  // --------------------------------------------------
+  // E-paper hardware rule
+  // --------------------------------------------------
+  constexpr int GRID = 8;
+
+  constexpr int SNAP8(int v) {
+    return (v + (GRID - 1)) & ~(GRID - 1);
+  }
+
+  // --------------------------------------------------
+  // Font metrics (logical, not hardware)
+  // --------------------------------------------------
   constexpr int SPACING = 2;
 
   constexpr int H9  = 14;
@@ -20,17 +31,39 @@ namespace Layout {
   constexpr int STEP12 = H12 + SPACING;
   constexpr int STEP18 = H18 + SPACING;
 
-  constexpr int ROW9(int n)  { return H9  + (n - 1) * STEP9; }
-  constexpr int ROW12(int n) { return H12 + (n - 1) * STEP12; }
-  constexpr int ROW18(int n) { return H18 + (n - 1) * STEP18; }
+  // --------------------------------------------------
+  // Row helpers (NOW SNAP TO 8 PX)
+  // --------------------------------------------------
+  constexpr int ROW9(int n)  {
+    return SNAP8(H9  + (n - 1) * STEP9);
+  }
 
-  constexpr int INFO_BAR_HEIGHT = H12 + SPACING;
+  constexpr int ROW12(int n) {
+    return SNAP8(H12 + (n - 1) * STEP12);
+  }
 
-  constexpr int CONTENT_TOP = INFO_BAR_HEIGHT + SPACING;
+  constexpr int ROW18(int n) {
+    return SNAP8(H18 + (n - 1) * STEP18);
+  }
 
+  // --------------------------------------------------
+  // Generic grid rows (new, preferred)
+  // --------------------------------------------------
+  constexpr int ROW(int n) {
+    return GRID * n;
+  }
+
+  // --------------------------------------------------
+  // System areas (USED FOR PARTIAL REFRESH)
+  // --------------------------------------------------
+  constexpr int STATUS_Y = ROW(3);
+  constexpr int STATUS_H = ROW(8) - ROW(3);
+
+  constexpr int INFO_BAR_HEIGHT = SNAP8(H12 + SPACING);
+  constexpr int CONTENT_TOP     = INFO_BAR_HEIGHT + GRID;
+
+  // Graph layout (already safe)
   constexpr int GRAPH_LEFT   = 5;
   constexpr int GRAPH_WIDTH  = 215;
-  constexpr int GRAPH_HEIGHT = 60;
+  constexpr int GRAPH_HEIGHT = 64;
 }
-
-

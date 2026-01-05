@@ -117,13 +117,6 @@ void draw_WIFI_SOFT_AP()
       ? wifi_sta_ip().c_str()
       : WiFi.softAPIP().toString().c_str()
   );
-
-  // Optional user hint (extra line, same layout family)
-  display.setFont(Fonts::Body9);
-  display.setCursor(ui_offset, Layout::ROW9(8));
-  display.print(staConnected
-                ? "Access via home network"
-                : "Connect to device Wi-Fi");
 }
 
 
@@ -240,7 +233,7 @@ static void drawSystemLayout(
   const char* val2 = nullptr
 )
 {
-  drawChrome(ui_offset, true);
+   //drawChrome(ui_offset, true);
 
   // --- TITLE ---
   display.setFont(Fonts::Body12);
