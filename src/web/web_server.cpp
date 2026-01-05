@@ -10,6 +10,7 @@
 #include "config_manager.h"
 #include "wifi_manager.h"
 #include "system_mode.h"
+#include "storage_manager.h"   // <-- NEW
 
 static bool webStarted = false;
 
@@ -17,18 +18,22 @@ static bool webStarted = false;
 // helpers
 // -----------------------------------------------------------------------------
 
+static bool isPrintableFilename(const char* s)
+{
+  if (!s || !*s) return false;
+
+  for (const char* p = s; *p; ++p) {
+    if (*p < 32 || *p > 126) return false;
+  }
+  return true;
+}
+
+
 static void sendJson(WebServer &s, JsonDocument &doc)
 {
   String out;
   serializeJson(doc, out);
   s.send(200, "application/json", out);
-}
-
-static bool isUserFile(const String& name)
-{
-  return !(name.startsWith("config") ||
-           name.startsWith("emmc")  ||
-           name.endsWith(".cfg"));
 }
 
 // -----------------------------------------------------------------------------
@@ -39,7 +44,9 @@ void webserver_start(WebServer &server)
 {
   if (webStarted) return;
 
+  // ---------------------------------------------------------------------------
   // Root / SPA
+  // ---------------------------------------------------------------------------
   server.on("/", HTTP_GET, [&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
@@ -49,26 +56,17 @@ void webserver_start(WebServer &server)
   });
 
   // ---------------------------------------------------------------------------
-  // GET CONFIG  (FULL MIRROR OF Config struct)
+  // GET CONFIG
   // ---------------------------------------------------------------------------
   server.on("/api/config", HTTP_GET, [&] {
     StaticJsonDocument<2048> j;
 
-    // -------------------------------------------------------------------------
-    // Wi-Fi
-    // -------------------------------------------------------------------------
     j["wifi"]["ssid"] = wifi_get_saved_ssid();
 
-    // -------------------------------------------------------------------------
-    // System
-    // -------------------------------------------------------------------------
     j["system"]["cpu_freq"]     = config.cpu_freq;
     j["system"]["timezone"]     = config.timezone;
     j["system"]["timezone_DST"] = config.timezone_DST;
 
-    // -------------------------------------------------------------------------
-    // GPS
-    // -------------------------------------------------------------------------
     j["gps"]["sample_rate"]   = config.sample_rate;
     j["gps"]["gnss"]          = config.gnss;
     j["gps"]["dynamic_model"] = config.dynamic_model;
@@ -76,16 +74,10 @@ void webserver_start(WebServer &server)
     j["gps"]["stat_speed"]    = config.stat_speed;
     j["gps"]["start_logging_speed"] = config.start_logging_speed;
 
-    // -------------------------------------------------------------------------
-    // Power / Battery
-    // -------------------------------------------------------------------------
     j["power"]["shutdown_voltage"] = config.shutdown_voltage;
     j["power"]["bat_choice"]       = config.bat_choice;
     j["power"]["cal_bat"]          = config.cal_bat;
 
-    // -------------------------------------------------------------------------
-    // Logging
-    // -------------------------------------------------------------------------
     j["logging"]["track_distance"] = config.track_distance;
     j["logging"]["archive_days"]   = config.archive_days;
     j["logging"]["file_date_time"] = config.file_date_time;
@@ -96,9 +88,6 @@ void webserver_start(WebServer &server)
     j["logging"]["logGPY"] = config.logGPY;
     j["logging"]["logGPX"] = config.logGPX;
 
-    // -------------------------------------------------------------------------
-    // UI / Screens
-    // -------------------------------------------------------------------------
     j["ui"]["field"]             = config.field;
     j["ui"]["speed_large_font"]  = config.speed_large_font;
     j["ui"]["bar_length"]        = config.bar_length;
@@ -118,7 +107,7 @@ void webserver_start(WebServer &server)
   });
 
   // ---------------------------------------------------------------------------
-  // POST CONFIG (FULL ROUND-TRIP UPDATE)
+  // POST CONFIG
   // ---------------------------------------------------------------------------
   server.on("/api/config", HTTP_POST, [&] {
 
@@ -128,9 +117,6 @@ void webserver_start(WebServer &server)
       return;
     }
 
-    // -------------------------------------------------------------------------
-    // Wi-Fi
-    // -------------------------------------------------------------------------
     if (j["wifi"]["ssid"]) {
       String ssid = j["wifi"]["ssid"].as<const char*>();
       String pass;
@@ -139,39 +125,27 @@ void webserver_start(WebServer &server)
       wifi_set_credentials(ssid, pass);
     }
 
-    // -------------------------------------------------------------------------
-    // System
-    // -------------------------------------------------------------------------
     if (j["system"]) {
       config.cpu_freq     = j["system"]["cpu_freq"]     | config.cpu_freq;
       config.timezone     = j["system"]["timezone"]     | config.timezone;
       config.timezone_DST = j["system"]["timezone_DST"] | config.timezone_DST;
     }
 
-    // -------------------------------------------------------------------------
-    // GPS
-    // -------------------------------------------------------------------------
     if (j["gps"]) {
-      config.sample_rate          = j["gps"]["sample_rate"] | config.sample_rate;
-      config.gnss                 = j["gps"]["gnss"] | config.gnss;
-      config.dynamic_model        = j["gps"]["dynamic_model"] | config.dynamic_model;
-      config.cal_speed            = j["gps"]["cal_speed"] | config.cal_speed;
-      config.stat_speed           = j["gps"]["stat_speed"] | config.stat_speed;
-      config.start_logging_speed  = j["gps"]["start_logging_speed"] | config.start_logging_speed;
+      config.sample_rate         = j["gps"]["sample_rate"] | config.sample_rate;
+      config.gnss                = j["gps"]["gnss"] | config.gnss;
+      config.dynamic_model       = j["gps"]["dynamic_model"] | config.dynamic_model;
+      config.cal_speed           = j["gps"]["cal_speed"] | config.cal_speed;
+      config.stat_speed          = j["gps"]["stat_speed"] | config.stat_speed;
+      config.start_logging_speed = j["gps"]["start_logging_speed"] | config.start_logging_speed;
     }
 
-    // -------------------------------------------------------------------------
-    // Power
-    // -------------------------------------------------------------------------
     if (j["power"]) {
       config.shutdown_voltage = j["power"]["shutdown_voltage"] | config.shutdown_voltage;
       config.bat_choice       = j["power"]["bat_choice"] | config.bat_choice;
       config.cal_bat          = j["power"]["cal_bat"] | config.cal_bat;
     }
 
-    // -------------------------------------------------------------------------
-    // Logging
-    // -------------------------------------------------------------------------
     if (j["logging"]) {
       config.track_distance = j["logging"]["track_distance"] | config.track_distance;
       config.archive_days   = j["logging"]["archive_days"]   | config.archive_days;
@@ -184,9 +158,6 @@ void webserver_start(WebServer &server)
       config.logGPX = j["logging"]["logGPX"] | config.logGPX;
     }
 
-    // -------------------------------------------------------------------------
-    // UI / Screens
-    // -------------------------------------------------------------------------
     if (j["ui"]) {
       config.field            = j["ui"]["field"] | config.field;
       config.speed_large_font = j["ui"]["speed_large_font"] | config.speed_large_font;
@@ -213,11 +184,10 @@ void webserver_start(WebServer &server)
 
     saveConfig();
     server.send(200, "text/plain", "OK");
-
   });
 
   // ---------------------------------------------------------------------------
-  // Net status
+  // NET STATUS
   // ---------------------------------------------------------------------------
   server.on("/api/netstatus", HTTP_GET, [&] {
     StaticJsonDocument<256> j;
@@ -229,13 +199,135 @@ void webserver_start(WebServer &server)
     sendJson(server, j);
   });
 
-  server.begin();
-  webStarted = true;
-  LOG_WIFI("Web", "started");
+  // ---------------------------------------------------------------------------
+  // FILE LIST
+  // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// FILE LIST  (SD card only, hardened)
+// ---------------------------------------------------------------------------
+server.on("/api/files", HTTP_GET, [&] {
+
+  StaticJsonDocument<2048> j;
+
+  // SD not available
+  if (!sdOK) {
+    j["ok"] = false;
+    sendJson(server, j);
+    return;
+  }
+
+  j["ok"]      = true;
+  j["free_kb"] = storageFreeKBytes();
+  JsonArray arr = j.createNestedArray("files");
+
+  fs::FS& fs = SD_MMC;
+  File root = fs.open("/");
+  if (!root || !root.isDirectory()) {
+    sendJson(server, j);
+    return;
+  }
+
+  while (true) {
+    File f = root.openNextFile();
+    if (!f) break;
+
+    // -----------------------------------------------------------------------
+    // HARD FILTERS
+    // -----------------------------------------------------------------------
+
+    // Never list directories
+    if (f.isDirectory()) {
+      f.close();
+      continue;
+    }
+
+    const char* name = f.name();
+    if (!name) {
+      f.close();
+      continue;
+    }
+
+    // Reject historical JSON / API garbage
+    if (name[0] == '"' ||
+        strstr(name, "ok") == name ||
+        strstr(name, "free_kb") ||
+        strstr(name, "{") ||
+        strstr(name, "}")) {
+      f.close();
+      continue;
+    }
+
+    // Ignore zero-length junk
+    if (f.size() == 0) {
+      f.close();
+      continue;
+    }
+
+    // Only allow real GPS log files
+    const char* ext = strrchr(name, '.');
+    if (!ext ||
+        (strcmp(ext, ".sbp") &&
+         strcmp(ext, ".ubx") &&
+         strcmp(ext, ".gpx"))) {
+      f.close();
+      continue;
+    }
+
+    // -----------------------------------------------------------------------
+    // VALID FILE
+    // -----------------------------------------------------------------------
+    JsonObject o = arr.createNestedObject();
+    o["name"] = name;
+    o["size"] = f.size();
+
+    f.close();
+  }
+
+  root.close();
+  sendJson(server, j);
+});
+
 
 
   // ---------------------------------------------------------------------------
-  // Wi-Fi connect (explicit action)
+  // FILE DOWNLOAD
+  // ---------------------------------------------------------------------------
+  server.on("/api/file", HTTP_GET, [&] {
+    if (!sdOK || !server.hasArg("name")) {
+      server.send(404);
+      return;
+    }
+
+    String path = "/" + server.arg("name");
+    File f = SD_MMC.open(path, FILE_READ);
+    if (!f) {
+      server.send(404);
+      return;
+    }
+
+    server.streamFile(f, "application/octet-stream");
+    f.close();
+  });
+
+  // ---------------------------------------------------------------------------
+  // FILE DELETE
+  // ---------------------------------------------------------------------------
+  server.on("/api/file", HTTP_DELETE, [&] {
+    if (!sdOK) {
+      server.send(200, "application/json", "{\"ok\":false}");
+      return;
+    }
+
+    StaticJsonDocument<256> j;
+    deserializeJson(j, server.arg("plain"));
+    String path = "/" + String((const char*)j["name"]);
+
+    bool ok = SD_MMC.remove(path);
+    server.send(200, "application/json", ok ? "{\"ok\":true}" : "{\"ok\":false}");
+  });
+
+  // ---------------------------------------------------------------------------
+  // WIFI CONNECT
   // ---------------------------------------------------------------------------
   server.on("/api/wifi/connect", HTTP_POST, [&] {
     server.send(200, "text/plain", "OK");
@@ -243,9 +335,9 @@ void webserver_start(WebServer &server)
     wifi_start_sta();
   });
 
-
-
-
+  server.begin();
+  webStarted = true;
+  LOG_WIFI("Web", "started");
 }
 
 // -----------------------------------------------------------------------------

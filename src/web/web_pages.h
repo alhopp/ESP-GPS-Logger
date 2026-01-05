@@ -16,6 +16,11 @@ input,select{width:100%;padding:10px;margin-top:4px;border:1px solid var(--e);bo
 footer{display:flex;gap:10px;padding:12px;border-top:1px solid var(--e);background:#f0f4fa}
 footer button{flex:1;padding:12px;border-radius:8px;border:0;font-weight:600;background:var(--a);color:#fff}
 .small{font-size:12px;color:var(--f);margin-top:6px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{padding:6px;font-size:13px;border-bottom:1px solid var(--e)}
+th{text-align:left;color:var(--f)}
+td.actions{text-align:right}
+a{color:var(--a);text-decoration:none;font-weight:600}
 </style></head><body>
 
 <header>ESP32 GPS</header>
@@ -23,6 +28,7 @@ footer button{flex:1;padding:12px;border-radius:8px;border:0;font-weight:600;bac
 <nav>
 <button class=a onclick="t('settings',this)">Settings</button>
 <button onclick="t('advanced',this)">Advanced</button>
+<button onclick="t('files',this);loadFiles()">Files</button>
 <button onclick="t('wifi',this)">Wi-Fi</button>
 </nav>
 
@@ -130,6 +136,20 @@ footer button{flex:1;padding:12px;border-radius:8px;border:0;font-weight:600;bac
 </div>
 </section>
 
+<!-- FILES -->
+<section id=files>
+<div class=card>
+<h3>SD Card Files</h3>
+<div class=small id=sdInfo>Checking SD…</div>
+<table>
+<thead>
+<tr><th>Name</th><th>Size</th><th></th></tr>
+</thead>
+<tbody id=fileList></tbody>
+</table>
+</div>
+</section>
+
 <!-- WIFI -->
 <section id=wifi>
 <div class=card>
@@ -155,30 +175,23 @@ const c=await(await fetch("/api/config")).json();
 set(cpu_freq,c.system?.cpu_freq);
 set(timezone,c.system?.timezone);
 set(timezone_DST,c.system?.timezone_DST);
-
 set(sample_rate,c.gps?.sample_rate);
 set(gnss,c.gps?.gnss);
 set(cal_speed,c.gps?.cal_speed);
-
 set(shutdown_voltage,c.power?.shutdown_voltage);
 set(bat_choice,c.power?.bat_choice);
-
 set(track_distance,c.logging?.track_distance);
 ["logTXT","logUBX","logSBP","logGPY","logGPX"].forEach(k=>set($(k),c.logging?.[k]));
-
 set(bar_length,c.ui?.bar_length);
 set(speed_large_font,c.ui?.speed_large_font);
 set(Board_Logo,c.ui?.Board_Logo);
 set(Sail_Logo,c.ui?.Sail_Logo);
-
 set(Stat_screens,c.ui?.Stat_screens);
 set(Stat_screens_time,c.ui?.Stat_screens_time);
-
 set(speed_screen,c.ui?.speed_screen);
 set(stat_screen,c.ui?.stat_screen);
 set(gpio12_screen,c.ui?.gpio12_screen);
 set(Sleep_info,c.ui?.Sleep_info);
-
 if(c.wifi?.ssid)ssid.value=c.wifi.ssid;
 update();
 }
@@ -216,6 +229,30 @@ async function update(){
 const s=await(await fetch("/api/netstatus")).json();
 if(s.sta){wifiInfo.textContent=`Connected ${s.ssid} ${s.ip}`;wifiBtn.textContent="Connected";wifiBtn.disabled=true}
 else{wifiInfo.textContent="Not connected";wifiBtn.textContent="Connect";wifiBtn.disabled=false}
+}
+
+async function loadFiles(){
+fileList.innerHTML="";
+sdInfo.textContent="Loading…";
+const r=await fetch("/api/files");
+const j=await r.json();
+if(!j.ok){sdInfo.textContent="SD card not available";return;}
+sdInfo.textContent=`Free ${Math.floor(j.free_kb/1024)} MB`;
+j.files.forEach(f=>{
+const tr=document.createElement("tr");
+tr.innerHTML=`<td>${f.name}</td><td>${(f.size/1024).toFixed(1)} KB</td>
+<td class=actions>
+<a href="/api/file?name=${encodeURIComponent(f.name)}">⬇</a>&nbsp;
+<a href="#" onclick="delFile('${f.name}')">🗑</a>
+</td>`;
+fileList.appendChild(tr);
+});
+}
+
+async function delFile(name){
+if(!confirm("Delete "+name+"?"))return;
+await fetch("/api/file",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
+loadFiles();
 }
 
 load();
