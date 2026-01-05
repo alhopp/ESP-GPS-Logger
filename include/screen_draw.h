@@ -3,44 +3,47 @@
 // ======================================================
 // screen_draw.h
 // ------------------------------------------------------
-// Screen render entry points
+// Mode-level screen render entry points ONLY
+//
+// These functions are the ONLY ones that may be returned
+// by getDrawFnForMode(). All sub-screens and pages are
+// internal details handled elsewhere.
 // ======================================================
+
 #include "system_mode.h"
 
+// -----------------------------------------------------------------------------
+// Mode-level screens (authoritative)
+// -----------------------------------------------------------------------------
+
 void draw_BOOT();
-void draw_WIFI_SOFT_AP();
-void draw_WIFI_STATION();
-void draw_SLEEP();
 void draw_WAIT_SATS();
-
-void draw_GPS_INIT();
-
-void draw_WIFI_ON();
-
-
+void draw_SLEEP();
 void draw_SPEED();
 
-void draw_STATS1();
-void draw_STATS2();
-void draw_STATS3();
-void draw_STATS4();
-void draw_STATS5();
-void draw_STATS6();
-void draw_STATS7();
-void draw_STATS8();
-void draw_STATS9();
-void draw_STATSA();
-void draw_STATSB();
+// Primary operational screen(s)
+void draw_LOGGING();        // May internally show SPEED / STATS pages
 
-using DrawFn = void (*)();
-extern const DrawFn ScreenDrawTable[];
+// Configuration / Wi-Fi screens
+void draw_WIFI_SOFT_AP();
+void draw_WIFI_STATION();
+void draw_WIFI_ON();
 
-void drawTopLeftTitle(const char* msg);
-int  device_boot_log(int rows, int ws = 0);
-
-
+// Optional transitional screens
+void draw_GPS_INIT();
 
 // -----------------------------------------------------------------------------
-// MODE → DRAW FUNCTION (authoritative)
+// Draw function type
+// -----------------------------------------------------------------------------
+using DrawFn = void (*)();
+
+// -----------------------------------------------------------------------------
+// Mode → draw function dispatch
 // -----------------------------------------------------------------------------
 DrawFn getDrawFnForMode(SystemMode mode);
+
+// -----------------------------------------------------------------------------
+// Shared UI helpers (NOT screens)
+// -----------------------------------------------------------------------------
+void drawTopLeftTitle(const char* msg);
+int  device_boot_log(int rows, int ws = 0);

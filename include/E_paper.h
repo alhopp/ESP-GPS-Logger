@@ -15,6 +15,13 @@ extern int bar_position;
 extern int total_bar_length;
 extern int bar_length;
 
+// -----------------------------------------------------------------------------
+// UI chrome helpers (battery, satellites, time)
+// -----------------------------------------------------------------------------
+void drawChrome(int offset, bool rtcMode);
+
+
+
 void sdCardInfo(void);
 
 int device_boot_log(int rows, int ws);

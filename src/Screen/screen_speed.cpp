@@ -4,7 +4,6 @@
 #include "screen_context.h"  
 #include "GPS_data.h"
 #include "Definitions.h"
-#include "screen_ui.h"
 #include "Layout.h"
 #include "config_manager.h"
 #include "storage_manager.h"
@@ -12,6 +11,18 @@
 static int ui_offset = 0;
 
 static char bar_info[16];
+
+// -----------------------------------------------------------------------------
+// Speed screen UI state (owned by screen_speed)
+// -----------------------------------------------------------------------------
+int bar_length = 1852;
+int bar_position = 32;
+int total_bar_length = 240;
+int run_rectangle_length = 0;
+
+void Speed_font0(const char*, const char*, float, float, float, int);
+void Speed_font1(const char*, const char*, float, float, float, int);
+void Speed_font3(const char*, float);
 
   void Speed_font0(
     const char* message1,

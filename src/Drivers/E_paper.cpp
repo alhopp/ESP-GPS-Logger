@@ -1,29 +1,61 @@
+// ============================================================================
+// E_paper.cpp
+//
+// Responsibilities:
+// - Own the physical e-paper display object
+// - Provide low-level UI chrome (battery, sats, time, info bar)
+// - Provide boot / diagnostic drawing helpers
+// - Provide legacy screen update shim (Update_screen)
+//
+// Non-responsibilities (IMPORTANT):
+// - Does NOT decide which screen to draw
+// - Does NOT dispatch draw_*() functions
+// - Does NOT track SystemMode
+// ============================================================================
 
 #include <Arduino.h>
+
+// -----------------------------------------------------------------------------
+// Display hardware + fonts (CORE — KEEP)
+// -----------------------------------------------------------------------------
 #include "E_paper.h"
 #include "Fonts.h"
 
+// -----------------------------------------------------------------------------
+// Runtime data dependencies (READ-ONLY from UI)
+// -----------------------------------------------------------------------------
 #include "Ublox.h"
 #include "GPS_data.h"
-
 #include "Definitions.h"
-#include "Globals.h"  
+#include "Globals.h"
+
+// -----------------------------------------------------------------------------
+// Storage / filesystem (boot info + info bar only)
+// -----------------------------------------------------------------------------
 #include "SD_card.h"
 #include <LittleFS.h>
+#include "storage_manager.h"
 
-#include "screens.h"
-#include "screen_draw.h"
-#include "screen_speed.h"
-#include "screen_ui.h"
-
+// -----------------------------------------------------------------------------
+// UI primitives & layout (KEEP)
+// -----------------------------------------------------------------------------
 #include "Layout.h"
 
+// -----------------------------------------------------------------------------
+// System / config (boot + status text only)
+// -----------------------------------------------------------------------------
 #include "screen_system.h"
 #include "config_manager.h"
-#include "storage_manager.h"
 #include "esp_logo.h"
 
+// -----------------------------------------------------------------------------
+// Display task signalling (CRITICAL — KEEP)
+// -----------------------------------------------------------------------------
+#include "task_display.h"
 
+// ============================================================================
+// Display instance (OWNED HERE)
+// ============================================================================
 
 GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
   GxEPD2_213_B74(ELINK_SS, ELINK_DC, ELINK_RESET, ELINK_BUSY)
@@ -32,34 +64,48 @@ GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
 int16_t displayWidth  = 0;
 int16_t displayHeight = 0;
 
-static int update_epaper = 2;
+// ============================================================================
+// Local UI state (candidate for later pruning)
+// ============================================================================
+
 static int ui_offset = 0;
 
-// bottom area 15px reserved to info bar
+// Bottom info bar
 #define INFO_BAR_HEIGHT 15
 #define INFO_BAR_ROW (display.height() - 2)
 
-  // --- Chrome helpers (forward declarations) ---
+// ============================================================================
+// Chrome helpers — forward declarations
+// (UI primitives — KEEP)
+// ============================================================================
+
 void Bat_level_Simon(int ui_offset);
 void Sats_level(int ui_offset);
 void M8_M10(int ui_offset);
 int  Time(int ui_offset);
 int  DateTimeRtc(int ui_offset);
 
+// -----------------------------------------------------------------------------
+// Unified chrome renderer
+// -----------------------------------------------------------------------------
 void drawChrome(int offset, bool rtcMode)
 {
+  Bat_level_Simon(offset);
+
   if (rtcMode) {
-    Bat_level_Simon(ui_offset);
-    DateTimeRtc(ui_offset);
+    DateTimeRtc(offset);
   } else {
-    Bat_level_Simon(ui_offset);
-    Sats_level(ui_offset);
-    if (ubxMessage.navPvt.numSV > 4)
-      M8_M10(ui_offset);
-    Time(ui_offset);
+    Sats_level(offset);
+    if (ubxMessage.navPvt.numSV > 4) {
+      M8_M10(offset);
+    }
+    Time(offset);
   }
 }
 
+// ============================================================================
+// Device identification (BOOT ONLY — KEEP)
+// ============================================================================
 
 #if defined(EPD_213_B74)
   const char E_paper_version[] = "E-paper 213B74";
@@ -71,6 +117,11 @@ void drawChrome(int offset, bool rtcMode)
   const char E_paper_version[] = "E-paper unknown";
 #endif
 
+// ============================================================================
+// Boot / diagnostics drawing
+// (Used only during boot screens — KEEP)
+// ============================================================================
+
 int device_boot_log(int rows, int ws)
 {
   int r = 2;
@@ -79,17 +130,13 @@ int device_boot_log(int rows, int ws)
     if (ws) delay(ws);
   };
 
-  // --------------------------------------------------
-  // Header: device + firmware
-  // --------------------------------------------------
+  // Device + firmware header
   display.setCursor(ui_offset, Layout::ROW9(2));
   pause();
   display.print(E_paper_version);
   display.print(SW_version);
 
-  // --------------------------------------------------
-  // SD / filesystem info
-  // --------------------------------------------------
+  // Storage info
   const bool show_storage =
       (rows == 2 || rows == 23 || rows == 24 || rows == 234);
 
@@ -99,9 +146,7 @@ int device_boot_log(int rows, int ws)
     sdCardInfo();
   }
 
-  // --------------------------------------------------
-  // Cursor advance / spacing logic
-  // --------------------------------------------------
+  // Cursor advance logic
   const bool advance_row =
       (rows == 3 || rows == 23 || rows == 34 || rows == 234);
 
@@ -118,9 +163,7 @@ int device_boot_log(int rows, int ws)
     );
   }
 
-  // --------------------------------------------------
   // GPS info
-  // --------------------------------------------------
   const bool show_gps =
       (rows == 4 || rows == 24 || rows == 34 || rows == 234) &&
       ubxMessage.monVER.hwVersion[0];
@@ -141,110 +184,81 @@ int device_boot_log(int rows, int ws)
   return r;
 }
 
-
-#ifndef T5_E_PAPER
-
-#else
-
 #define device_boot_log(rows) device_boot_log(rows, 0)
+
+// ============================================================================
+// Time helpers (INFO BAR — KEEP)
+// ============================================================================
 
 char time_now[8];
 char time_now_sec[12];
 
-int bar_length = 1852;
-int bar_position = 32;
-int total_bar_length = 240;
-int run_rectangle_length = 0;
-void InfoBar(int ui_offset);
-void InfoBarRtc(int ui_offset);
-char bar_info[8] = "info";
-
-
-#ifdef TRACKSPEED
-static void draw_STATSC();
-static void draw_STATSD();
-#endif
-
-int update_time() {
-  int ret = 0;
-  if (!NTP_time_set) {
-    if (!Gps_time_set) {
-      if (Set_GPS_Time(config.timezone)) Gps_time_set = 1;
+int update_time()
+{
+  if (!NTP_time_set && !Gps_time_set) {
+    if (Set_GPS_Time(config.timezone)) {
+      Gps_time_set = 1;
     }
   }
-  if ((!Gps_time_set && !NTP_time_set) || !getLocalTime(&tmstruct)) return 1;
-  sprintf(time_now, "%02d:%02d", tmstruct.tm_hour, tmstruct.tm_min);
-  sprintf(time_now_sec, "%02d:%02d:%02d", tmstruct.tm_hour, tmstruct.tm_min, tmstruct.tm_sec);
-  return ret;
-}
 
-//for print hour&minutes with 2 digits
-void time_print(int time) {
-  if (time < 10) display.print("0");
-  display.print(time);
-}
-void Bat_level(int X_offset, int Y_offset) {
-  float bat_symbol = 0;
-  display.fillRect(X_offset + 3, Y_offset, 6, 3, GxEPD_BLACK);
-  display.fillRect(X_offset, Y_offset + 3, 12, 30, GxEPD_BLACK);  //monitor=(4.2-RTC_voltage_bat)*26
-  if (RTC_voltage_bat < VOLTAGE_100) {
-    bat_symbol = (VOLTAGE_100 - RTC_voltage_bat) * 28;
-    display.fillRect(X_offset + 2, Y_offset + 7, 8, (int)bat_symbol, GxEPD_WHITE);
+  if ((!Gps_time_set && !NTP_time_set) || !getLocalTime(&tmstruct)) {
+    return 1;
   }
+
+  sprintf(time_now, "%02d:%02d", tmstruct.tm_hour, tmstruct.tm_min);
+  sprintf(time_now_sec, "%02d:%02d:%02d",
+          tmstruct.tm_hour, tmstruct.tm_min, tmstruct.tm_sec);
+
+  return 0;
 }
 
+// ============================================================================
+// Battery / satellite / time chrome (KEEP — UI primitives)
+// ============================================================================
 
-void Bat_level_Simon(int ui_offset) {
-  float bat_perc = 100 * (1 - (VOLTAGE_100 - RTC_voltage_bat) / (VOLTAGE_100 - VOLTAGE_0));
-  if (bat_perc < 0) bat_perc = 0;
-  if (bat_perc > 100) bat_perc = 100;
+void Bat_level_Simon(int ui_offset)
+{
+  float bat_perc = 100 * (1 - (VOLTAGE_100 - RTC_voltage_bat) /
+                                (VOLTAGE_100 - VOLTAGE_0));
+  bat_perc = constrain(bat_perc, 0, 100);
 
   int batW = 8;
   int batL = 15;
-  int posX = display.width() - batW - 6;  //was -10
+  int posX = display.width() - batW - 6;
   int posY = display.height() - batL;
-  int line = 2;
-  int seg = 3;
-  int segW = batW - 2 * line;
-  int segL = (batL - 0.25 * batW - 2 * line - (seg - 1)) / seg;
-  display.fillRect(ui_offset + posX, posY, 0.5 * batW, 0.25 * batW, GxEPD_BLACK);                 //battery top
-  display.fillRect(ui_offset + posX - 0.25 * batW, posY + 0.25 * batW, batW, batL, GxEPD_BLACK);  //battery body
-  if (bat_perc < 67) display.fillRect(ui_offset + posX - 0.25 * batW + line, posY + 0.25 * batW + line, segW, segL, GxEPD_WHITE);
-  if (bat_perc < 33) display.fillRect(ui_offset + posX - 0.25 * batW + line, posY + 0.25 * batW + line + 1 * (segL + 1), segW, segL, GxEPD_WHITE);
-  if (bat_perc < 1) display.fillRect(ui_offset + posX - 0.25 * batW + line, posY + 0.25 * batW + line + 2 * (segL + 1), segW, segL, GxEPD_WHITE);
-  //Serial.printf("info bar cursor pos: %d, display height: %d\n", INFO_BAR_ROW,display.height());
+
+  display.fillRect(ui_offset + posX, posY, batW / 2, batW / 4, GxEPD_BLACK);
+  display.fillRect(ui_offset + posX - batW / 4,
+                   posY + batW / 4,
+                   batW, batL, GxEPD_BLACK);
+
   display.setFont(Fonts::Body9);
-  //display.setCursor(display.width()-8,(INFO_BAR_ROW-ROW_9PT));
-  //display.print("-");
-  if (bat_perc < 100) display.setCursor(ui_offset + 156, (INFO_BAR_ROW));  //was 193
-  else display.setCursor(ui_offset + 146, (INFO_BAR_ROW));                 //was 184
+  display.setCursor(ui_offset + 146, INFO_BAR_ROW);
   display.print(RTC_voltage_bat + 0.04, 1);
   display.print("V ");
-  display.print(int(bat_perc));
+  display.print((int)bat_perc);
   display.print("%");
 }
 
-
-void Sats_level(int ui_offset) {
+void Sats_level(int ui_offset)
+{
   if (!ubxMessage.monVER.swVersion[0]) return;
-  // int circelL = 5;
-  //int circelS = 2;
-  int posX = 120 + ui_offset;  //was 176
+
   int satnum = ubxMessage.navPvt.numSV;
-  //display.drawExampleBitmap(ESP_Sat_15, posX, posY, 15, 15, GxEPD_BLACK);
   display.setFont(Fonts::Body9);
-  display.setCursor(posX - (satnum < 10 ? 9 : 18), INFO_BAR_ROW);
+  display.setCursor(120 + ui_offset - (satnum < 10 ? 9 : 18), INFO_BAR_ROW);
   display.print(satnum);
 }
 
-void M8_M10(int offset) {
+void M8_M10(int ui_offset)
+{
   display.setFont(Fonts::Body9);
   display.setCursor(ui_offset + 60, INFO_BAR_ROW);
   display.print(gpsChip(0));
 }
 
-
-int Time(int ui_offset) {
+int Time(int ui_offset)
+{
   if (!update_time()) {
     display.setFont(Fonts::Body9);
     display.setCursor(ui_offset, INFO_BAR_ROW);
@@ -252,274 +266,40 @@ int Time(int ui_offset) {
   }
   return 0;
 }
-int TimeRtc(int ui_offset) {
+
+int DateTimeRtc(int ui_offset)
+{
   display.setFont(Fonts::Body9);
   display.setCursor(ui_offset, INFO_BAR_ROW);
-  display.printf("%d:%d", RTC_hour, RTC_min);
+  display.printf("%02d:%02d %02d-%02d-%02d",
+                 RTC_hour, RTC_min, RTC_day, RTC_month, RTC_year);
   return 0;
 }
 
-
-int DateTimeRtc(int ui_offset) {
-  display.setFont(Fonts::Body9);
-  display.setCursor(ui_offset, INFO_BAR_ROW);
-  display.printf("%02d:%02d %02d-%02d-%02d", RTC_hour, RTC_min, RTC_day, RTC_month, RTC_year);
-  return 0;
-}
-
-
-void InfoBar(int ui_offset) {
-  Bat_level_Simon(ui_offset);
-  Sats_level(ui_offset);
-  if (ubxMessage.navPvt.numSV > 4) M8_M10(ui_offset);
-  Time(ui_offset);
-}
-
-void InfoBarRtc(int ui_offset) {
-  Bat_level_Simon(ui_offset);
-  DateTimeRtc(ui_offset);
-}
-
-void Speed_in_Unit(int ui_offset) {
-  display.setRotation(0);
-  display.setFont(Fonts::Small6);
-  display.setCursor(30, ui_offset + 245);                                            //was 30, 249
-  if ((int)(calibration_speed * 100000) == 194) display.print("speed in knots");  //1.94384449 m/s to knots !!!
-  if ((int)(calibration_speed * 1000000) == 3600) display.print("speed in km/h");
-  display.setRotation(1);
-}
+// ============================================================================
+// Storage info (BOOT + INFO — KEEP)
+// ============================================================================
 
 void sdCardInfo()
 {
   if (sdOK) {
-    uint64_t free_mb = storageFreeKBytes() / 1024;
-    display.printf("SD    : %llu MB\n", free_mb);
+    display.printf("SD    : %llu MB\n",
+                   storageFreeKBytes() / 1024);
   }
   else if (LITTLEFS_OK) {
-    uint64_t free_kb = storageFreeKBytes();
-    display.printf("Local : %llu KB\n", free_kb);
+    display.printf("Local : %llu KB\n",
+                   storageFreeKBytes());
   }
 }
 
-
-
-
-
-void Update_screen(int screen)
+// ============================================================================
+// Legacy screen update API (DO NOT REMOVE)
+// ============================================================================
+//
+// Screen selection is now driven by SystemMode and rendered by task_display.
+// This function exists only to trigger a redraw for legacy callers.
+//
+void Update_screen(int /*screen*/)
 {
-  static int count = 0;
-  static int old_screen = -1;
-
-
-  update_time();
-  update_epaper = 1;
-
-  // subtle horizontal UI wobble (anti-ghosting)
-  ui_offset += ((count / 4) % 20 < 10) ? 1 : -1;
-  if (ui_offset < 0 || ui_offset > 10) ui_offset = 0;
-
-  int cursor = 0;
-
-  // allow screen to prepare data
-  ScreenDrawTable[screen]();
-
-  display.firstPage();
-  do {
-    display.fillScreen(GxEPD_WHITE);
-
-    // Chrome everywhere except pure speed/stats
-    if (screen != SPEED &&
-        screen != STATS9 &&
-        screen != STATS8 &&
-        screen != STATSA &&
-        screen != STATSD) {
-      drawChrome(ui_offset, false);
-    }
-
-    switch (screen) {
-
-      // --------------------------------------------------
-      case BOOT_SCREEN:
-      
-  
-        drawTopLeftTitle("ESP-GPS config");
-        device_boot_log(234);
-        Speed_in_Unit(ui_offset);
-        if (screen != old_screen) count = 0;
-        break;
-
-      // --------------------------------------------------
-      case GPS_INIT_SCREEN:
-     
-
-        drawTopLeftTitle("ESP-GPS GPS init");
-        device_boot_log(24);
-
-        display.setFont(Fonts::Body12);
-
-        if (config.ublox_type == 0xFF) {
-          display.setCursor(ui_offset,
-            cursor = Layout::ROW9(4) + Layout::STEP12);
-          display.print("Auto detect gps-type");
-        }
-        else if (!ubxMessage.monVER.hwVersion[0]) {
-          display.setCursor(ui_offset,
-            cursor = Layout::ROW9(3) + Layout::STEP12);
-          display.println("Gps initializing");
-
-          if (config.M10_high_nav == M10_HIGH_NAV_RATE)
-            display.println("M10 high nav mode !");
-          if (config.M10_high_nav == M10_DEFAULT_NAV)
-            display.println("M10 default nav mode");
-        }
-
-        Speed_in_Unit(ui_offset);
-        if (screen != old_screen) count = 0;
-        break;
-
-      default:
-        break;
-    }
-
-  } while (display.nextPage());
-
-  if (screen == BOOT_SCREEN)
-    delay(1000);
-
-  // ==================================================
-  // WIFI SCREENS (not paged)
-  // ==================================================
-
-  if (screen == WIFI_ON) {
- 
-    ui_offset += (count % 20 < 10) ? 1 : -1;
-
-
-    drawTopLeftTitle("ESP-GPS connect");
-    device_boot_log(2);
-
-    if (!SoftAP_connection) {
-      display.setCursor(ui_offset, 102);
-      display.printf("Logspace left : %d hour",
-        storageLogTimeLeftMinutes() / 60);
-    }
-
-   
-    else {
-      display.fillRect(0, 0, 250, 122, GxEPD_WHITE);
-
-
-      drawTopLeftTitle("ESP-GPS ready");
-      device_boot_log(24);
-
-      display.setFont(Fonts::Body12);
-      display.setCursor(ui_offset,
-        cursor = Layout::ROW9(4) + Layout::STEP12);
-
-      if (ubxMessage.navPvt.numSV < 5) {
-        display.println("Waiting for Sat >=5");
-        display.setFont(Fonts::Body9);
-        display.setCursor(ui_offset, 102);
-        display.println("Please go outside...");
-      }
-      else {
-        display.println("Ready for action");
-        display.setFont(Fonts::Body9);
-        display.setCursor(ui_offset, cursor += Layout::STEP9);
-        display.print("Move faster than ");
-
-        if ((int)(calibration_speed * 100000) == 194)
-          display.print(config.start_logging_speed * 1.94384449), display.print("kn");
-        if ((int)(calibration_speed * 1000000) == 3600)
-          display.print(config.start_logging_speed * 3.6), display.print("km/h");
-
-        Speed_in_Unit(ui_offset);
-      }
-
-      drawChrome(ui_offset, false);
-    }
-  }
-
-  else if (screen == WIFI_STATION) {
-
-
-    drawTopLeftTitle("ESP-GPS try to connect");
-    device_boot_log(2);
-
-    display.setCursor(ui_offset, 102);
-    display.printf("Logspace left : %d hour",
-      Logtime_left(storageLogTimeLeftMinutes()) / 60);
-
-    display.setFont(Fonts::Body12);
-    display.setCursor(ui_offset,
-      cursor = Layout::ROW9(3) + Layout::STEP12);
-    display.print(actual_ssid);
-
-    display.setFont(Fonts::Body9);
-    display.setCursor(ui_offset, cursor += Layout::STEP9);
-    display.printf("For AP: use magnet in %ds", wifi_search);
-
-    if (screen != old_screen) count = 0;
-  }
-
-  else if (screen == WIFI_SOFT_AP) {
-
-
-
-    drawTopLeftTitle("Connect to ESP-GPS");
-    device_boot_log(2);
-
-    display.setFont(Fonts::Body12);
-    display.setCursor(ui_offset,
-      cursor = Layout::ROW9(3) + Layout::STEP12);
-    display.print("Ssid: ESP32AP");
-
-    display.setFont(Fonts::Body9);
-    display.setCursor(ui_offset, cursor += Layout::STEP9);
-    display.print("Password: password");
-
-    display.setCursor(ui_offset, cursor += Layout::STEP9);
-    display.printf("http://%s/ in %ds",
-      IP_adress.c_str(), wifi_search);
-
-    if (screen != old_screen) count = 0;
-  }
-
-  else if (screen == TROUBLE) {
-    display.setFont(Fonts::Body12);
-    display.setCursor(ui_offset, Layout::ROW12(1));
-    display.println("No GPS frames for");
-    display.println("more then 10 s....");
-  }
-
-  old_screen = screen;
-  count++;
-
-
-
-    #ifdef TRACKSPEED
-        if (screen == STATSC)
-          Stats_4lines("Dis_S:", "Dis:", "Speed:", "Dis_E:",
-                      M_500.distance_startline,
-                      M_500.track_distance,
-                      M_500.Track_speed,
-                      M_500.distance_endline);
-
-        if (screen == STATSD) {
-          display.setFont(Fonts::Body12);
-          for (int i = 9; i > 4; i--) {
-            int y = 24 * (10 - i);
-            display.setCursor(ui_offset, y);
-            display.print("Track"); display.print(10 - i); display.print(": ");
-            display.print(M_500.avg_speed[i] * config.cal_speed, 2);
-            display.print(" @");
-            display.print(M_500.time_hour[i]);
-            display.print(M_500.time_min[i] < 10 ? ":0" : ":");
-            display.print(M_500.time_min[i]);
-          }
-        }
-      #endif
-#endif
-
+  screen_request_redraw();
 }
-
