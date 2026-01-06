@@ -57,6 +57,10 @@
 // Display instance (OWNED HERE)
 // ============================================================================
 
+//GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
+//  GxEPD2_213_B74(ELINK_SS, ELINK_DC, ELINK_RESET, ELINK_BUSY)
+//);
+
 GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
   GxEPD2_213_B74(ELINK_SS, ELINK_DC, ELINK_RESET, ELINK_BUSY)
 );

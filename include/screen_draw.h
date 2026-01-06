@@ -40,3 +40,13 @@ DrawFn getDrawFnForMode(SystemMode mode);
 // -----------------------------------------------------------------------------
 void drawTopLeftTitle(const char* msg);
 int  device_boot_log(int rows, int ws = 0);
+
+// -----------------------------------------------------------------------------
+// Logo helpers (UI primitives, NOT screens)
+// -----------------------------------------------------------------------------
+
+// Draw board logo selected in config (no-op if disabled)
+void drawBoardLogo(int16_t x, int16_t y);
+
+// Draw sail logo selected in config (no-op if disabled)
+void drawSailLogo(int16_t x, int16_t y);

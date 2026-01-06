@@ -1,12 +1,15 @@
 #pragma once
 
 #include <Arduino.h>
+
 #include <GxEPD2_BW.h>
 #include <epd/GxEPD2_213_B74.h>
+
 #include <screen_draw.h>
 #include "rtc_state.h"
 
 extern GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display;
+
 
 extern char time_now[8];
 extern char time_now_sec[12];

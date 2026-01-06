@@ -21,6 +21,7 @@
 #include "Fonts.h"
 #include "Layout.h"
 #include "E_paper.h"
+#include "logos.h"
 
 // -----------------------------------------------------------------------------
 // LEGACY DRAW TABLE (optional / retained for compatibility)
@@ -56,3 +57,4 @@ void drawTopLeftTitle(const char* msg)
   display.setCursor(0, 0);
   display.print(msg);
 }
+

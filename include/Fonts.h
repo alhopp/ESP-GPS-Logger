@@ -9,8 +9,6 @@ extern const GFXfont FreeSansBold18pt7b;
 extern const GFXfont FreeSansBold24pt7b;
 extern const GFXfont FreeSansBold30pt7b;
 extern const GFXfont FreeSansBold75pt7b;
-extern const GFXfont FreeSansBold80pt7b;
-extern const GFXfont FreeSansBold100pt7b;
 
 // ---- FreeMonoBold ----
 extern const GFXfont FreeMonoBold9pt7b;
