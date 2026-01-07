@@ -85,7 +85,6 @@ static int ui_offset = 0;
 
 void Bat_level_Simon(int ui_offset);
 void Sats_level(int ui_offset);
-void M8_M10(int ui_offset);
 int  Time(int ui_offset);
 int  DateTimeRtc(int ui_offset);
 
@@ -101,7 +100,7 @@ void drawChrome(int offset, bool rtcMode)
   } else {
     Sats_level(offset);
     if (ubxMessage.navPvt.numSV > 4) {
-      M8_M10(offset);
+
     }
     Time(offset);
   }
@@ -239,12 +238,7 @@ void Sats_level(int ui_offset)
   display.print(satnum);
 }
 
-void M8_M10(int ui_offset)
-{
-  display.setFont(Fonts::Body9);
-  display.setCursor(ui_offset + 60, INFO_BAR_ROW);
-  display.print(gpsChip(0));
-}
+
 
 int Time(int ui_offset)
 {

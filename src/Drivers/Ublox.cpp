@@ -71,40 +71,11 @@ bool Set_GPS_Time(float time_offset)
 
 
 
-const char* gpsChip(int longname) {
-  switch (config.ublox_type) {
-    case M8_9600BD:
-      return longname ? "M8 9.6Kbd" : "M8";
-      break;
-    case M8_38400BD:
-      return longname ? "M8 38.4Kbd" : "M8";
-      break;
-    case M8_115200BD:
-      return longname ? "M8 115.2Kbd" : "M8";
-      break;
-    case M9_9600BD:
-      return longname ? "M9 9.6Kbd" : "M9";
-      break;
-    case M9_38400BD:
-      return longname ? "M9 38.4Kbd" : "M9";
-      break;
-    case M9_115200BD:
-      return longname ? "M9 115.2Kbd" : "M9";
-      break;
-    case M10_9600BD:
-      return longname ? "M10 9.6Kbd" : "M10";
-      break;
-    case M10_38400BD:
-      return longname ? "M10 38.4Kbd" : "M10";
-      break;
-    case M10_115200BD:
-      return longname ? "M10 115.2Kbd" : "M10";
-      break;
-    default:
-      return "unknown";
-      break;
-  }
+const char* gpsChip(bool longname)
+{
+    return longname ? "u-blox M10 (UBX)" : "M10";
 }
+
 
 
 void Ublox_serial2(int delay_ms){
@@ -251,8 +222,9 @@ void Init_ubloxM10(void)
     }
 
     // -------------------------------------------------------------------------
-    // Enable required UBX messages
+    // Enable required UBX messages (M10 ONLY)
     // -------------------------------------------------------------------------
+
     Serial.println("Enable UBX output");
     SEND_UBX(UBLOX_M10_UBX);
 
@@ -264,8 +236,7 @@ void Init_ubloxM10(void)
 
     if (config.logUBX && config.logUBX_nav_sat) {
         Serial.println("Enable NAV-SAT");
-        SEND_UBX((config.sample_rate < 10) ? UBLOX_M10_NAV_SAT
-                                            : UBLOX_M9_NAV_SAT);
+        SEND_UBX(UBLOX_M10_NAV_SAT);
     }
 
     // -------------------------------------------------------------------------
@@ -548,82 +519,32 @@ int processGPS() {
   }
   return MT_NONE;
 }
-int Auto_detect_ublox(){
-  config.ublox_type=0;
-  bool Ublox_M10=false;
-  Serial.println("Check UBX_MON_VER @9600bd ");  //check for 9600 bd ??   
-  for(int i = 0; i < sizeof(UBX_MON_VER); i++) {                        
-        Serial2.write( pgm_read_byte(UBX_MON_VER+i) );        
-        }           
-  Ublox_serial2(1000); 
-  Serial.println(ubxMessage.monVER.hwVersion[3]);
-  if(ubxMessage.monVER.hwVersion[3]=='8'){
-    config.ublox_type=M8_9600BD;
-    Serial.println("Ublox M8 @9600bd ");
-    }//M8@9600 bd
-  if(ubxMessage.monVER.hwVersion[3]=='9'){
-    config.ublox_type=M9_9600BD;
-    Serial.println("Ublox M9 @9600bd ");
-    }//M9@9600 bd  
-  if(ubxMessage.monVER.hwVersion[3]=='A'){
-    config.ublox_type=M10_9600BD;
-    Serial.println("Ublox M10 @9600bd ");
-    Ublox_M10=true;
-    }//M10@9600 bd
-  if(config.ublox_type==0){//no ublox @9600 bd detected
-      //Serial2.flush();
-      Serial2.begin(38400,SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);// Change baudrate to 38400 for new test
-      Serial2.flush();
-      Serial.println("Check UBX_MON_VER @38400bd ");  //check for 9600 bd ?? 
-      delay(100);  
-      for(int i = 0; i < sizeof(UBX_MON_VER); i++) {                        
-            Serial2.write( pgm_read_byte(UBX_MON_VER+i) );        
-            }           
-      Ublox_serial2(1000); 
-      if(ubxMessage.monVER.hwVersion[3]=='8'){
-        config.ublox_type=M8_38400BD;
-        Serial.println("Ublox M8 @38400bd ");
-        }//M8@384000 bd
-      if(ubxMessage.monVER.hwVersion[3]=='9'){
-        config.ublox_type=M9_38400BD;
-        Serial.println("Ublox M9 @38400bd ");
-        }//M8@384000 bd  
-      if(ubxMessage.monVER.hwVersion[3]=='A'){
-        config.ublox_type=M10_38400BD;
-        Serial.println("Ublox M10 @38400bd ");
-        Ublox_M10=true;
-        }
-      }
-    if(config.ublox_type==0){//no ublox @9600 bd detected
-      Serial2.begin(115200,SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);// Change baudrate to 38400 for new test
-      Serial2.flush();
-      Serial.println("Check UBX_MON_VER @115200bd ");  //check for 9600 bd ?? 
-      delay(100);  
-      for(int i = 0; i < sizeof(UBX_MON_VER); i++) {                        
-            Serial2.write( pgm_read_byte(UBX_MON_VER+i) );        
-            }           
-      Ublox_serial2(1000); 
-      if(ubxMessage.monVER.hwVersion[3]=='8'){
-        config.ublox_type=M8_115200BD;
-        Serial.println("Ublox M8 @115200bd ");
-        }
-      if(ubxMessage.monVER.hwVersion[3]=='9'){
-        config.ublox_type=M9_115200BD;
-        Serial.println("Ublox M9 @115200bd ");
-        } 
-      if(ubxMessage.monVER.hwVersion[3]=='A'){
-        config.ublox_type=M10_115200BD;
-        Serial.println("Ublox M10 @115200bd ");
-        Ublox_M10=true;
-        }
-      }  
-    Serial.println(ubxMessage.monVER.hwVersion[3]) ; 
-    if(Ublox_M10==true){
-    config.M10_high_nav=Check_M10_nav_rate();
-    EEPROM.write(1,config.M10_high_nav);EEPROM.commit();
+
+
+
+bool Check_ublox_M10()
+{
+    // Assume Serial2 is already configured to the expected baud
+    Serial.println("Checking u-blox M10...");
+
+    for (int i = 0; i < sizeof(UBX_MON_VER); i++) {
+        Serial2.write(pgm_read_byte(UBX_MON_VER + i));
     }
-    return config.ublox_type;  
+
+    Ublox_serial2(500);
+
+    // M10 hardware string typically contains 'A'
+    if (ubxMessage.monVER.hwVersion[3] == 'A') {
+        Serial.println("u-blox M10 detected");
+        return true;
+    }
+
+    Serial.println("ERROR: u-blox M10 not responding");
+    return false;
 }
+
+
+
 int Check_M10_nav_rate(void){
   int result=NO_M10_GPS;
   check_M10_nav_rate=true;
