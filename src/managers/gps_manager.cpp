@@ -17,7 +17,7 @@
 
 #include "Definitions.h"
 #include "rtc_state.h"     // RTC_gps_* + RTC time fields
-#include "Ublox.h"         // UBX_MON_VER definition
+#include "Ublox.h"         // ubx::poll::mon_ver definition
 
 // -----------------------------------------------------------------------------
 // SERIAL
@@ -151,8 +151,8 @@ static bool probe_gps(uint32_t baud)
   while (GPSSerial.available()) GPSSerial.read();
 
   GPSSerial.write(
-    (const uint8_t*)UBX_MON_VER,
-    sizeof(UBX_MON_VER)
+    (const uint8_t*)ubx::poll::mon_ver,
+    sizeof(ubx::poll::mon_ver)
   );
   GPSSerial.flush();
 

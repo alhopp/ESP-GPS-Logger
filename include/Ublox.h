@@ -248,23 +248,23 @@ int  Set_M10_high_nav_rate(void);
 // -----------------------------------------------------------------------------
 // These expand to ARRAY SYMBOLS (good), so sizeof() and pgm_read_byte() still work.
 
-#define UBLOX_M10_NMEA_OFF          ubx::cfg::nmea_off
-#define UBLOX_M10_UBX               ubx::cfg::ubx_only
-#define UBLOX_M10_4GNSS             ubx::cfg::all_4gnss
-#define UBX_M10_SEA                 ubx::cfg::sea_model
+//#define UBLOX_M10_NMEA_OFF          ubx::cfg::nmea_off
+//#define UBLOX_M10_UBX               ubx::cfg::ubx_only
+//#define UBLOX_M10_4GNSS             ubx::cfg::all_4gnss
+//#define UBX_M10_SEA                 ubx::cfg::sea_model
 
-#define UBLOX_M10_NAV_PVT           ubx::msg::nav_pvt
-#define UBLOX_M10_NAV_DOP           ubx::msg::nav_dop
-#define UBLOX_M10_NAV_SAT           ubx::msg::nav_sat
+//#define UBLOX_M10_NAV_PVT           ubx::msg::nav_pvt
+//#define UBLOX_M10_NAV_DOP           ubx::msg::nav_dop
+//#define UBLOX_M10_NAV_SAT           ubx::msg::nav_sat
 
-#define UBLOX_M10_UBX_BD19200       ubx::rate::baud_19200
-#define UBLOX_M10_UBX_BD38400       ubx::rate::baud_38400
-#define UBLOX_M10_RATE              ubx::rate::table
+//#define UBLOX_M10_UBX_BD19200       ubx::rate::baud_19200
+//#define UBLOX_M10_UBX_BD38400       ubx::rate::baud_38400
+//#define UBLOX_M10_RATE              ubx::rate::table
 
-#define UBX_M10_GET_NAV_RATE        ubx::highnav::get_nav_rate
-#define UBX_M10_SET_HIGH_NAV_RATE   ubx::highnav::set_high_nav_rate
+//#define UBX_M10_GET_NAV_RATE        ubx::highnav::get_nav_rate
+//#define UBX_M10_SET_HIGH_NAV_RATE   ubx::highnav::set_high_nav_rate
 
-#define UBX_MON_GNSS                ubx::poll::mon_gnss
-#define UBX_MON_VER                 ubx::poll::mon_ver
-#define UBX_NAV_SAT                 ubx::poll::nav_sat
-#define UBX_ID                      ubx::poll::uid
+//#define UBX_MON_GNSS                ubx::poll::mon_gnss
+//#define UBX_MON_VER                 ubx::poll::mon_ver
+//#define UBX_NAV_SAT                 ubx::poll::nav_sat
+//#define UBX_ID                      ubx::poll::uid

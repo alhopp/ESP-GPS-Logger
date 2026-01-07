@@ -289,12 +289,13 @@ void Session_info(GPS_data G) {
   sprintf(
       tekst,
       "Ublox M10 ID = %02X%02X%02X%02X%02X%02X\n",
-      ubxMessage.ubxId.ubx_id_1,
-      ubxMessage.ubxId.ubx_id_2,
-      ubxMessage.ubxId.ubx_id_3,
-      ubxMessage.ubxId.ubx_id_4,
-      ubxMessage.ubxId.ubx_id_5,
-      ubxMessage.ubxId.ubx_id_6
+   ubxMessage.ubxId.ubx_id_1,
+ubxMessage.ubxId.ubx_id_2,
+ubxMessage.ubxId.ubx_id_3,
+ubxMessage.ubxId.ubx_id_4,
+ubxMessage.ubxId.ubx_id_5,
+ubxMessage.ubxId.ubx_id_6
+
   );
 
   strcat(message, tekst);
