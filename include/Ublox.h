@@ -15,12 +15,26 @@ inline const char* gpsChip(int longname) {
   return longname ? "u-blox M10" : "M10";
 }
 
-// Compile-time safe UBX sender (replaces macros if you choose to use it)
+// --------------------------------------------------
+// Single GPS UART (UART2)
+// --------------------------------------------------
+extern HardwareSerial UbloxSerial;
+
+// --------------------------------------------------
+// Initialisation helper
+// --------------------------------------------------
+void ubloxSerialInit(int delay_ms);
+
+// --------------------------------------------------
+// UBX sender helper
+// --------------------------------------------------
 template <size_t N>
 inline void sendUbx(const uint8_t (&cmd)[N])
 {
-  for (size_t i = 0; i < N; i++)
-    Serial2.write(pgm_read_byte(cmd + i));
+  for (size_t i = 0; i < N; i++) {
+    UbloxSerial.write(pgm_read_byte(cmd + i));
+  }
+  UbloxSerial.flush();
 }
 
 // -----------------------------------------------------------------------------
@@ -30,6 +44,24 @@ namespace ubx {
 
 // ========================== CONFIG ===========================================
 namespace cfg {
+
+
+  // CFG-PRT: UART1 @ 38400, UBX output enabled
+  constexpr uint8_t uart1_ubx_out[] PROGMEM = {
+    0xB5,0x62,
+    0x06,0x00,        // CFG-PRT
+    0x14,0x00,        // length
+    0x01,             // portID = UART1
+    0x00,             // reserved
+    0x00,0x00,        // txReady
+    0xD0,0x08,0x00,0x00, // mode (8N1)
+    0x00,0x96,0x00,0x00, // baudrate = 38400
+    0x01,0x00,        // inProtoMask  = UBX
+    0x01,0x00,        // outProtoMask = UBX   ⭐ IMPORTANT
+    0x00,0x00,        // flags
+    0x00,0x00,        // reserved
+    0x00,0x00         // reserved
+};
 
 // Protocol
 constexpr uint8_t nmea_off[] PROGMEM =
@@ -235,7 +267,7 @@ extern char Buffer[50];
 // -----------------------------------------------------------------------------
 void calcChecksum(uint8_t* CK,int msgType,int msgSize);
 bool compareMsgHeader(const uint8_t* msgHeader);
-void Ublox_serial2(int delay_ms);
+
 void Init_ubloxM10(void);
 void Set_rate_ubloxM10(int rate);
 bool Set_GPS_Time(float time_offset);
@@ -243,28 +275,3 @@ int  processGPS(void);
 int  Check_M10_nav_rate(void);
 int  Set_M10_high_nav_rate(void);
 
-// -----------------------------------------------------------------------------
-// Backwards-compatibility aliases (Level-2 safe)
-// -----------------------------------------------------------------------------
-// These expand to ARRAY SYMBOLS (good), so sizeof() and pgm_read_byte() still work.
-
-//#define UBLOX_M10_NMEA_OFF          ubx::cfg::nmea_off
-//#define UBLOX_M10_UBX               ubx::cfg::ubx_only
-//#define UBLOX_M10_4GNSS             ubx::cfg::all_4gnss
-//#define UBX_M10_SEA                 ubx::cfg::sea_model
-
-//#define UBLOX_M10_NAV_PVT           ubx::msg::nav_pvt
-//#define UBLOX_M10_NAV_DOP           ubx::msg::nav_dop
-//#define UBLOX_M10_NAV_SAT           ubx::msg::nav_sat
-
-//#define UBLOX_M10_UBX_BD19200       ubx::rate::baud_19200
-//#define UBLOX_M10_UBX_BD38400       ubx::rate::baud_38400
-//#define UBLOX_M10_RATE              ubx::rate::table
-
-//#define UBX_M10_GET_NAV_RATE        ubx::highnav::get_nav_rate
-//#define UBX_M10_SET_HIGH_NAV_RATE   ubx::highnav::set_high_nav_rate
-
-//#define UBX_MON_GNSS                ubx::poll::mon_gnss
-//#define UBX_MON_VER                 ubx::poll::mon_ver
-//#define UBX_NAV_SAT                 ubx::poll::nav_sat
-//#define UBX_ID                      ubx::poll::uid

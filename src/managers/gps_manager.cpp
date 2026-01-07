@@ -20,11 +20,6 @@
 #include "Ublox.h"         // ubx::poll::mon_ver definition
 
 // -----------------------------------------------------------------------------
-// SERIAL
-// -----------------------------------------------------------------------------
-static HardwareSerial GPSSerial(2);
-
-// -----------------------------------------------------------------------------
 // BAUD TABLE
 // -----------------------------------------------------------------------------
 static const uint32_t gpsBauds[] = {
@@ -85,8 +80,8 @@ void gps_power_off()
 // -----------------------------------------------------------------------------
 static void ubxSend(const uint8_t* msg, size_t len)
 {
-  GPSSerial.write(msg, len);
-  GPSSerial.flush();
+  UbloxSerial.write(msg, len);
+  UbloxSerial.flush();
 }
 
 // -----------------------------------------------------------------------------
@@ -145,36 +140,49 @@ static void gps_send_time_from_rtc()
 // -----------------------------------------------------------------------------
 static bool probe_gps(uint32_t baud)
 {
-  GPSSerial.begin(baud, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
+  UbloxSerial.begin(baud, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
   delay(120);
 
-  while (GPSSerial.available()) GPSSerial.read();
+  while (UbloxSerial.available()) UbloxSerial.read();
 
-  GPSSerial.write(
+  UbloxSerial.write(
     (const uint8_t*)ubx::poll::mon_ver,
     sizeof(ubx::poll::mon_ver)
   );
-  GPSSerial.flush();
+  UbloxSerial.flush();
 
   uint32_t start = millis();
   while (millis() - start < 300) {
-    if (GPSSerial.available()) return true;
+    if (UbloxSerial.available()) return true;
   }
   return false;
 }
 
+
 // -----------------------------------------------------------------------------
 // PUBLIC API
+// -----------------------------------------------------------------------------
+// initGPS()
+// - Powers GPS
+// - Detects current baud (RTC fast path + scan fallback)
+// - Applies full M10 UBX configuration ONCE
+// - Forces final baud to 38400
+// - Restarts UART at 38400
+// - Injects RTC time (if valid)
+// - Returns GPS READY
 // -----------------------------------------------------------------------------
 bool initGPS()
 {
   LOG_GPS("Init", "starting");
 
   gps_power_on();
+  delay(100);
 
   // ---------------------------------------------------------------------------
-  // 1️⃣ FAST PATH — RTC cached baud
+  // Detect current baud (RTC fast path, then scan)
   // ---------------------------------------------------------------------------
+  uint32_t detectedBaud = 0;
+
   if (RTC_gps_valid &&
       RTC_gps_baud_index >= 1 &&
       RTC_gps_baud_index <= 3) {
@@ -182,40 +190,72 @@ bool initGPS()
     uint32_t baud = gpsBauds[RTC_gps_baud_index];
     LOG_GPS("Detect", "cached baud=%lu", (unsigned long)baud);
 
-
     if (probe_gps(baud)) {
-      gps_send_time_from_rtc();
+      detectedBaud = baud;
       LOG_GPS("Detect", "cache hit");
-      return true;
+    } else {
+      LOG_GPS("Detect", "cache failed → scan");
+      RTC_gps_valid = false;
     }
+  }
 
-    LOG_GPS("Detect", "cache failed → rescan");
+  if (detectedBaud == 0) {
+    LOG_GPS("Detect", "baud scan");
+
+    for (uint8_t i = 1; i <= 3; i++) {
+      if (probe_gps(gpsBauds[i])) {
+        detectedBaud = gpsBauds[i];
+        RTC_gps_baud_index = i;
+        RTC_gps_valid = true;
+        LOG_GPS("Detect", "found baud=%lu", (unsigned long)detectedBaud);
+        break;
+      }
+    }
+  }
+
+  if (detectedBaud == 0) {
     RTC_gps_valid = false;
+    LOG_GPS("Init", "no GPS detected");
+    return false;
   }
 
   // ---------------------------------------------------------------------------
-  // 2️⃣ FULL BAUD SCAN
+  // Apply M10 configuration (UBX-only, GNSS, messages, SEA model)
+  //     UART is currently at detectedBaud
   // ---------------------------------------------------------------------------
-  LOG_GPS("Detect", "baud scan");
+  LOG_GPS("Config", "apply M10 profile");
+  Init_ubloxM10();   // sends UBX + switches GPS internally to 38400
 
-  for (uint8_t i = 1; i <= 3; i++) {
-    if (probe_gps(gpsBauds[i])) {
-      RTC_gps_baud_index = i;
-      RTC_gps_valid      = true;
+  // ---------------------------------------------------------------------------
+  // Force UART to final authoritative baud (38400)
+  // ---------------------------------------------------------------------------
+  UbloxSerial.end();
+  delay(50);
+  UbloxSerial.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
+  delay(100);
 
-      gps_send_time_from_rtc();
-      LOG_GPS("Detect", "baud=%lu", (unsigned long)gpsBauds[i]);
+  sendUbx(ubx::msg::nav_pvt);
+  sendUbx(ubx::msg::nav_dop);
 
-      return true;
-    }
+  RTC_gps_baud_index = 2; // index for 38400
+  RTC_gps_valid      = true;
+
+  LOG_GPS("Detect", "locked @38400");
+
+  // ---------------------------------------------------------------------------
+  // Inject RTC time (optional, accelerates first fix)
+  // ---------------------------------------------------------------------------
+  gps_send_time_from_rtc();
+
+  LOG_GPS("Init", "GPS ready");
+
+  // Hard flush RX buffer before parser starts
+  while (UbloxSerial.available()) {
+  UbloxSerial.read();
   }
+  delay(50);
 
-  // ---------------------------------------------------------------------------
-  // 3️⃣ FAILURE
-  // ---------------------------------------------------------------------------
-  RTC_gps_valid = false;
-  LOG_GPS("Init", "no GPS detected");
-  return false;
+  return true;
 }
 
 

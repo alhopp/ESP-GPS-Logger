@@ -138,7 +138,7 @@ static void startTasks()
   ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS",
                               10000, nullptr, 1, &t1, 1);
   if (ok != pdPASS) {
-    Serial.println("[TASK   ] GPS create failed");
+    LOG_TASK("Create", "GPS task failed");
   }
 
   ok = xTaskCreatePinnedToCore(taskTwo, "TaskDisplay",
@@ -148,7 +148,7 @@ static void startTasks()
     Serial.println("[TASK   ] Display create failed");
   }
 
-  Serial.printf("[TASK   ] started\r\n");
+  LOG_TASK("Start", "tasks started");
 
   if (t1) {Serial.printf("[TASK   ] t1_hw=%u\r\n",
                   uxTaskGetStackHighWaterMark(t1));
@@ -257,40 +257,21 @@ static void heartbeat()
 
   if (millis() - last > 3000) {
     last = millis();
-/*
-    Serial.print("[LOOP] mode=");
-    // Serial.print(modeToString(getMode()));
-    Serial.print(" heap=");
-    Serial.print(ESP.getFreeHeap());
-    Serial.print(" min=");
-    Serial.print(esp_get_minimum_free_heap_size());
-
-    if (t1) {
-      Serial.print(" t1_hw=");
-      Serial.print(uxTaskGetStackHighWaterMark(t1));
-    }
-    if (t2) {
-      Serial.print(" t2_hw=");
-      Serial.print(uxTaskGetStackHighWaterMark(t2));
-    }
-*/
-    // --- Internet backhaul status (STA) ---
-   Serial.print(" net=");
 
   if (wifi_sta_connected()) {
-    Serial.print("UP ssid=");
-    Serial.print(wifi_sta_ssid());
-    Serial.print(" ip=");
-    Serial.print(wifi_sta_ip());
+   // Serial.print("UP ssid=");
+   // Serial.print(wifi_sta_ssid());
+   // Serial.print(" ip=");
+   // Serial.print(wifi_sta_ip());
   }
   else if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("UP (pending)");
+    //Serial.print("UP (pending)");
   }
   else {
-    Serial.print("DOWN");
+   // Serial.print("DOWN");
   }
 
-  Serial.println();
+  //Serial.println();
 
   }
 }

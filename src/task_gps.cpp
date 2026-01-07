@@ -1,6 +1,6 @@
 #include <Arduino.h>
-#include "Globals.h"
 
+#include "Globals.h"
 #include "task_gps.h"
 #include "config_manager.h"
 #include "storage_manager.h"
@@ -14,7 +14,10 @@
 #include <SD_MMC.h>
 #include "Definitions.h"
 
-int GPS_delay        = 0;
+// --------------------------------------------------
+// Runtime state
+// --------------------------------------------------
+int GPS_delay = 0;
 
 // --------------------------------------------------
 // Task handle
@@ -27,7 +30,7 @@ TaskHandle_t t1 = nullptr;
 extern bool sleep_mode;
 
 // --------------------------------------------------
-// Local helpers
+// Forward declarations
 // --------------------------------------------------
 static void processGpsMessages();
 
@@ -36,17 +39,16 @@ static void processGpsMessages();
 // --------------------------------------------------
 void taskOne(void *parameter)
 {
-  static int actual_speed_field = 0;
-
   for (;;) {
 
     // ----------------------------------------------
-    // Mode gate — GPS only runs in field modes
+    // Mode gate — GPS only runs in active field modes
     // ----------------------------------------------
-    SystemMode mode = getMode();
-   if (mode != MODE_LOGGING &&
+    const SystemMode mode = getMode();
+    if (mode != MODE_LOGGING &&
         mode != MODE_WIFI_SOFT_AP &&
         mode != MODE_WAIT_SATS) {
+
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }
@@ -54,42 +56,45 @@ void taskOne(void *parameter)
     wdt_task0 = millis();
 
 
-
-  
-    // ----------------------------------------------
-    // GPS processing
-    // ----------------------------------------------
-#if defined(STATIC_DEBUG)
-    msgType = processGPS();
-
-    static int testtime = 0;
-    if ((millis() - testtime) > 1000) {
-      testtime = millis();
-      Set_GPS_Time(config.timezone);
-      config.timezone++;
+    if (UbloxSerial.available() > 0) {
+     LOG_GPS("UART", "raw=%d", UbloxSerial.available());
     }
-#else
-    msgType = processGPS();
-
- 
-#endif
 
     // ----------------------------------------------
-    // Message handling
+    // GPS processing (UBX parser)
     // ----------------------------------------------
-    processGpsMessages();
+    int m;
+    do {
+      m = processGPS();
+      if (m != MT_NONE) {
+        msgType = m;
+        processGpsMessages();
+      }
+    } while (UbloxSerial.available() > 0);
+
   }
 }
 
-
-
-
 // ==================================================
 // GPS message handling
+//
+// IMPORTANT:
+// - NAV-PVT is authoritative (fix, speed, time, SV count)
+// - NAV-DOP is optional diagnostics only
+// - NAV-SAT handles satellite display/logging
 // ==================================================
 static void processGpsMessages()
 {
-  if (msgType == MT_NAV_DOP) {
+  // ---------------------------------------------------------------------------
+  // NAV-PVT (authoritative navigation solution)
+  // ---------------------------------------------------------------------------
+  if (msgType == MT_NAV_PVT) {
+
+    last_gps_msg = millis();
+
+    if (Time_Set_OK) {
+      nav_pvt_message++;
+    }
 
     // -------- First fix detection --------
     if (!GPS_Signal_OK &&
@@ -99,13 +104,11 @@ static void processGpsMessages()
 
       GPS_Signal_OK = true;
       first_fix_GPS = millis() / 1000;
-
-    if (GPS_Signal_OK && getMode() == MODE_WAIT_SATS) {
-      setMode(MODE_LOGGING);
     }
 
-
-
+    // -------- Mode transition (idempotent) --------
+    if (GPS_Signal_OK && getMode() == MODE_WAIT_SATS) {
+      setMode(MODE_LOGGING);
     }
 
     if (GPS_Signal_OK) {
@@ -137,14 +140,15 @@ static void processGpsMessages()
         nav_pvt_message != old_message) {
 
       old_message = nav_pvt_message;
-      gps_speed = ubxMessage.navPvt.gSpeed;
+      gps_speed   = ubxMessage.navPvt.gSpeed;
 
-      static int last_flush_time = 0;
-      if ((millis() - last_flush_time) > 60000) {
+      static uint32_t last_flush_time = 0;
+      if ((millis() - last_flush_time) > 60000UL) {
         Flush_files();
         last_flush_time = millis();
       }
 
+      // Quality gate
       if (ubxMessage.navPvt.numSV <= MIN_numSV_GPS_SPEED_OK ||
           (ubxMessage.navPvt.sAcc / 1000.0f) > MAX_Sacc_GPS_SPEED_OK ||
           (ubxMessage.navPvt.gSpeed / 1000.0f) > MAX_GPS_SPEED_OK) {
@@ -199,19 +203,35 @@ static void processGpsMessages()
         S10_previous_run = S10.s_max_speed;
       }
     }
+
+    return;
   }
-  else if (msgType == MT_NAV_PVT) {
-    last_gps_msg = millis();
-    if (Time_Set_OK) {
-      nav_pvt_message++;
-    }
-  }
-  else if (msgType == MT_NAV_SAT) {
+
+  // ---------------------------------------------------------------------------
+  // NAV-SAT (satellite info)
+  // ---------------------------------------------------------------------------
+  if (msgType == MT_NAV_SAT) {
+
     nav_sat_message++;
+
+    if (ubxMessage.navSatCount > UBX_MAX_SVS) {
+      ubxMessage.navSatCount = UBX_MAX_SVS;
+    }
+
     Ublox_Sat.push_SAT_info(
-    ubxMessage.navSatHdr,
-    ubxMessage.navSat,
-    ubxMessage.navSatCount
-);
+      ubxMessage.navSatHdr,
+      ubxMessage.navSat,
+      ubxMessage.navSatCount
+    );
+
+    return;
+  }
+
+  // ---------------------------------------------------------------------------
+  // NAV-DOP (optional diagnostics only)
+  // ---------------------------------------------------------------------------
+  if (msgType == MT_NAV_DOP) {
+    // kept for compatibility / stats if needed later
+    return;
   }
 }

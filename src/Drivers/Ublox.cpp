@@ -12,8 +12,8 @@ bool check_M10_nav_rate = false;
 UBXMessage ubxMessage = {};
 
 struct tm tmstruct ;
-struct tm my_time;  // time elements structure
-time_t unix_timestamp; // a timestamp
+struct tm my_time;      // time elements structure
+time_t unix_timestamp;  // a timestamp
 
 bool Set_GPS_Time(float time_offset)
 {
@@ -74,7 +74,21 @@ const char* gpsChip(bool longname)
 
 
 
-void Ublox_serial2(int delay_ms){
+
+HardwareSerial UbloxSerial(2);
+
+
+
+
+void ubloxSerialInit(int delay_ms)
+{
+  UbloxSerial.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
+  delay(delay_ms);
+}
+
+
+/*
+void ubloxSerialInit(int delay_ms){
  for(int i=0;i<delay_ms;i++){
     int msgType = processGPS();
      if ( msgType == MT_NAV_ACK){
@@ -112,95 +126,118 @@ void Ublox_serial2(int delay_ms){
      delay(2);   
      } 
 }
+*/
 
 
 void Init_ubloxM10(void)
 {
     constexpr int WAIT_MS = 250;
 
-    Serial.println("Init u-blox M10");
+    LOG_GPS("Init", "u-blox M10");
 
     // -------------------------------------------------------------------------
     // Transport: UBX only
     // -------------------------------------------------------------------------
-    Serial.println("Disable NMEA");
+    LOG_GPS("Config", "Disable NMEA");
     sendUbx(ubx::cfg::nmea_off);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
-    Serial.println("Enable UBX output");
+    LOG_GPS("Config", "Enable UBX output");
     sendUbx(ubx::cfg::ubx_only);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
     // -------------------------------------------------------------------------
     // GNSS constellation (atomic, M10-correct)
     // -------------------------------------------------------------------------
-    Serial.println("GNSS: GPS + GALILEO + BEIDOU(B1C) + GLONASS");
+    LOG_GPS("Config", "GNSS: GPS + GAL + BDS(B1C) + GLO");
     sendUbx(ubx::cfg::all_4gnss);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
     // -------------------------------------------------------------------------
     // Motion model
     // -------------------------------------------------------------------------
-    Serial.println("Set motion model: SEA");
+    LOG_GPS("Config", "Motion model: SEA");
     sendUbx(ubx::cfg::sea_model);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
     // -------------------------------------------------------------------------
     // High navigation rate (optional)
     // -------------------------------------------------------------------------
     if (config.M10_high_nav == SET_M10_HIGH_NAV) {
-        Serial.println("Enable M10 high navigation rate");
+        LOG_GPS("Init", "Enable M10 high navigation rate");
         Set_M10_high_nav_rate();   // may reboot receiver internally
-        Ublox_serial2(WAIT_MS);
+        delay(WAIT_MS);
     }
 
     // -------------------------------------------------------------------------
     // Enable required messages
     // -------------------------------------------------------------------------
-    Serial.println("Enable NAV-PVT");
+    LOG_GPS("Msg", "Enable NAV-PVT");
     sendUbx(ubx::msg::nav_pvt);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
-    Serial.println("Enable NAV-DOP");
+    LOG_GPS("Msg", "Enable NAV-DOP");
     sendUbx(ubx::msg::nav_dop);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
     if (config.logUBX && config.logUBX_nav_sat) {
         Serial.println("Enable NAV-SAT");
         sendUbx(ubx::msg::nav_sat);
-        Ublox_serial2(WAIT_MS);
+        delay(WAIT_MS);
     }
 
     // -------------------------------------------------------------------------
-    // Diagnostics
+    // Diagnostics (still at current baud, usually 9600)
     // -------------------------------------------------------------------------
-    Serial.println("Query MON-VER");
+    LOG_GPS("Diag", "Query MON-VER");
     sendUbx(ubx::poll::mon_ver);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
-    Serial.println("Query MON-GNSS");
+    LOG_GPS("Diag", "Query MON-GNSS");
     sendUbx(ubx::poll::mon_gnss);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
-    Serial.println("Query unique ID");
+    LOG_GPS("Diag", "Query UID");
     sendUbx(ubx::poll::uid);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
     // -------------------------------------------------------------------------
-    // Switch baudrate LAST
+    // Enable UBX output on UART1 (MUST be before baud switch)
     // -------------------------------------------------------------------------
-    Serial.println("Switch baudrate to 38400");
+    LOG_GPS("Config", "Enable UART1 UBX output");
+    sendUbx(ubx::cfg::uart1_ubx_out);
+    delay(WAIT_MS);
+
+    // -------------------------------------------------------------------------
+    // Switch receiver baud to 38400
+    // -------------------------------------------------------------------------
+    LOG_GPS("Config", "Switch baud → 38400");
     sendUbx(ubx::rate::baud_38400);
-    Ublox_serial2(WAIT_MS);
+    delay(WAIT_MS);
 
-    Serial2.flush();
-    Serial2.begin(38400, SERIAL_8N1,
-                  GPS_UART_RX_PIN,
-                  GPS_UART_TX_PIN);
+    // -------------------------------------------------------------------------
+    // Restart ESP32 UART at 38400
+    // -------------------------------------------------------------------------
+    UbloxSerial.flush();
+    UbloxSerial.end();
+    delay(20);
 
-    Ublox_serial2(WAIT_MS);
+    UbloxSerial.begin(
+      38400,
+      SERIAL_8N1,
+      GPS_UART_RX_PIN,
+      GPS_UART_TX_PIN
+    );
+    delay(50);
 
-    Serial.println("u-blox M10 init complete");
+    // -------------------------------------------------------------------------
+    // (Optional but rock-solid) Re-assert UART1 UBX at new baud
+    // -------------------------------------------------------------------------
+    LOG_GPS("Config", "Re-assert UART1 UBX @38400");
+    sendUbx(ubx::cfg::uart1_ubx_out);  
+    delay(WAIT_MS);
+
+    LOG_GPS("Init", "complete");
 }
 
 
@@ -249,10 +286,10 @@ void Set_rate_ubloxM10(int rate_hz)
     const int offset = index * CMD_SIZE;
 
     for (int i = 0; i < CMD_SIZE; i++) {
-        Serial2.write(pgm_read_byte(ubx::rate::table + offset + i));
+        UbloxSerial.write(pgm_read_byte(ubx::rate::table + offset + i));
     }
 
-    Ublox_serial2(500);
+    delay(500);
 }
 
 
@@ -291,8 +328,8 @@ int processGPS() {
   static uint8_t currentMsgType = MT_NONE;
   static int payloadSize = sizeof(ubxMessage.navDummy);
 
-  while (Serial2.available()) {
-    uint8_t c = Serial2.read();
+  while (UbloxSerial.available()) {
+    uint8_t c = UbloxSerial.read();
 
     // ------------------------------------------------------------------
     // Sync on UBX header
@@ -455,14 +492,14 @@ int processGPS() {
 
 bool Check_ublox_M10()
 {
-    // Assume Serial2 is already configured to the expected baud
+    // Assume UbloxSerial is already configured to the expected baud
     Serial.println("Checking u-blox M10...");
 
     for (int i = 0; i < sizeof(ubx::poll::mon_ver); i++) {
-        Serial2.write(pgm_read_byte(ubx::poll::mon_ver + i));
+        UbloxSerial.write(pgm_read_byte(ubx::poll::mon_ver + i));
     }
 
-    Ublox_serial2(500);
+    delay(500);
 
     // M10 hardware string typically contains 'A'
     if (ubxMessage.monVER.hwVersion[3] == 'A') {
@@ -481,11 +518,11 @@ int Check_M10_nav_rate(void){
   check_M10_nav_rate=true;
   Serial.println("Get M10 NAV Rate ");
     for(int i = 0; i < sizeof(ubx::highnav::get_nav_rate); i++) {                        
-    Serial2.write( pgm_read_byte(ubx::highnav::get_nav_rate+i) );
+    UbloxSerial.write( pgm_read_byte(ubx::highnav::get_nav_rate+i) );
     }
   Nav_rate_NACK = false;
   High_nav_rate_ACK = false;      
-  Ublox_serial2(500);
+  delay(500);
   check_M10_nav_rate = false;
   if(Nav_rate_NACK){ 
     Serial.println("M10 Default Nav Rate");
@@ -510,9 +547,9 @@ int Check_M10_nav_rate(void){
 int Set_M10_high_nav_rate(void){
   Serial.println("Set ublox UBX_M10 High Nav Rate");
   for(int i = 0; i < sizeof(ubx::highnav::set_high_nav_rate); i++) {                        
-     Serial2.write( pgm_read_byte(ubx::highnav::set_high_nav_rate+i) );
+     UbloxSerial.write( pgm_read_byte(ubx::highnav::set_high_nav_rate+i) );
      }
-  Ublox_serial2(500); 
+  delay(500); 
   config.ublox_type= UBLOX_TYPE_UNKNOWN;
   config.M10_high_nav= M10_HIGH_NAV_RATE;
   EEPROM.writeByte(0,UBLOX_TYPE_UNKNOWN);
