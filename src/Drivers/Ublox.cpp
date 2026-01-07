@@ -130,19 +130,6 @@ void Ublox_serial2(int delay_ms){
     } while (0)
 
 
-// -----------------------------------------------------------------------------
-// Init_ubloxM10
-//
-// One-time initialization for u-blox M10 receivers.
-//
-// Design assumptions:
-// - M10 only (no M8 / M9 support)
-// - SEA motion model (fixed, no runtime switching)
-// - UBX protocol only (NMEA disabled)
-// - Baudrate switched to 38400 for >=5 Hz operation
-//
-// This function must be called ONCE at startup.
-// -----------------------------------------------------------------------------
 void Init_ubloxM10(void)
 {
     constexpr int WAIT_MS = 250;
@@ -150,12 +137,28 @@ void Init_ubloxM10(void)
     Serial.println("Init u-blox M10");
 
     // -------------------------------------------------------------------------
-    // Disable all NMEA output (UBX only)
+    // Transport: UBX only
     // -------------------------------------------------------------------------
     Serial.println("Disable NMEA");
-    for (int i = 0; i < sizeof(UBLOX_M10_NMEA_OFF); i++) {
-        Serial2.write(pgm_read_byte(UBLOX_M10_NMEA_OFF + i));
-    }
+    SEND_UBX(UBLOX_M10_NMEA_OFF);
+    Ublox_serial2(WAIT_MS);
+
+    Serial.println("Enable UBX output");
+    SEND_UBX(UBLOX_M10_UBX);
+    Ublox_serial2(WAIT_MS);
+
+    // -------------------------------------------------------------------------
+    // GNSS constellation (single atomic config)
+    // -------------------------------------------------------------------------
+    Serial.println("GNSS: GPS + GALILEO + BEIDOU(B1C) + GLONASS");
+    SEND_UBX(UBLOX_M10_4GNSS);
+    Ublox_serial2(WAIT_MS);
+
+    // -------------------------------------------------------------------------
+    // Motion model
+    // -------------------------------------------------------------------------
+    Serial.println("Set motion model: SEA");
+    SEND_UBX(UBX_M10_SEA);
     Ublox_serial2(WAIT_MS);
 
     // -------------------------------------------------------------------------
@@ -163,63 +166,13 @@ void Init_ubloxM10(void)
     // -------------------------------------------------------------------------
     if (config.M10_high_nav == SET_M10_HIGH_NAV) {
         Serial.println("Enable M10 high navigation rate");
-        Set_M10_high_nav_rate();   // may reboot receiver internally
+        Set_M10_high_nav_rate();   // may reboot receiver
         Ublox_serial2(WAIT_MS);
     }
 
     // -------------------------------------------------------------------------
-    // Motion model: SEA (fixed)
+    // Enable required messages
     // -------------------------------------------------------------------------
-    Serial.println("Set motion model: SEA");
-    for (int i = 0; i < sizeof(UBX_M10_SEA); i++) {
-        Serial2.write(pgm_read_byte(UBX_M10_SEA + i));
-    }
-    Ublox_serial2(WAIT_MS);
-
-    // -------------------------------------------------------------------------
-    // GNSS constellation selection
-    // -------------------------------------------------------------------------
-    // Default M10 = GPS + GALILEO + BEIDOU(B1)
-    switch (config.gnss) {
-
-        case 4: // GPS + GALILEO + BEIDOU(B1C)
-            Serial.println("GNSS: GPS + GALILEO + BEIDOU(B1C)");
-            SEND_UBX(UBLOX_M10_GLONAS_OFF);
-            SEND_UBX(UBLOX_M10_BEIDOU_B1_OFF);
-            SEND_UBX(UBLOX_M10_BEIDOU_B1C_ON);
-            break;
-
-        case 3: // GPS + GALILEO + GLONASS
-            Serial.println("GNSS: GPS + GALILEO + GLONASS");
-            SEND_UBX(UBLOX_M10_BEIDOU_OFF);
-            SEND_UBX(UBLOX_M10_GLONAS_ON);
-            break;
-
-        case 2: // GPS + GLONASS
-            Serial.println("GNSS: GPS + GLONASS");
-            SEND_UBX(UBLOX_M10_GAL_OFF);
-            SEND_UBX(UBLOX_M10_BEIDOU_OFF);
-            SEND_UBX(UBLOX_M10_GLONAS_ON);
-            break;
-
-        case 1: // GPS + GALILEO
-            Serial.println("GNSS: GPS + GALILEO");
-            SEND_UBX(UBLOX_M10_BEIDOU_OFF);
-            SEND_UBX(UBLOX_M10_GLONAS_OFF);
-            break;
-
-        default:
-            Serial.println("GNSS: default (M10)");
-            break;
-    }
-
-    // -------------------------------------------------------------------------
-    // Enable required UBX messages (M10 ONLY)
-    // -------------------------------------------------------------------------
-
-    Serial.println("Enable UBX output");
-    SEND_UBX(UBLOX_M10_UBX);
-
     Serial.println("Enable NAV-PVT");
     SEND_UBX(UBLOX_M10_NAV_PVT);
 
@@ -230,6 +183,8 @@ void Init_ubloxM10(void)
         Serial.println("Enable NAV-SAT");
         SEND_UBX(UBLOX_M10_NAV_SAT);
     }
+
+    Ublox_serial2(WAIT_MS);
 
     // -------------------------------------------------------------------------
     // Diagnostics
@@ -243,8 +198,10 @@ void Init_ubloxM10(void)
     Serial.println("Query unique ID");
     SEND_UBX(UBX_ID);
 
+    Ublox_serial2(WAIT_MS);
+
     // -------------------------------------------------------------------------
-    // Switch baudrate to 38400 (final step)
+    // Switch baudrate LAST
     // -------------------------------------------------------------------------
     Serial.println("Switch baudrate to 38400");
     SEND_UBX(UBLOX_M10_UBX_BD38400);

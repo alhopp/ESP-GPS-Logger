@@ -154,7 +154,6 @@ static void setDefaultConfig()
   config.cal_speed            = 3.6f;
   config.sample_rate          = 5;
   config.cpu_freq             = 80;
-  config.gnss                 = 2;
   config.field                = 1;
   config.speed_large_font     = 0;
   config.bar_length           = 1852;
@@ -212,7 +211,6 @@ static bool loadConfigFromFile(File &file)
   config.cal_speed            = doc["cal_speed"]            | config.cal_speed;
   config.sample_rate          = doc["sample_rate"]          | config.sample_rate;
   config.cpu_freq             = doc["cpu_freq"]             | config.cpu_freq;
-  config.gnss                 = doc["gnss"]                 | config.gnss;
   config.field                = doc["field"]                | config.field;
 
   config.speed_large_font     = doc["speed_large_font"]     | config.speed_large_font;
@@ -290,7 +288,6 @@ static void writeConfigToFile(File &file)
   doc["cal_speed"]            = config.cal_speed;
   doc["sample_rate"]          = config.sample_rate;
   doc["cpu_freq"]             = config.cpu_freq;
-  doc["gnss"]                 = config.gnss;
   doc["field"]                = config.field;
 
   doc["speed_large_font"]     = config.speed_large_font;
@@ -501,7 +498,6 @@ static void dumpConfig()
   Serial.print("[CONFIG ] cal_speed            = "); Serial.println(config.cal_speed);
   Serial.print("[CONFIG ] sample_rate          = "); Serial.println(config.sample_rate);
   Serial.print("[CONFIG ] cpu_freq             = "); Serial.println(config.cpu_freq);
-  Serial.print("[CONFIG ] gnss                 = "); Serial.println(config.gnss);
   Serial.print("[CONFIG ] field                = "); Serial.println(config.field);
   Serial.print("[CONFIG ] speed_large_font     = "); Serial.println(config.speed_large_font);
   Serial.print("[CONFIG ] bar_length           = "); Serial.println(config.bar_length);

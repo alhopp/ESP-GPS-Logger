@@ -17,18 +17,6 @@ inline const char* gpsChip(int longname) {
 
 
 // -----------------------------------------------------------------------------
-// Legacy OFF-command compatibility
-// M10 does not require explicit GNSS OFF commands.
-// Map them to a harmless no-op (NMEA OFF).
-// -----------------------------------------------------------------------------
-
-#define UBLOX_M10_GLONAS_OFF        UBLOX_M10_NMEA_OFF
-#define UBLOX_M10_GAL_OFF           UBLOX_M10_NMEA_OFF
-#define UBLOX_M10_BEIDOU_OFF        UBLOX_M10_NMEA_OFF
-#define UBLOX_M10_BEIDOU_B1_OFF     UBLOX_M10_NMEA_OFF
-
-
-// -----------------------------------------------------------------------------
 // UBX command blobs (PROGMEM)
 // -----------------------------------------------------------------------------
 

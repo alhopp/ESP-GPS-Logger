@@ -68,7 +68,6 @@ void webserver_start(WebServer &server)
     j["system"]["timezone_DST"] = config.timezone_DST;
 
     j["gps"]["sample_rate"]   = config.sample_rate;
-    j["gps"]["gnss"]          = config.gnss;
     j["gps"]["dynamic_model"] = config.dynamic_model;
     j["gps"]["cal_speed"]     = config.cal_speed;
     j["gps"]["stat_speed"]    = config.stat_speed;
@@ -133,7 +132,6 @@ void webserver_start(WebServer &server)
 
     if (j["gps"]) {
       config.sample_rate         = j["gps"]["sample_rate"] | config.sample_rate;
-      config.gnss                = j["gps"]["gnss"] | config.gnss;
       config.dynamic_model       = j["gps"]["dynamic_model"] | config.dynamic_model;
       config.cal_speed           = j["gps"]["cal_speed"] | config.cal_speed;
       config.stat_speed          = j["gps"]["stat_speed"] | config.stat_speed;
