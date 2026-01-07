@@ -14,70 +14,91 @@ int index_GPS=-1;//bij eerste doorgang op 0 beginnen !!
 int index_sec=-1;//bij eerste doorgang op 0 beginnen !!
 int alfa_counter;
 
-//Deze functie gaat telkens 3 variabelen van de GPS in een globale buffer steken : doppler snelheid, lat en long.
-//Er is gekozen voor een globale buffer omdat deze data ook beschikbaar moeten zijn in andere classes (GPS_speed() en GPS_time).
-//Ook de laatste bufferpositie wordt opgeslagen in een globale variable, index_GPS
+// -----------------------------------------------------------------------------
+// GPS_data::push_data
+//
+// Continuously stores core GPS observables into circular buffers:
+//
+//   - Doppler ground speed (mm/s)
+//   - Latitude (degrees)
+//   - Longitude (degrees)
+//
+// A global buffer is intentionally used so this data is accessible by:
+//   - GPS_speed   (distance-based speed windows)
+//   - GPS_time    (time-based speed windows)
+//
+// The most recent buffer index is tracked via the global variable `index_GPS`.
+//
+// Notes (M10-specific):
+// - Motion model is fixed to SEA at startup (no runtime switching)
+// - Doppler speed is trusted directly (no smoothing here)
+// - All higher-level filtering happens downstream
+// -----------------------------------------------------------------------------
+void GPS_data::push_data(float latitude,
+                         float longitude,
+                         uint32_t gSpeed)   // Doppler speed in mm/s
+{
+    // ------------------------------------------------------------
+    // Advance circular buffer index
+    // ------------------------------------------------------------
+    index_GPS++;
 
-void GPS_data::push_data(float latitude,float longitude,uint32_t gSpeed) {//gspeed in mm/s !!!
-    static int dynamic_state=0;
-    if((S2.avg_s>24000)&&(config.dynamic_model==1)&&(dynamic_state==0)){  //omschakelen naar dynamic_model "portable", only works with speed<25 m/s !!!
-          dynamic_state=1;                   //test with 5 m/s, this is 18 km/h
-          Serial.print("Set ublox UBX_PORTABLE ");
-          Model_info(0);
-          if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)){
-            for(int i = 0; i < sizeof(UBX_PORTABLE); i++) {                        
-                Serial2.write( pgm_read_byte(UBX_PORTABLE+i) );
-                }
-          }     
-          else{ 
-          for(int i = 0; i < sizeof(UBX_M10_PORTABLE); i++) {                        
-                Serial2.write( pgm_read_byte(UBX_M10_PORTABLE+i) );
-                }     
-          }    
-      }
-    if((S2.avg_s<20000)&&(config.dynamic_model==1)&&(dynamic_state==1)){  //omschakelen naar dynamic_model "portable", only works with speed<25 m/s !!!
-              dynamic_state=0;               //test with 4.5 m/s, this is 16.2 km/h
-              Serial.print("Set ublox UBX_SEA ");
-              Model_info(1);
-              if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)){
-              for(int i = 0; i < sizeof(UBX_SEA); i++) {                        
-                  Serial2.write( pgm_read_byte(UBX_SEA+i) );
-                  }
-               }
-              else{
-              for(int i = 0; i < sizeof(UBX_M10_SEA); i++) {                        
-                  Serial2.write( pgm_read_byte(UBX_M10_SEA+i) );
-                  } 
-              }
-          }      
-    index_GPS++;//altijd index ophogen na update alle instanties  
-  _gSpeed[index_GPS%BUFFER_SIZE]=gSpeed;//altijd gSpeed opslaan in array bereik !
-  _lat[index_GPS%BUFFER_ALFA]=latitude;
-  _long[index_GPS%BUFFER_ALFA]=longitude;
-   //alleen afstand optellen als ontvangst goed is, opgelet af en toe sAcc<2  !!!****************************************************
-  if((ubxMessage.navPvt.numSV>=FILTER_MIN_SATS)&&((ubxMessage.navPvt.sAcc/1000.0f)<FILTER_MAX_sACC)){
-        delta_dist=gSpeed/config.sample_rate;//snelheid omrekenen naar afstand !!!
-        total_distance=total_distance+delta_dist;
-        run_distance=run_distance+delta_dist;
-        alfa_distance=alfa_distance+delta_dist;
-        }  
-  //Opslaan groundSpeed in seconden tact !!**********************************************************************************
-  static int avg_gSpeed;//in mm/s
-  avg_gSpeed=avg_gSpeed+gSpeed;//in seconden tact opslaan voor 30 min / 60 min gemiddelde snelheid
-  if(index_GPS%config.sample_rate==0){    //modulus van index%sample rate
-    index_sec++;//ook index_sec mag pas geupdated worden na update instantie
-    _secSpeed[index_sec%BUFFER_SIZE]=avg_gSpeed/config.sample_rate;//anders overflow want _secSpeed[] is maar tot 65535 !!!!
-    avg_gSpeed=0;
-  }
- }
+    // ------------------------------------------------------------
+    // Store raw GPS observables
+    // ------------------------------------------------------------
+    _gSpeed[index_GPS % BUFFER_SIZE] = gSpeed;     // mm/s (Doppler)
+    _lat   [index_GPS % BUFFER_ALFA] = latitude;   // degrees
+    _long  [index_GPS % BUFFER_ALFA] = longitude;  // degrees
+
+    // ------------------------------------------------------------
+    // Distance accumulation (only with a valid navigation solution)
+    //
+    // sAcc is in mm → convert to meters before comparison
+    // ------------------------------------------------------------
+    if ((ubxMessage.navPvt.numSV >= FILTER_MIN_SATS) &&
+        ((ubxMessage.navPvt.sAcc * 0.001f) < FILTER_MAX_sACC))
+    {
+        const uint32_t delta_dist = gSpeed / config.sample_rate; // mm per sample
+
+        total_distance += delta_dist;
+        run_distance   += delta_dist;
+        alfa_distance  += delta_dist;
+    }
+
+    // ------------------------------------------------------------
+    // Build 1-second averaged speed buffer
+    //
+    // This is used by long time-window averages (30s / 60s / etc.)
+    // to avoid excessive buffer traversal at high sample rates.
+    // ------------------------------------------------------------
+    static uint32_t avg_gSpeed = 0;  // mm/s accumulator
+
+    avg_gSpeed += gSpeed;
+
+    if ((index_GPS % config.sample_rate) == 0) {
+        index_sec++;
+        _secSpeed[index_sec % BUFFER_SIZE] =
+            avg_gSpeed / config.sample_rate;
+
+        avg_gSpeed = 0;
+    }
+}
+
+
+
 //constructor for GPS_data
 GPS_data::GPS_data() {
   index_GPS=0; 
 }
+
+
 //constructor for SAT_info
 GPS_SAT_info::GPS_SAT_info() {
   index_SAT_info=0; 
 }
+
+
+
 //function to extract info out of NAV_SAT, and push it to array
 //For every NAV_SAT frame, the Mean CNO, the Max cno, the Min cno and the nr of sats in the nav solution are stored
 //Then, the means are calculated out of the last NAV_SAT_BUFFER frames (now 16 frames, @5Hz, this 0.5Hz NAV_SAT ca 32 s)
@@ -579,74 +600,76 @@ double afstandPunten(double lambda1, double phi1, double lambda2, double phi2) {
     return afstand;
 }
 
-int setupGPS(void) {
-  int Cpu_freq = getCpuFrequencyMhz();
-  Serial.print("CPU freq 240 ?= "); Serial.println(Cpu_freq);
-  //if((config.sample_rate>5)&&(config.logUBX)) Cpu_freq = 80;
+int setupGPS(void)
+{
+  Serial.print("CPU freq before = ");
+  Serial.println(getCpuFrequencyMhz());
+
   setCpuFrequencyMhz(config.cpu_freq);
-  config.cpu_freq = getCpuFrequencyMhz();
-  int Xtal_freq = getXtalFrequencyMhz();
-  Serial.print("CPU freq  ?= "); Serial.println(config.cpu_freq);
-  Serial.print("XTAL freq  ?= "); Serial.println(Xtal_freq);
+
+  Serial.print("CPU freq after  = ");
+  Serial.println(getCpuFrequencyMhz());
+
+  Serial.print("XTAL freq       = ");
+  Serial.println(getXtalFrequencyMhz());
+
   gps_power_on();
-  Serial2.setRxBufferSize(2048); // increasing buffer size ?
-  Serial2.begin(9600, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN); //default connection to ublox over serial2
-   if((config.ublox_type==M8_115200BD)||(config.ublox_type==M9_115200BD)||(config.ublox_type==M10_115200BD)){
-    Serial2.begin(115200, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN); //connection to ublox over serial2  
+
+  Serial2.setRxBufferSize(2048);
+
+  // ------------------------------------------------------------
+  // u-blox M10 ONLY
+  // ------------------------------------------------------------
+
+  // 1) Start at default M10 baudrate
+  Serial2.begin(9600, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
+  delay(200);
+
+  Serial.print("Serial2 TX pin = ");
+  Serial.println(GPS_UART_TX_PIN);
+  Serial.print("Serial2 RX pin = ");
+  Serial.println(GPS_UART_RX_PIN);
+
+  // 2) Flush startup messages (~400 bytes)
+  for (int i = 0; i < 450; i++) {
+    while (Serial2.available()) {
+      Serial2.read();
     }
-  if((config.ublox_type==M8_38400BD)||(config.ublox_type==M9_38400BD)|  (config.ublox_type==M10_38400BD)){
-    Serial2.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN); //connection to ublox over serial2  
-    }  
-  Serial.println("Serial2 Txd is on pin: "+String(GPS_UART_TX_PIN));
-  Serial.println("Serial2 Rxd is on pin: "+String(GPS_UART_RX_PIN));
-  for(int i=0;i<425;i++){//Startup string van ublox to serial, ca 424 char !!
-     while (Serial2.available()) {
-              Serial.print(char(Serial2.read()));
-              }
-     delay(2);   //was delay (1)
-     }
-  config.ublox_type = EEPROM.readByte(0);
-  if(config.ublox_type==0xFF) {
-    Auto_detect_ublox();//only test for ublox type and baudrate if unknown in configuration
-    if(config.ublox_type!=UBLOX_TYPE_UNKNOWN){
-      EEPROM.writeByte(0, config.ublox_type);
-      EEPROM.commit();
-      }
-    else{
-       Serial.println("Can't detect type and or baudrate of ublox....");
-      }  
-    } 
-  if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)||(config.ublox_type==M8_115200BD)){
-     Serial.println("Set ublox bdrate 38.4 + UBX_OUT ");     
-     for(int i = 0; i < sizeof(UBLOX_UBX_BD38400); i++) {                        
-        Serial2.write( pgm_read_byte(UBLOX_UBX_BD38400+i) );
-        }
-      delay(100) ; 
-      Serial2.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);  
-  }      
-  if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)||(config.ublox_type==M8_115200BD)){
-    Init_ublox(); //switch to ubx protocol
-    }
-  if((config.ublox_type==M9_9600BD)||(config.ublox_type==M9_38400BD)||(config.ublox_type==M9_115200BD)||(config.ublox_type==M10_9600BD)||(config.ublox_type==M10_38400BD)||(config.ublox_type==M10_115200BD)){
-    Init_ubloxM10(); //switch to ubx protocol, same for M9/M10
-    }
-  Serial.print("SW Ublox=");
+    delay(2);
+  }
+
+  // 3) Force internal state to M10
+  config.ublox_type = M10_38400BD;   // optional but keeps the rest of the code happy
+
+  // 4) Configure M10 to UBX protocol + message set
+  Init_ubloxM10();
+
+  // 5) Switch to faster runtime baudrate
+  Serial2.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
+  delay(100);
+
+  // 6) Print version information
+  Serial.print("SW Ublox = ");
   Serial.println(ubxMessage.monVER.swVersion);
-  Serial.print ("HW Ublox=");
-  Serial.println (ubxMessage.monVER.hwVersion);
-  Serial.print ("Extensions Ublox= ");
-  for(int i=0;i<6;i++){
-    Serial.print (ubxMessage.monVER.ext[i].extension);
-    Serial.print (", ");
-    }
-  Serial.println();  
-  Serial.println (ubxMessage.monGNSS.default_Gnss);
-  Serial.println (ubxMessage.monGNSS.enabled_Gnss);
-  if((config.ublox_type==M8_9600BD)||(config.ublox_type==M8_38400BD)||(config.ublox_type==M8_115200BD)){
-      Set_rate_ublox(config.sample_rate);//after reading config file !! 
-  } 
-  if((config.ublox_type==M9_9600BD)||(config.ublox_type==M9_38400BD)||(config.ublox_type==M9_115200BD)||(config.ublox_type==M10_9600BD)||(config.ublox_type==M10_38400BD)||(config.ublox_type==M10_115200BD)){
-      Set_rate_ubloxM10(config.sample_rate);//after reading config file !! 
-  } 
+
+  Serial.print("HW Ublox = ");
+  Serial.println(ubxMessage.monVER.hwVersion);
+
+  Serial.print("Extensions = ");
+  for (int i = 0; i < 6; i++) {
+    Serial.print(ubxMessage.monVER.ext[i].extension);
+    Serial.print(", ");
+  }
+  Serial.println();
+
+  Serial.print("GNSS default = ");
+  Serial.println(ubxMessage.monGNSS.default_Gnss);
+
+  Serial.print("GNSS enabled = ");
+  Serial.println(ubxMessage.monGNSS.enabled_Gnss);
+
+  // 7) Set navigation update rate
+  Set_rate_ubloxM10(config.sample_rate);
+
   return 1;
 }

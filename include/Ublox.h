@@ -320,6 +320,7 @@ struct NAV_SAT{
         unsigned char chkA;//checksum moves with payload, only with 92 sats correct !!!
         unsigned char chkB;
 }__attribute__((__packed__));
+
 struct UBXMessage {//was union, but messages are overwritten by next message
   NAV_DUMMY navDummy;
   NAV_PVT navPvt;
@@ -344,7 +345,7 @@ void Init_ublox(void);
 void Set_rate_ublox(int);
 void Init_ubloxM10(void);
 void Set_rate_ubloxM10(int rate);
-int Set_GPS_Time(float time_offset);
+bool Set_GPS_Time(float time_offset);
 int processGPS();
 int Auto_detect_ublox();
 int Check_M10_nav_rate(void);
