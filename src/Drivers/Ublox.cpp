@@ -145,121 +145,14 @@ void Ublox_serial2(int delay_ms){
      delay(2);   
      } 
 }
-//Initialization of the ublox M8N with binary commands
-void Init_ublox(void){
-  int wait=250;
-  char M8_9600_bd[20]="Ublox M8 9600bd";
-  char M8_38400_bd[20]="Ublox M8 38400bd";
-  if(config.ublox_type==M8_9600BD) strcpy(Ublox_type,M8_9600_bd);
-  if(config.ublox_type==M8_38400BD) strcpy(Ublox_type,M8_38400_bd);
-  /*send configuration data in UBX protocol is already done in SetupGPS()
-  Serial.println("Set ublox UBX_OUT ");     
-  for(int i = 0; i < sizeof(UBLOX_UBX_BD9600); i++) {                        
-        Serial2.write( pgm_read_byte(UBLOX_UBX_BD9600+i) );
-        }
-  Ublox_serial2(wait); 
-  */
-  if(config.dynamic_model==1){
-      Serial.println("Set ublox UBX_SEA ");
-      for(int i = 0; i < sizeof(UBX_SEA); i++) {                        
-        Serial2.write( pgm_read_byte(UBX_SEA+i) );
-        }
-  Ublox_serial2(wait);       
-  }
-  if(config.dynamic_model==2){
-      Serial.println("Set ublox UBX_AUTOMOTIVE ");
-      for(int i = 0; i < sizeof(UBX_AUTOMOTIVE); i++) {                        
-        Serial2.write( pgm_read_byte(UBX_AUTOMOTIVE+i) );
-        }
-  Ublox_serial2(wait); 
-  }
-  //gnss 4 = GPS + GALILEO + BEIDOU  (default M10)
-  //gnss x = GPS + GLONAS + BEIDOU   (impossible for the M10 ???)
-  //gnss 3 = GPS + GLONAS + GALILEO
-  //gnss 2 = GPS + GLONAS (default M8 ROM 2)
-  //gnss 1 = GPS + GALILEO (not working for M8)
-  //gnss 0 = GPS + BEIDOU  
-    if(config.gnss==1){
-      Serial.println("Set ublox UBX_GNSS2 : GPS + BEIDOU ");
-      for(int i = 0; i < sizeof(UBX_GNSS2_GPS_BEIDOU); i++) {                        
-        Serial2.write( pgm_read_byte(UBX_GNSS2_GPS_BEIDOU+i) );
-        }
-      Ublox_serial2(wait); 
-      }
-  if(config.gnss==3){
-      Serial.println("Set ublox UBX_GNSS3 : GPS, GLONAS & GALILEO ");
-      for(int i = 0; i < sizeof(UBX_GNSS3); i++) {                        
-        Serial2.write( pgm_read_byte(UBX_GNSS3+i) );
-        }
-      Ublox_serial2(wait); 
-      }
-  if(config.gnss==4){
-      Serial.println("Set ublox UBX_GNSS3 : GPS, GLONAS & BEIDOU ");
-      for(int i = 0; i < sizeof(UBX_GNSS3_BEIDOU); i++) {                        
-        Serial2.write( pgm_read_byte(UBX_GNSS3_BEIDOU+i) );
-        }
-      Ublox_serial2(wait); 
-      }
-  Serial.println("Check MON_GNSS settings ");
-  for(int i = 0; i < sizeof(UBX_MON_GNSS); i++) {                        
-      Serial2.write( pgm_read_byte(UBX_MON_GNSS+i) );
-      }
-  Ublox_serial2(wait); 
-  Serial.print("Ask ublox Unique ID ");     
-  for(int i = 0; i < sizeof(UBX_ID); i++) {                        
-        Serial2.write( pgm_read_byte(UBX_ID+i) );
-        }
-  Ublox_serial2(wait);
-  Serial.println("Check UBX_MON_VER ");     
-   for(int i = 0; i < sizeof(UBX_MON_VER); i++) {                        
-        Serial2.write( pgm_read_byte(UBX_MON_VER+i) );        
-        }                 
-  Ublox_serial2(wait);
-  Serial.println("Set ublox NAV_PVT_ON ");   
-  for(int i = 0; i < sizeof(UBLOX_UBX_NAVPVT_ON); i++) {                        
-        Serial2.write( pgm_read_byte(UBLOX_UBX_NAVPVT_ON+i) );
-        }
-  Ublox_serial2(wait);         
-  Serial.println("Set ublox NAV_DOP_ON ");   
-  for(int i = 0; i < sizeof(UBLOX_UBX_NAVDOP_ON); i++) {                        
-        Serial2.write( pgm_read_byte(UBLOX_UBX_NAVDOP_ON+i) );
-        }
-  Ublox_serial2(wait); 
-  if((config.logUBX_nav_sat)&&(config.logUBX)){
-      Serial.println("Set ublox NAV_SAT_ON ");   
-      for(int i = 0; i < sizeof(UBLOX_UBX_NAVSAT_ON); i++) {                        
-            Serial2.write( pgm_read_byte(UBLOX_UBX_NAVSAT_ON+i) );
-            }
-      Ublox_serial2(wait);   
-      }
-  Serial.println("Set ublox to 38400BD "); 
-  for(int i = 0; i < sizeof(UBLOX_UBX_BD38400); i++) {                        
-        Serial2.write( pgm_read_byte(UBLOX_UBX_BD38400+i) );
-        //delay(5); // simulating a 38400baud pace (or less), otherwise commands are not accepted by the device.
-        } 
-  Serial2.flush();
-  Serial2.begin(38400,SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);//in Init_ublox last command is change baudrate to 19200, necessary for 10 Hz  NAV_PVT + NAV_DOP!!!
-  Ublox_serial2(wait);    
-}
-//Initialization of the ublox M8N  rate with binary commands, choice between 1..4
-void Set_rate_ublox(int rate){
-  int sample_rate=2;
-  switch(rate){
-    case 1:sample_rate=2;break;
-    case 2:sample_rate=3;break;
-    case 4:sample_rate=4;break;
-    case 5:sample_rate=5;break;
-    case 8:sample_rate=6;break;
-    case 10:sample_rate=7;break;
-    case 18:sample_rate=8;break;
-    default:sample_rate=2;
-    config.sample_rate=1;
-    }
-  Serial.print("Set rate Ublox ");
-  for(int i = (sample_rate*14-14); i < sample_rate*14; i++) {                        
-        Serial2.write( pgm_read_byte(UBLOX_RATE+i) );
-        }
-  Ublox_serial2(500);      
+
+
+void Init_ublox(void)
+{
+    // LEGACY M8 CODE — DISABLED
+    // M10-only firmware
+    Serial.println("ERROR: Init_ublox() called (M8 legacy)");
+    while (1) delay(1000);
 }
 
 

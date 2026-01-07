@@ -50,6 +50,8 @@ constexpr uint8_t SET_M10_HIGH_NAV   = 2;
 constexpr uint8_t M10_HIGH_NAV_RATE  = 3;
 constexpr uint8_t AUTO_DETECT        = 0xFF;
 
+inline bool isM10() { return true; }  // for now: hard lock
+
 
 // ============================================================================
 // Reference points (GPS test / calibration)

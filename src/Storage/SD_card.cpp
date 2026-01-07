@@ -284,12 +284,19 @@ void Session_info(GPS_data G) {
   strcat(message, "Ublox HW-version : ");
   strcat(message, ubxMessage.monVER.hwVersion);
   strcat(message, " \n");
-  if ((config.ublox_type == M10_9600BD) | (config.ublox_type == M10_38400BD))
-    sprintf(tekst, "Ublox M10 ID = %02x%02x%02x%02x%02x%02x\n", ubxMessage.ubxId.ubx_id_1, ubxMessage.ubxId.ubx_id_2, ubxMessage.ubxId.ubx_id_3, ubxMessage.ubxId.ubx_id_4, ubxMessage.ubxId.ubx_id_5, ubxMessage.ubxId.ubx_id_6);
-  if ((config.ublox_type == M8_9600BD) | (config.ublox_type == M8_38400BD))
-    sprintf(tekst, "Ublox M8 ID = %02x%02x%02x%02x%02x\n", ubxMessage.ubxId.ubx_id_1, ubxMessage.ubxId.ubx_id_2, ubxMessage.ubxId.ubx_id_3, ubxMessage.ubxId.ubx_id_4, ubxMessage.ubxId.ubx_id_5);
-  if ((config.ublox_type == M9_9600BD) | (config.ublox_type == M9_38400BD))
-    sprintf(tekst, "Ublox M9 ID = %02x%02x%02x%02x%02x%02x\n", ubxMessage.ubxId.ubx_id_1, ubxMessage.ubxId.ubx_id_2, ubxMessage.ubxId.ubx_id_3, ubxMessage.ubxId.ubx_id_4, ubxMessage.ubxId.ubx_id_5, ubxMessage.ubxId.ubx_id_6);
+
+  // M10-only: u-blox unique ID is 6 bytes
+  sprintf(
+      tekst,
+      "Ublox M10 ID = %02X%02X%02X%02X%02X%02X\n",
+      ubxMessage.ubxId.ubx_id_1,
+      ubxMessage.ubxId.ubx_id_2,
+      ubxMessage.ubxId.ubx_id_3,
+      ubxMessage.ubxId.ubx_id_4,
+      ubxMessage.ubxId.ubx_id_5,
+      ubxMessage.ubxId.ubx_id_6
+  );
+
   strcat(message, tekst);
   strcat(message, Ublox_type);
   strcat(message, " \n");
