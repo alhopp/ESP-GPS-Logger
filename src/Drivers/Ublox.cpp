@@ -366,14 +366,27 @@ while (UbloxSerial.available()) {
   while (UbloxSerial.available()) {
     uint8_t c = UbloxSerial.read();
 
-    // ------------------------------------------------------------------
-    // Sync on UBX header
-    // ------------------------------------------------------------------
-    if (fpos < 2) {
-      if (c == UBX_HEADER[fpos]) fpos++;
-      else fpos = 0;
-      continue;
-    }
+
+  // ------------------------------------------------------------------
+// Robust UBX sync (handles mid-stream entry)
+// ------------------------------------------------------------------
+if (fpos == 0) {
+  if (c == 0xB5) {
+    fpos = 1;
+  }
+  continue;
+}
+else if (fpos == 1) {
+  if (c == 0x62) {
+    fpos = 2;   // UBX sync complete
+  } else if (c == 0xB5) {
+    fpos = 1;   // restart sync on repeated 0xB5
+  } else {
+    fpos = 0;
+  }
+  continue;
+}
+
 
     // ------------------------------------------------------------------
     // Read header + payload (excluding sync bytes)
@@ -388,31 +401,31 @@ while (UbloxSerial.available()) {
     if (fpos == 3) {
       if (compareMsgHeader(NAV_PVT_HEADER)) {
         currentMsgType = MT_NAV_PVT;
-        payloadSize = 4 + sizeof(NAV_PVT); 
+        payloadSize = sizeof(NAV_PVT) + 4; 
       }
       else if (compareMsgHeader(MON_GNSS_HEADER)) {
         currentMsgType = MT_MON_GNSS;
-        payloadSize = sizeof(MON_GNSS);
+        payloadSize = sizeof(MON_GNSS) + 4 ;
   
       }
       else if (compareMsgHeader(NAV_DOP_HEADER)) {
         currentMsgType = MT_NAV_DOP;
-        payloadSize = sizeof(NAV_DOP);
+        payloadSize = sizeof(NAV_DOP) + 4;
     
       }
       else if (compareMsgHeader(MON_VER_HEADER)) {
         currentMsgType = MT_MON_VER;
-        payloadSize = sizeof(MON_VER);
+        payloadSize = sizeof(MON_VER) + 4;
  
       }
       else if (compareMsgHeader(NAV_ACK_HEADER)) {
         currentMsgType = MT_NAV_ACK;
-        payloadSize = sizeof(NAV_ACK);
+        payloadSize = sizeof(NAV_ACK) + 4;
     
       }
       else if (compareMsgHeader(NAV_NACK_HEADER)) {
         currentMsgType = MT_NAV_NACK;
-        payloadSize = sizeof(NAV_NACK);
+        payloadSize = sizeof(NAV_NACK) + 4;
   
       }
       else if (compareMsgHeader(NAV_SAT_HEADER)) {
