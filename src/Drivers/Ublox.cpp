@@ -9,15 +9,11 @@ bool Nav_rate_NACK = false;
 bool High_nav_rate_ACK = false;
 bool check_M10_nav_rate = false;
 
-
-
-//UBXMessage ubxMessage = {000000000000};//definition here, declaration in ublox.h !!
 UBXMessage ubxMessage = {};
 
 struct tm tmstruct ;
 struct tm my_time;  // time elements structure
 time_t unix_timestamp; // a timestamp
-
 
 bool Set_GPS_Time(float time_offset)
 {
@@ -119,16 +115,12 @@ void Ublox_serial2(int delay_ms){
 
 
 
-// -----------------------------------------------------------------------------
-// Helper for Init_ubloxM10
-//
 #define SEND_UBX(arr)                           \
     do {                                       \
-        for (int i = 0; i < sizeof(arr); i++) \
+        for (int i = 0; i < sizeof(arr); i++)  \
             Serial2.write(pgm_read_byte(arr + i)); \
         Ublox_serial2(WAIT_MS);                \
     } while (0)
-
 
 void Init_ubloxM10(void)
 {
@@ -141,32 +133,28 @@ void Init_ubloxM10(void)
     // -------------------------------------------------------------------------
     Serial.println("Disable NMEA");
     SEND_UBX(UBLOX_M10_NMEA_OFF);
-    Ublox_serial2(WAIT_MS);
 
     Serial.println("Enable UBX output");
     SEND_UBX(UBLOX_M10_UBX);
-    Ublox_serial2(WAIT_MS);
 
     // -------------------------------------------------------------------------
-    // GNSS constellation (single atomic config)
+    // GNSS constellation (atomic, M10-correct)
     // -------------------------------------------------------------------------
     Serial.println("GNSS: GPS + GALILEO + BEIDOU(B1C) + GLONASS");
     SEND_UBX(UBLOX_M10_4GNSS);
-    Ublox_serial2(WAIT_MS);
 
     // -------------------------------------------------------------------------
     // Motion model
     // -------------------------------------------------------------------------
     Serial.println("Set motion model: SEA");
     SEND_UBX(UBX_M10_SEA);
-    Ublox_serial2(WAIT_MS);
 
     // -------------------------------------------------------------------------
     // High navigation rate (optional)
     // -------------------------------------------------------------------------
     if (config.M10_high_nav == SET_M10_HIGH_NAV) {
         Serial.println("Enable M10 high navigation rate");
-        Set_M10_high_nav_rate();   // may reboot receiver
+        Set_M10_high_nav_rate();   // may reboot receiver internally
         Ublox_serial2(WAIT_MS);
     }
 
@@ -184,8 +172,6 @@ void Init_ubloxM10(void)
         SEND_UBX(UBLOX_M10_NAV_SAT);
     }
 
-    Ublox_serial2(WAIT_MS);
-
     // -------------------------------------------------------------------------
     // Diagnostics
     // -------------------------------------------------------------------------
@@ -197,8 +183,6 @@ void Init_ubloxM10(void)
 
     Serial.println("Query unique ID");
     SEND_UBX(UBX_ID);
-
-    Ublox_serial2(WAIT_MS);
 
     // -------------------------------------------------------------------------
     // Switch baudrate LAST
@@ -215,6 +199,7 @@ void Init_ubloxM10(void)
 
     Serial.println("u-blox M10 init complete");
 }
+
 
 
 // -----------------------------------------------------------------------------
