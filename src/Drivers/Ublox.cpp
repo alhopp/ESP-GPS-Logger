@@ -118,14 +118,6 @@ void Ublox_serial2(int delay_ms){
 }
 
 
-void Init_ublox(void)
-{
-    // LEGACY M8 CODE — DISABLED
-    // M10-only firmware
-    Serial.println("ERROR: Init_ublox() called (M8 legacy)");
-    while (1) delay(1000);
-}
-
 
 // -----------------------------------------------------------------------------
 // Helper for Init_ubloxM10
@@ -420,8 +412,8 @@ int processGPS() {
         }
         else if ( compareMsgHeader(NAV_SAT_HEADER) ) {
           currentMsgType = MT_NAV_SAT;
-          ubxMessage.navSat.cls=ubxMessage.navDummy.cls;
-          ubxMessage.navSat.id=ubxMessage.navDummy.id;
+          ubxMessage.navSatHdr.cls=ubxMessage.navDummy.cls;
+          ubxMessage.navSatHdr.id=ubxMessage.navDummy.id;
           //Serial.println("NAV_SAT\n");
         }
         else if ( compareMsgHeader(NAV_ID_HEADER) ) {
@@ -458,8 +450,8 @@ int processGPS() {
             else{fpos=0;}//something went wrong, start over again !!!
             }          
         if(currentMsgType==MT_NAV_SAT){
-            if(ubxMessage.navSat.len+6<sizeof(ubxMessage.navSat)){//safety if .len is wrong
-                payloadSize=ubxMessage.navSat.len+6;
+            if(ubxMessage.navSatHdr.len+6<sizeof(ubxMessage.navSat)){//safety if .len is wrong
+                payloadSize=ubxMessage.navSatHdr.len+6;
                 }//payload is variable with nav_sat msg
             else{fpos=0;}//something went wrong, start over again !!!
             }

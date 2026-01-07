@@ -175,7 +175,7 @@ void Log_to_SD(void) {
         old_nav_sat_message = nav_sat_message;
         ubxfile.write(0xB5);
         ubxfile.write(0x62);
-        ubxfile.write((const uint8_t *)&ubxMessage.navSat, (ubxMessage.navSat.len + 6));  //nav_sat has a variable length, add chkA and chkB !!!
+        ubxfile.write((const uint8_t *)&ubxMessage.navSat, (ubxMessage.navSatHdr.len + 6));  //nav_sat has a variable length, add chkA and chkB !!!
       }
     }
     if (config.logUBX_nav_sat) {  //only add navDOP msg to ubx file if nav_sat active

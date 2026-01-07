@@ -208,6 +208,10 @@ static void processGpsMessages()
   }
   else if (msgType == MT_NAV_SAT) {
     nav_sat_message++;
-    Ublox_Sat.push_SAT_info(ubxMessage.navSat);
+    Ublox_Sat.push_SAT_info(
+    ubxMessage.navSatHdr,
+    ubxMessage.navSat,
+    ubxMessage.navSatCount
+);
   }
 }

@@ -15,6 +15,10 @@ extern  int index_sec;//index van laatste sample
 extern uint16_t _secSpeed[BUFFER_SIZE];
 extern float alfa_exit;
 
+// Forward declarations (NO definitions here)
+struct NAV_SAT_HDR;
+struct sVs_NAV_SAT;
+
 // Description of the GPS data processing class
 class GPS_data {
   public:
@@ -27,6 +31,7 @@ class GPS_data {
    
   private:
 };
+
 class GPS_SAT_info{
   public:
     GPS_SAT_info();
@@ -42,7 +47,11 @@ class GPS_SAT_info{
     } sat_info;
 int index_SAT_info;
 uint32_t mean_cno,max_cno,min_cno,nr_sats;    
-    void push_SAT_info(struct NAV_SAT nav_sat);
+
+void push_SAT_info(const NAV_SAT_HDR& hdr,
+                   const sVs_NAV_SAT* sats,
+                   uint8_t count);
+
 };
 
 //void sort_run(double a[], uint8_t hour[], uint8_t minute[],uint8_t seconde[],int runs[],int size);
