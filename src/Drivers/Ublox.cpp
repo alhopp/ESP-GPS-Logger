@@ -342,173 +342,167 @@ boolean compareMsgHeader(const unsigned char* msgHeader) {
 
 int processGPS() {
   static int fpos = 0;
-  static unsigned char checksum[2];
-  static byte currentMsgType = MT_NONE;
+  static uint8_t checksum[2];
+  static uint8_t currentMsgType = MT_NONE;
   static int payloadSize = sizeof(ubxMessage.navDummy);
-  //static uint16_t len;//10 Hz M10 issue ??
-  while ( Serial2.available() ) {
-    byte c = Serial2.read();    
-    //Serial.write(c);
-    if ( fpos < 2 ) {
-      // For the first two bytes we are simply looking for a match with the UBX header bytes (0xB5,0x62)
-      if ( c == UBX_HEADER[fpos] )
-        fpos++;
-      else
-        fpos = 0; // Reset to beginning state.
-    }
-    else {
-      // If we come here then fpos >= 2, which means we have found a match with the UBX_HEADER
-      // and we are now reading in the bytes that make up the payload.
-      // Place the incoming byte into the ubxMessage.navDummy struct. The position is fpos-2 because
-      // the struct does not include the initial two-byte header (UBX_HEADER).
-      // the struct does not include the 2 last bytes which are the checksums
-      // checksums are not placed in the ubxMessage !!!
-      if (((fpos-2) < payloadSize)&&(fpos<4)){((unsigned char*)(&ubxMessage.navDummy))[fpos-2] = c;} 
-      if(fpos==3) {
-        // We have just received the second byte of the message type header, 
-        // so now we can check to see what kind of message it is.
-        //We have to restore cls and id to the correct substructure
-        if ( compareMsgHeader(NAV_PVT_HEADER) ) {
-          currentMsgType = MT_NAV_PVT;
-          payloadSize = sizeof(NAV_PVT);
-          ubxMessage.navPvt.cls=ubxMessage.navDummy.cls;
-          ubxMessage.navPvt.id=ubxMessage.navDummy.id;
-          //Serial.print("hPVT ");
-        }
-        else if ( compareMsgHeader(MON_GNSS_HEADER) ) {
-          currentMsgType = MT_MON_GNSS;
-          payloadSize = sizeof(MON_GNSS);
-          ubxMessage.monGNSS.cls=ubxMessage.navDummy.cls;
-          ubxMessage.monGNSS.id=ubxMessage.navDummy.id;
-          //Serial.println("MT_MON_GNSS\n");
-        }
-        else if ( compareMsgHeader(NAV_DOP_HEADER) ) {
-          currentMsgType = MT_NAV_DOP;
-          payloadSize = sizeof(NAV_DOP);
-          ubxMessage.navDOP.cls=ubxMessage.navDummy.cls;
-          ubxMessage.navDOP.id=ubxMessage.navDummy.id;
-          //Serial.print("hDOP ");
-        }
-        else if ( compareMsgHeader(MON_VER_HEADER) ) {
-          currentMsgType = MT_MON_VER;
-          payloadSize = sizeof(MON_VER);
-          ubxMessage.monVER.cls=ubxMessage.navDummy.cls;
-          ubxMessage.monVER.id=ubxMessage.navDummy.id;
-          //Serial.println("MT_MON_VER\n");
-        }
-        else if ( compareMsgHeader(NAV_ACK_HEADER) ) {
-          currentMsgType = MT_NAV_ACK;
-          payloadSize = sizeof(NAV_ACK);
-          ubxMessage.navAck.cls=ubxMessage.navDummy.cls;
-          ubxMessage.navAck.id=ubxMessage.navDummy.id;
-          //Serial.println("NAV_ACK\n");
-        }
-        else if ( compareMsgHeader(NAV_NACK_HEADER) ) {
-          currentMsgType = MT_NAV_NACK;
-          payloadSize = sizeof(NAV_NACK);
-          ubxMessage.navNack.cls=ubxMessage.navDummy.cls;
-          ubxMessage.navNack.id=ubxMessage.navDummy.id;
-          //Serial.println("NAV_NACK\n");
-        }
-        else if ( compareMsgHeader(NAV_SAT_HEADER) ) {
-          currentMsgType = MT_NAV_SAT;
-          ubxMessage.navSatHdr.cls=ubxMessage.navDummy.cls;
-          ubxMessage.navSatHdr.id=ubxMessage.navDummy.id;
-          //Serial.println("NAV_SAT\n");
-        }
-        else if ( compareMsgHeader(NAV_ID_HEADER) ) {
-          currentMsgType = MT_NAV_ID;
-          ubxMessage.ubxId.cls=ubxMessage.navDummy.cls;
-          ubxMessage.ubxId.id=ubxMessage.navDummy.id;
-          //Serial.println("NAV_ID\n");
-        }
-        else {
-          // unknown message type, bail
-          currentMsgType = MT_NONE;
-          fpos = 0;
-          continue;
-        }
-      }
-      if (((fpos-2) < payloadSize)&&(fpos>=4)){
-        if(currentMsgType==MT_NAV_PVT) {((unsigned char*)(&ubxMessage.navPvt))[fpos-2] = c;} 
-        if(currentMsgType==MT_NAV_DOP) {((unsigned char*)(&ubxMessage.navDOP))[fpos-2] = c;} 
-        if(currentMsgType==MT_MON_GNSS) {((unsigned char*)(&ubxMessage.monGNSS))[fpos-2] = c;} 
-        if(currentMsgType==MT_MON_VER) {((unsigned char*)(&ubxMessage.monVER))[fpos-2] = c;} 
-        if(currentMsgType==MT_NAV_ACK) {((unsigned char*)(&ubxMessage.navAck))[fpos-2] = c;} 
-        if(currentMsgType==MT_NAV_NACK) {((unsigned char*)(&ubxMessage.navNack))[fpos-2] = c;} 
-        if(currentMsgType==MT_NAV_SAT) {((unsigned char*)(&ubxMessage.navSat))[fpos-2] = c;}
-        if(currentMsgType==MT_NAV_ID) {((unsigned char*)(&ubxMessage.ubxId))[fpos-2] = c;}  
-      }
-       if (fpos==6){
-        if(currentMsgType==MT_NAV_PVT){ubxMessage.navPvt.len=payloadSize-6;}//safety if .len is wrong
-        if(currentMsgType==MT_NAV_DOP){ubxMessage.navDOP.len=payloadSize-6;}//safety if .len is wrong
-        if(currentMsgType==MT_NAV_ID){ payloadSize=ubxMessage.ubxId.len+6;}// .len = 9 bytes for M8, but 10 bytes for M10
-        if(currentMsgType==MT_MON_VER){
-            if(ubxMessage.monVER.len+6<sizeof(ubxMessage.monVER)){
-                payloadSize=ubxMessage.monVER.len+6;
-                }//M10 has extensions ??
-            else{fpos=0;}//something went wrong, start over again !!!
-            }          
-        if(currentMsgType==MT_NAV_SAT){
-            if(ubxMessage.navSatHdr.len+6<sizeof(ubxMessage.navSat)){//safety if .len is wrong
-                payloadSize=ubxMessage.navSatHdr.len+6;
-                }//payload is variable with nav_sat msg
-            else{fpos=0;}//something went wrong, start over again !!!
-            }
-      }
-      fpos++;
-      if ( fpos == (payloadSize) ) {//was (payloadSize+2)
-      // All payload bytes have now been received, so we can calculate the 
-      // expected checksum value to compare with the next two incoming bytes.
-      // checksum has to calculated out of the correct substructure !!!
-        calcChecksum(checksum,currentMsgType,payloadSize-2);//was payload !!
-      }
-      else if ( fpos == (payloadSize+1) ) {//was (payloadSize+3)   fpos-3=c, of payloadsize+1-3=c, dus payloadsize-2
-        // First byte after the payload, ie. first byte of the checksum.
-        // Does it match the first byte of the checksum we calculated?
 
-        if ( c != checksum[0] ) {
-          // Checksum doesn't match, reset to beginning state and try again.
-           Serial.println("CkA NIO");
-         if ((Time_Set_OK==true)&&(nav_pvt_message>10)){
-              char tekst[32] = "";
-              sprintf(tekst, "ChecksumA_NIO @ %d\n", (nav_pvt_message-11));
-              logERR(tekst);
-            }
-          fpos = 0; 
-        }
+  while (Serial2.available()) {
+    uint8_t c = Serial2.read();
+
+    // ------------------------------------------------------------------
+    // Sync on UBX header
+    // ------------------------------------------------------------------
+    if (fpos < 2) {
+      if (c == UBX_HEADER[fpos]) fpos++;
+      else fpos = 0;
+      continue;
+    }
+
+    // ------------------------------------------------------------------
+    // Read header + payload (excluding sync bytes)
+    // ------------------------------------------------------------------
+    if ((fpos - 2) < payloadSize && fpos < 4) {
+      ((uint8_t*)&ubxMessage.navDummy)[fpos - 2] = c;
+    }
+
+    // ------------------------------------------------------------------
+    // Identify message type (after cls + id)
+    // ------------------------------------------------------------------
+    if (fpos == 3) {
+      if (compareMsgHeader(NAV_PVT_HEADER)) {
+        currentMsgType = MT_NAV_PVT;
+        payloadSize = sizeof(NAV_PVT);
+        ubxMessage.navPvt.cls = ubxMessage.navDummy.cls;
+        ubxMessage.navPvt.id  = ubxMessage.navDummy.id;
       }
-      else if ( fpos == (payloadSize+2) ) {//was (payloadSize+4)  fpos-4=c, of payloadsize+1-4=c, dus payloadsize-1
-        // Second byte after the payload, ie. second byte of the checksum.
-        // Does it match the second byte of the checksum we calculated?
-        fpos = 0; // We will reset the state regardless of whether the checksum matches.
-        if ( c == checksum[1] ) {
-          // Checksum matches, we have a valid message.
-          /* iTow has a 18 s diff with UTC, issue with GPS Results !!
-           if(currentMsgType==MT_NAV_SAT){
-              ubxMessage.navSat.iTOW=ubxMessage.navSat.iTOW-18*1000;//to match 18s diff UTC nav pvt & GPS nav sat !!!
-              calcChecksum(checksum,currentMsgType,payloadSize-2);//have to calculate new checksum !!
-              ((unsigned char*)(&ubxMessage.navSat))[payloadSize-2]=checksum[0];//checksum is not on a fixed pos, depends from the payload !!!
-              ((unsigned char*)(&ubxMessage.navSat))[payloadSize-1]=checksum[1];//checksum is not on a fixed pos, depends from the payload !!!
+      else if (compareMsgHeader(MON_GNSS_HEADER)) {
+        currentMsgType = MT_MON_GNSS;
+        payloadSize = sizeof(MON_GNSS);
+        ubxMessage.monGNSS.cls = ubxMessage.navDummy.cls;
+        ubxMessage.monGNSS.id  = ubxMessage.navDummy.id;
+      }
+      else if (compareMsgHeader(NAV_DOP_HEADER)) {
+        currentMsgType = MT_NAV_DOP;
+        payloadSize = sizeof(NAV_DOP);
+        ubxMessage.navDOP.cls = ubxMessage.navDummy.cls;
+        ubxMessage.navDOP.id  = ubxMessage.navDummy.id;
+      }
+      else if (compareMsgHeader(MON_VER_HEADER)) {
+        currentMsgType = MT_MON_VER;
+        payloadSize = sizeof(MON_VER);
+        ubxMessage.monVER.cls = ubxMessage.navDummy.cls;
+        ubxMessage.monVER.id  = ubxMessage.navDummy.id;
+      }
+      else if (compareMsgHeader(NAV_ACK_HEADER)) {
+        currentMsgType = MT_NAV_ACK;
+        payloadSize = sizeof(NAV_ACK);
+        ubxMessage.navAck.cls = ubxMessage.navDummy.cls;
+        ubxMessage.navAck.id  = ubxMessage.navDummy.id;
+      }
+      else if (compareMsgHeader(NAV_NACK_HEADER)) {
+        currentMsgType = MT_NAV_NACK;
+        payloadSize = sizeof(NAV_NACK);
+        ubxMessage.navNack.cls = ubxMessage.navDummy.cls;
+        ubxMessage.navNack.id  = ubxMessage.navDummy.id;
+      }
+      else if (compareMsgHeader(NAV_SAT_HEADER)) {
+        currentMsgType = MT_NAV_SAT;
+        ubxMessage.navSatHdr.cls = ubxMessage.navDummy.cls;
+        ubxMessage.navSatHdr.id  = ubxMessage.navDummy.id;
+      }
+      else if (compareMsgHeader(NAV_ID_HEADER)) {
+        currentMsgType = MT_NAV_ID;
+        ubxMessage.ubxId.cls = ubxMessage.navDummy.cls;
+        ubxMessage.ubxId.id  = ubxMessage.navDummy.id;
+      }
+      else {
+        currentMsgType = MT_NONE;
+        fpos = 0;
+        continue;
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Store payload bytes
+    // ------------------------------------------------------------------
+    if ((fpos - 2) < payloadSize && fpos >= 4) {
+      switch (currentMsgType) {
+        case MT_NAV_PVT:  ((uint8_t*)&ubxMessage.navPvt)[fpos - 2] = c; break;
+        case MT_NAV_DOP:  ((uint8_t*)&ubxMessage.navDOP)[fpos - 2] = c; break;
+        case MT_MON_GNSS: ((uint8_t*)&ubxMessage.monGNSS)[fpos - 2] = c; break;
+        case MT_MON_VER:  ((uint8_t*)&ubxMessage.monVER)[fpos - 2] = c; break;
+        case MT_NAV_ACK:  ((uint8_t*)&ubxMessage.navAck)[fpos - 2] = c; break;
+        case MT_NAV_NACK: ((uint8_t*)&ubxMessage.navNack)[fpos - 2] = c; break;
+        case MT_NAV_ID:   ((uint8_t*)&ubxMessage.ubxId)[fpos - 2] = c; break;
+
+        case MT_NAV_SAT: {
+          // Header first, then satellite blocks
+          if ((fpos - 2) < sizeof(NAV_SAT_HDR)) {
+            ((uint8_t*)&ubxMessage.navSatHdr)[fpos - 2] = c;
+          } else {
+            uint16_t satOfs = (fpos - 2) - sizeof(NAV_SAT_HDR);
+            if (satOfs < sizeof(ubxMessage.navSat)) {
+              ((uint8_t*)ubxMessage.navSat)[satOfs] = c;
             }
-          */ 
-          return currentMsgType; 
-        }
-        else{ if ((Time_Set_OK==true)&&(nav_pvt_message>10)){
-              Serial.println("CkB NIO");
-              char tekst[32] = "";
-              sprintf(tekst, "ChecksumB_NIO @ %d\n", (nav_pvt_message-11));
-              logERR(tekst);
-              }
-            }
-      }    
-      else if ( fpos > (payloadSize+2) ) {//was (payloadSize+4)
-        // We have now read more bytes than both the expected payload and checksum 
-        // together, so something went wrong. Reset to beginning state and try again.
+          }
+        } break;
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Adjust payload size once LEN is known
+    // ------------------------------------------------------------------
+    if (fpos == 6) {
+      if (currentMsgType == MT_NAV_PVT) ubxMessage.navPvt.len = payloadSize - 6;
+      if (currentMsgType == MT_NAV_DOP) ubxMessage.navDOP.len = payloadSize - 6;
+
+      if (currentMsgType == MT_NAV_ID) {
+        payloadSize = ubxMessage.ubxId.len + 6;
+      }
+
+      if (currentMsgType == MT_MON_VER) {
+        if (ubxMessage.monVER.len + 6 < sizeof(ubxMessage.monVER))
+          payloadSize = ubxMessage.monVER.len + 6;
+        else
+          fpos = 0;
+      }
+
+      if (currentMsgType == MT_NAV_SAT) {
+        uint16_t fullLen = ubxMessage.navSatHdr.len + 6;
+        if (fullLen <= sizeof(NAV_SAT_HDR) + sizeof(ubxMessage.navSat))
+          payloadSize = fullLen;
+        else
+          fpos = 0;
+      }
+    }
+
+    fpos++;
+
+    // ------------------------------------------------------------------
+    // Checksum handling
+    // ------------------------------------------------------------------
+    if (fpos == payloadSize) {
+      calcChecksum(checksum, currentMsgType, payloadSize - 2);
+    }
+    else if (fpos == payloadSize + 1) {
+      if (c != checksum[0]) {
         fpos = 0;
       }
     }
+    else if (fpos == payloadSize + 2) {
+      fpos = 0;
+      if (c == checksum[1]) {
+        if (currentMsgType == MT_NAV_SAT) {
+          ubxMessage.navSatCount = ubxMessage.navSatHdr.numSvs;
+        }
+        return currentMsgType;
+      }
+    }
+    else if (fpos > payloadSize + 2) {
+      fpos = 0;
+    }
   }
+
   return MT_NONE;
 }
 
