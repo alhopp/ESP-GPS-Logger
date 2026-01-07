@@ -143,18 +143,24 @@ static bool probe_gps(uint32_t baud)
   UbloxSerial.begin(baud, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
   delay(120);
 
-  while (UbloxSerial.available()) UbloxSerial.read();
+  // DO NOT DRAIN RX BUFFER
 
+  // Send MON-VER poll
   UbloxSerial.write(
-    (const uint8_t*)ubx::poll::mon_ver,
+    ubx::poll::mon_ver,
     sizeof(ubx::poll::mon_ver)
   );
-  UbloxSerial.flush();
+  UbloxSerial.flush();   // TX only (safe)
 
   uint32_t start = millis();
   while (millis() - start < 300) {
-    if (UbloxSerial.available()) return true;
+    if (UbloxSerial.available() > 0) {
+      // Bytes exist — let processGPS() consume them later
+      return true;
+    }
+    delay(1);
   }
+
   return false;
 }
 

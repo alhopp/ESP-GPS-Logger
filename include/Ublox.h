@@ -184,13 +184,11 @@ struct NAV_NACK  { uint8_t cls,id; uint16_t len; uint8_t msg_cls,msg_id,chkA,chk
 struct NAV_ID {
   uint8_t cls,id; uint16_t len;
   uint8_t Version,r1,r2,r3,ubx_id_1,ubx_id_2,ubx_id_3,ubx_id_4,ubx_id_5,ubx_id_6;
-  uint8_t chkA,chkB;
 } __attribute__((packed));
 
 struct MON_GNSS {
   uint8_t cls,id; uint16_t len;
   uint8_t Version,supported_Gnss,default_Gnss,enabled_Gnss,simultaneous,r1,r2,r3;
-  uint8_t chkA,chkB;
 } __attribute__((packed));
 
 struct VER_EXT { char extension[30]; } __attribute__((packed));
@@ -200,28 +198,56 @@ struct MON_VER {
   char swVersion[30];
   char hwVersion[10];
   VER_EXT ext[6];
-  uint8_t chkA,chkB;
 } __attribute__((packed));
 
 struct NAV_DOP {
   uint8_t cls,id; uint16_t len; uint32_t iTOW;
   uint16_t gDOP,pDOP,tDOP,vDOP,hDOP,nDOP,eDOP;
-  uint8_t chkA,chkB;
 } __attribute__((packed));
 
 struct NAV_PVT {
-  uint8_t cls,id; uint16_t len;
-  uint32_t iTOW; uint16_t year; uint8_t month,day,hour,minute,second;
-  int8_t valid; uint32_t tAcc; int32_t nano;
-  uint8_t fixType; int8_t flags; uint8_t r1,numSV;
-  int32_t lon,lat,height,hMSL;
-  uint32_t hAcc,vAcc;
-  int32_t velN,velE,velD,gSpeed,heading;
-  uint32_t sAcc,headingAcc;
-  uint16_t pDOP; int16_t r2; uint32_t r3;
-  int32_t headVeh; int16_t magDec,magAcc;
-  uint8_t chkA,chkB;
+  uint32_t iTOW;        // 0
+  uint16_t year;        // 4
+  uint8_t  month;       // 6
+  uint8_t  day;         // 7
+  uint8_t  hour;        // 8
+  uint8_t  minute;         // 9
+  uint8_t  second;         // 10
+  uint8_t  valid;       // 11
+
+  uint32_t tAcc;        // 12
+  int32_t  nano;        // 16
+
+  uint8_t  fixType;     // 20
+  uint8_t  flags;       // 21
+  uint8_t  flags2;      // 22
+  uint8_t  numSV;       // 23
+
+  int32_t  lon;         // 24
+  int32_t  lat;         // 28
+  int32_t  height;      // 32
+  int32_t  hMSL;        // 36
+
+  uint32_t hAcc;        // 40
+  uint32_t vAcc;        // 44
+
+  int32_t  velN;        // 48
+  int32_t  velE;        // 52
+  int32_t  velD;        // 56
+  int32_t  gSpeed;      // 60
+  int32_t  heading;     // 64
+
+  uint32_t sAcc;        // 68
+  uint32_t headAcc;    // 72
+  uint16_t pDOP;       // 76
+
+  uint8_t  reserved1[6]; // 78–83
+
+  int32_t  headVeh;    // 84
+  int16_t  magDec;     // 88
+  uint16_t magAcc;    // 90
 } __attribute__((packed));
+
 
 // NAV-SAT
 constexpr uint8_t UBX_MAX_SVS = 64;
@@ -261,6 +287,8 @@ extern UBXMessage ubxMessage;
 extern bool sdOK;
 extern char dataStr[255];
 extern char Buffer[50];
+
+static_assert(sizeof(NAV_PVT) == 92, "NAV_PVT size mismatch");
 
 // -----------------------------------------------------------------------------
 // API

@@ -39,41 +39,46 @@ static void processGpsMessages();
 // --------------------------------------------------
 void taskOne(void *parameter)
 {
-  for (;;) {
+  uint32_t lastLog = 0;
 
-    // ----------------------------------------------
-    // Mode gate — GPS only runs in active field modes
-    // ----------------------------------------------
-    const SystemMode mode = getMode();
-    if (mode != MODE_LOGGING &&
-        mode != MODE_WIFI_SOFT_AP &&
-        mode != MODE_WAIT_SATS) {
-
-      vTaskDelay(pdMS_TO_TICKS(500));
+  for (;;)
+  {
+    if (getMode() != MODE_LOGGING &&
+        getMode() != MODE_WAIT_SATS &&
+        getMode() != MODE_WIFI_SOFT_AP)
+    {
+      vTaskDelay(pdMS_TO_TICKS(200));
       continue;
     }
 
     wdt_task0 = millis();
 
+    // ---- READ GPS STREAM (NON-DESTRUCTIVE) ----
+    int msg = processGPS();
 
-    if (UbloxSerial.available() > 0) {
-     LOG_GPS("UART", "raw=%d", UbloxSerial.available());
+    if (msg != MT_NONE)
+    {
+      LOG_GPS("PARSE", "msg=%d sv=%u fix=%u",
+              msg,
+              ubxMessage.navPvt.numSV,
+              ubxMessage.navPvt.fixType);
+
+      msgType = msg;
+      processGpsMessages();
     }
 
-    // ----------------------------------------------
-    // GPS processing (UBX parser)
-    // ----------------------------------------------
-    int m;
-    do {
-      m = processGPS();
-      if (m != MT_NONE) {
-        msgType = m;
-        processGpsMessages();
-      }
-    } while (UbloxSerial.available() > 0);
+    // ---- HEARTBEAT (does NOT touch UART) ----
+    if (millis() - lastLog > 1000)
+    {
+      lastLog = millis();
+      LOG_GPS("TASK", "alive mode=%d",
+              getMode());
+    }
 
+    vTaskDelay(pdMS_TO_TICKS(5)); // <-- critical
   }
 }
+
 
 // ==================================================
 // GPS message handling

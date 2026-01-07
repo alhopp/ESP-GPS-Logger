@@ -129,116 +129,130 @@ void ubloxSerialInit(int delay_ms){
 */
 
 
+// CFG-PRT: UART1, UBX IN + OUT, NMEA OFF
+// u-blox M10 compatible
+namespace ubx::cfg {
+  const uint8_t uart1_ubx_in_out[] PROGMEM = {
+    0xB5,0x62,0x06,0x00,0x14,0x00,
+    0x01,0x00,          // portID = UART1
+    0x00,0x00,          // txReady
+    0xD0,0x08,0x00,0x00,// mode = 8N1
+    0x00,0x96,0x00,0x00,// baud = 38400 (overwritten if earlier)
+    0x01,0x00,          // inProtoMask  = UBX
+    0x01,0x00,          // outProtoMask = UBX
+    0x00,0x00,          // flags
+    0x00,0x00,          // reserved
+    0xA2,0xB5           // CK_A CK_B
+  };
+}
+
+
 void Init_ubloxM10(void)
 {
-    constexpr int WAIT_MS = 250;
+    constexpr int WAIT = 200;
 
-    LOG_GPS("Init", "u-blox M10");
+    LOG_GPS("Init", "===== u-blox M10 INIT START =====");
 
-    // -------------------------------------------------------------------------
-    // Transport: UBX only
-    // -------------------------------------------------------------------------
-    LOG_GPS("Config", "Disable NMEA");
+    // ---------------------------------------------------------------------
+    // 1. Enable UBX IN + OUT on UART1 (CRITICAL)
+    // ---------------------------------------------------------------------
+    LOG_GPS("CFG", "UART1 UBX IN+OUT");
+    sendUbx(ubx::cfg::uart1_ubx_in_out);
+    delay(WAIT);
+
+    // ---------------------------------------------------------------------
+    // 2. Disable NMEA
+    // ---------------------------------------------------------------------
+    LOG_GPS("CFG", "Disable NMEA");
     sendUbx(ubx::cfg::nmea_off);
-    delay(WAIT_MS);
+    delay(WAIT);
 
-    LOG_GPS("Config", "Enable UBX output");
-    sendUbx(ubx::cfg::ubx_only);
-    delay(WAIT_MS);
-
-    // -------------------------------------------------------------------------
-    // GNSS constellation (atomic, M10-correct)
-    // -------------------------------------------------------------------------
-    LOG_GPS("Config", "GNSS: GPS + GAL + BDS(B1C) + GLO");
+    // ---------------------------------------------------------------------
+    // 3. GNSS constellation
+    // ---------------------------------------------------------------------
+    LOG_GPS("CFG", "GNSS: GPS + GAL + GLO + BDS(B1C)");
     sendUbx(ubx::cfg::all_4gnss);
-    delay(WAIT_MS);
+    delay(WAIT);
 
-    // -------------------------------------------------------------------------
-    // Motion model
-    // -------------------------------------------------------------------------
-    LOG_GPS("Config", "Motion model: SEA");
+    // ---------------------------------------------------------------------
+    // 4. Motion model
+    // ---------------------------------------------------------------------
+    LOG_GPS("CFG", "Motion model: SEA");
     sendUbx(ubx::cfg::sea_model);
-    delay(WAIT_MS);
+    delay(WAIT);
 
-    // -------------------------------------------------------------------------
-    // High navigation rate (optional)
-    // -------------------------------------------------------------------------
-    if (config.M10_high_nav == SET_M10_HIGH_NAV) {
-        LOG_GPS("Init", "Enable M10 high navigation rate");
-        Set_M10_high_nav_rate();   // may reboot receiver internally
-        delay(WAIT_MS);
-    }
-
-    // -------------------------------------------------------------------------
-    // Enable required messages
-    // -------------------------------------------------------------------------
-    LOG_GPS("Msg", "Enable NAV-PVT");
+    // ---------------------------------------------------------------------
+    // 5. Enable NAV messages
+    // ---------------------------------------------------------------------
+    LOG_GPS("MSG", "Enable NAV-PVT");
     sendUbx(ubx::msg::nav_pvt);
-    delay(WAIT_MS);
+    delay(WAIT);
 
-    LOG_GPS("Msg", "Enable NAV-DOP");
+    LOG_GPS("MSG", "Enable NAV-DOP");
     sendUbx(ubx::msg::nav_dop);
-    delay(WAIT_MS);
+    delay(WAIT);
 
     if (config.logUBX && config.logUBX_nav_sat) {
-        Serial.println("Enable NAV-SAT");
+        LOG_GPS("MSG", "Enable NAV-SAT");
         sendUbx(ubx::msg::nav_sat);
-        delay(WAIT_MS);
+        delay(WAIT);
     }
 
-    // -------------------------------------------------------------------------
-    // Diagnostics (still at current baud, usually 9600)
-    // -------------------------------------------------------------------------
-    LOG_GPS("Diag", "Query MON-VER");
+    // ---------------------------------------------------------------------
+    // 6. Diagnostics polls (VALID ones)
+    // ---------------------------------------------------------------------
+    LOG_GPS("POLL", "MON-VER");
     sendUbx(ubx::poll::mon_ver);
-    delay(WAIT_MS);
+    delay(WAIT);
 
-    LOG_GPS("Diag", "Query MON-GNSS");
+    LOG_GPS("POLL", "MON-GNSS");
     sendUbx(ubx::poll::mon_gnss);
-    delay(WAIT_MS);
+    delay(WAIT);
 
-    LOG_GPS("Diag", "Query UID");
+    LOG_GPS("POLL", "UID");
     sendUbx(ubx::poll::uid);
-    delay(WAIT_MS);
+    delay(WAIT);
 
-    // -------------------------------------------------------------------------
-    // Enable UBX output on UART1 (MUST be before baud switch)
-    // -------------------------------------------------------------------------
-    LOG_GPS("Config", "Enable UART1 UBX output");
-    sendUbx(ubx::cfg::uart1_ubx_out);
-    delay(WAIT_MS);
+    // ---------------------------------------------------------------------
+    // 7. Navigation rate
+    // ---------------------------------------------------------------------
+    LOG_GPS("CFG", "Nav rate %d Hz", config.sample_rate);
+    Set_rate_ubloxM10(config.sample_rate);
+    delay(300);
 
-    // -------------------------------------------------------------------------
-    // Switch receiver baud to 38400
-    // -------------------------------------------------------------------------
-    LOG_GPS("Config", "Switch baud → 38400");
+    // ---------------------------------------------------------------------
+    // 8. Switch GPS baud → 38400
+    // ---------------------------------------------------------------------
+    LOG_GPS("CFG", "Switch GPS baud → 38400");
     sendUbx(ubx::rate::baud_38400);
-    delay(WAIT_MS);
+    delay(WAIT);
 
-    // -------------------------------------------------------------------------
-    // Restart ESP32 UART at 38400
-    // -------------------------------------------------------------------------
+    // ---------------------------------------------------------------------
+    // 9. Restart ESP32 UART
+    // ---------------------------------------------------------------------
+    LOG_GPS("UART", "Restart ESP UART @38400");
     UbloxSerial.flush();
     UbloxSerial.end();
-    delay(20);
-
-    UbloxSerial.begin(
-      38400,
-      SERIAL_8N1,
-      GPS_UART_RX_PIN,
-      GPS_UART_TX_PIN
-    );
     delay(50);
 
-    // -------------------------------------------------------------------------
-    // (Optional but rock-solid) Re-assert UART1 UBX at new baud
-    // -------------------------------------------------------------------------
-    LOG_GPS("Config", "Re-assert UART1 UBX @38400");
-    sendUbx(ubx::cfg::uart1_ubx_out);  
-    delay(WAIT_MS);
+    UbloxSerial.begin(
+        38400,
+        SERIAL_8N1,
+        GPS_UART_RX_PIN,
+        GPS_UART_TX_PIN
+    );
+    delay(200);
 
-    LOG_GPS("Init", "complete");
+    // ---------------------------------------------------------------------
+    // 10. Re-assert UBX IN+OUT @ new baud
+    // ---------------------------------------------------------------------
+    LOG_GPS("CFG", "Re-assert UART1 UBX IN+OUT @38400");
+    sendUbx(ubx::cfg::uart1_ubx_in_out);
+    delay(WAIT);
+
+    LOG_GPS("Init", "===== u-blox M10 INIT COMPLETE =====");
 }
+
 
 
 
@@ -328,6 +342,27 @@ int processGPS() {
   static uint8_t currentMsgType = MT_NONE;
   static int payloadSize = sizeof(ubxMessage.navDummy);
 
+
+
+  static uint32_t lastRawLog = 0;
+static uint32_t rawCount = 0;
+
+while (UbloxSerial.available()) {
+    uint8_t b = UbloxSerial.peek();   // DO NOT consume yet
+    rawCount++;
+
+    // Log once per second
+    if (millis() - lastRawLog > 1000) {
+        lastRawLog = millis();
+        LOG_GPS("RAW", "bytes/sec=%lu first=0x%02X",
+                rawCount, b);
+        rawCount = 0;
+    }
+    break; // important: do not drain
+}
+
+
+
   while (UbloxSerial.available()) {
     uint8_t c = UbloxSerial.read();
 
@@ -353,49 +388,40 @@ int processGPS() {
     if (fpos == 3) {
       if (compareMsgHeader(NAV_PVT_HEADER)) {
         currentMsgType = MT_NAV_PVT;
-        payloadSize = sizeof(NAV_PVT);
-        ubxMessage.navPvt.cls = ubxMessage.navDummy.cls;
-        ubxMessage.navPvt.id  = ubxMessage.navDummy.id;
+        payloadSize = 4 + sizeof(NAV_PVT); 
       }
       else if (compareMsgHeader(MON_GNSS_HEADER)) {
         currentMsgType = MT_MON_GNSS;
         payloadSize = sizeof(MON_GNSS);
-        ubxMessage.monGNSS.cls = ubxMessage.navDummy.cls;
-        ubxMessage.monGNSS.id  = ubxMessage.navDummy.id;
+  
       }
       else if (compareMsgHeader(NAV_DOP_HEADER)) {
         currentMsgType = MT_NAV_DOP;
         payloadSize = sizeof(NAV_DOP);
-        ubxMessage.navDOP.cls = ubxMessage.navDummy.cls;
-        ubxMessage.navDOP.id  = ubxMessage.navDummy.id;
+    
       }
       else if (compareMsgHeader(MON_VER_HEADER)) {
         currentMsgType = MT_MON_VER;
         payloadSize = sizeof(MON_VER);
-        ubxMessage.monVER.cls = ubxMessage.navDummy.cls;
-        ubxMessage.monVER.id  = ubxMessage.navDummy.id;
+ 
       }
       else if (compareMsgHeader(NAV_ACK_HEADER)) {
         currentMsgType = MT_NAV_ACK;
         payloadSize = sizeof(NAV_ACK);
-        ubxMessage.navAck.cls = ubxMessage.navDummy.cls;
-        ubxMessage.navAck.id  = ubxMessage.navDummy.id;
+    
       }
       else if (compareMsgHeader(NAV_NACK_HEADER)) {
         currentMsgType = MT_NAV_NACK;
         payloadSize = sizeof(NAV_NACK);
-        ubxMessage.navNack.cls = ubxMessage.navDummy.cls;
-        ubxMessage.navNack.id  = ubxMessage.navDummy.id;
+  
       }
       else if (compareMsgHeader(NAV_SAT_HEADER)) {
         currentMsgType = MT_NAV_SAT;
-        ubxMessage.navSatHdr.cls = ubxMessage.navDummy.cls;
-        ubxMessage.navSatHdr.id  = ubxMessage.navDummy.id;
+    
       }
       else if (compareMsgHeader(NAV_ID_HEADER)) {
         currentMsgType = MT_NAV_ID;
-        ubxMessage.ubxId.cls = ubxMessage.navDummy.cls;
-        ubxMessage.ubxId.id  = ubxMessage.navDummy.id;
+    
       }
       else {
         currentMsgType = MT_NONE;
@@ -435,7 +461,6 @@ int processGPS() {
     // Adjust payload size once LEN is known
     // ------------------------------------------------------------------
     if (fpos == 6) {
-      if (currentMsgType == MT_NAV_PVT) ubxMessage.navPvt.len = payloadSize - 6;
       if (currentMsgType == MT_NAV_DOP) ubxMessage.navDOP.len = payloadSize - 6;
 
       if (currentMsgType == MT_NAV_ID) {
