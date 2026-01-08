@@ -18,6 +18,11 @@
 #include "Definitions.h"
 #include "rtc_state.h"     // RTC_gps_* + RTC time fields
 #include "Ublox/ublox.h"         // ubx::poll::mon_ver definition
+#include "Globals.h"
+
+tm tmstruct{};
+int Time_Set_OK = 0;
+
 
 // -----------------------------------------------------------------------------
 // BAUD TABLE

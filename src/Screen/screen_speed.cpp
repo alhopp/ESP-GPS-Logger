@@ -7,6 +7,7 @@
 #include "Layout.h"
 #include "config_manager.h"
 #include "storage_manager.h"
+#include "Globals.h"
 
 static int ui_offset = 0;
 
@@ -166,10 +167,10 @@ void draw_SPEED()
 
     if (GPS_Signal_OK) {
       if (config.speed_large_font == 2) {
-        int komma = int(gps_speed * calibration_speed * 10) % 10;
+        int komma = int(gps_speed_value * calibration_speed * 10) % 10;
         display.setFont(Fonts::Huge75);
         display.setCursor(ui_offset - 6, 115);
-        display.print(int(gps_speed * calibration_speed));
+        display.print(int(gps_speed_value * calibration_speed));
         display.setFont(Fonts::Big30);  display.print(".");
         display.setFont(Fonts::SpeedL); display.println(komma);
       }
@@ -182,7 +183,7 @@ void draw_SPEED()
     if (field <= SPEED2) {
       float run = S10.display_last_run * calibration_speed;
       float avg = S10.avg_5runs * calibration_speed;
-      float cur = gps_speed * calibration_speed;
+      float cur = gps_speed_value * calibration_speed;
 
       if (config.speed_large_font == 0)
         Speed_font0("Run", "Avg ", run, avg, cur, 0);
@@ -202,7 +203,7 @@ void draw_SPEED()
       */
       if (field == SPEED3) {
       bool gate = (abs(alfa_window) < 99) && (Ublox.alfa_distance / 1000 < 255);
-      float cur = gps_speed * calibration_speed;
+      float cur = gps_speed_value * calibration_speed;
       float alfa = A500.alfa_speed_max * calibration_speed;
 
       if (gate && alfa_exit > 99) alfa_exit = 99;
@@ -235,7 +236,7 @@ void draw_SPEED()
       }
     }
 
-    float cur = gps_speed * calibration_speed;
+    float cur = gps_speed_value * calibration_speed;
 
     if (field == SPEED4) {
       float nm = M1852.m_max_speed * calibration_speed;
@@ -280,7 +281,7 @@ void draw_SPEED()
 
 
      if (config.speed_large_font == 4) {
-      double speed = gps_speed * calibration_speed;
+      double speed = gps_speed_value * calibration_speed;
       display.setFont(Fonts::Huge75);
       display.setCursor(ui_offset - 6, 118);
       display.print(speed, 0);
@@ -300,7 +301,7 @@ void draw_SPEED()
 
       float max1h = S3600.display_max_speed * calibration_speed;
       float avg1h = S3600.avg_s * calibration_speed;
-      float cur   = gps_speed * calibration_speed;
+      float cur   = gps_speed_value * calibration_speed;
 
       if (config.speed_large_font == 1)
         Speed_font1("1h: ", " ", max1h, avg1h, cur, 2);
@@ -316,7 +317,7 @@ void draw_SPEED()
       Speed_font0("CM ", "TM ",
                   S2.display_last_run * calibration_speed,
                   S2.display_max_speed * calibration_speed,
-                  gps_speed * calibration_speed, 1);
+                  gps_speed_value * calibration_speed, 1);
 
     // progress bar -------------------------------------------------
     if (config.speed_large_font == 0)      { total_bar_length = 180; bar_position = 32; }

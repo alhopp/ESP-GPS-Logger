@@ -16,6 +16,7 @@
 #include "screen_context.h"
 #include "Layout.h"
 #include "config_manager.h"
+#include "Globals.h"
 
 // If Fonts is not already included by screen_context.h in your project,
 // add it here. Leaving it out if screen_context already provides it.

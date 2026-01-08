@@ -14,6 +14,7 @@
 #include <SD_MMC.h>
 #include "Definitions.h"
 
+
 // --------------------------------------------------
 // Runtime state
 // --------------------------------------------------
@@ -147,7 +148,7 @@ static void processGpsMessages()
         nav_pvt_message != old_message) {
 
       old_message = nav_pvt_message;
-      gps_speed   = ubxMessage.navPvt.gSpeed;
+      gps_speed_value   = ubxMessage.navPvt.gSpeed;
 
       static uint32_t last_flush_time = 0;
       if ((millis() - last_flush_time) > 60000UL) {
@@ -159,7 +160,7 @@ static void processGpsMessages()
       if (ubxMessage.navPvt.numSV <= MIN_numSV_GPS_SPEED_OK ||
           (ubxMessage.navPvt.sAcc / 1000.0f) > MAX_Sacc_GPS_SPEED_OK ||
           (ubxMessage.navPvt.gSpeed / 1000.0f) > MAX_GPS_SPEED_OK) {
-        gps_speed = 0;
+        gps_speed_value = 0;
       }
 
       Log_to_SD();
@@ -167,7 +168,7 @@ static void processGpsMessages()
       Ublox.push_data(
         ubxMessage.navPvt.lat / 10000000.0f,
         ubxMessage.navPvt.lon / 10000000.0f,
-        gps_speed
+        gps_speed_value
       );
 
       run_count = New_run_detection(

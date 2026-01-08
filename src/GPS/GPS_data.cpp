@@ -4,6 +4,7 @@
 #include "Definitions.h"
 #include "config_manager.h"
 #include "gps_manager.h"
+#include "Globals.h"
 
 uint16_t _gSpeed[BUFFER_SIZE]; 
 float _lat[BUFFER_ALFA]; 

@@ -2,6 +2,7 @@
 #include "Definitions.h"
 #include "config_manager.h"
 #include "rtc_state.h"
+#include "Globals.h"
 
 // ============================================================================
 // CFG-PRT (UART1) — Board-specific UART configuration for u-blox M10

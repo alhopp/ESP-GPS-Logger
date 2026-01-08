@@ -21,11 +21,7 @@
 #include <sys/time.h>
 #include <driver/rtc_io.h>
 #include <driver/gpio.h>
-#include "SD_card.h"
-#include "Ublox_ubx.h"
-
-
-
+#include "Ublox/Ublox_ubx.h"
 
 // ============================================================================
 // HELPERS

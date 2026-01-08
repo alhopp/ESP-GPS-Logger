@@ -105,7 +105,7 @@ class GPS_Track;
 //  Global runtime state (owned elsewhere)
 // ============================================================================
 
-extern int   gps_speed;
+extern int   gps_speed_value;
 extern int   S10_previous_run;
 extern int   wifi_search;
 extern int   start_logging_millis;

@@ -52,7 +52,7 @@ int   run_count;
 int   old_run_count;
 int   stat_count;
 int   S10_previous_run;
-int   gps_speed;
+int   gps_speed_value;
 float alfa_window;
 float Mean_heading;
 float heading_SD;
