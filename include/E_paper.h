@@ -7,6 +7,7 @@
 
 #include <screen_draw.h>
 #include "rtc_state.h"
+#include "Ublox/Ublox.h"
 
 extern GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display;
 
@@ -128,13 +129,6 @@ extern double ref_heading;
 
 extern String IP_adress;
 extern String actual_ssid;
-
-
-
-
-extern UBXMessage ubxMessage;
-
-
 
 // ============================================================================
 //  Navigation / statistics objects
