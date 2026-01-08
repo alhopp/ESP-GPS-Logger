@@ -53,29 +53,31 @@ void taskOne(void *parameter)
 
     wdt_task0 = millis();
 
-    // ---- READ GPS STREAM (NON-DESTRUCTIVE) ----
     int msg = processGPS();
 
-    if (msg != MT_NONE)
+    if (msg == MT_NAV_PVT)
     {
-      LOG_GPS("PARSE", "msg=%d sv=%u fix=%u",
-              msg,
-              ubxMessage.navPvt.numSV,
-              ubxMessage.navPvt.fixType);
-
-      msgType = msg;
-      processGpsMessages();
+      LOG_GPS("PVT",
+        "fix=%u sv=%u lat=%.6f lon=%.6f spd=%.2f",
+        ubxMessage.navPvt.fixType,
+        ubxMessage.navPvt.numSV,
+        ubxMessage.navPvt.lat * 1e-7,
+        ubxMessage.navPvt.lon * 1e-7,
+        ubxMessage.navPvt.gSpeed * 0.001
+      );
+    }
+    else if (msg != MT_NONE)
+    {
+      LOG_GPS("PARSE", "msg=%d", msg);
     }
 
-    // ---- HEARTBEAT (does NOT touch UART) ----
     if (millis() - lastLog > 1000)
     {
       lastLog = millis();
-      LOG_GPS("TASK", "alive mode=%d",
-              getMode());
+      LOG_GPS("TASK", "alive mode=%d", getMode());
     }
 
-    vTaskDelay(pdMS_TO_TICKS(5)); // <-- critical
+    vTaskDelay(pdMS_TO_TICKS(5));
   }
 }
 
