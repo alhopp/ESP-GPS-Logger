@@ -28,10 +28,6 @@ uint64_t GPS_UTC_ms;     //Absolute UTC timewith ms resolution @start logging
 int SD_MMC_read_speed;
 int SD_MMC_write_speed;
 
-struct Config config;
-
-
-
 
 void logERR(const char *message) {
   if (config.logTXT) {

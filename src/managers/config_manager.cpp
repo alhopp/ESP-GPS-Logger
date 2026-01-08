@@ -35,11 +35,6 @@
 #define CONFIG_FILE "/config.txt"
 
 // -----------------------------------------------------------------------------
-// External state
-// -----------------------------------------------------------------------------
-extern Config config;
-
-// -----------------------------------------------------------------------------
 // Forward declarations (internal)
 // -----------------------------------------------------------------------------
 static void setDefaultConfig();
@@ -49,6 +44,8 @@ static void validateConfig();               // <-- NEW: heals speed screens etc.
 static void sanitizeScreenString(char *dst, size_t dstSize, const char *src); // NEW
 static void applyDerivedConfig();
 static void dumpConfig();
+
+Config config;
 
 // -----------------------------------------------------------------------------
 // Public API
@@ -141,6 +138,8 @@ void saveConfig()
   LOG_CONFIG("Save", "Configuration saved → dumping final state");
   dumpConfig();
 }
+
+
 
 // -----------------------------------------------------------------------------
 // Defaults
@@ -529,3 +528,4 @@ static void dumpConfig()
   Serial.println("[CONFIG ] ---------------------------------");
   Serial.println();
 }
+

@@ -1,6 +1,6 @@
 
 #include "storage_file_operations.h"
- #include "config_manager.h"
+#include "config_manager.h"
 
  File ubxfile;
  File errorfile;
@@ -9,10 +9,9 @@
  File gpxfile;
 
 
-extern struct Config config;  
-
+ 
 void Flush_files(void) {
-  if (config.sample_rate <= 10) {  //@18Hz still lost points !!!
+  if (config.sample_rate <= 10) {
     static int load_balance = 0;
     if (load_balance == 0) ubxfile.flush();
     if (load_balance == 1) errorfile.flush();
