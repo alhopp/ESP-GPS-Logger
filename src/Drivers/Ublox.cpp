@@ -208,52 +208,26 @@ void Init_ubloxM10(void)
 // -----------------------------------------------------------------------------
 // Set_rate_ubloxM10
 //
-// Configure navigation output rate for u-blox M10 using prebuilt UBX commands.
+// Configure navigation output rate for u-blox M10.
 //
-// Supported rates (Hz):
-//   1, 2, 4, 5, 8, 10, 15, 20
+// This implementation deliberately FORCES a fixed 5 Hz navigation rate.
 //
-// Each rate corresponds to one 18-byte UBX-CFG-RATE command
-// stored sequentially in ubx::rate::table[].
+// Rationale:
+// - 5 Hz provides excellent Doppler speed accuracy with minimal power,
+//   SD write load, and task jitter
+// - Doppler velocity does not benefit meaningfully from higher rates
+// - Fixed-rate operation simplifies logging, filtering, and UI logic
 //
-// NOTE:
-// - M10 does NOT accept arbitrary rates via a single parameter
-// - Each supported rate must have its own UBX command
 // -----------------------------------------------------------------------------
-void Set_rate_ubloxM10(int rate_hz)
+
+void Set_rate_ubloxM10(int /*rate_hz*/)
 {
-    constexpr int CMD_SIZE = 18;
-
-    // Map requested rate → command index
-    int index = -1;
-
-    switch (rate_hz) {
-        case 1:  index = 0; break;
-        case 2:  index = 1; break;
-        case 4:  index = 2; break;
-        case 5:  index = 3; break;
-        case 8:  index = 4; break;
-        case 10: index = 5; break;
-        case 15: index = 6; break;
-        case 20: index = 7; break;
-        default:
-            Serial.printf("Unsupported M10 rate %d Hz → fallback to 1 Hz\n", rate_hz);
-            rate_hz = 1;
-            index   = 0;
-            config.sample_rate = 1;
-            break;
-    }
-
-    Serial.printf("Set u-blox M10 nav rate: %d Hz\n", rate_hz);
-
-    const int offset = index * CMD_SIZE;
-
-    for (int i = 0; i < CMD_SIZE; i++) {
-        UbloxSerial.write(pgm_read_byte(ubx::rate::table + offset + i));
-    }
-
+    Serial.println("Set u-blox M10 nav rate: fixed 5 Hz");
+    sendUbx(ubx::rate::rate_5hz);
     delay(500);
 }
+
+
 
 // Reads in bytes from the GPS module and checks to see if a valid message has been constructed.
 // Returns the type of the message found if successful, or MT_NONE if no message was found.
