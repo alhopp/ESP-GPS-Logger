@@ -13,11 +13,9 @@
 #include "rtc_state.h"
 #include "Globals.h"  
 
-File ubxfile;
-File errorfile;
-File gpyfile;  //new open source file format, work in progress !!
-File sbpfile;
-File gpxfile;
+#include "Storage/storage_file_operations.h"
+
+
 char filename_NO_EXT[64] = "/";
 char filenameERR[64] = "/";
 char filenameUBX[64] = "/";
@@ -40,6 +38,8 @@ void logERR(const char *message) {
     errorfile.print(message);
   }
 }
+
+
 //test for existing GPSLOGxxxfiles, open txt,gps + ubx file with new name, or with timestamp !
 void Open_files(void) {
   char macAddr[16];
@@ -131,28 +131,10 @@ void Open_files(void) {
     if (LITTLEFS_OK) errorfile = LittleFS.open(filenameERR, FILE_APPEND);
   }
 }
-void Close_files(void) {
-  log_GPX(GPX_END, gpxfile);
-  gpxfile.close();
-  ubxfile.close();
-  errorfile.close();
-  gpyfile.close();
-  sbpfile.close();
-}
-void Flush_files(void) {
-  if (config.sample_rate <= 10) {  //@18Hz still lost points !!!
-    static int load_balance = 0;
-    if (load_balance == 0) ubxfile.flush();
-    if (load_balance == 1) errorfile.flush();
-    if (load_balance == 2) gpyfile.flush();
-    if (load_balance == 3) sbpfile.flush();
-    if (load_balance == 4) {
-      gpxfile.flush();
-      load_balance = -1;
-    }
-    load_balance++;
-  }
-}
+
+
+
+
 void Add_String(void) {
   strcat(dataStr, Buffer);  //add it onto the end
   strcat(dataStr, ";");     //append the delimeter
