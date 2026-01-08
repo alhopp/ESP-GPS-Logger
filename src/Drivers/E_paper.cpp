@@ -153,8 +153,7 @@ int device_boot_log(int rows, int ws)
 
   // GPS info
   const bool show_gps =
-      (rows == 4 || rows == 24 || rows == 34 || rows == 234) &&
-      ubxMessage.monVER.hwVersion[0];
+      (rows == 4 || rows == 24 || rows == 34 || rows == 234) ;
 
   if (show_gps) {
     display.setCursor(
@@ -230,8 +229,6 @@ void Bat_level_Simon(int ui_offset)
 
 void Sats_level(int ui_offset)
 {
-  if (!ubxMessage.monVER.swVersion[0]) return;
-
   int satnum = ubxMessage.navPvt.numSV;
   display.setFont(Fonts::Body9);
   display.setCursor(120 + ui_offset - (satnum < 10 ? 9 : 18), INFO_BAR_ROW);

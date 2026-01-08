@@ -265,11 +265,6 @@ struct NAV_SAT_HDR {
 struct UBXMessage {
   NAV_PVT     navPvt;
   NAV_DOP     navDOP;
-  NAV_ACK     navAck;
-  NAV_NACK    navNack;
-  NAV_ID      ubxId;
-  MON_GNSS    monGNSS;
-  MON_VER     monVER;
   NAV_SAT_HDR navSatHdr;
   sVs_NAV_SAT navSat[UBX_MAX_SVS];
   uint8_t     navSatCount;
