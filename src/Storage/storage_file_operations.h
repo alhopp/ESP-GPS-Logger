@@ -10,5 +10,8 @@ extern File gpyfile;
 extern File sbpfile;
 extern File gpxfile;
 
+
+void Open_files(void);
 void Flush_files(void);
+
 

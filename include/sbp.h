@@ -33,5 +33,5 @@ extern struct SBP_Header sbp_header;
 extern struct SBP_frame sbp_frame;
 
 // Function declarations for logging SBP data
-void log_header_SBP(File file);
-void log_SBP(File file);
+extern void log_header_SBP(File file);
+extern void log_SBP(File file);

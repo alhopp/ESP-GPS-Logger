@@ -9,6 +9,6 @@
 #define GPX_END 2
 
 // Function to log GPX data to a file
-void log_GPX(int part, File file);
+extern void log_GPX(int part, File file);
 
 
