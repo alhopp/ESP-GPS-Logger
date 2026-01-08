@@ -20,7 +20,7 @@
 #include "Fonts.h"
 #include "esp_logo.h"
 
-#include "storage_manager.h"
+#include "Storage/storage_manager.h"
 #include "wifi_manager.h"
 #include "rtc_state.h"
 

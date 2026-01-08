@@ -6,7 +6,7 @@
 #include "Definitions.h"
 #include "Layout.h"
 #include "config_manager.h"
-#include "storage_manager.h"
+#include "Storage/storage_manager.h"
 #include "Globals.h"
 
 static int ui_offset = 0;

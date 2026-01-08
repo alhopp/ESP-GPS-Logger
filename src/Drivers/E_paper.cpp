@@ -32,9 +32,9 @@
 // -----------------------------------------------------------------------------
 // Storage / filesystem (boot info + info bar only)
 // -----------------------------------------------------------------------------
-#include "SD_card.h"
+#include "Storage/SD_card.h"
 #include <LittleFS.h>
-#include "storage_manager.h"
+#include "Storage/storage_manager.h"
 
 // -----------------------------------------------------------------------------
 // UI primitives & layout (KEEP)

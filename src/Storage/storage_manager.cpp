@@ -13,7 +13,7 @@
 // - Clean logs + minimal globals
 // -----------------------------------------------------------------------------
 
-#include "storage_manager.h"
+#include "Storage/storage_manager.h"
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -136,7 +136,7 @@ void initStorage()
 
 
 
-#include "storage_manager.h"
+#include "Storage/storage_manager.h"
 
 #include <SD_MMC.h>
 #include <LittleFS.h>

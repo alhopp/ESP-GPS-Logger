@@ -3,13 +3,13 @@
 #include <FS.h>
 #include <LittleFS.h>
 
-#include "SD_card.h"
+#include "Storage/SD_card.h"
 #include "Definitions.h"
 #include "gpx.h"
 #include "sbp.h"
 #include "gpy.h"
 #include "config_manager.h"
-#include "storage_manager.h"
+#include "Storage/storage_manager.h"
 #include "rtc_state.h"
 #include "Globals.h"  
 
