@@ -66,68 +66,18 @@ bool Set_GPS_Time(float time_offset)
 }
 
 
-
 const char* gpsChip(bool longname)
 {
     return longname ? "u-blox M10 (UBX)" : "M10";
 }
 
-
-
-
 HardwareSerial UbloxSerial(2);
-
-
-
 
 void ubloxSerialInit(int delay_ms)
 {
   UbloxSerial.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
   delay(delay_ms);
 }
-
-
-/*
-void ubloxSerialInit(int delay_ms){
- for(int i=0;i<delay_ms;i++){
-    int msgType = processGPS();
-     if ( msgType == MT_NAV_ACK){
-          Serial.print(" ACK ");
-          Serial.print (ubxMessage.navAck.msg_cls);
-          Serial.println (ubxMessage.navAck.msg_id);
-          if(check_M10_nav_rate) High_nav_rate_ACK = true;
-          }
-     if ( msgType == MT_NAV_NACK){
-          Serial.print(" NACK ");
-          Serial.print (ubxMessage.navNack.msg_cls);
-          Serial.println (ubxMessage.navNack.msg_id);
-          if(check_M10_nav_rate) Nav_rate_NACK = true;
-          }          
-     if ( msgType == MT_NAV_ID){
-          Serial.print("ID= :");
-          Serial.print (ubxMessage.ubxId.ubx_id_1);
-          Serial.print (ubxMessage.ubxId.ubx_id_2);
-          Serial.print (ubxMessage.ubxId.ubx_id_3);
-          Serial.print (ubxMessage.ubxId.ubx_id_4);
-          Serial.println(ubxMessage.ubxId.ubx_id_5);
-          }
-     if ( msgType == MT_MON_GNSS){
-          Serial.print("GNSS= :");
-          Serial.print (ubxMessage.monGNSS.supported_Gnss);
-          Serial.print (ubxMessage.monGNSS.default_Gnss);
-          Serial.println (ubxMessage.monGNSS.enabled_Gnss);
-          }
-      if ( msgType == MT_MON_VER){
-          Serial.print("SW Ublox=");
-          Serial.println(ubxMessage.monVER.swVersion);
-          Serial.print ("HW Ublox=");
-          Serial.println (ubxMessage.monVER.hwVersion);
-          }    
-     delay(2);   
-     } 
-}
-*/
-
 
 // CFG-PRT: UART1, UBX IN + OUT, NMEA OFF
 // u-blox M10 compatible
@@ -145,7 +95,6 @@ namespace ubx::cfg {
     0xA2,0xB5           // CK_A CK_B
   };
 }
-
 
 void Init_ubloxM10(void)
 {
@@ -306,225 +255,256 @@ void Set_rate_ubloxM10(int rate_hz)
     delay(500);
 }
 
-
-// The last two bytes of the message is a checksum value, used to confirm that the received payload is valid.
-// The procedure used to calculate this is given as pseudo-code in the uBlox manual.
-void calcChecksum(unsigned char* CK,int msgType, int msgSize) {
-  memset(CK, 0, 2);
-  for (int i = 0; i < msgSize; i++) {
-    if(msgType==MT_NAV_PVT) {CK[0] += ((unsigned char*)(&ubxMessage.navPvt))[i];}
-    else if(msgType==MT_NAV_DOP) {CK[0] += ((unsigned char*)(&ubxMessage.navDOP))[i];} 
-    else if(msgType==MT_MON_GNSS){CK[0] += ((unsigned char*)(&ubxMessage.monGNSS))[i];} 
-    else if(msgType==MT_MON_VER){CK[0] += ((unsigned char*)(&ubxMessage.monVER))[i];} 
-    else if(msgType==MT_NAV_ACK){CK[0] += ((unsigned char*)(&ubxMessage.navAck))[i];} 
-    else if(msgType==MT_NAV_NACK){CK[0] += ((unsigned char*)(&ubxMessage.navNack))[i];} 
-    else if(msgType==MT_NAV_SAT){CK[0] += ((unsigned char*)(&ubxMessage.navSat))[i];} 
-    else if(msgType==MT_NAV_ID){CK[0] += ((unsigned char*)(&ubxMessage.ubxId))[i];} 
-    else {CK[0] += ((unsigned char*)(&ubxMessage))[i];}
-    CK[1] += CK[0];
-  }
-}
-// Compares the first two bytes of the ubxMessage struct with a specific message header.
-// Returns true if the two bytes match (0xB5 0x62).
-boolean compareMsgHeader(const unsigned char* msgHeader) {
-  unsigned char* ptr = (unsigned char*)(&ubxMessage.navDummy);
-  return ptr[0] == msgHeader[0] && ptr[1] == msgHeader[1];
-}
 // Reads in bytes from the GPS module and checks to see if a valid message has been constructed.
 // Returns the type of the message found if successful, or MT_NONE if no message was found.
 // After a successful return the contents of the ubxMessage union will be valid, for the 
 // message type that was found. As now every message has its own struct, further calls to this function can invalidate the
 // message content if the message was the same, so you must use the obtained values before calling this function again.
 
-int processGPS() {
-  static int fpos = 0;
-  static uint8_t checksum[2];
-  static uint8_t currentMsgType = MT_NONE;
-  static int payloadSize = sizeof(ubxMessage.navDummy);
+int processGPS()
+{
+  // UBX framing:
+  // B5 62 | CLS ID | LEN_L LEN_H | PAYLOAD[len] | CK_A CK_B
+  enum State : uint8_t {
+    S_SYNC1 = 0,
+    S_SYNC2,
+    S_CLS,
+    S_ID,
+    S_LEN1,
+    S_LEN2,
+    S_PAYLOAD,
+    S_CK_A,
+    S_CK_B
+  };
 
+  static State   st        = S_SYNC1;
+  static uint8_t cls       = 0;
+  static uint8_t id        = 0;
+  static uint16_t len      = 0;
+  static uint16_t payPos   = 0;
 
+  static uint8_t ckA = 0;
+  static uint8_t ckB = 0;
 
+  // Small payload buffer for “unknown” messages (or for safety)
+  // NAV-PVT payload = 92, NAV-DOP payload = 18, NAV-SAT can be large.
+  // We'll stream-copy directly into structs where possible.
+  // This buffer is only used if we don't recognise the message.
+  static uint8_t scratch[256];
+
+  // Optional: RAW throughput monitor (non-destructive-ish)
   static uint32_t lastRawLog = 0;
-static uint32_t rawCount = 0;
-
-while (UbloxSerial.available()) {
-    uint8_t b = UbloxSerial.peek();   // DO NOT consume yet
+  static uint32_t rawCount   = 0;
+  if (UbloxSerial.available()) {
     rawCount++;
-
-    // Log once per second
     if (millis() - lastRawLog > 1000) {
-        lastRawLog = millis();
-        LOG_GPS("RAW", "bytes/sec=%lu first=0x%02X",
-                rawCount, b);
-        rawCount = 0;
+      lastRawLog = millis();
+      uint8_t b = UbloxSerial.peek();
+      LOG_GPS("RAW", "bytes/sec=%lu first=0x%02X", (unsigned long)rawCount, b);
+      rawCount = 0;
     }
-    break; // important: do not drain
-}
+  }
 
+  auto resetFrame = [&]() {
+    st = S_SYNC1;
+    cls = id = 0;
+    len = 0;
+    payPos = 0;
+    ckA = ckB = 0;
+  };
 
+  auto beginChecksum = [&]() {
+    ckA = 0;
+    ckB = 0;
+  };
+
+  auto addChecksum = [&](uint8_t b) {
+    ckA = (uint8_t)(ckA + b);
+    ckB = (uint8_t)(ckB + ckA);
+  };
+
+  // Decide where payload bytes should go
+  auto startMessage = [&]() -> uint8_t {
+    // Identify message type from cls/id
+    if (cls == 0x01 && id == 0x07) { LOG_GPS("HDR", "NAV-PVT"); return MT_NAV_PVT; }
+    if (cls == 0x01 && id == 0x04) { LOG_GPS("HDR", "NAV-DOP"); return MT_NAV_DOP; }
+    if (cls == 0x0A && id == 0x28) { LOG_GPS("HDR", "MON-GNSS"); return MT_MON_GNSS; }
+    if (cls == 0x0A && id == 0x04) { LOG_GPS("HDR", "MON-VER"); return MT_MON_VER; }
+    if (cls == 0x05 && id == 0x01) { LOG_GPS("HDR", "ACK"); return MT_NAV_ACK; }
+    if (cls == 0x05 && id == 0x00) { LOG_GPS("HDR", "NACK"); return MT_NAV_NACK; }
+    if (cls == 0x27 && id == 0x03) { LOG_GPS("HDR", "NAV-ID"); return MT_NAV_ID; }
+    if (cls == 0x01 && id == 0x35) { LOG_GPS("HDR", "NAV-SAT"); return MT_NAV_SAT; }
+    // Unknown
+    // LOG_GPS("HDR", "UNK %02X %02X", cls, id);
+    return MT_NONE;
+  };
+
+  static uint8_t currentMsgType = MT_NONE;
 
   while (UbloxSerial.available()) {
     uint8_t c = UbloxSerial.read();
 
+    switch (st) {
 
-  // ------------------------------------------------------------------
-// Robust UBX sync (handles mid-stream entry)
-// ------------------------------------------------------------------
-if (fpos == 0) {
-  if (c == 0xB5) {
-    fpos = 1;
-  }
-  continue;
-}
-else if (fpos == 1) {
-  if (c == 0x62) {
-    fpos = 2;   // UBX sync complete
-  } else if (c == 0xB5) {
-    fpos = 1;   // restart sync on repeated 0xB5
-  } else {
-    fpos = 0;
-  }
-  continue;
-}
+      case S_SYNC1:
+        if (c == 0xB5) st = S_SYNC2;
+        break;
 
+      case S_SYNC2:
+        if (c == 0x62) {
+          st = S_CLS;
+        } else {
+          // allow re-sync if we saw another 0xB5
+          st = (c == 0xB5) ? S_SYNC2 : S_SYNC1;
+        }
+        break;
 
-    // ------------------------------------------------------------------
-    // Read header + payload (excluding sync bytes)
-    // ------------------------------------------------------------------
-    if ((fpos - 2) < payloadSize && fpos < 4) {
-      ((uint8_t*)&ubxMessage.navDummy)[fpos - 2] = c;
-    }
+      case S_CLS:
+        cls = c;
+        beginChecksum();
+        addChecksum(c);
+        st = S_ID;
+        break;
 
-    // ------------------------------------------------------------------
-    // Identify message type (after cls + id)
-    // ------------------------------------------------------------------
-    if (fpos == 3) {
-      if (compareMsgHeader(NAV_PVT_HEADER)) {
-        currentMsgType = MT_NAV_PVT;
-        payloadSize = sizeof(NAV_PVT) + 4; 
-      }
-      else if (compareMsgHeader(MON_GNSS_HEADER)) {
-        currentMsgType = MT_MON_GNSS;
-        payloadSize = sizeof(MON_GNSS) + 4 ;
-  
-      }
-      else if (compareMsgHeader(NAV_DOP_HEADER)) {
-        currentMsgType = MT_NAV_DOP;
-        payloadSize = sizeof(NAV_DOP) + 4;
-    
-      }
-      else if (compareMsgHeader(MON_VER_HEADER)) {
-        currentMsgType = MT_MON_VER;
-        payloadSize = sizeof(MON_VER) + 4;
- 
-      }
-      else if (compareMsgHeader(NAV_ACK_HEADER)) {
-        currentMsgType = MT_NAV_ACK;
-        payloadSize = sizeof(NAV_ACK) + 4;
-    
-      }
-      else if (compareMsgHeader(NAV_NACK_HEADER)) {
-        currentMsgType = MT_NAV_NACK;
-        payloadSize = sizeof(NAV_NACK) + 4;
-  
-      }
-      else if (compareMsgHeader(NAV_SAT_HEADER)) {
-        currentMsgType = MT_NAV_SAT;
-    
-      }
-      else if (compareMsgHeader(NAV_ID_HEADER)) {
-        currentMsgType = MT_NAV_ID;
-    
-      }
-      else {
-        currentMsgType = MT_NONE;
-        fpos = 0;
-        continue;
-      }
-    }
+      case S_ID:
+        id = c;
+        addChecksum(c);
+        st = S_LEN1;
+        break;
 
-    // ------------------------------------------------------------------
-    // Store payload bytes
-    // ------------------------------------------------------------------
-    if ((fpos - 2) < payloadSize && fpos >= 4) {
-      switch (currentMsgType) {
-        case MT_NAV_PVT:  ((uint8_t*)&ubxMessage.navPvt)[fpos - 2] = c; break;
-        case MT_NAV_DOP:  ((uint8_t*)&ubxMessage.navDOP)[fpos - 2] = c; break;
-        case MT_MON_GNSS: ((uint8_t*)&ubxMessage.monGNSS)[fpos - 2] = c; break;
-        case MT_MON_VER:  ((uint8_t*)&ubxMessage.monVER)[fpos - 2] = c; break;
-        case MT_NAV_ACK:  ((uint8_t*)&ubxMessage.navAck)[fpos - 2] = c; break;
-        case MT_NAV_NACK: ((uint8_t*)&ubxMessage.navNack)[fpos - 2] = c; break;
-        case MT_NAV_ID:   ((uint8_t*)&ubxMessage.ubxId)[fpos - 2] = c; break;
+      case S_LEN1:
+        len = c;
+        addChecksum(c);
+        st = S_LEN2;
+        break;
 
-        case MT_NAV_SAT: {
-          // Header first, then satellite blocks
-          if ((fpos - 2) < sizeof(NAV_SAT_HDR)) {
-            ((uint8_t*)&ubxMessage.navSatHdr)[fpos - 2] = c;
+      case S_LEN2:
+        len |= (uint16_t)c << 8;
+        addChecksum(c);
+
+        payPos = 0;
+        currentMsgType = startMessage();
+
+        // Basic sanity: UBX payload length can be bigger than our structures.
+        // We'll clamp/copy safely.
+        st = (len == 0) ? S_CK_A : S_PAYLOAD;
+        break;
+
+      case S_PAYLOAD: {
+        // Stream-copy payload byte c to the right destination
+        // based on currentMsgType and payload position payPos.
+
+        // 1) NAV-PVT payload-only struct (92 bytes)
+        if (currentMsgType == MT_NAV_PVT) {
+          if (payPos < sizeof(NAV_PVT)) {
+            ((uint8_t*)&ubxMessage.navPvt)[payPos] = c;
+          }
+        }
+        // 2) NAV-DOP includes cls/id/len in struct, payload starts at +4
+        else if (currentMsgType == MT_NAV_DOP) {
+          if (payPos == 0) { ubxMessage.navDOP.cls = cls; ubxMessage.navDOP.id = id; ubxMessage.navDOP.len = len; }
+          if (payPos < (sizeof(NAV_DOP) - 4)) {
+            ((uint8_t*)&ubxMessage.navDOP)[4 + payPos] = c;
+          }
+        }
+        // 3) MON-GNSS includes cls/id/len
+        else if (currentMsgType == MT_MON_GNSS) {
+          if (payPos == 0) { ubxMessage.monGNSS.cls = cls; ubxMessage.monGNSS.id = id; ubxMessage.monGNSS.len = len; }
+          if (payPos < (sizeof(MON_GNSS) - 4)) {
+            ((uint8_t*)&ubxMessage.monGNSS)[4 + payPos] = c;
+          }
+        }
+        // 4) MON-VER includes cls/id/len, variable payload -> clamp to struct capacity
+        else if (currentMsgType == MT_MON_VER) {
+          if (payPos == 0) { ubxMessage.monVER.cls = cls; ubxMessage.monVER.id = id; ubxMessage.monVER.len = len; }
+          const uint16_t cap = (uint16_t)(sizeof(MON_VER) - 4);
+          if (payPos < cap) {
+            ((uint8_t*)&ubxMessage.monVER)[4 + payPos] = c;
+          }
+        }
+        // 5) ACK/NACK include cls/id/len
+        else if (currentMsgType == MT_NAV_ACK) {
+          if (payPos == 0) { ubxMessage.navAck.cls = cls; ubxMessage.navAck.id = id; ubxMessage.navAck.len = len; }
+          const uint16_t cap = (uint16_t)(sizeof(NAV_ACK) - 4);
+          if (payPos < cap) ((uint8_t*)&ubxMessage.navAck)[4 + payPos] = c;
+        }
+        else if (currentMsgType == MT_NAV_NACK) {
+          if (payPos == 0) { ubxMessage.navNack.cls = cls; ubxMessage.navNack.id = id; ubxMessage.navNack.len = len; }
+          const uint16_t cap = (uint16_t)(sizeof(NAV_NACK) - 4);
+          if (payPos < cap) ((uint8_t*)&ubxMessage.navNack)[4 + payPos] = c;
+        }
+        // 6) NAV-ID includes cls/id/len (your struct includes header bytes)
+        else if (currentMsgType == MT_NAV_ID) {
+          if (payPos == 0) { ubxMessage.ubxId.cls = cls; ubxMessage.ubxId.id = id; ubxMessage.ubxId.len = len; }
+          const uint16_t cap = (uint16_t)(sizeof(NAV_ID) - 4);
+          if (payPos < cap) ((uint8_t*)&ubxMessage.ubxId)[4 + payPos] = c;
+        }
+        // 7) NAV-SAT: payload begins with iTOW/version/numSvs/r1/r2 then blocks
+        else if (currentMsgType == MT_NAV_SAT) {
+          if (payPos == 0) { ubxMessage.navSatHdr.cls = cls; ubxMessage.navSatHdr.id = id; ubxMessage.navSatHdr.len = len; }
+          // Copy payload into the navSatHdr fields after the first 4 bytes
+          const uint16_t hdrPayloadCap = (uint16_t)(sizeof(NAV_SAT_HDR) - 4);
+          if (payPos < hdrPayloadCap) {
+            ((uint8_t*)&ubxMessage.navSatHdr)[4 + payPos] = c;
           } else {
-            uint16_t satOfs = (fpos - 2) - sizeof(NAV_SAT_HDR);
-            if (satOfs < sizeof(ubxMessage.navSat)) {
-              ((uint8_t*)ubxMessage.navSat)[satOfs] = c;
+            // Satellite blocks start after NAV_SAT_HDR payload (which is 8 bytes: iTOW(4)+ver+numSvs+r1+r2)
+            const uint16_t satOfs = (uint16_t)(payPos - hdrPayloadCap);
+            const uint16_t satCapBytes = (uint16_t)(sizeof(ubxMessage.navSat));
+            if (satOfs < satCapBytes) {
+              ((uint8_t*)ubxMessage.navSat)[satOfs] = c;   // byte-wise into array memory
             }
           }
-        } break;
-      }
-    }
-
-    // ------------------------------------------------------------------
-    // Adjust payload size once LEN is known
-    // ------------------------------------------------------------------
-    if (fpos == 6) {
-      if (currentMsgType == MT_NAV_DOP) ubxMessage.navDOP.len = payloadSize - 6;
-
-      if (currentMsgType == MT_NAV_ID) {
-        payloadSize = ubxMessage.ubxId.len + 6;
-      }
-
-      if (currentMsgType == MT_MON_VER) {
-        if (ubxMessage.monVER.len + 6 < sizeof(ubxMessage.monVER))
-          payloadSize = ubxMessage.monVER.len + 6;
-        else
-          fpos = 0;
-      }
-
-      if (currentMsgType == MT_NAV_SAT) {
-        uint16_t fullLen = ubxMessage.navSatHdr.len + 6;
-        if (fullLen <= sizeof(NAV_SAT_HDR) + sizeof(ubxMessage.navSat))
-          payloadSize = fullLen;
-        else
-          fpos = 0;
-      }
-    }
-
-    fpos++;
-
-    // ------------------------------------------------------------------
-    // Checksum handling
-    // ------------------------------------------------------------------
-    if (fpos == payloadSize) {
-      calcChecksum(checksum, currentMsgType, payloadSize - 2);
-    }
-    else if (fpos == payloadSize + 1) {
-      if (c != checksum[0]) {
-        fpos = 0;
-      }
-    }
-    else if (fpos == payloadSize + 2) {
-      fpos = 0;
-      if (c == checksum[1]) {
-        if (currentMsgType == MT_NAV_SAT) {
-          ubxMessage.navSatCount = ubxMessage.navSatHdr.numSvs;
         }
-        return currentMsgType;
-      }
-    }
-    else if (fpos > payloadSize + 2) {
-      fpos = 0;
+        // Unknown: store up to scratch size
+        else {
+          if (payPos < sizeof(scratch)) scratch[payPos] = c;
+        }
+
+        addChecksum(c);
+        payPos++;
+
+        if (payPos >= len) {
+          st = S_CK_A;
+        }
+      } break;
+
+      case S_CK_A:
+        // Compare received CK_A
+        if (c != ckA) {
+          LOG_GPS("CK", "FAIL A cls=%02X id=%02X len=%u got=%02X exp=%02X",
+                  cls, id, (unsigned)len, c, ckA);
+          resetFrame();
+        } else {
+          st = S_CK_B;
+        }
+        break;
+
+      case S_CK_B:
+        if (c != ckB) {
+          LOG_GPS("CK", "FAIL B cls=%02X id=%02X len=%u got=%02X exp=%02X",
+                  cls, id, (unsigned)len, c, ckB);
+          resetFrame();
+        } else {
+          // Valid full frame
+          if (currentMsgType == MT_NAV_SAT) {
+            ubxMessage.navSatCount = ubxMessage.navSatHdr.numSvs;
+          }
+          // Optional “good frame” log:
+          // LOG_GPS("OK", "cls=%02X id=%02X len=%u type=%u", cls, id, (unsigned)len, currentMsgType);
+
+          uint8_t ret = currentMsgType;
+          resetFrame();
+          return ret;
+        }
+        break;
     }
   }
 
   return MT_NONE;
 }
+
+
+
 
 
 
@@ -548,7 +528,6 @@ bool Check_ublox_M10()
     Serial.println("ERROR: u-blox M10 not responding");
     return false;
 }
-
 
 
 int Check_M10_nav_rate(void){
@@ -581,7 +560,9 @@ int Check_M10_nav_rate(void){
 
     } 
     return result;       
-  }
+}
+
+
 int Set_M10_high_nav_rate(void){
   Serial.println("Set ublox UBX_M10 High Nav Rate");
   for(int i = 0; i < sizeof(ubx::highnav::set_high_nav_rate); i++) {                        

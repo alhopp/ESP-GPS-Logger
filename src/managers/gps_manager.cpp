@@ -255,10 +255,6 @@ bool initGPS()
 
   LOG_GPS("Init", "GPS ready");
 
-  // Hard flush RX buffer before parser starts
-  while (UbloxSerial.available()) {
-  UbloxSerial.read();
-  }
   delay(50);
 
   return true;
