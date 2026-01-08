@@ -3,21 +3,19 @@
 #include <FS.h>
 #include <LittleFS.h>
 
-#include "Storage/SD_card.h"
+
 #include "Definitions.h"
 #include "gpx.h"
 #include "sbp.h"
 #include "gpy.h"
 #include "config_manager.h"
-#include "Storage/storage_manager.h"
+
 #include "rtc_state.h"
 #include "Globals.h"  
 
 #include "Storage/storage_file_operations.h"
-
-
-
-
+#include "Storage/storage_manager.h"
+#include "Storage/SD_card.h"
 
 char dataStr[255] = "";  //string for logging  !!
 char Buffer[50] = "";    //string for logging
@@ -32,20 +30,18 @@ void logERR(const char *message) {
   }
 }
 
-
-
 void Add_String(void) {
   strcat(dataStr, Buffer);  //add it onto the end
   strcat(dataStr, ";");     //append the delimeter
 }
+
+
 void Log_to_SD(void) {
   if (Time_Set_OK == true) {
     static long old_iTOW;
 
     old_iTOW = ubxMessage.navPvt.iTOW;
-    /*
-             
-*/
+
     if (config.logUBX == true) {
       ubxfile.write(0xB5);
       ubxfile.write(0x62);
@@ -96,24 +92,15 @@ void printFile(const char *filename) {
   // Close the file
   file.close();
 }
+
+
 void AddString(void) {
   strcat(dataStr, Buffer);  //add it onto the end
   strcat(dataStr, ":");     //append the delimeter
 }
 
-void Model_info(int model) {
-  if (config.logTXT) {
-    char tekst[20] = "";
-    char message[255] = "";
-    errorfile.print("Dynamic model: ");
-    if (model == 1) errorfile.print("Sea");
-    else errorfile.print("Portable");
-    strcat(message, " Msg_nr: ");
-    dtostrf(nav_pvt_message, 1, 0, tekst);
-    strcat(message, tekst);
-    errorfile.println(message);
-  }
-}
+
+
 void Session_info(GPS_data G) {
   char tekst[64] = "";
   char message[512] = "";
@@ -200,6 +187,8 @@ void Session_results_M(GPS_speed M) {
     errorfile.print(message);
   }
 }
+
+
 void Session_results_S(GPS_time S) {
   char tekst[20] = "";
   char message[255] = "";
@@ -241,6 +230,8 @@ void Session_results_S(GPS_time S) {
     errorfile.print(message);
   }
 }
+
+
 void Session_results_Alfa(Alfa_speed A, GPS_speed M) {
   for (int i = 9; i > 4; i--) {
     char tekst[20] = "";

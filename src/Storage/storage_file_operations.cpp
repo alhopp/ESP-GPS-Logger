@@ -16,7 +16,6 @@ File gpxfile;
 
 char filenameERR[64] = "/";
 char filenameUBX[64] = "/";
-
 char filenameGPY[64] = "/";
 char filenameSBP[64] = "/";
 char filenameGPX[64] = "/";
