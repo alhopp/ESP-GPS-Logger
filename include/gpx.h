@@ -29,7 +29,7 @@ SOFTWARE.
 //gpx 1.0 is used here ! 
 //https://logiqx.github.io/gps-wizard/gpx/
 //Always 1Hz points
-#include "Ublox.h"
+#include "Ublox/ublox.h"
 #define GPX_HEADER 0
 #define GPX_FRAME 1
 #define GPX_END 2

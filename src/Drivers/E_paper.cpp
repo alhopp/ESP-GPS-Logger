@@ -24,7 +24,7 @@
 // -----------------------------------------------------------------------------
 // Runtime data dependencies (READ-ONLY from UI)
 // -----------------------------------------------------------------------------
-#include "Ublox.h"
+#include "Ublox/ublox.h"
 #include "GPS_data.h"
 #include "Definitions.h"
 #include "Globals.h"

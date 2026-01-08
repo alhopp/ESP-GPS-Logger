@@ -17,7 +17,7 @@
 
 #include "Definitions.h"
 #include "rtc_state.h"     // RTC_gps_* + RTC time fields
-#include "Ublox.h"         // ubx::poll::mon_ver definition
+#include "Ublox/ublox.h"         // ubx::poll::mon_ver definition
 
 // -----------------------------------------------------------------------------
 // BAUD TABLE

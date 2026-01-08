@@ -1,6 +1,6 @@
 #include <EEPROM.h>
 #include "GPS_data.h"
-#include "Ublox.h"
+#include "Ublox/ublox.h"
 #include "Definitions.h"
 #include "config_manager.h"
 #include "gps_manager.h"

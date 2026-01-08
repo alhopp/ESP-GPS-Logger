@@ -19,7 +19,7 @@ extern int run_count;
 
 // ---- GPS / Stats data ----
 #include "GPS_data.h"
-#include "Ublox.h"
+#include "Ublox/ublox.h"
 
 // Expose ONLY the instances screens need
 extern GPS_time   S10;

@@ -6,7 +6,7 @@
 #include "storage_manager.h"
 #include "system_mode.h"
 
-#include "Ublox.h"
+#include "Ublox/ublox.h"
 #include "SD_card.h"
 #include "ESP_functions.h"
 #include "E_paper.h"
