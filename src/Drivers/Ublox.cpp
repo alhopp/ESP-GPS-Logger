@@ -103,35 +103,42 @@ void Init_ubloxM10(void)
     LOG_GPS("Init", "===== u-blox M10 INIT START =====");
 
     // ---------------------------------------------------------------------
-    // 1. Enable UBX IN + OUT on UART1 (CRITICAL)
+    // Enable UBX IN + OUT on UART1 (CRITICAL)
     // ---------------------------------------------------------------------
     LOG_GPS("CFG", "UART1 UBX IN+OUT");
     sendUbx(ubx::cfg::uart1_ubx_in_out);
     delay(WAIT);
 
     // ---------------------------------------------------------------------
-    // 2. Disable NMEA
+    // Disable NMEA
     // ---------------------------------------------------------------------
     LOG_GPS("CFG", "Disable NMEA");
     sendUbx(ubx::cfg::nmea_off);
     delay(WAIT);
 
     // ---------------------------------------------------------------------
-    // 3. GNSS constellation
+    // GNSS constellation
     // ---------------------------------------------------------------------
     LOG_GPS("CFG", "GNSS: GPS + GAL + GLO + BDS(B1C)");
     sendUbx(ubx::cfg::all_4gnss);
     delay(WAIT);
 
     // ---------------------------------------------------------------------
-    // 4. Motion model
+    // Motion model
     // ---------------------------------------------------------------------
     LOG_GPS("CFG", "Motion model: SEA");
     sendUbx(ubx::cfg::sea_model);
     delay(WAIT);
 
     // ---------------------------------------------------------------------
-    // 5. Enable NAV messages
+    // Navigation rate (fixed 5 Hz)
+    // ---------------------------------------------------------------------
+    LOG_GPS("CFG", "Nav rate: fixed 5 Hz");
+    sendUbx(ubx::rate::rate_5hz);
+    delay(WAIT);
+
+    // ---------------------------------------------------------------------
+    // Enable NAV messages
     // ---------------------------------------------------------------------
     LOG_GPS("MSG", "Enable NAV-PVT");
     sendUbx(ubx::msg::nav_pvt);
@@ -148,7 +155,7 @@ void Init_ubloxM10(void)
     }
 
     // ---------------------------------------------------------------------
-    // 6. Diagnostics polls (VALID ones)
+    // Diagnostics polls (VALID ones)
     // ---------------------------------------------------------------------
     LOG_GPS("POLL", "MON-VER");
     sendUbx(ubx::poll::mon_ver);
@@ -163,21 +170,14 @@ void Init_ubloxM10(void)
     delay(WAIT);
 
     // ---------------------------------------------------------------------
-    // 7. Navigation rate
-    // ---------------------------------------------------------------------
-    LOG_GPS("CFG", "Nav rate %d Hz", config.sample_rate);
-    Set_rate_ubloxM10(config.sample_rate);
-    delay(300);
-
-    // ---------------------------------------------------------------------
-    // 8. Switch GPS baud → 38400
+    // Switch GPS baud → 38400
     // ---------------------------------------------------------------------
     LOG_GPS("CFG", "Switch GPS baud → 38400");
     sendUbx(ubx::rate::baud_38400);
     delay(WAIT);
 
     // ---------------------------------------------------------------------
-    // 9. Restart ESP32 UART
+    // Restart ESP32 UART
     // ---------------------------------------------------------------------
     LOG_GPS("UART", "Restart ESP UART @38400");
     UbloxSerial.flush();
@@ -193,7 +193,7 @@ void Init_ubloxM10(void)
     delay(200);
 
     // ---------------------------------------------------------------------
-    // 10. Re-assert UBX IN+OUT @ new baud
+    // Re-assert UBX IN+OUT @ new baud
     // ---------------------------------------------------------------------
     LOG_GPS("CFG", "Re-assert UART1 UBX IN+OUT @38400");
     sendUbx(ubx::cfg::uart1_ubx_in_out);
@@ -202,30 +202,6 @@ void Init_ubloxM10(void)
     LOG_GPS("Init", "===== u-blox M10 INIT COMPLETE =====");
 }
 
-
-
-
-// -----------------------------------------------------------------------------
-// Set_rate_ubloxM10
-//
-// Configure navigation output rate for u-blox M10.
-//
-// This implementation deliberately FORCES a fixed 5 Hz navigation rate.
-//
-// Rationale:
-// - 5 Hz provides excellent Doppler speed accuracy with minimal power,
-//   SD write load, and task jitter
-// - Doppler velocity does not benefit meaningfully from higher rates
-// - Fixed-rate operation simplifies logging, filtering, and UI logic
-//
-// -----------------------------------------------------------------------------
-
-void Set_rate_ubloxM10(int /*rate_hz*/)
-{
-    Serial.println("Set u-blox M10 nav rate: fixed 5 Hz");
-    sendUbx(ubx::rate::rate_5hz);
-    delay(500);
-}
 
 
 
@@ -503,49 +479,3 @@ bool Check_ublox_M10()
     return false;
 }
 
-
-int Check_M10_nav_rate(void){
-  int result=NO_M10_GPS;
-  check_M10_nav_rate=true;
-  Serial.println("Get M10 NAV Rate ");
-    for(int i = 0; i < sizeof(ubx::highnav::get_nav_rate); i++) {                        
-    UbloxSerial.write( pgm_read_byte(ubx::highnav::get_nav_rate+i) );
-    }
-  Nav_rate_NACK = false;
-  High_nav_rate_ACK = false;      
-  delay(500);
-  check_M10_nav_rate = false;
-  if(Nav_rate_NACK){ 
-    Serial.println("M10 Default Nav Rate");
-    result=M10_DEFAULT_NAV;
-    if (EEPROM.readByte(1) != M10_DEFAULT_NAV) {
-     EEPROM.writeByte(1, M10_DEFAULT_NAV);
-     EEPROM.commit();
-    }
-  }
-  if(High_nav_rate_ACK){
-    Serial.println("M10 High Nav Rate set");
-    result=M10_HIGH_NAV_RATE;
-
-    if (EEPROM.readByte(1) != M10_HIGH_NAV_RATE) {
-     EEPROM.writeByte(1, M10_HIGH_NAV_RATE);
-     EEPROM.commit();
-    }
-
-    } 
-    return result;       
-}
-
-
-int Set_M10_high_nav_rate(void){
-  Serial.println("Set ublox UBX_M10 High Nav Rate");
-  for(int i = 0; i < sizeof(ubx::highnav::set_high_nav_rate); i++) {                        
-     UbloxSerial.write( pgm_read_byte(ubx::highnav::set_high_nav_rate+i) );
-     }
-  delay(500); 
-  config.ublox_type= UBLOX_TYPE_UNKNOWN;
-  config.M10_high_nav= M10_HIGH_NAV_RATE;
-  EEPROM.writeByte(0,UBLOX_TYPE_UNKNOWN);
-  EEPROM.writeByte(1,M10_HIGH_NAV_RATE); EEPROM.commit();//always set EEPROM to default nav rate.....
-  return config.M10_high_nav;
-}  

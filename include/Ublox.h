@@ -84,12 +84,7 @@ namespace cfg {
 // Improves fix robustness and satellite availability.
 // Used once during Init_ubloxM10().
 //
-constexpr uint8_t all_4gnss[] PROGMEM = {
-  0xB5,0x62,0x06,0x8A,0x09,0x00,
-  0x01,0x01,0x00,0x00,
-  0x3F,0x00,0x31,0x10,
-  0x01,0x3F,0xFF
-};
+constexpr uint8_t all_4gnss[] PROGMEM = {0xB5,0x62,0x06,0x8A,0x09,0x00,0x01,0x01,0x00,0x00,0x3F,0x00,0x31,0x10,0x01,0x3F,0xFF};
 
 // Disable all NMEA output
 // (prevents ASCII noise on the serial line)
@@ -152,35 +147,9 @@ constexpr uint8_t baud_38400[] PROGMEM = {
 // -----------------------------------------------------------------------------
 // Fixed navigation rate: 5 Hz
 //
-// UBX-CFG-RATE
-//   measRate = 200 ms  → 5 Hz
-//   navRate  = 1
-//   timeRef  = UTC
-//
-// This is intentionally hard-coded to avoid accidental rate changes.
 // -----------------------------------------------------------------------------
 constexpr uint8_t rate_5hz[] PROGMEM = {
   0xB5,0x62,0x06,0x08,0x06,0x00,0xC8,0x00,0x01,0x00,0x01,0x00,0xDE,0x6A};
-
-
-}
-
-// ============================================================================
-// HIGH NAV RATE (M10-specific)
-// ============================================================================
-namespace highnav {
-
-// Poll current high-rate navigation configuration
-constexpr uint8_t get_nav_rate[] PROGMEM =
-{0xB5,0x62,0x06,0x8B,0x14,0x00,0x00,0x04,0x00,0x00,0x01,0x00,0xA4,0x40,
- 0x03,0x00,0xA4,0x40,0x05,0x00,0xA4,0x40,0x0A,0x00,0xA4,0x40,0x4C,0x15};
-
-// Apply high-rate navigation settings
-// Required for stable 10–20 Hz operation
-constexpr uint8_t set_high_nav_rate[] PROGMEM =
-{0xB5,0x62,0x06,0x41,0x10,0x00,0x03,0x00,0x04,0x1F,0x54,0x5E,0x79,0xBF,
- 0x28,0xEF,0x12,0x05,0xFD,0xFF,0xFF,0xFF,0x8F,0x0D};
-
 }
 
 // ============================================================================
@@ -312,9 +281,8 @@ extern UBXMessage ubxMessage;
 // ============================================================================
 // PUBLIC API
 // ============================================================================
-void Init_ubloxM10(void);        // Full GPS initialisation sequence
-void Set_rate_ubloxM10(int rate);
+void Init_ubloxM10(void);               // Full GPS initialisation sequence
 bool Set_GPS_Time(float time_offset);
-int  processGPS(void);           // UBX byte-stream parser
-int  Check_M10_nav_rate(void);
-int  Set_M10_high_nav_rate(void);
+int  processGPS(void);                  // UBX byte-stream parser
+
+
