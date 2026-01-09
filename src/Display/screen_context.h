@@ -18,7 +18,7 @@ extern float calibration_speed;
 extern int run_count;
 
 // ---- GPS / Stats data ----
-#include "GPS_data.h"
+#include "GPS/GPS_data.h"
 #include "Ublox/ublox.h"
 
 // Expose ONLY the instances screens need

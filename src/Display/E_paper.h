@@ -5,12 +5,10 @@
 #include <GxEPD2_BW.h>
 #include <epd/GxEPD2_213_B74.h>
 
-//#include <screen_draw.h>
 #include "rtc_state.h"
 #include "Ublox/Ublox.h"
 
 extern GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display;
-
 
 extern char time_now[8];
 extern char time_now_sec[12];
@@ -46,15 +44,6 @@ class GPS_Track;
 
 
 // ============================================================================
-//  E-paper hardware pins (public constants)
-// ============================================================================
-
-#define ELINK_SS     5
-#define ELINK_BUSY  4
-#define ELINK_RESET 16
-#define ELINK_DC    17
-
-// ============================================================================
 //  Screen IDs (public API)
 // ============================================================================
 
@@ -67,20 +56,6 @@ class GPS_Track;
 #define TROUBLE            15
 #define GPS_INIT_SCREEN    16
 
-// Legacy screen aliases (ASCII-compatible IDs)
-#define STATS1  49
-#define STATS2  50
-#define STATS3  51
-#define STATS4  52
-#define STATS5  53
-#define STATS6  54
-#define STATS7  55
-#define STATS8  56
-#define STATS9  57
-#define STATSA  65
-#define STATSB  66
-#define STATSC  67
-#define STATSD  68
 
 #define SPEED1  49
 #define SPEED2  50
@@ -92,14 +67,6 @@ class GPS_Track;
 #define SPEED8  56
 #define SPEED9  57
 #define SPEEDA  65
-#define SPEEDB  66
-#define SPEEDC  67
-#define SPEEDD  68
-
-// ============================================================================
-//  Display object (defined in E_paper.cpp ONLY)
-// ============================================================================
-
 
 
 // ============================================================================
