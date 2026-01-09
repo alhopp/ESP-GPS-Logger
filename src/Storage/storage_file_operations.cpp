@@ -1,19 +1,49 @@
+// -----------------------------------------------------------------------------
+// File Operations Manager
+//
+// Responsibilities:
+// - Open files for logging (UBX, GPY, SBP, GPX, TXT) based on MAC address and timestamp
+// - Periodically flush the files to ensure data is written to the storage device
+// - Close all open files properly to ensure all data is saved
+// - Log error messages to the error file
+// 
+// This module interacts with storage devices (SD/MMC, LittleFS) to ensure persistent logging of data
+// in different formats for further analysis or troubleshooting.
+// -----------------------------------------------------------------------------
+
+
+// -----------------------------------------------------------------------------
+// Includes
+// -----------------------------------------------------------------------------
+#include <Arduino.h>
+#include <FS.h>
+#include <LittleFS.h>
+
+#include "Definitions.h"
+#include "gpx.h"
+#include "sbp.h"
+#include "gpy.h"
+#include "config_manager.h"
+
+#include "rtc_state.h"
+#include "Globals.h"  
 
 #include "Storage/storage_file_operations.h"
 #include "Storage/storage_manager.h"
 #include "Storage/SD_card.h"
 
-#include "config_manager.h"
-#include "sbp.h"
-#include "gpx.h"
-#include "Globals.h"
-
+// -----------------------------------------------------------------------------
+// File handles for different file formats
+// -----------------------------------------------------------------------------
 File ubxfile;
 File errorfile;
-File gpyfile;  //new open source file format, work in progress !!
+File gpyfile;  // New open source file format, work in progress !!
 File sbpfile;
 File gpxfile;
 
+// -----------------------------------------------------------------------------
+// Character arrays for filenames (for error, UBX, GPY, SBP, GPX files)
+// -----------------------------------------------------------------------------
 char filenameERR[64] = "/";
 char filenameUBX[64] = "/";
 char filenameGPY[64] = "/";
@@ -21,101 +51,85 @@ char filenameSBP[64] = "/";
 char filenameGPX[64] = "/";
 char filename_NO_EXT[64] = "/";
 
-//test for existing GPSLOGxxxfiles, open txt,gps + ubx file with new name, or with timestamp !
+// -----------------------------------------------------------------------------
+// Open files for logging based on MAC address and timestamp
+// -----------------------------------------------------------------------------
+
 void Open_files(void) {
   char macAddr[16];
-  if (config.file_date_time) {
-    getLocalTime(&tmstruct);
-    char extension[16] = ".txt";  //
-    char timestamp[16];
+  char timestamp[16];
+  char extension[16] = ".txt"; // Extension for error file
+  char baseFilename[64] = "/"; // Base filename to start
 
-    if (config.file_date_time == 1) {
-      sprintf(timestamp, "_%u%02u%02u%02u%02u", tmstruct.tm_year - 100, tmstruct.tm_mon + 1, tmstruct.tm_mday, tmstruct.tm_hour, tmstruct.tm_min);
-      strcat(filenameERR, config.UBXfile);  //copy filename from config
-      strcat(filenameERR, timestamp);       //add timestamp
-      strcat(filenameERR, extension);       //add extension.txt
-    }
-    if (config.file_date_time == 2) {
-      sprintf(timestamp, "%u%02u%02u%02u%02u_", tmstruct.tm_year - 100, tmstruct.tm_mon + 1, tmstruct.tm_mday, tmstruct.tm_hour, tmstruct.tm_min);
-      strcat(filenameERR, timestamp);       //add timestamp
-      strcat(filenameERR, config.UBXfile);  //copy filename from config
-      strcat(filenameERR, extension);       //add extension.txt
-    }
-    if (config.file_date_time == 3) {
-      sprintf(timestamp, "_%u%02u%02u%02u%02u", tmstruct.tm_year - 100, tmstruct.tm_mon + 1, tmstruct.tm_mday, tmstruct.tm_hour, tmstruct.tm_min);
-      sprintf(macAddr, "_%2X%2X%2X", mac[3], mac[4], mac[5]);  //3 last bytes from MAC
-      strcat(filenameERR, config.UBXfile);                    //copy filename from config
-      strcat(filenameERR, timestamp);                         //add timestamp
-      strcat(filenameERR, macAddr);
-      strcat(filenameERR, extension);  //add extension.txt
-    }
-  } else {
-    char txt[16] = "000.txt";
-    sprintf(macAddr, "_%2X%2X%2X%2X%2X%2X_", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    strcat(filenameERR, config.UBXfile);  //copy filename from config
-    strcat(filenameERR, macAddr);
-    int filenameSize = strlen(filenameERR);  //dit is dan 7 + NULL = 8
-    strcat(filenameERR, txt);                //dit wordt dan /BN280A000.txt
-    for (int i = 0; i < 1000; i++) {
-      filenameERR[filenameSize + 2] = '0' + i % 10;
-      filenameERR[filenameSize + 1] = '0' + ((i / 10) % 10);
-      filenameERR[filenameSize] = '0' + ((i / 100) % 10);
-      // create if does not exist, do not open existing, write, sync after write
+  // Get timestamp based on the current date and time
+  getLocalTime(&tmstruct);
+  sprintf(timestamp, "_%u%02u%02u%02u%02u", tmstruct.tm_year - 100, tmstruct.tm_mon + 1, tmstruct.tm_mday, tmstruct.tm_hour, tmstruct.tm_min);
 
-      if (sdOK) {
-        if (!SD_MMC.exists(filenameERR)) {
-          break;
-        }
-      }
-      if (LITTLEFS_OK) {
-        if (!LittleFS.exists(filenameERR)) {
-          break;
-        }
-      }
-    }
-  }
+  // Get MAC address (use the last 3 bytes of the MAC address for uniqueness)
+  sprintf(macAddr, "_%2X%2X%2X", mac[3], mac[4], mac[5]);
+
+  // Create the base filename using timestamp and MAC address
+  strcpy(baseFilename, config.UBXfile); // Start with the base name from config
+  strcat(baseFilename, timestamp);      // Add timestamp
+  strcat(baseFilename, macAddr);        // Add MAC address
+
+  // Assign the filenames for different file formats (no user input, automatically generated)
+  strcpy(filenameERR, baseFilename);    // Error file (txt)
+  strcat(filenameERR, extension);       // Add .txt extension
+
+  // Remove the extension from filenameERR to get the base name
   strcpy(filename_NO_EXT, filenameERR);
-  filename_NO_EXT[strlen(filename_NO_EXT) - 3] = 0;  // move null-terminator three positions back
+  filename_NO_EXT[strlen(filename_NO_EXT) - 4] = 0;  // Remove ".txt" extension
+
+  // Assign specific extensions for each file type
   strcpy(filenameUBX, filename_NO_EXT);
   strcat(filenameUBX, "ubx");
+
   strcpy(filenameSBP, filename_NO_EXT);
   strcat(filenameSBP, "sbp");
+
   strcpy(filenameGPY, filename_NO_EXT);
   strcat(filenameGPY, "gpy");
+
   strcpy(filenameGPX, filename_NO_EXT);
   strcat(filenameGPX, "gpx");
-  if (config.logUBX == true) {
+
+  // Open the files for writing, append mode
+  if (config.logUBX) {
     if (sdOK) ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
     if (LITTLEFS_OK) ubxfile = LittleFS.open(filenameUBX, FILE_APPEND);
-    //ubxfile.setBufferSize(4096);
-    //if(setvbuf(file, NULL, _IOFBF, 4096) != 0) {}//enlarge buffer SD handle error
   }
+
 #if defined(GPY_H)
-  if (config.logGPY == true) {
+  if (config.logGPY) {
     if (sdOK) gpyfile = SD_MMC.open(filenameGPY, FILE_APPEND);
     if (LITTLEFS_OK) gpyfile = LittleFS.open(filenameGPY, FILE_APPEND);
     log_GPY_Header(gpyfile);
   }
 #endif
-  if (config.logSBP == true) {
+
+  if (config.logSBP) {
     if (sdOK) sbpfile = SD_MMC.open(filenameSBP, FILE_APPEND);
     if (LITTLEFS_OK) sbpfile = LittleFS.open(filenameSBP, FILE_APPEND);
     log_header_SBP(sbpfile);
   }
-  if (config.logGPX == true) {
+
+  if (config.logGPX) {
     if (sdOK) gpxfile = SD_MMC.open(filenameGPX, FILE_APPEND);
     if (LITTLEFS_OK) gpxfile = LittleFS.open(filenameGPX, FILE_APPEND);
     log_GPX(GPX_HEADER, gpxfile);
   }
-  if (config.logTXT == true) {
+
+  if (config.logTXT) {
     if (sdOK) errorfile = SD_MMC.open(filenameERR, FILE_APPEND);
     if (LITTLEFS_OK) errorfile = LittleFS.open(filenameERR, FILE_APPEND);
   }
 }
 
+// -----------------------------------------------------------------------------
+// Flush the files periodically to ensure data is written to the storage
+// -----------------------------------------------------------------------------
 
-
- 
 void Flush_files(void) {
   if (config.sample_rate <= 10) {
     static int load_balance = 0;
@@ -132,3 +146,97 @@ void Flush_files(void) {
 }
 
 
+void Log_to_SD(void) {
+  if (Time_Set_OK == true) {
+    static long old_iTOW;
+
+    old_iTOW = ubxMessage.navPvt.iTOW;
+
+    if (config.logUBX == true) {
+      ubxfile.write(0xB5);
+      ubxfile.write(0x62);
+      ubxfile.write((const uint8_t *)&ubxMessage.navPvt, sizeof(ubxMessage.navPvt));
+
+      static int old_nav_sat_message = 0;
+      if (nav_sat_message != old_nav_sat_message) {
+        old_nav_sat_message = nav_sat_message;
+        ubxfile.write(0xB5);
+        ubxfile.write(0x62);
+        ubxfile.write((const uint8_t *)&ubxMessage.navSat, (ubxMessage.navSatHdr.len + 6));  //nav_sat has a variable length, add chkA and chkB !!!
+      }
+    }
+    if (config.logUBX_nav_sat) {  //only add navDOP msg to ubx file if nav_sat active
+      ubxfile.write(0xB5);
+      ubxfile.write(0x62);
+      ubxfile.write((const uint8_t *)&ubxMessage.navDOP, sizeof(ubxMessage.navDOP));
+    }
+#if defined(GPY_H)
+    if (config.logGPY == true) {
+      log_GPY(gpyfile);
+    }
+#endif
+    if (config.logSBP == true) {
+      log_SBP(sbpfile);
+    }
+    if (config.logGPX == true) {
+      log_GPX(GPX_FRAME, gpxfile);
+    }
+  }
+}
+
+
+// -----------------------------------------------------------------------------
+// Close all open files to ensure data is properly saved
+// -----------------------------------------------------------------------------
+
+void Close_files(void) {
+  // Check and close each file if they are open
+  if (ubxfile) {
+    ubxfile.close();
+  }
+  if (errorfile) {
+    errorfile.close();
+  }
+  if (gpyfile) {
+    gpyfile.close();
+  }
+  if (sbpfile) {
+    sbpfile.close();
+  }
+  if (gpxfile) {
+    gpxfile.close();
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Prints the content of a file to the Serial
+// -----------------------------------------------------------------------------
+
+void printFile(const char *filename) {
+  // Open file for reading
+  File file;
+  if(sdOK) file = SD_MMC.open(filename);
+  if(LITTLEFS_OK) file = LittleFS.open(filename);
+  if (!file.available()) {
+    Serial.println(F("Failed to read file"));
+    return;
+  }
+  // Extract each character by one by one
+  while (file.available()) {
+    Serial.print((char)file.read());
+  }
+  Serial.println();
+  // Close the file
+  file.close();
+}
+
+// -----------------------------------------------------------------------------
+// Log an error message to the error file
+// -----------------------------------------------------------------------------
+
+
+void logERR(const char *message) {
+  if (config.logTXT) {
+    errorfile.print(message);
+  }
+}

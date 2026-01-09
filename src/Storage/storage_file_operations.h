@@ -12,7 +12,14 @@ extern File gpxfile;
 
 
 void Open_files(void);
+void Log_to_SD(void); 
 void Flush_files(void);
+void Close_files(void);
+
+void printFile(const char *filename);
+
+void logERR(const char *message);
+
 
 
 

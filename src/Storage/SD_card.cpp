@@ -1,8 +1,17 @@
+// -----------------------------------------------------------------------------
+// Session Data Logging Manager
+//
+// Responsibilities:
+// - Append different types of session data (GPS, error logs, calibration info)
+// - Format and store session information in a variety of formats
+// - Log session details including GPS speed, distance, time, and satellite data
+// - Flush logs periodically to ensure data is written to storage
+// - Session results are categorized into different log types (speed, distance, GPS time, etc.)
+// -----------------------------------------------------------------------------
 
 #include <Arduino.h>
 #include <FS.h>
 #include <LittleFS.h>
-
 
 #include "Definitions.h"
 #include "gpx.h"
@@ -17,149 +26,106 @@
 #include "Storage/storage_manager.h"
 #include "Storage/SD_card.h"
 
-char dataStr[255] = "";  //string for logging  !!
-char Buffer[50] = "";    //string for logging
-uint64_t GPS_UTC_ms;     //Absolute UTC timewith ms resolution @start logging
-int SD_MMC_read_speed;
-int SD_MMC_write_speed;
+// -----------------------------------------------------------------------------
+// Data buffers and variables for logging
+// -----------------------------------------------------------------------------
+char dataStr[255] = "";  // String for logging data
+char Buffer[50] = "";    // Temporary string for appending data
+uint64_t GPS_UTC_ms;     // Absolute UTC time with ms resolution at start of logging
+int SD_MMC_read_speed;   // Speed of reading from SD/MMC
+int SD_MMC_write_speed;  // Speed of writing to SD/MMC
 
-
-void logERR(const char *message) {
-  if (config.logTXT) {
-    errorfile.print(message);
-  }
-}
-
+// -----------------------------------------------------------------------------
+// Add data to the logging string with a semicolon delimiter
+// -----------------------------------------------------------------------------
 void Add_String(void) {
-  strcat(dataStr, Buffer);  //add it onto the end
-  strcat(dataStr, ";");     //append the delimeter
+  strcat(dataStr, Buffer);  // Add Buffer content to dataStr
+  strcat(dataStr, ";");     // Append delimiter (semicolon)
 }
 
-
-void Log_to_SD(void) {
-  if (Time_Set_OK == true) {
-    static long old_iTOW;
-
-    old_iTOW = ubxMessage.navPvt.iTOW;
-
-    if (config.logUBX == true) {
-      ubxfile.write(0xB5);
-      ubxfile.write(0x62);
-      ubxfile.write((const uint8_t *)&ubxMessage.navPvt, sizeof(ubxMessage.navPvt));
-
-      static int old_nav_sat_message = 0;
-      if (nav_sat_message != old_nav_sat_message) {
-        old_nav_sat_message = nav_sat_message;
-        ubxfile.write(0xB5);
-        ubxfile.write(0x62);
-        ubxfile.write((const uint8_t *)&ubxMessage.navSat, (ubxMessage.navSatHdr.len + 6));  //nav_sat has a variable length, add chkA and chkB !!!
-      }
-    }
-    if (config.logUBX_nav_sat) {  //only add navDOP msg to ubx file if nav_sat active
-      ubxfile.write(0xB5);
-      ubxfile.write(0x62);
-      ubxfile.write((const uint8_t *)&ubxMessage.navDOP, sizeof(ubxMessage.navDOP));
-    }
-#if defined(GPY_H)
-    if (config.logGPY == true) {
-      log_GPY(gpyfile);
-    }
-#endif
-    if (config.logSBP == true) {
-      log_SBP(sbpfile);
-    }
-    if (config.logGPX == true) {
-      log_GPX(GPX_FRAME, gpxfile);
-    }
-  }
-}
-
-// Prints the content of a file to the Serial
-void printFile(const char *filename) {
-  // Open file for reading
-  File file;
-  if(sdOK) file = SD_MMC.open(filename);
-  if(LITTLEFS_OK) file = LittleFS.open(filename);
-  if (!file.available()) {
-    Serial.println(F("Failed to read file"));
-    return;
-  }
-  // Extract each characters by one by one
-  while (file.available()) {
-    Serial.print((char)file.read());
-  }
-  Serial.println();
-  // Close the file
-  file.close();
-}
-
-
+// -----------------------------------------------------------------------------
+// Add data to the logging string with a colon delimiter
+// -----------------------------------------------------------------------------
 void AddString(void) {
-  strcat(dataStr, Buffer);  //add it onto the end
-  strcat(dataStr, ":");     //append the delimeter
+  strcat(dataStr, Buffer);  // Add Buffer content to dataStr
+  strcat(dataStr, ":");     // Append delimiter (colon)
 }
 
-
-
+// -----------------------------------------------------------------------------
+// Log session information, including GPS data and calibration details
+// -----------------------------------------------------------------------------
 void Session_info(GPS_data G) {
   char tekst[64] = "";
   char message[512] = "";
-  errorfile.print("T5 MAC adress: ");
-  for (int i = 0; i < 6; i++) errorfile.print(mac[i], HEX);
+  
+  // Log device information
+  errorfile.print("T5 MAC address: ");
+  for (int i = 0; i < 6; i++) errorfile.print(mac[i], HEX);  // Print MAC address in HEX format
   errorfile.println(" ");
-  errorfile.println(SW_version);
-  if(sdOK){
-    sprintf(tekst,"SD_MMC Read speed= %d ms/MB Write speed= %d ms/MB s\n",SD_MMC_read_speed,SD_MMC_write_speed);
+  errorfile.println(SW_version);  // Log software version
+  
+  // Log SD read/write speed
+  if (sdOK) {
+    sprintf(tekst, "SD_MMC Read speed= %d ms/MB Write speed= %d ms/MB s\n", SD_MMC_read_speed, SD_MMC_write_speed);
     strcat(message, tekst);
-    }
-  sprintf(tekst, "First fix : %d s\n", first_fix_GPS);
+  }
+
+  // Log GPS and session time data
+  sprintf(tekst, "First fix: %d s\n", first_fix_GPS);
   strcat(message, tekst);
-  sprintf(tekst, "Total time : %lu s\n", (millis() - start_logging_millis) / 1000);
+  sprintf(tekst, "Total time: %lu s\n", (millis() - start_logging_millis) / 1000);  // Total time in seconds
   strcat(message, tekst);
-  sprintf(tekst, "Total distance : %d m\n", (int)G.total_distance / 1000);
+  sprintf(tekst, "Total distance: %d m\n", (int)G.total_distance / 1000);  // Convert meters to kilometers
   strcat(message, tekst);
-  sprintf(tekst, "Sample rate : %d Hz\n", config.sample_rate);
+  sprintf(tekst, "Sample rate: %d Hz\n", config.sample_rate);  // Log sample rate
   strcat(message, tekst);
-  sprintf(tekst, "CPU freq logging : %d MHz\n", config.cpu_freq);
+  sprintf(tekst, "CPU freq logging: %d MHz\n", config.cpu_freq);  // Log CPU frequency
   strcat(message, tekst);
-  sprintf(tekst, "Speed calibration: %f \n", config.cal_speed);
+  sprintf(tekst, "Speed calibration: %f \n", config.cal_speed);  // Log speed calibration factor
   strcat(message, tekst);
-  sprintf(tekst, "Lipo calibration: %.3f \n", RTC_calibration_bat);
+  sprintf(tekst, "Lipo calibration: %.3f \n", RTC_calibration_bat);  // Log battery calibration factor
   strcat(message, tekst);
-  sprintf(tekst, "Timezone : %f h\n", config.timezone);
+  sprintf(tekst, "Timezone: %f h\n", config.timezone);  // Log timezone
   strcat(message, tekst);
-  sprintf(tekst, "tz offset (sec) : %ld \n", _timezone);
+  sprintf(tekst, "tz offset (sec): %ld \n", _timezone);  // Log timezone offset
   strcat(message, tekst);
-  strcat(message,TimeZone);
+  strcat(message, TimeZone);  // Log time zone name
   strcat(message, "\nDynamic model: ");
+  
+  // Log dynamic model type
   if (config.dynamic_model == 1) strcat(message, "Sea");
   else if (config.dynamic_model == 2) strcat(message, "Automotive");
   else strcat(message, "Portable");
   strcat(message, " \n");
   strcat(message, tekst);
-
+  
+  // Log Ublox software and hardware version
+  strcat(message, "Ublox SW-version: ");
   strcat(message, " \n");
-  strcat(message, "Ublox SW-version : ");
-
-  strcat(message, " \n");
-  strcat(message, "Ublox HW-version : ");
- 
+  strcat(message, "Ublox HW-version: ");
   strcat(message, " \n");
   strcat(message, tekst);
-  strcat(message, Ublox_type);
+  strcat(message, Ublox_type);  // Log Ublox chip type
   strcat(message, " \n");
+  
+  // Write the message to error file
   errorfile.print(message);
 }
 
+// -----------------------------------------------------------------------------
+// Log results for a specific GPS speed session (M)
+// -----------------------------------------------------------------------------
 void Session_results_M(GPS_speed M) {
   for (int i = 9; i > 4; i--) {
     char tekst[20] = "";
     char message[255] = "";
-    int Calibration = config.cal_speed * 1000;
-    dtostrf(M.avg_speed[i] * calibration_speed, 1, 3, tekst);
+    int Calibration = config.cal_speed * 1000;  // Speed calibration
+    dtostrf(M.avg_speed[i] * calibration_speed, 1, 3, tekst);  // Format average speed
     strcat(message, tekst);
     if (Calibration == 3600) strcat(message, " km/h ");
     if ((Calibration >= 1943) & (Calibration <= 1945)) strcat(message, " knots ");
+    
+    // Format and log time and distance
     dtostrf(M.time_hour[i], 1, 0, tekst);
     strcat(message, tekst);
     strcat(message, ":");
@@ -169,7 +135,7 @@ void Session_results_M(GPS_speed M) {
     dtostrf(M.time_sec[i], 1, 0, tekst);
     strcat(message, tekst);
     strcat(message, " Distance: ");
-    dtostrf(M.m_Distance[i] / 1000.0f / config.sample_rate, 1, 2, tekst);
+    dtostrf(M.m_Distance[i] / 1000.0f / config.sample_rate, 1, 2, tekst);  // Convert to kilometers
     strcat(message, tekst);
     strcat(message, " Msg_nr: ");
     dtostrf(M.message_nr[i], 1, 0, tekst);
@@ -184,24 +150,29 @@ void Session_results_M(GPS_speed M) {
     dtostrf(M.m_set_distance, 1, 0, tekst);
     strcat(message, tekst);
     strcat(message, "\n");
+    
+    // Write the message to the error file
     errorfile.print(message);
   }
 }
 
-
+// -----------------------------------------------------------------------------
+// Log results for GPS time session (S)
+// -----------------------------------------------------------------------------
 void Session_results_S(GPS_time S) {
   char tekst[20] = "";
   char message[255] = "";
-  int Calibration = config.cal_speed * 1000;
-  dtostrf(S.avg_5runs * calibration_speed, 1, 3, tekst);
+  int Calibration = config.cal_speed * 1000;  // Speed calibration
+  dtostrf(S.avg_5runs * calibration_speed, 1, 3, tekst);  // Format average speed
   strcat(message, tekst);
   if (Calibration == 3600) strcat(message, " km/h avg 5_best_runs\n");
   else if ((Calibration >= 1943) & (Calibration <= 1945)) strcat(message, " knots avg 5_best_runs\n");
   else strcat(message, " avg 5_best_runs\n");
-  //errorfile.open();
+  
+  // Write the message to the error file
   errorfile.print(message);
-  //errorfile.close();
-  //appendFile(SD,filenameERR,message);
+  
+  // Log detailed session results
   for (int i = 9; i > 4; i--) {
     char tekst[45] = "";
     char message[255] = "";
@@ -227,47 +198,59 @@ void Session_results_S(GPS_time S) {
       sprintf(tekst, " CNO Max: %u Avg: %u Min: %u nr Sat: %u\n", S.Max_cno[i], S.Mean_cno[i], S.Min_cno[i], S.Mean_numSat[i]);
       strcat(message, tekst);
     } else strcat(message, "\n");
+    
+    // Write the message to the error file
     errorfile.print(message);
   }
 }
 
-
+// -----------------------------------------------------------------------------
+// Log session results for Alfa speed measurements (A)
+// -----------------------------------------------------------------------------
 void Session_results_Alfa(Alfa_speed A, GPS_speed M) {
   for (int i = 9; i > 4; i--) {
     char tekst[20] = "";
     char message[255] = "";
-    int Calibration = config.cal_speed * 1000;
-    dtostrf(A.avg_speed[i] * calibration_speed, 1, 3, tekst);
+    int Calibration = config.cal_speed * 1000;  // Speed calibration
+    dtostrf(A.avg_speed[i] * calibration_speed, 1, 3, tekst);  // Format average speed
     strcat(message, tekst);
     if (Calibration == 3600) strcat(message, " km/h ");
     if (Calibration == 1943) strcat(message, " knots ");
-    dtostrf(sqrt((float)A.real_distance[i]), 1, 2, tekst);
+    
+    // Log detailed session data
+    dtostrf(sqrt((float)A.real_distance[i]), 1, 2, tekst);  // Calculate and format real distance
     strcat(message, tekst);
     strcat(message, " m ");
-    dtostrf(A.alfa_distance[i], 1, 1, tekst);
+    dtostrf(A.alfa_distance[i], 1, 1, tekst);  // Format Alfa distance
     strcat(message, tekst);
     strcat(message, " m ");
-    dtostrf(A.time_hour[i], 1, 0, tekst);
+    dtostrf(A.time_hour[i], 1, 0, tekst);  // Format time (hour)
     strcat(message, tekst);
     strcat(message, ":");
-    dtostrf(A.time_min[i], 1, 0, tekst);
+    dtostrf(A.time_min[i], 1, 0, tekst);  // Format time (minute)
     strcat(message, tekst);
     strcat(message, ":");
-    dtostrf(A.time_sec[i], 1, 0, tekst);
+    dtostrf(A.time_sec[i], 1, 0, tekst);  // Format time (second)
     strcat(message, tekst);
     strcat(message, " Run: ");
-    dtostrf(A.this_run[i], 1, 0, tekst);
+    dtostrf(A.this_run[i], 1, 0, tekst);  // Format run number
     strcat(message, tekst);
     strcat(message, " Msg_nr: ");
-    dtostrf(A.message_nr[i], 1, 0, tekst);
+    dtostrf(A.message_nr[i], 1, 0, tekst);  // Format message number
     strcat(message, tekst);
     strcat(message, " Alfa");
-    dtostrf(M.m_set_distance, 1, 0, tekst);
+    dtostrf(M.m_set_distance, 1, 0, tekst);  // Format set distance
     strcat(message, tekst);
     strcat(message, "\n");
+    
+    // Write the message to the error file
     errorfile.print(message);
   }
 }
-void Session_gpstc(char* gpstc){
-  errorfile.print(gpstc);
+
+// -----------------------------------------------------------------------------
+// Log GPS time data to the session file
+// -----------------------------------------------------------------------------
+void Session_gpstc(char* gpstc) {
+  errorfile.print(gpstc);  // Write GPS time string to the error file
 }

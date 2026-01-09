@@ -15,13 +15,10 @@
 #include "Storage/storage_file_operations.h"
 
 void AddString();
-void logERR( const char * message);
-//void Open_files(void);
-void Close_files(void);
-//void Flush_files(void);
-void Log_to_SD(void); 
+
+
 void Model_info(int model);
-void printFile(const char *filename);
+
 void Session_info(GPS_data G);
 void Session_results_M(GPS_speed M);
 void Session_results_S(GPS_time S);
