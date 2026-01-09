@@ -89,24 +89,34 @@ void taskOne(void *parameter)
       // ----------------------------------------------------------
       // WAIT FOR GPS → live satellite updates + auto transition
       // ----------------------------------------------------------
-      if (getMode() == MODE_WAIT_SATS)
-      {
-        uint8_t sv = ubxMessage.navPvt.numSV;
+     if (getMode() == MODE_WAIT_SATS) {
+          uint8_t sv = ubxMessage.navPvt.numSV;
 
-        // Redraw only if satellite count changes
-        if (sv != lastSV) {
-          lastSV = sv;
-          screen_request_partial(1,1); // numbers arew hard coded for now
+          if (sv != lastSV) {
+            lastSV = sv;
+            screen_request_partial(1, 1);
+          }
         }
-
-        // Move on when GPS is good enough
-        if (ubxMessage.navPvt.fixType >= 3 && sv >= 10) {
-          setMode(MODE_LOGGING);
-          screen_request_redraw();
-        }
-      }
-    }
+       }
   
+
+    // ----------------------------------------------------------
+    // LOGGING → update speed display
+    // ----------------------------------------------------------
+    if (getMode() == MODE_LOGGING) {
+        static int lastSpeed = -1;
+
+        int speed = ubxMessage.navPvt.gSpeed; // mm/s
+
+        if (speed != lastSpeed) {
+            lastSpeed = speed;
+            screen_request_partial(0, 120);   // speed area
+        }
+    }
+
+
+
+       
     vTaskDelay(pdMS_TO_TICKS(5));
   }
 }
@@ -122,10 +132,6 @@ void taskOne(void *parameter)
 // ==================================================
 static void processGpsMessages(uint8_t msgType)
 {
-
-
-
-
 
   // ---------------------------------------------------------------------------
   // NAV-PVT (authoritative navigation solution)
@@ -148,10 +154,14 @@ static void processGpsMessages(uint8_t msgType)
       first_fix_GPS = millis() / 1000;
     }
 
-    // -------- Mode transition (idempotent) --------
+    // -------- Mode transition --------
     if (GPS_Signal_OK && getMode() == MODE_WAIT_SATS) {
       setMode(MODE_LOGGING);
+      screen_request_redraw();
     }
+    
+
+   
 
     if (GPS_Signal_OK) {
       GPS_delay++;

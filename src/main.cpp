@@ -222,6 +222,7 @@ static void magnet_poll()
 
     if (getMode() == MODE_WIFI_SOFT_AP) {
       setMode(MODE_LOGGING);
+       screen_request_redraw();
     } else {
       setMode(MODE_WIFI_SOFT_AP);
     }
@@ -237,8 +238,10 @@ static void magnet_poll()
     if (held >= SLEEP_HOLD_MS && held < WIFI_HOLD_MS) {
       if (getMode() == MODE_SLEEP) {
         setMode(MODE_LOGGING);
+         screen_request_redraw();
       } else {
         setMode(MODE_SLEEP);
+         screen_request_redraw();
       }
     }
   }

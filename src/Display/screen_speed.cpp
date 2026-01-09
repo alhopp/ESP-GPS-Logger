@@ -184,6 +184,7 @@ void Speed_font3(
 // ============================================================================
 void draw_SPEED()
 {
+
     int field = config.field_actual;
 
     // Context-sensitive screen detection
@@ -234,7 +235,9 @@ void draw_SPEED()
     // Large numeric speed display
     // -------------------------------------------------------------------------
     if (GPS_Signal_OK) {
-        if (config.speed_large_font == 2) {
+
+            Serial.println("here");
+                
             int komma = int(gps_speed_value * calibration_speed * 10) % 10;
 
             display.setFont(Fonts::Huge75);
@@ -246,7 +249,7 @@ void draw_SPEED()
 
             display.setFont(Fonts::SpeedL);
             display.println(komma);
-        }
+        
     } else {
         display.setFont(Fonts::Body18);
         display.setCursor(ui_offset, 60);
