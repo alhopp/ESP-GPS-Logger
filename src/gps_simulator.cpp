@@ -1,153 +1,175 @@
+// ============================================================================
+// gps_simulator.cpp
+//
+// Real-time GPS simulator for ESP-GPS
+//
+// Simulates the following lifecycle:
+//
+//  PHASE 0 : No fix, satellites slowly appear (~15s)
+//  PHASE 1 : 3D fix acquisition, accuracy improves (~10s)
+//  PHASE 2 : Straight run (~2 km)
+//  PHASE 3 : 180° turn and repeat straight run
+//
+// IMPORTANT DESIGN RULE:
+// - Simulator time advances using millis(), NOT loop rate
+// - Safe to call from a fast task (e.g. every 5 ms)
+// - Mode logic remains untouched
+// ============================================================================
+
 #include "gps_simulator.h"
 #include "Ublox/Ublox.h"
-
+#include <Arduino.h>
 #include <math.h>
 
-// ============================================================================
-// GPS Simulator
-//
-// Purpose:
-// - Generate deterministic, realistic UBX NAV-PVT data
-// - Exercise UI, logging, run detection, and speed logic without hardware
-//
-// Behaviour:
-//   Phase 0 : No fix, satellites appear slowly (~15s)
-//   Phase 1 : 3D fix acquired, accuracy improves
-//   Phase 2 : Straight line motion (~2 km)
-//   Phase 3 : 180° turn, repeat straight line
-//
-// Update rate: 5 Hz (200 ms per step)
-// ============================================================================
-
-// ---------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // Simulator state
-// ---------------------------------------------------------------------------
-static uint32_t sim_ms = 0;           // Simulated GPS time (ms)
-static uint32_t phase_start_ms = 0;   // Timestamp when current phase began
+// ----------------------------------------------------------------------------
+static uint32_t sim_ms        = 0;     // simulated GPS time (ms)
+static uint32_t last_ms       = 0;     // real time reference
+static uint32_t phase_start   = 0;     // start time of current phase
+static int      phase         = 0;     // current simulation phase
+static int      sat_count     = 0;
 
-static int phase = 0;                 // Current simulation phase
-static int sat_count = 0;             // Visible satellite count
+// ----------------------------------------------------------------------------
+// Simulated position / motion
+// ----------------------------------------------------------------------------
+static double lat        = -32.014400;
+static double lon        = 115.850700;
+static double heading    = 0.0;        // degrees
+static double speed_mps  = 8.0;        // ~15.5 knots
 
-// Position and motion
-static double lat = -32.014400;
-static double lon = 115.850700;
-static double heading = 0.0;          // Degrees
-static double speed_mps = 8.0;         // ~15.5 knots
+// ----------------------------------------------------------------------------
+// Constants
+// ----------------------------------------------------------------------------
+static constexpr double DEG2RAD = 0.0174532925;
+static constexpr double METERS_PER_DEG = 111111.0;
 
-// Distance tracking for straight runs
-static double run_distance_m = 0.0;
-
-// ---------------------------------------------------------------------------
-// Initialise simulator
-// ---------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// Reset simulator
+// ----------------------------------------------------------------------------
 void gps_simulator_init()
 {
-    sim_ms = 0;
-    phase = 0;
-    sat_count = 0;
-    phase_start_ms = 0;
-    run_distance_m = 0.0;
+    sim_ms      = 0;
+    last_ms     = 0;
+    phase       = 0;
+    sat_count   = 0;
+    phase_start = 0;
 
-    lat = -32.014400;
-    lon = 115.850700;
+    lat     = -32.014400;
+    lon     = 115.850700;
     heading = 0.0;
 }
 
-// ---------------------------------------------------------------------------
-// Step simulator (called once per loop)
-// Returns a synthetic UBX message type
-// ---------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// Advance simulator by REAL elapsed time
+// ----------------------------------------------------------------------------
+static void advance_sim_time()
+{
+    uint32_t now = millis();
+
+    if (last_ms == 0) {
+        last_ms = now;
+        return;
+    }
+
+    uint32_t dt = now - last_ms;
+    last_ms = now;
+
+    sim_ms += dt;
+}
+
+// ----------------------------------------------------------------------------
+// Main simulator step
+// ----------------------------------------------------------------------------
 int gps_simulator_step()
 {
-    // ------------------------------------------------------------
-    // Advance simulated time (5 Hz)
-    // ------------------------------------------------------------
-    sim_ms += 200;
+    advance_sim_time();
+
+    // Expose simulated GPS time to UBX
     ubxMessage.navPvt.iTOW = sim_ms;
 
     // ------------------------------------------------------------
-    // PHASE 0: No fix, satellites slowly appear (~15 seconds)
+    // PHASE 0 — NO FIX (≈15 seconds)
     // ------------------------------------------------------------
     if (phase == 0)
     {
-        if (phase_start_ms == 0)
-            phase_start_ms = sim_ms;
+        if (phase_start == 0) phase_start = sim_ms;
+
+        uint32_t elapsed = sim_ms - phase_start;
+
+        // One satellite every ~3 seconds (max 4)
+        sat_count = min(1 + int(elapsed / 3000), 4);
 
         ubxMessage.navPvt.fixType = 0;   // No fix
-        ubxMessage.navPvt.sAcc    = 9999; // Very poor accuracy
+        ubxMessage.navPvt.numSV  = sat_count;
+        ubxMessage.navPvt.sAcc   = 5000; // very poor accuracy
 
-        // Add one satellite every ~3 seconds (up to 4)
-        if ((sim_ms - phase_start_ms) % 3000 < 200)
-        {
-            if (sat_count < 4)
-                sat_count++;
-        }
-
-        ubxMessage.navPvt.numSV = sat_count;
-
-        // After ~15 seconds, move to fix acquisition
-        if (sim_ms - phase_start_ms >= 15000)
-        {
+        if (elapsed >= 15000) {
             phase = 1;
-            phase_start_ms = sim_ms;
+            phase_start = sim_ms;
         }
     }
 
     // ------------------------------------------------------------
-    // PHASE 1: 3D fix acquired, accuracy improves
+    // PHASE 1 — FIX ACQUISITION (≈10 seconds)
     // ------------------------------------------------------------
     else if (phase == 1)
     {
-        ubxMessage.navPvt.fixType = 3;   // 3D fix
-        ubxMessage.navPvt.numSV  = sat_count < 10 ? sat_count++ : 10;
-        ubxMessage.navPvt.sAcc   = 1200; // ~1.2 m/s
+        uint32_t elapsed = sim_ms - phase_start;
 
-        if (ubxMessage.navPvt.numSV >= 10)
-        {
+        ubxMessage.navPvt.fixType = 3;   // 3D fix
+        ubxMessage.navPvt.numSV  = min(5 + int(elapsed / 2000), 10);
+
+        // Accuracy improves over time (mm/s)
+        ubxMessage.navPvt.sAcc = max(300, 2000 - int(elapsed / 5));
+
+        if (elapsed >= 10000) {
             phase = 2;
-            phase_start_ms = sim_ms;
-            run_distance_m = 0.0;
+            phase_start = sim_ms;
         }
     }
 
     // ------------------------------------------------------------
-    // PHASE 2 & 3: Straight-line motion (back and forth)
+    // PHASE 2 & 3 — STRAIGHT RUNS (2 km each)
     // ------------------------------------------------------------
     else if (phase == 2 || phase == 3)
     {
-        const double dt = 0.2;                  // seconds
-        const double d  = speed_mps * dt;       // meters per tick
+        // Distance traveled since last call (meters)
+        static uint32_t last_move_ms = sim_ms;
+        double dt = (sim_ms - last_move_ms) / 1000.0;
+        last_move_ms = sim_ms;
 
-        // Move position (simple local Earth approximation)
-        lat += (d / 111111.0) * cos(heading * DEG_TO_RAD);
-        lon += (d / (111111.0 * cos(lat * DEG_TO_RAD))) *
-               sin(heading * DEG_TO_RAD);
+        double d = speed_mps * dt;
 
-        run_distance_m += d;
+        // Move position along heading
+        lat += (d / METERS_PER_DEG) * cos(heading * DEG2RAD);
+        lon += (d / (METERS_PER_DEG * cos(lat * DEG2RAD))) *
+               sin(heading * DEG2RAD);
 
-        // Populate NAV-PVT fields
         ubxMessage.navPvt.fixType = 3;
         ubxMessage.navPvt.numSV  = 10;
-        ubxMessage.navPvt.gSpeed = speed_mps * 1000;     // mm/s
-        ubxMessage.navPvt.heading = heading * 100000;    // 1e-5 deg
-        ubxMessage.navPvt.sAcc   = 300;                  // good accuracy
+        ubxMessage.navPvt.gSpeed = speed_mps * 1000;   // mm/s
+        ubxMessage.navPvt.heading = heading * 100000; // degrees * 1e5
+        ubxMessage.navPvt.sAcc   = 300;
 
-        // After ~2 km, reverse direction
-        if (run_distance_m >= 2000.0)
-        {
-            run_distance_m = 0.0;
-            heading = fmod(heading + 180.0, 360.0);
+        // Track distance within this leg
+        static double leg_dist = 0;
+        leg_dist += d;
+
+        if (leg_dist >= 2000.0) {
+            leg_dist = 0;
             phase = (phase == 2) ? 3 : 2;
+            heading = fmod(heading + 180.0, 360.0);
         }
     }
 
     // ------------------------------------------------------------
-    // Common NAV-PVT fields (always valid once simulator runs)
+    // COMMON NAV-PVT FIELDS
     // ------------------------------------------------------------
     ubxMessage.navPvt.lat   = lat * 1e7;
     ubxMessage.navPvt.lon   = lon * 1e7;
-    ubxMessage.navPvt.valid = 7;     // date + time + fully resolved
-    ubxMessage.navPvt.nano  = 0;     // full-second boundary
+    ubxMessage.navPvt.nano  = 0;
+    ubxMessage.navPvt.valid = 7;   // fully valid fix
 
     return MT_NAV_PVT;
 }
