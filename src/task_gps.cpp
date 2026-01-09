@@ -45,14 +45,17 @@ static void processGpsMessages(uint8_t msgType);
 // --------------------------------------------------
 void taskOne(void *parameter)
 {
-  uint32_t lastLog = 0;
-  static uint8_t lastSV = 0;
-
+  static uint8_t  lastSV = 0;
   static uint32_t lastLogMs = 0;
+  static uint32_t lastSpeedUpdateMs = 0;
+
   constexpr uint32_t LOG_INTERVAL_MS = 2000;
 
   for (;;)
   {
+    // -------------------------------------------------------------------------
+    // Only run GPS logic in relevant modes
+    // -------------------------------------------------------------------------
     if (getMode() != MODE_LOGGING &&
         getMode() != MODE_WAIT_SATS &&
         getMode() != MODE_WIFI_SOFT_AP)
@@ -63,87 +66,106 @@ void taskOne(void *parameter)
 
     wdt_task0 = millis();
 
-    #ifdef GPS_SIMULATOR
-        int msg = gps_simulator_step();
-    #else
-        int msg = processGPS();
-    #endif
+    // -------------------------------------------------------------------------
+    // GPS input (real or simulated)
+    // -------------------------------------------------------------------------
+    int msg;
+#ifdef GPS_SIMULATOR
+    msg = gps_simulator_step();
+#else
+    msg = processGPS();
+#endif
 
+    // -------------------------------------------------------------------------
+    // NAV-PVT message handling
+    // -------------------------------------------------------------------------
     if (msg == MT_NAV_PVT)
     {
+      // Core GPS state machine
+      processGpsMessages(msg);
 
-      processGpsMessages(msg);  
-
+      // ----------------------------------------------------------
+      // Periodic debug logging
+      // ----------------------------------------------------------
       if (millis() - lastLogMs >= LOG_INTERVAL_MS)
-          {
-            lastLogMs = millis();
-            LOG_GPS("PVT",
-              "fix=%u sv=%u lat=%.6f lon=%.6f spd=%.2f",
-              ubxMessage.navPvt.fixType,
-              ubxMessage.navPvt.numSV,
-              ubxMessage.navPvt.lat * 1e-7,
-              ubxMessage.navPvt.lon * 1e-7,
-              ubxMessage.navPvt.gSpeed * 0.001
-            );
-          }
+      {
+        lastLogMs = millis();
+
+        LOG_GPS("PVT",
+          "fix=%u sv=%u lat=%.6f lon=%.6f spd=%.2f",
+          ubxMessage.navPvt.fixType,
+          ubxMessage.navPvt.numSV,
+          ubxMessage.navPvt.lat * 1e-7,
+          ubxMessage.navPvt.lon * 1e-7,
+          ubxMessage.navPvt.gSpeed * 0.001f
+        );
+      }
+
       // ----------------------------------------------------------
-      // WAIT FOR GPS → live satellite updates + auto transition
+      // WAIT_SATS → live satellite count update
       // ----------------------------------------------------------
-     if (getMode() == MODE_WAIT_SATS) {
-          uint8_t sv = ubxMessage.navPvt.numSV;
+      if (getMode() == MODE_WAIT_SATS)
+      {
+        const uint8_t sv = ubxMessage.navPvt.numSV;
 
-          if (sv != lastSV) {
-            lastSV = sv;
-            screen_request_partial(1, 1);
-          }
+        if (sv != lastSV)
+        {
+          lastSV = sv;
+          screen_request_partial(1, 1);   // small sats counter area
         }
-       }
-  
-
-   // ----------------------------------------------------------
-    // LOGGING → adaptive speed display update
-    // ----------------------------------------------------------
-    if (getMode() == MODE_LOGGING && GPS_Signal_OK) {
-
-        static uint32_t lastUpdateMs = 0;
-
-        // Convert raw GPS speed (mm/s) → knots
-        const float speed_knots = ubxMessage.navPvt.gSpeed * MMPS_TO_KNOTS;
-
-        uint32_t intervalMs = 0;
-
-        // ------------------------------------------------------
-        // Adaptive update rate based on speed
-        // ------------------------------------------------------
-        if (speed_knots < 10.0f) {
-            return;   // ignore low speed completely
-        }
-        else if (speed_knots < 20.0f) {
-            intervalMs = 5000;   // 10–20 kn → every 5 s
-        }
-        else if (speed_knots < 35.0f) {
-            intervalMs = 3000;   // 20–35 kn → every 3 s
-        }
-        else {
-            intervalMs = 2000;   // >35 kn → every 2 s
-        }
-
-        // ------------------------------------------------------
-        // Throttled partial redraw
-        // ------------------------------------------------------
-        if (millis() - lastUpdateMs >= intervalMs) {
-            lastUpdateMs = millis();
-            screen_request_partial(0, 120);   // speed band
-        }
+      }
     }
 
+    // -------------------------------------------------------------------------
+    // LOGGING → adaptive speed display update
+    // -------------------------------------------------------------------------
+    if (getMode() == MODE_LOGGING && GPS_Signal_OK)
+    {
+      // Convert raw GPS speed (mm/s → knots)
+      const float speed_knots =
+        ubxMessage.navPvt.gSpeed * MMPS_TO_KNOTS;
 
+      uint32_t intervalMs;
 
-       
+      // ----------------------------------------------------------
+      // Adaptive refresh rate
+      // ----------------------------------------------------------
+      if (speed_knots < 10.0f)
+      {
+        intervalMs = UINT32_MAX;      // disable redraws
+      }
+      else if (speed_knots < 20.0f)
+      {
+        intervalMs = 5000;            // every 5 s
+      }
+      else if (speed_knots < 38.0f)
+      {
+        intervalMs = 3000;            // every 3 s
+      }
+      else
+      {
+        intervalMs = 1000;            // every 1 s
+      }
+
+      // ----------------------------------------------------------
+      // Throttled partial redraw
+      // ----------------------------------------------------------
+      const uint32_t now = millis();
+
+      if (intervalMs != UINT32_MAX &&
+          (now - lastSpeedUpdateMs) >= intervalMs)
+      {
+        lastSpeedUpdateMs = now;
+        screen_request_partial(0, 120);   // speed band
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Yield
+    // -------------------------------------------------------------------------
     vTaskDelay(pdMS_TO_TICKS(5));
   }
 }
-
 
 // ==================================================
 // GPS message handling
