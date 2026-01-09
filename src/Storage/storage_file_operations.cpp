@@ -20,16 +20,18 @@
 #include <FS.h>
 #include <LittleFS.h>
 
-#include "gpx.h"
-#include "sbp.h"
-#include "gpy.h"
+#include "Storage/gpx.h"
+#include "Storage/sbp.h"
+#include "Storage/gpy.h"
 #include "config_manager.h"
 
 #include "Storage/storage_file_operations.h"
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"
 
+#include "Ublox/Ublox.h"
 
+#include "Globals.h"
 // -----------------------------------------------------------------------------
 // Data buffers and variables for logging
 // -----------------------------------------------------------------------------

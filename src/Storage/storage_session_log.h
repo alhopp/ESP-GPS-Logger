@@ -2,6 +2,7 @@
 
 #include <SD_MMC.h>
 #include "Storage/storage_file_operations.h"
+#include "GPS/GPS_data.h"
 
 void Session_info(GPS_data G);
 void Session_results_M(GPS_speed M);

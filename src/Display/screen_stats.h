@@ -15,7 +15,6 @@
 #pragma once
 
 #include <Arduino.h>
-//#include <stdint.h>
 
 // -----------------------------------------------------------------------------
 // Page range (keep in sync with screen_stats.cpp switch)

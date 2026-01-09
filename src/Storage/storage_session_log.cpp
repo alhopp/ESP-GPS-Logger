@@ -15,9 +15,9 @@
 #include <LittleFS.h>
 
 #include "Definitions.h"
-#include "gpx.h"
-#include "sbp.h"
-#include "gpy.h"
+#include "Storage/gpx.h"
+#include "Storage/sbp.h"
+#include "Storage/gpy.h"
 #include "config_manager.h"
 
 #include "rtc_state.h"
@@ -26,7 +26,7 @@
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"
 
-
+#include "GPS/GPS_data.h"
 
 
 int SD_MMC_read_speed;   // Speed of reading from SD/MMC
