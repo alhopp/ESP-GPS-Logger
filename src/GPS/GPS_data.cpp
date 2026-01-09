@@ -85,20 +85,15 @@ void GPS_data::push_data(float latitude,
     }
 }
 
-
-
 //constructor for GPS_data
 GPS_data::GPS_data() {
   index_GPS=0; 
 }
 
-
 //constructor for SAT_info
 GPS_SAT_info::GPS_SAT_info() {
   index_SAT_info=0; 
 }
-
-
 
 //function to extract info out of NAV_SAT, and push it to array
 //For every NAV_SAT frame, the Mean CNO, the Max cno, the Min cno and the nr of sats in the nav solution are stored

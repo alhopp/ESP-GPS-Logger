@@ -84,19 +84,6 @@ extern int max_count_wdt_task0;
 extern bool Shut_down_Save_session;
 extern bool reset_boot;
 
-// ============================================================================
-// GPS OBJECTS (defined in gps_manager.cpp)
-// ============================================================================
-extern GPS_speed     M100;
-extern GPS_speed     M250;
-extern GPS_speed     M1852;
-
-extern GPS_time      S2;
-extern GPS_time      s2;
-extern GPS_time      S10;
-extern GPS_time      s10;
-
-extern Alfa_speed    A250;
 
 extern GPS_data      Ublox;
 extern GPS_SAT_info  Ublox_Sat;

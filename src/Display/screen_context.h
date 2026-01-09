@@ -21,11 +21,4 @@ extern int run_count;
 #include "GPS/GPS_data.h"
 #include "Ublox/ublox.h"
 
-// Expose ONLY the instances screens need
-extern GPS_time   S10;
-extern GPS_time   S2;
-extern GPS_speed  M100;
-extern GPS_speed  M250;
-extern GPS_speed  M500;
-extern GPS_speed  M1852;
-extern Alfa_speed A500;
+

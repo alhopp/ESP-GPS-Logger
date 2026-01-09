@@ -8,6 +8,8 @@
 #include "rtc_state.h"
 #include "Ublox/Ublox.h"
 
+#include "GPS/GPS_data.h"
+
 extern GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display;
 
 extern char time_now[8];
@@ -97,22 +99,7 @@ extern double ref_heading;
 extern String IP_adress;
 extern String actual_ssid;
 
-// ============================================================================
-//  Navigation / statistics objects
-// ============================================================================
 
-extern GPS_speed M100;
-extern GPS_speed M250;
-extern GPS_speed M500;
-
-extern Alfa_speed A250;
-extern Alfa_speed A500;
-extern Alfa_speed a500;
-
-extern GPS_time  S1800;
-extern GPS_time  S3600;
-
-extern GPS_Track M_500;
 
 // ============================================================================
 //  Public E-paper API
