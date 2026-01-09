@@ -3,32 +3,46 @@
 //
 // Stats screen renderer (paged).
 //
-// Design:
-// - Exposes ONE entry point: draw_STATS(page)
-// - Individual pages are implemented internally (switch)
-// - No side effects: drawing only
-// - No dynamic allocation
+// Public API:
+// - draw_STATS(page): draw one stats page (1..11)
+//
+// Design rules:
+// - draw_* functions draw only (no paging / no display.display())
+// - No side-effects: no Wi-Fi/GPS toggles, no mode changes
+// - The display task owns clear/refresh policy
 // ============================================================================
 
 #pragma once
 
-#include <stdint.h>
+#include <Arduino.h>
+//#include <stdint.h>
 
-// Total number of stats pages (1..11 where 11 == old 'B')
+// -----------------------------------------------------------------------------
+// Page range (keep in sync with screen_stats.cpp switch)
+// -----------------------------------------------------------------------------
 constexpr uint8_t STATS_PAGE_MIN = 1;
 constexpr uint8_t STATS_PAGE_MAX = 11;
 
-// Draw the requested stats page (1..11).
-// Page mapping:
-//  1  = old draw_STATS1
-//  2  = old draw_STATS2
-//  3  = old draw_STATS3
-//  4  = old draw_STATS4
-//  5  = old draw_STATS5
-//  6  = old draw_STATS6
-//  7  = old draw_STATS7
-//  8  = old draw_STATS8
-//  9  = old draw_STATS9
-// 10  = old draw_STATSA
-// 11  = old draw_STATSB
+// -----------------------------------------------------------------------------
+// Main entry point
+// -----------------------------------------------------------------------------
 void draw_STATS(uint8_t page);
+
+// -----------------------------------------------------------------------------
+// Reusable primitives used by multiple stats pages
+// (kept public because other screens may reuse them)
+// -----------------------------------------------------------------------------
+void Stats_4lines(
+  const char* m1, const char* m2,
+  const char* m3, const char* m4,
+  float v1, float v2, float v3, float v4
+);
+
+void Stats_2s_3_lines(
+  const char* m1,
+  const char* m2,
+  const char* m3,
+  float v1,
+  float v2,
+  float v3
+);

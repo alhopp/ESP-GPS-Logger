@@ -83,7 +83,5 @@ extern int max_count_wdt_task0;
 // ============================================================================
 extern bool Shut_down_Save_session;
 extern bool reset_boot;
-
-
 extern GPS_data      Ublox;
 extern GPS_SAT_info  Ublox_Sat;

@@ -12,15 +12,11 @@
 // ============================================================================
 
 #include "Display/screen_stats.h"
-
-#include "Display/screen_context.h"
+#include "Display/E_paper.h"
 #include "Layout.h"
 #include "config_manager.h"
 #include "Globals.h"
-
-// If Fonts is not already included by screen_context.h in your project,
-// add it here. Leaving it out if screen_context already provides it.
-// #include "Fonts.h"
+#include "Fonts.h"
 
 static int ui_offset = 0;
 

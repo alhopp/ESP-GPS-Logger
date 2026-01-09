@@ -1,52 +1,41 @@
 #pragma once
 
-// ======================================================
-// screen_draw.h
-// ------------------------------------------------------
-// Mode-level screen render entry points ONLY
+// -----------------------------------------------------------------------------
+// screen_dispatch.h
 //
-// These functions are the ONLY ones that may be returned
-// by getDrawFnForMode(). All sub-screens and pages are
-// internal details handled elsewhere.
-// ======================================================
+// Screen rendering dispatch interface.
+//
+// Responsibilities:
+// - Declare the authoritative mapping from SystemMode → draw function
+//
+// Design rules:
+// - Stateless
+// - No rendering logic
+// - No mode inference
+// - No side effects
+//
+// Notes:
+// - task_display decides *when* to draw
+// - system_mode decides *what mode we are in*
+// -----------------------------------------------------------------------------
 
 #include "system_mode.h"
 
 // -----------------------------------------------------------------------------
-// Mode-level screens (authoritative)
-// -----------------------------------------------------------------------------
-
-
-void draw_BOOT();
-void draw_WAIT_SATS();
-void draw_LOGGING();        // May internally show SPEED / STATS pages
-void draw_WIFI_SOFT_AP();
-void draw_SLEEP();
-
-
-
-// -----------------------------------------------------------------------------
-// Draw function type
+// Draw function signature
+//
+// Each draw_* function must:
+// - Perform a complete screen render
+// - Be stateless
+// - Not block or delay
 // -----------------------------------------------------------------------------
 using DrawFn = void (*)();
 
 // -----------------------------------------------------------------------------
-// Mode → draw function dispatch
+// MODE → DRAW FUNCTION lookup
+//
+// Returns:
+// - Pointer to draw_* function for the given SystemMode
+// - nullptr if no renderer is defined for that mode
 // -----------------------------------------------------------------------------
 DrawFn getDrawFnForMode(SystemMode mode);
-
-// -----------------------------------------------------------------------------
-// Shared UI helpers (NOT screens)
-// -----------------------------------------------------------------------------
-void drawTopLeftTitle(const char* msg);
-int  device_boot_log(int rows, int ws = 0);
-
-// -----------------------------------------------------------------------------
-// Logo helpers (UI primitives, NOT screens)
-// -----------------------------------------------------------------------------
-
-// Draw board logo selected in config (no-op if disabled)
-void drawBoardLogo(int16_t x, int16_t y);
-
-// Draw sail logo selected in config (no-op if disabled)
-void drawSailLogo(int16_t x, int16_t y);

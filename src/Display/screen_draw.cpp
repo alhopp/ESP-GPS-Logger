@@ -16,21 +16,8 @@
 
 #include "Display/screen_draw.h"
 #include "Display/screen_speed.h"
+#include "Display/screen_system.h"
 #include "system_mode.h"
-
-#include "Fonts.h"
-#include "Layout.h"
-#include "Display/E_paper.h"
-#include "logos.h"
-
-// -----------------------------------------------------------------------------
-// LEGACY DRAW TABLE (optional / retained for compatibility)
-//
-// NOTE:
-// - This table is no longer authoritative for rendering decisions
-// - It may still be used by legacy code paths (stats paging, etc.)
-// -----------------------------------------------------------------------------
-
 
 // -----------------------------------------------------------------------------
 // MODE → DRAW FUNCTION (authoritative)
@@ -45,16 +32,5 @@ DrawFn getDrawFnForMode(SystemMode mode)
     case MODE_SLEEP:         return draw_SLEEP;
     default:                 return nullptr;
   }
-}
-
-
-// -----------------------------------------------------------------------------
-// SHARED UI HELPERS
-// -----------------------------------------------------------------------------
-void drawTopLeftTitle(const char* msg)
-{
-  display.setFont(Fonts::Body9);
-  display.setCursor(0, 0);
-  display.print(msg);
 }
 

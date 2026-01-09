@@ -14,7 +14,6 @@
 #include <WiFi.h>
 
 #include "Display/screen_system.h"
-#include "Display/screen_context.h"
 
 #include "Layout.h"
 #include "Fonts.h"
