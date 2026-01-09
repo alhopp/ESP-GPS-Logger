@@ -32,6 +32,32 @@
 #include "Storage/storage_manager.h"
 #include "Storage/SD_card.h"
 
+
+// -----------------------------------------------------------------------------
+// Data buffers and variables for logging
+// -----------------------------------------------------------------------------
+char dataStr[255] = "";  // String for logging data
+char Buffer[50] = "";    // Temporary string for appending data
+uint64_t GPS_UTC_ms;     // Absolute UTC time with ms resolution at start of logging
+
+
+// -----------------------------------------------------------------------------
+// Add data to the logging string with a semicolon delimiter
+// -----------------------------------------------------------------------------
+void Add_String(void) {
+  strcat(dataStr, Buffer);  // Add Buffer content to dataStr
+  strcat(dataStr, ";");     // Append delimiter (semicolon)
+}
+
+// -----------------------------------------------------------------------------
+// Add data to the logging string with a colon delimiter
+// -----------------------------------------------------------------------------
+void AddString(void) {
+  strcat(dataStr, Buffer);  // Add Buffer content to dataStr
+  strcat(dataStr, ":");     // Append delimiter (colon)
+}
+
+
 // -----------------------------------------------------------------------------
 // File handles for different file formats
 // -----------------------------------------------------------------------------
