@@ -418,9 +418,6 @@ static void applyDerivedConfig()
   RTC_Board_Logo = config.Board_Logo;
   RTC_Sail_Logo  = config.Sail_Logo;
 
-  // original code used /1000.0f; keeping behaviour
-  calibration_speed = config.cal_speed / 1000.0f;
-
   RTC_SLEEP_screen = config.sleep_off_screen % 10;
   RTC_OFF_screen   = (config.sleep_off_screen / 10) % 10;
 

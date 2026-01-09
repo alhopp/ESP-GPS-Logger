@@ -99,7 +99,7 @@ void taskTwo(void* parameter)
       // Select refresh window
       // -----------------------------------------------------------------------
       if (doPartial) {
-        display.setPartialWindow(0,40,250,94);
+        display.setPartialWindow(0,0,250,122);
       } else {
         display.setFullWindow();
       }

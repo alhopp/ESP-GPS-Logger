@@ -68,7 +68,6 @@ RTC_DATA_ATTR int   RTC_counter        = 0;
 // Calibration
 // ---------------------------------------------------------------------------
 
-RTC_DATA_ATTR float calibration_speed   = 3.6f;   // km/h default
 RTC_DATA_ATTR float RTC_calibration_bat = 1.75f;
 
 // ---------------------------------------------------------------------------

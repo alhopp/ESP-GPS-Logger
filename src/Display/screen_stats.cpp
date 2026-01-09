@@ -26,7 +26,7 @@ static int ui_offset = 0;
 namespace {
 
   inline float cal(double v) {
-    return v * calibration_speed;
+    return v * MMPS_TO_KNOTS;
   }
 
   inline void printTime(int h, int m) {
@@ -254,14 +254,14 @@ void Stats_2s_3_lines(
   display.print("2l: ");
 
   display.setFont(Fonts::Body18);
-  display.print(S2.display_last_run * calibration_speed, 1);
+  display.print(S2.display_last_run * MMPS_TO_KNOTS, 1);
 
   display.setFont(Fonts::Body12);
   display.setCursor(ui_offset + 120, Layout::ROW18(1));
   display.print("2s: ");
 
   display.setFont(Fonts::Body18);
-  display.print(S2.display_speed[9] * calibration_speed, 1);
+  display.print(S2.display_speed[9] * MMPS_TO_KNOTS, 1);
 
   // Remaining rows
   display.setFont(Fonts::Body12);

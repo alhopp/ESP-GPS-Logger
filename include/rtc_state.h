@@ -63,7 +63,6 @@ extern RTC_DATA_ATTR int RTC_counter;
 // ---------------------------------------------------------------------------
 // Calibration
 // ---------------------------------------------------------------------------
-extern RTC_DATA_ATTR float calibration_speed;
 extern RTC_DATA_ATTR float RTC_calibration_bat;
 
 // ---------------------------------------------------------------------------

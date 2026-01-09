@@ -52,7 +52,7 @@ extern int   gps_speed_value;
 extern float alfa_window;
 extern float Mean_heading;
 extern float heading_SD;
-extern float calibration_speed;
+
 
 // ============================================================================
 // LOGGING / TIMING

@@ -83,7 +83,7 @@ void Session_results_M(GPS_speed M) {
     char tekst[20] = "";
     char message[255] = "";
     int Calibration = config.cal_speed * 1000;  // Speed calibration
-    dtostrf(M.avg_speed[i] * calibration_speed, 1, 3, tekst);  // Format average speed
+    dtostrf(M.avg_speed[i] * MMPS_TO_KNOTS, 1, 3, tekst);  // Format average speed
     strcat(message, tekst);
     if (Calibration == 3600) strcat(message, " km/h ");
     if ((Calibration >= 1943) & (Calibration <= 1945)) strcat(message, " knots ");
@@ -126,7 +126,7 @@ void Session_results_S(GPS_time S) {
   char tekst[20] = "";
   char message[255] = "";
   int Calibration = config.cal_speed * 1000;  // Speed calibration
-  dtostrf(S.avg_5runs * calibration_speed, 1, 3, tekst);  // Format average speed
+  dtostrf(S.avg_5runs * MMPS_TO_KNOTS, 1, 3, tekst);  // Format average speed
   strcat(message, tekst);
   if (Calibration == 3600) strcat(message, " km/h avg 5_best_runs\n");
   else if ((Calibration >= 1943) & (Calibration <= 1945)) strcat(message, " knots avg 5_best_runs\n");
@@ -139,7 +139,7 @@ void Session_results_S(GPS_time S) {
   for (int i = 9; i > 4; i--) {
     char tekst[45] = "";
     char message[255] = "";
-    dtostrf(S.avg_speed[i] * calibration_speed, 1, 3, tekst);
+    dtostrf(S.avg_speed[i] * MMPS_TO_KNOTS, 1, 3, tekst);
     strcat(message, tekst);
     if (Calibration == 3600) strcat(message, " km/h ");
     if ((Calibration >= 1943) & (Calibration <= 1945)) strcat(message, " knots ");
@@ -175,7 +175,7 @@ void Session_results_Alfa(Alfa_speed A, GPS_speed M) {
     char tekst[20] = "";
     char message[255] = "";
     int Calibration = config.cal_speed * 1000;  // Speed calibration
-    dtostrf(A.avg_speed[i] * calibration_speed, 1, 3, tekst);  // Format average speed
+    dtostrf(A.avg_speed[i] * MMPS_TO_KNOTS, 1, 3, tekst);  // Format average speed
     strcat(message, tekst);
     if (Calibration == 3600) strcat(message, " km/h ");
     if (Calibration == 1943) strcat(message, " knots ");

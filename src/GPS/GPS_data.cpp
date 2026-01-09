@@ -462,7 +462,7 @@ float Alfa_speed::Update_Alfa(GPS_speed M){
       strcat(message, " alfa_speed "); 
       dtostrf(M.m_set_distance, 3, 0, tekst);
       strcat(message, "m "); 
-      dtostrf(alfa_speed_max*calibration_speed, 2, 2, tekst);
+      dtostrf(alfa_speed_max*MMPS_TO_KNOTS, 2, 2, tekst);
       strcat(message,tekst); 
       strcat(message,"\n");    
       //logERR(message);

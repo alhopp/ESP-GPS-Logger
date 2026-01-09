@@ -235,18 +235,20 @@ void draw_SPEED()
     // Large numeric speed display
     // -------------------------------------------------------------------------
     if (GPS_Signal_OK) {
-calibration_speed = 0.00194384f;
-        int komma = int(gps_speed_value * calibration_speed * 10) % 10;
+        float speed_knots = gps_speed_value * MMPS_TO_KNOTS;
+
+        int komma = int(speed_knots * 10) % 10;
 
         display.setFont(Fonts::Huge75);
         display.setCursor(ui_offset - 6, 115);
-        display.print(int(gps_speed_value * calibration_speed));
+        display.print(int(speed_knots));
 
         display.setFont(Fonts::Big30);
         display.print(".");
 
         display.setFont(Fonts::SpeedL);
         display.println(komma);
+
         
     } else {
         display.setFont(Fonts::Body18);
