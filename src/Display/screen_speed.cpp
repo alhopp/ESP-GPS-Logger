@@ -235,7 +235,7 @@ void draw_SPEED()
     // Large numeric speed display
     // -------------------------------------------------------------------------
     if (GPS_Signal_OK) {
-
+calibration_speed = 0.00194384f;
         int komma = int(gps_speed_value * calibration_speed * 10) % 10;
 
         display.setFont(Fonts::Huge75);
