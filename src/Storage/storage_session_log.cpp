@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 #include <Arduino.h>
+
 #include <FS.h>
 #include <LittleFS.h>
 
@@ -22,9 +23,10 @@
 #include "rtc_state.h"
 #include "Globals.h"  
 
-#include "Storage/storage_file_operations.h"
 #include "Storage/storage_manager.h"
-#include "Storage/SD_card.h"
+#include "Storage/storage_session_log.h"
+
+
 
 
 int SD_MMC_read_speed;   // Speed of reading from SD/MMC
@@ -44,11 +46,9 @@ void Session_info(GPS_data G) {
   errorfile.println(SW_version);  // Log software version
   
   // Log SD read/write speed
-  if (sdOK) {
-    sprintf(tekst, "SD_MMC Read speed= %d ms/MB Write speed= %d ms/MB s\n", SD_MMC_read_speed, SD_MMC_write_speed);
-    strcat(message, tekst);
-  }
-
+  sprintf(tekst, "SD_MMC Read speed= %d ms/MB Write speed= %d ms/MB s\n", SD_MMC_read_speed, SD_MMC_write_speed);
+  strcat(message, tekst);
+ 
   // Log GPS and session time data
   sprintf(tekst, "First fix: %d s\n", first_fix_GPS);
   strcat(message, tekst);
@@ -70,22 +70,6 @@ void Session_info(GPS_data G) {
   strcat(message, tekst);
   strcat(message, TimeZone);  // Log time zone name
   strcat(message, "\nDynamic model: ");
-  
-  // Log dynamic model type
-  if (config.dynamic_model == 1) strcat(message, "Sea");
-  else if (config.dynamic_model == 2) strcat(message, "Automotive");
-  else strcat(message, "Portable");
-  strcat(message, " \n");
-  strcat(message, tekst);
-  
-  // Log Ublox software and hardware version
-  strcat(message, "Ublox SW-version: ");
-  strcat(message, " \n");
-  strcat(message, "Ublox HW-version: ");
-  strcat(message, " \n");
-  strcat(message, tekst);
-  strcat(message, Ublox_type);  // Log Ublox chip type
-  strcat(message, " \n");
   
   // Write the message to error file
   errorfile.print(message);

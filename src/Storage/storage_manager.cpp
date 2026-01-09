@@ -15,8 +15,6 @@
 
 #include "Storage/storage_manager.h"
 
-#include <Arduino.h>
-#include <SPI.h>
 #include <SD.h>
 #include <SD_MMC.h>
 #include <LittleFS.h>
