@@ -10,10 +10,12 @@
 #include "Storage/storage_session_log.h"
 #include "ESP_functions.h"
 #include "Display/E_paper.h"
+#include "task_display.h"
 
 #include <SD_MMC.h>
 #include "Definitions.h"
 
+#include "gps_simulator.h"
 
 // --------------------------------------------------
 // Runtime state
@@ -41,6 +43,10 @@ static void processGpsMessages();
 void taskOne(void *parameter)
 {
   uint32_t lastLog = 0;
+  static uint8_t lastSV = 0;
+
+  static uint32_t lastLogMs = 0;
+  constexpr uint32_t LOG_INTERVAL_MS = 2000;
 
   for (;;)
   {
@@ -54,30 +60,48 @@ void taskOne(void *parameter)
 
     wdt_task0 = millis();
 
-    int msg = processGPS();
+    #ifdef GPS_SIMULATOR
+        int msg = gps_simulator_step();
+    #else
+        int msg = processGPS();
+    #endif
 
     if (msg == MT_NAV_PVT)
     {
-      LOG_GPS("PVT",
-        "fix=%u sv=%u lat=%.6f lon=%.6f spd=%.2f",
-        ubxMessage.navPvt.fixType,
-        ubxMessage.navPvt.numSV,
-        ubxMessage.navPvt.lat * 1e-7,
-        ubxMessage.navPvt.lon * 1e-7,
-        ubxMessage.navPvt.gSpeed * 0.001
-      );
-    }
-    else if (msg != MT_NONE)
-    {
-      LOG_GPS("PARSE", "msg=%d", msg);
-    }
+      if (millis() - lastLogMs >= LOG_INTERVAL_MS)
+          {
+            lastLogMs = millis();
 
-    if (millis() - lastLog > 1000)
-    {
-      lastLog = millis();
-      LOG_GPS("TASK", "alive mode=%d", getMode());
-    }
+            LOG_GPS("PVT",
+              "fix=%u sv=%u lat=%.6f lon=%.6f spd=%.2f",
+              ubxMessage.navPvt.fixType,
+              ubxMessage.navPvt.numSV,
+              ubxMessage.navPvt.lat * 1e-7,
+              ubxMessage.navPvt.lon * 1e-7,
+              ubxMessage.navPvt.gSpeed * 0.001
+            );
+          }
+      // ----------------------------------------------------------
+      // WAIT FOR GPS → live satellite updates + auto transition
+      // ----------------------------------------------------------
+      if (getMode() == MODE_WAIT_SATS)
+      {
+        uint8_t sv = ubxMessage.navPvt.numSV;
 
+        // Redraw only if satellite count changes
+        if (sv != lastSV) {
+          lastSV = sv;
+          screen_request_partial(1,1); // numbers arew hard coded for now
+        }
+
+        // Move on when GPS is good enough
+        if (ubxMessage.navPvt.fixType >= 3 && sv >= 10) {
+          setMode(MODE_LOGGING);
+          screen_request_redraw();
+        }
+      }
+    }
+  
     vTaskDelay(pdMS_TO_TICKS(5));
   }
 }

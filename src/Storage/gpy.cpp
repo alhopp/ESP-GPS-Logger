@@ -1,5 +1,4 @@
 #include "Storage/gpy.h"
-#include <FS.h>
 #include "Globals.h"          // Global firmware state (SW_version, mac, timezone, flags)
 #include "Ublox/Ublox.h"      // u-blox NAV-PVT / NAV-DOP data (ubxMessage)
 

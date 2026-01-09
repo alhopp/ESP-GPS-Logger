@@ -1,6 +1,6 @@
 #pragma once
 
-#include <FS.h>   // File abstraction (File)
+#include <FS.h>   
 
 // -----------------------------------------------------------------------------
 // GPX writer parts
