@@ -206,7 +206,7 @@ void draw_SPEED()
     // Draw large speed
     // -------------------------------------------------------------------------
     display.setFont(Fonts::Huge75);
-    display.setCursor(ui_offset + 8, 115);
+    display.setCursor(ui_offset + 8, 112);
     display.print(whole);
 
     display.setFont(Fonts::Big30);
