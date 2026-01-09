@@ -100,17 +100,40 @@ void taskOne(void *parameter)
        }
   
 
+   // ----------------------------------------------------------
+    // LOGGING → adaptive speed display update
     // ----------------------------------------------------------
-    // LOGGING → update speed display
-    // ----------------------------------------------------------
-    if (getMode() == MODE_LOGGING) {
-        static int lastSpeed = -1;
+    if (getMode() == MODE_LOGGING && GPS_Signal_OK) {
 
-        int speed = ubxMessage.navPvt.gSpeed; // mm/s
+        static uint32_t lastUpdateMs = 0;
 
-        if (speed != lastSpeed) {
-            lastSpeed = speed;
-            screen_request_partial(0, 120);   // speed area
+        // Convert raw GPS speed (mm/s) → knots
+        const float speed_knots = ubxMessage.navPvt.gSpeed * MMPS_TO_KNOTS;
+
+        uint32_t intervalMs = 0;
+
+        // ------------------------------------------------------
+        // Adaptive update rate based on speed
+        // ------------------------------------------------------
+        if (speed_knots < 10.0f) {
+            return;   // ignore low speed completely
+        }
+        else if (speed_knots < 20.0f) {
+            intervalMs = 5000;   // 10–20 kn → every 5 s
+        }
+        else if (speed_knots < 35.0f) {
+            intervalMs = 3000;   // 20–35 kn → every 3 s
+        }
+        else {
+            intervalMs = 2000;   // >35 kn → every 2 s
+        }
+
+        // ------------------------------------------------------
+        // Throttled partial redraw
+        // ------------------------------------------------------
+        if (millis() - lastUpdateMs >= intervalMs) {
+            lastUpdateMs = millis();
+            screen_request_partial(0, 120);   // speed band
         }
     }
 
@@ -144,7 +167,7 @@ static void processGpsMessages(uint8_t msgType)
     if (GPS_Signal_OK) {
     gps_speed_value = ubxMessage.navPvt.gSpeed;
     }
-    
+
     if (Time_Set_OK) {
       nav_pvt_message++;
     }

@@ -175,97 +175,43 @@ void Speed_font3(
 // ============================================================================
 // draw_SPEED
 //
-// Main SPEED screen dispatcher.
-// Chooses layout and data source based on:
-// - Current SPEEDx field
-// - GPS state
-// - Alfa / NM / distance context
-// - Font mode selection
+// Primary SPEED screen.
+// - Shows large numeric speed (knots)
+// - Displays "Low GPS signal" if GPS not valid
+// - NO alfa / NM / distance logic here
 // ============================================================================
+
 void draw_SPEED()
 {
-
-    int field = config.field_actual;
-
-    // Context-sensitive screen detection
-    bool alfa_screen =
-        (Ublox.alfa_distance / 1000 < 350) && (abs(alfa_window) < 100);
-
-    bool nautical_mile_screen =
-        (Ublox.alfa_distance / 1000 > 1852);
-
-    bool x_10km_screen =
-        ((int)(Ublox.total_distance / 1000000) % 10 == 0) &&
-        (Ublox.alfa_distance / 1000 > 1000);
-
-    // Display active SPEED field indicator
-    display.setFont(Fonts::Small6);
-    display.setCursor(display.width() - 20, 0);
-    display.print((char)config.field_actual);
-
     // -------------------------------------------------------------------------
-    // SPEED field remapping logic
+    // GPS not good enough → warning
     // -------------------------------------------------------------------------
-    switch (config.field_actual) {
-        case SPEED1:
-            field = alfa_screen ? SPEED3 :
-                    nautical_mile_screen ? SPEED4 :
-                    x_10km_screen ? SPEED5 : SPEED2;
-            break;
-
-        case SPEED2:
-            field = nautical_mile_screen ? SPEED4 : SPEED2;
-            break;
-
-        case SPEED7:
-        case SPEED8:
-            field = alfa_screen ? SPEED3 : config.field_actual;
-            break;
-
-        case SPEED9:
-            field = SPEED2;
-            if (nautical_mile_screen) field = SPEED4;
-            if (Ublox.alfa_distance / 1000 < 1000) field = SPEED8;
-            if (S10.s_max_speed > S10.display_speed[5]) field = SPEED2;
-            if (alfa_screen) field = SPEED3;
-            break;
-    }
-
-    // -------------------------------------------------------------------------
-    // Large numeric speed display
-    // -------------------------------------------------------------------------
-    if (GPS_Signal_OK) {
-        float speed_knots = gps_speed_value * MMPS_TO_KNOTS;
-
-        int komma = int(speed_knots * 10) % 10;
-
-        display.setFont(Fonts::Huge75);
-        display.setCursor(ui_offset - 6, 115);
-        display.print(int(speed_knots));
-
-        display.setFont(Fonts::Big30);
-        display.print(".");
-
-        display.setFont(Fonts::SpeedL);
-        display.println(komma);
-
-        
-    } else {
+    if (!GPS_Signal_OK) {
         display.setFont(Fonts::Body18);
         display.setCursor(ui_offset, 60);
-        display.print("Low GPS signal !");
+        display.print("Low GPS signal");
+        return;
     }
 
     // -------------------------------------------------------------------------
-    // (Remaining logic unchanged: SPEED2–SPEEDA handling, bars, alfa, NM, etc.)
+    // Speed in knots (raw GPS → knots)
+    // gps_speed_value is mm/s
     // -------------------------------------------------------------------------
+    const float speed_knots = gps_speed_value * MMPS_TO_KNOTS;
 
-    // Final progress bar draw
-    display.fillRect(
-        ui_offset,
-        bar_position,
-        run_rectangle_length,
-        8,
-        GxEPD_BLACK
-    );
+    const int whole = int(speed_knots);
+    const int frac  = int(speed_knots * 10) % 10;
+
+    // -------------------------------------------------------------------------
+    // Draw large speed
+    // -------------------------------------------------------------------------
+    display.setFont(Fonts::Huge75);
+    display.setCursor(ui_offset + 8, 115);
+    display.print(whole);
+
+    display.setFont(Fonts::Big30);
+    display.print(".");
+
+    display.setFont(Fonts::SpeedL);
+    display.print(frac);
 }
