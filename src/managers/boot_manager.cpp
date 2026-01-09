@@ -18,7 +18,7 @@
 #include <sys/time.h>
 
 #include "boot_manager.h"
-#include "E_paper.h"
+#include "Display/E_paper.h"
 #include "rtc_state.h"
 #include "Globals.h"
 #include "Definitions.h"

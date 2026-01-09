@@ -14,13 +14,13 @@
 // - system_mode decides *what mode we are in*
 // -----------------------------------------------------------------------------
 
-#include "screen_draw.h"
-#include "screen_speed.h"
+#include "Display/screen_draw.h"
+#include "Display/screen_speed.h"
 #include "system_mode.h"
 
 #include "Fonts.h"
 #include "Layout.h"
-#include "E_paper.h"
+#include "Display/E_paper.h"
 #include "logos.h"
 
 // -----------------------------------------------------------------------------

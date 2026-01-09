@@ -5,7 +5,7 @@
 #include <GxEPD2_BW.h>
 #include <epd/GxEPD2_213_B74.h>
 
-#include <screen_draw.h>
+//#include <screen_draw.h>
 #include "rtc_state.h"
 #include "Ublox/Ublox.h"
 
@@ -154,7 +154,7 @@ extern GPS_Track M_500;
 
 void Off_screen(int choice);
 void Sleep_screen(int choice);
-void Update_screen(int screen);
+
 
 void Bat_level(int X_offset, int Y_offset);
 void Bat_level_Simon(int ui_offset);

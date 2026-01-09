@@ -1,8 +1,6 @@
 #include "Ublox/ublox.h"
 #include "Definitions.h"
 
-
-
 // -----------------------------------------------------------------------------
 // classifyMessage
 //
@@ -23,7 +21,6 @@ inline uint8_t classifyMessage(uint8_t cls, uint8_t id)
   }
 
   
-
 // -----------------------------------------------------------------------------
 // Helper: initialise UBX header fields for messages that embed cls/id/len
 // C++11-safe (no generic lambdas)

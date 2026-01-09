@@ -8,13 +8,15 @@
 
 #include <Arduino.h>
 
-#include "E_paper.h"
 #include "Fonts.h"
 #include "Definitions.h"
 #include "Layout.h"
 
 #include "system_mode.h"
-#include "screen_system.h"
+
+#include "Display/E_paper.h"
+#include "Display/screen_draw.h"
+#include "Display/screen_system.h"
 
 // ============================================================================
 // Display redraw signalling

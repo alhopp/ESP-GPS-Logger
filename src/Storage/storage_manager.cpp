@@ -3,7 +3,6 @@
 //
 // Robust storage manager for ESP32
 // - SD_MMC FIRST (SDNAND / SD slot, 1-bit default for safety)
-// - SD over SPI fallback
 // - LittleFS always available (mandatory control-plane / config fallback)
 //
 // Design goals:

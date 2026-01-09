@@ -6,7 +6,7 @@
 // ============================================================================
 
 #include <ArduinoJson.h>
-#include "wifi_manager.h"
+#include "web/wifi_manager.h"
 #include "system_mode.h"
 #include "task_display.h"
 #include "Layout.h"

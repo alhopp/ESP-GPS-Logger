@@ -5,7 +5,7 @@
 // - Own the physical e-paper display object
 // - Provide low-level UI chrome (battery, sats, time, info bar)
 // - Provide boot / diagnostic drawing helpers
-// - Provide legacy screen update shim (Update_screen)
+
 //
 // Non-responsibilities (IMPORTANT):
 // - Does NOT decide which screen to draw
@@ -18,7 +18,7 @@
 // -----------------------------------------------------------------------------
 // Display hardware + fonts (CORE — KEEP)
 // -----------------------------------------------------------------------------
-#include "E_paper.h"
+#include "Display/E_paper.h"
 #include "Fonts.h"
 
 // -----------------------------------------------------------------------------
@@ -45,7 +45,7 @@
 // -----------------------------------------------------------------------------
 // System / config (boot + status text only)
 // -----------------------------------------------------------------------------
-#include "screen_system.h"
+#include "Display/screen_system.h"
 #include "config_manager.h"
 #include "esp_logo.h"
 
@@ -57,10 +57,6 @@
 // ============================================================================
 // Display instance (OWNED HERE)
 // ============================================================================
-
-//GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
-//  GxEPD2_213_B74(ELINK_SS, ELINK_DC, ELINK_RESET, ELINK_BUSY)
-//);
 
 GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display(
   GxEPD2_213_B74(ELINK_SS, ELINK_DC, ELINK_RESET, ELINK_BUSY)
@@ -271,16 +267,4 @@ void sdCardInfo()
     display.printf("Local : %llu KB\n",
                    storageFreeKBytes());
   }
-}
-
-// ============================================================================
-// Legacy screen update API (DO NOT REMOVE)
-// ============================================================================
-//
-// Screen selection is now driven by SystemMode and rendered by task_display.
-// This function exists only to trigger a redraw for legacy callers.
-//
-void Update_screen(int /*screen*/)
-{
-  screen_request_redraw();
 }

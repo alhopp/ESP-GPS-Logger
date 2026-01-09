@@ -19,7 +19,7 @@
 // MANAGERS
 // -----------------------------------------------------------------------------
 #include "boot_manager.h"
-#include "wifi_manager.h"
+#include "web/wifi_manager.h"
 #include "web/web_server.h"
 
 #include "Storage/storage_manager.h"

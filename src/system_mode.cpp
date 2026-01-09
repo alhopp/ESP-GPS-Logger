@@ -18,9 +18,9 @@
 #include <Arduino.h>
 
 #include "system_mode.h"
-#include "wifi_manager.h"
+#include "web/wifi_manager.h"
 #include "gps_manager.h"
-#include "screen_system.h"
+#include "Display/screen_system.h"
 
 #include "Definitions.h"
 #include "esp_sleep.h"

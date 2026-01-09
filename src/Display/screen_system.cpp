@@ -13,18 +13,18 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
-#include "screen_system.h"
-#include "screen_context.h"
+#include "Display/screen_system.h"
+#include "Display/screen_context.h"
 
 #include "Layout.h"
 #include "Fonts.h"
 #include "esp_logo.h"
 
 #include "Storage/storage_manager.h"
-#include "wifi_manager.h"
+#include "web/wifi_manager.h"
 #include "rtc_state.h"
 
-#include "E_paper.h"
+#include "Display/E_paper.h"
 
 
 // Forward declarations 

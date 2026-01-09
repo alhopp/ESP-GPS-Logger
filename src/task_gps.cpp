@@ -9,7 +9,7 @@
 #include "Ublox/ublox.h"
 #include "Storage/storage_session_log.h"
 #include "ESP_functions.h"
-#include "E_paper.h"
+#include "Display/E_paper.h"
 
 #include <SD_MMC.h>
 #include "Definitions.h"

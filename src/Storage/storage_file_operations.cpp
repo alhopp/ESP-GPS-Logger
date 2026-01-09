@@ -37,8 +37,6 @@ char dataStr[255] = "";  // String for logging data
 char Buffer[50] = "";    // Temporary string for appending data
 uint64_t GPS_UTC_ms;     // Absolute UTC time with ms resolution at start of logging
 
-
-
 // -----------------------------------------------------------------------------
 // File handles for different file formats
 // -----------------------------------------------------------------------------
