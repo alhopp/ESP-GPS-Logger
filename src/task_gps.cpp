@@ -140,6 +140,11 @@ static void processGpsMessages(uint8_t msgType)
 
     last_gps_msg = millis();
 
+
+    if (GPS_Signal_OK) {
+    gps_speed_value = ubxMessage.navPvt.gSpeed;
+    }
+    
     if (Time_Set_OK) {
       nav_pvt_message++;
     }

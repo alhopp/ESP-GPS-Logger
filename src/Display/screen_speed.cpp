@@ -236,19 +236,17 @@ void draw_SPEED()
     // -------------------------------------------------------------------------
     if (GPS_Signal_OK) {
 
-            Serial.println("here");
-                
-            int komma = int(gps_speed_value * calibration_speed * 10) % 10;
+        int komma = int(gps_speed_value * calibration_speed * 10) % 10;
 
-            display.setFont(Fonts::Huge75);
-            display.setCursor(ui_offset - 6, 115);
-            display.print(int(gps_speed_value * calibration_speed));
+        display.setFont(Fonts::Huge75);
+        display.setCursor(ui_offset - 6, 115);
+        display.print(int(gps_speed_value * calibration_speed));
 
-            display.setFont(Fonts::Big30);
-            display.print(".");
+        display.setFont(Fonts::Big30);
+        display.print(".");
 
-            display.setFont(Fonts::SpeedL);
-            display.println(komma);
+        display.setFont(Fonts::SpeedL);
+        display.println(komma);
         
     } else {
         display.setFont(Fonts::Body18);
