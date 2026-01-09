@@ -83,8 +83,6 @@ extern int   start_logging_millis;
 
 extern bool  sdOK;
 extern bool  SoftAP_connection;
-extern bool  GPS_Signal_OK;
-
 
 extern int   ftpStatus;
 extern int   bootCount;

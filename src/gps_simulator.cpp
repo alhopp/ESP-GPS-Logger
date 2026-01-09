@@ -1,82 +1,76 @@
 // -----------------------------------------------------------------------------
 // gps_simulator.cpp
 //
-// Simple u-blox NAV-PVT simulator for ESP-GPS testing.
+// Real-time u-blox NAV-PVT simulator for ESP-GPS testing.
 //
-// What it simulates:
-// - 5 Hz NAV-PVT messages
-// - Satellite ramp-up: 0 → 10 SV, then stable
-// - Fix: no-fix until SV >= 5, then 3D fix
+// Simulates:
+// - 5 Hz–ish NAV-PVT updates (driven by call frequency)
+// - Satellite ramp-up over ~15 seconds (real time)
+// - No fix until >= 5 SV, then 3D fix
+// - No movement until 3D fix exists
 // - Track pattern:
-//     * Straight leg ~2000 m @ ~40 kn (with small noise)
-//     * Smooth 180° turn @ ~20 kn (with small noise)
-//     * Turn radius randomly picked each turn: 25–35 m
+//     * ~2000 m straight @ ~40 kn (with noise)
+//     * Smooth 180° turn @ ~20 kn
+//     * Turn radius randomly chosen: 25–35 m
 //     * Repeats forever
 //
-// Raw u-blox style fields:
-// - lat/lon: degrees * 1e7
-// - gSpeed : mm/s
-// - heading: degrees * 1e5
-// - sAcc   : mm/s
-// - iTOW   : ms
-// - valid  : set to 7 (date/time validity flags used in your code)
-//
-// NOTE:
-// - This produces “raw GPS-like” values. Your firmware’s calibration_speed
-//   determines how that displays (knots/kph/etc).
+// Outputs RAW u-blox style values:
+// - lat/lon   : degrees * 1e7
+// - gSpeed    : mm/s
+// - heading   : degrees * 1e5
+// - sAcc      : mm/s
+// - iTOW      : ms
+// - valid     : 7
 // -----------------------------------------------------------------------------
 
 #include "gps_simulator.h"
 #include "Ublox/Ublox.h"
+
+#include <Arduino.h>
 #include <math.h>
 #include <stdlib.h>
 
 // ============================================================================
-// Simulator constants
+// Constants
 // ============================================================================
-static constexpr float UPDATE_DT        = 0.2f;       // 5 Hz (0.2s per tick)
-static constexpr float STRAIGHT_DIST_M  = 2000.0f;    // Straight leg length
-static constexpr float KNOTS_TO_MPS     = 0.514444f;  // knots → m/s
+static constexpr float STRAIGHT_DIST_M = 2000.0f;
+static constexpr float KNOTS_TO_MPS    = 0.514444f;
 
-// Speeds
-static constexpr float STRAIGHT_KTS     = 40.0f;      // Target on straight
-static constexpr float TURN_KTS         = 20.0f;      // Target in turn
+static constexpr float STRAIGHT_KTS    = 40.0f;
+static constexpr float TURN_KTS        = 20.0f;
 
 // ============================================================================
 // Simulator state
 // ============================================================================
-static uint32_t sim_ms = 0;
-static uint32_t sat_timer_ms = 0;
+static bool     sim_initialised = false;
 
-static uint32_t sim_start_ms = 0;
-static uint32_t last_sat_step_ms = 0;
+static uint32_t sim_ms          = 0;
+static uint32_t last_step_ms   = 0;
+static uint32_t last_sat_step  = 0;
 
+// GPS quality
+static int sat_count = 0;
 
-// Start location (anywhere you like)
+// Position
 static double lat = -32.014400;
 static double lon = 115.850700;
 
 // Motion
 static double heading_deg = 0.0;
 static double speed_mps   = STRAIGHT_KTS * KNOTS_TO_MPS;
-
 static double leg_distance = 0.0;
 
 // Turn state
-static bool   turning          = false;
-static double turn_radius      = 30.0;   // meters (randomised per turn)
-static double turn_progress_deg = 0.0;   // accumulates until 180°
-static double turn_rate_deg     = 0.0;   // heading delta per tick (deg/tick)
-
-// GPS quality
-static int sat_count = 0;
+static bool   turning = false;
+static double turn_radius = 30.0;
+static double turn_progress_deg = 0.0;
+static double turn_rate_deg_per_sec = 0.0;
 
 // ============================================================================
 // Helpers
 // ============================================================================
 static inline double randf(double minv, double maxv)
 {
-  // Uniform float random in [minv, maxv]
   return minv + (maxv - minv) * (double(rand()) / RAND_MAX);
 }
 
@@ -85,72 +79,71 @@ static inline double randf(double minv, double maxv)
 // ============================================================================
 void gps_simulator_init()
 {
-  sim_start_ms     = millis();
-  last_sat_step_ms = sim_start_ms;
-  sat_count        = 0;
+  sim_initialised = true;
 
-  sim_ms = 0;
+  sim_ms        = 0;
+  last_step_ms  = millis();
+  last_sat_step = last_step_ms;
+
+  sat_count = 0;
 
   lat = -32.014400;
   lon = 115.850700;
 
-  heading_deg = 0.0;
-  speed_mps   = STRAIGHT_KTS * KNOTS_TO_MPS;
-
+  heading_deg  = 0.0;
+  speed_mps    = STRAIGHT_KTS * KNOTS_TO_MPS;
   leg_distance = 0.0;
+
   turning = false;
+  turn_radius = 30.0;
+  turn_progress_deg = 0.0;
+  turn_rate_deg_per_sec = 0.0;
 }
 
-
 // ============================================================================
-// One simulation step (called instead of processGPS())
-// Returns MT_NAV_PVT so your pipeline behaves like real GPS input.
+// One simulation step
 // ============================================================================
 int gps_simulator_step()
 {
-  static bool sim_initialised = false;
-
   if (!sim_initialised) {
     gps_simulator_init();
-    sim_initialised = true;
   }
 
-  // Advance simulated time
-  sim_ms += uint32_t(UPDATE_DT * 1000);
+  // --------------------------------------------------------------------------
+  // Real-time delta
+  // --------------------------------------------------------------------------
+  uint32_t now = millis();
+  float dt = (now - last_step_ms) / 1000.0f;
+  last_step_ms = now;
+
+  if (dt < 0.0f) dt = 0.0f;
+  if (dt > 0.5f) dt = 0.5f;   // clamp large gaps
+
+  sim_ms += uint32_t(dt * 1000.0f);
   ubxMessage.navPvt.iTOW = sim_ms;
 
   // --------------------------------------------------------------------------
-  // Satellite acquisition (15 second ramp-up)
+  // Satellite acquisition (≈15 seconds total)
   // --------------------------------------------------------------------------
-  uint32_t now = millis();
-
-  // Increase satellite count every 1500 ms (real time)
-  if (sat_count < 10 && (now - last_sat_step_ms) >= 1500) {
-  sat_count++;
-  last_sat_step_ms = now;
+  if (sat_count < 10 && (now - last_sat_step) >= 1500) {
+    sat_count++;
+    last_sat_step = now;
   }
 
-  if (sat_count < 5) {
-   ubxMessage.navPvt.fixType = 0;   // no fix
-  } else {
-   ubxMessage.navPvt.fixType = 3;   // 3D fix
-  }
-
-  ubxMessage.navPvt.numSV  = sat_count;
-  ubxMessage.navPvt.sAcc   = 800;   // 0.8 m/s
+  ubxMessage.navPvt.numSV = sat_count;
+  ubxMessage.navPvt.fixType = (sat_count >= 5) ? 3 : 0;
+  ubxMessage.navPvt.sAcc = 800;    // 0.8 m/s
   ubxMessage.navPvt.valid = 7;
 
-  // Do NOT move until 3D fix exists
+  // --------------------------------------------------------------------------
+  // Do not move until 3D fix exists
+  // --------------------------------------------------------------------------
   if (ubxMessage.navPvt.fixType < 3) {
-   ubxMessage.navPvt.gSpeed  = 0;
-   ubxMessage.navPvt.heading = heading_deg * 100000.0;
-   ubxMessage.navPvt.nano    = 0;
-   return MT_NAV_PVT;
+    ubxMessage.navPvt.gSpeed  = 0;
+    ubxMessage.navPvt.heading = heading_deg * 100000.0;
+    ubxMessage.navPvt.nano    = 0;
+    return MT_NAV_PVT;
   }
-  
-  // Accuracy values that satisfy your thresholds
-  ubxMessage.navPvt.sAcc   = 800;   // 0.8 m/s
-  ubxMessage.navPvt.valid = 7;
 
   // --------------------------------------------------------------------------
   // Motion model
@@ -158,46 +151,35 @@ int gps_simulator_step()
   if (!turning)
   {
     // ---------- STRAIGHT ----------
-    const double target_speed = STRAIGHT_KTS * KNOTS_TO_MPS;
+    const double target = STRAIGHT_KTS * KNOTS_TO_MPS;
+    speed_mps = target + randf(-1.5, 1.5) * KNOTS_TO_MPS;
 
-    // Add small speed noise (±1.5 kn)
-    speed_mps = target_speed + randf(-1.5, 1.5) * KNOTS_TO_MPS;
-
-    // Distance travelled this tick
-    const double d = speed_mps * UPDATE_DT;
+    const double d = speed_mps * dt;
     leg_distance += d;
 
-    // If we completed the straight, start a 180° turn
     if (leg_distance >= STRAIGHT_DIST_M)
     {
       turning = true;
       leg_distance = 0.0;
 
-      // Choose a random turn radius for this jibe
       turn_radius = randf(25.0, 35.0);
       turn_progress_deg = 0.0;
 
-      // Angular speed: omega = v / r  (rad/s)
-      // Convert to heading delta per tick in degrees:
-      const double omega = speed_mps / turn_radius; // rad/s
-      turn_rate_deg = omega * (180.0 / M_PI) * UPDATE_DT; // deg/tick
+      const double omega = speed_mps / turn_radius; // rad/sec
+      turn_rate_deg_per_sec = omega * (180.0 / M_PI);
     }
   }
   else
   {
     // ---------- TURN ----------
-    const double target_speed = TURN_KTS * KNOTS_TO_MPS;
+    const double target = TURN_KTS * KNOTS_TO_MPS;
+    speed_mps = target + randf(-1.0, 1.0) * KNOTS_TO_MPS;
 
-    // Add speed noise (±1 kn)
-    speed_mps = target_speed + randf(-1.0, 1.0) * KNOTS_TO_MPS;
+    const double dHead = turn_rate_deg_per_sec * dt;
+    heading_deg += dHead;
+    turn_progress_deg += fabs(dHead);
 
-    // Smoothly rotate heading
-    heading_deg += turn_rate_deg;
-    turn_progress_deg += fabs(turn_rate_deg);
-
-    // End turn once we’ve accumulated ~180°
-    if (turn_progress_deg >= 180.0)
-    {
+    if (turn_progress_deg >= 180.0) {
       heading_deg = fmod(heading_deg, 360.0);
       turning = false;
     }
@@ -206,23 +188,20 @@ int gps_simulator_step()
   // --------------------------------------------------------------------------
   // Position update (local Earth approximation)
   // --------------------------------------------------------------------------
-  const double d = speed_mps * UPDATE_DT;
+  const double d = speed_mps * dt;
 
-  // Very simple lat/lon update:
-  // - 1 deg lat ≈ 111111 m
-  // - lon scale factor depends on latitude
   lat += (d / 111111.0) * cos(heading_deg * DEG_TO_RAD);
   lon += (d / (111111.0 * cos(lat * DEG_TO_RAD))) *
          sin(heading_deg * DEG_TO_RAD);
 
   // --------------------------------------------------------------------------
-  // Fill UBX NAV-PVT fields (RAW style)
+  // Populate NAV-PVT (RAW)
   // --------------------------------------------------------------------------
-  ubxMessage.navPvt.lat      = lat * 1e7;                // degrees * 1e7
-  ubxMessage.navPvt.lon      = lon * 1e7;                // degrees * 1e7
-  ubxMessage.navPvt.gSpeed   = speed_mps * 1000.0;       // mm/s
-  ubxMessage.navPvt.heading  = heading_deg * 100000.0;   // deg * 1e5
-  ubxMessage.navPvt.nano     = 0;                        // full-second boundary
+  ubxMessage.navPvt.lat     = lat * 1e7;
+  ubxMessage.navPvt.lon     = lon * 1e7;
+  ubxMessage.navPvt.gSpeed  = speed_mps * 1000.0;     // mm/s
+  ubxMessage.navPvt.heading = heading_deg * 100000.0; // deg * 1e5
+  ubxMessage.navPvt.nano    = 0;
 
   return MT_NAV_PVT;
 }

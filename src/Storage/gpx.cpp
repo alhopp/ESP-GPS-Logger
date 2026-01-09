@@ -18,7 +18,7 @@
 // - Uses u-blox NAV-PVT + NAV-DOP data (global ubxMessage)
 // - Track points are written only on full-second boundaries
 // -----------------------------------------------------------------------------
-void log_GPX(int part, File file)
+void log_GPX(GPX_Part part, File file)
 {
     char bufferTx[512];   // Temporary transmit buffer for one GPX block
     int i, y;              // i = sprintf return length, y = running buffer index

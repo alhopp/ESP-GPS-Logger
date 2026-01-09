@@ -3,13 +3,16 @@
 #include "Globals.h"
 #include "task_gps.h"
 #include "config_manager.h"
-#include "Storage/storage_manager.h"
+
 #include "system_mode.h"
 
 #include "Ublox/ublox.h"
-#include "Storage/storage_session_log.h"
-#include "ESP_functions.h"
+
 #include "Display/E_paper.h"
+#include "Storage/storage_manager.h"
+#include "Storage/storage_session_log.h"
+
+#include "ESP_functions.h"
 #include "task_display.h"
 
 #include <SD_MMC.h>
@@ -35,7 +38,7 @@ extern bool sleep_mode;
 // --------------------------------------------------
 // Forward declarations
 // --------------------------------------------------
-static void processGpsMessages();
+static void processGpsMessages(uint8_t msgType);
 
 // --------------------------------------------------
 // GPS task
@@ -68,10 +71,12 @@ void taskOne(void *parameter)
 
     if (msg == MT_NAV_PVT)
     {
+
+      processGpsMessages(msg);  
+
       if (millis() - lastLogMs >= LOG_INTERVAL_MS)
           {
             lastLogMs = millis();
-
             LOG_GPS("PVT",
               "fix=%u sv=%u lat=%.6f lon=%.6f spd=%.2f",
               ubxMessage.navPvt.fixType,
@@ -115,8 +120,13 @@ void taskOne(void *parameter)
 // - NAV-DOP is optional diagnostics only
 // - NAV-SAT handles satellite display/logging
 // ==================================================
-static void processGpsMessages()
+static void processGpsMessages(uint8_t msgType)
 {
+
+
+
+
+
   // ---------------------------------------------------------------------------
   // NAV-PVT (authoritative navigation solution)
   // ---------------------------------------------------------------------------
@@ -166,8 +176,7 @@ static void processGpsMessages()
     }
 
     // -------- Normal logging --------
-    if ((sdOK || LITTLEFS_OK) &&
-        Time_Set_OK &&
+    if (Time_Set_OK &&
         nav_pvt_message > 10 &&
         nav_pvt_message != old_message) {
 
