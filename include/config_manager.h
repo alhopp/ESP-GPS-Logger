@@ -11,8 +11,7 @@ void ensureConfigExistsOnSD();
 void saveConfig();
 void TimeZone_env(float timezone);
 
-void loadConfiguration(const char *filename, 
-                const char *filename_backup, struct Config &config);
+void loadConfiguration(const char *filename, const char *filename_backup, struct Config &config);
 
 // ============================================================================
 // Configuration Structure

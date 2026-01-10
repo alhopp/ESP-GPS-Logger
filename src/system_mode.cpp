@@ -97,7 +97,7 @@ void setMode(SystemMode newMode)
 
     case MODE_SLEEP:
       LOG_SYS("MODE", "EXIT SLEEP → power up");
-
+      screen_request_partial(0,0,250,122);
        break;
 
     case MODE_BOOT:

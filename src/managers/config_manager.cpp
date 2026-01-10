@@ -40,8 +40,8 @@
 static void setDefaultConfig();
 static bool loadConfigFromFile(File &file);
 static void writeConfigToFile(File &file);
-static void validateConfig();               // <-- NEW: heals speed screens etc.
-static void sanitizeScreenString(char *dst, size_t dstSize, const char *src); // NEW
+static void validateConfig();           
+static void sanitizeScreenString(char *dst, size_t dstSize, const char *src); 
 static void applyDerivedConfig();
 static void dumpConfig();
 

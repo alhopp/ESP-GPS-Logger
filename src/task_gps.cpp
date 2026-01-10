@@ -59,8 +59,7 @@ void taskOne(void *parameter)
     // Only run GPS logic in relevant modes
     // -------------------------------------------------------------------------
     if (getMode() != MODE_LOGGING &&
-        getMode() != MODE_WAIT_SATS &&
-        getMode() != MODE_WIFI_SOFT_AP)
+        getMode() != MODE_WAIT_SATS)
     {
       vTaskDelay(pdMS_TO_TICKS(200));
       continue;
