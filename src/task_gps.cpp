@@ -130,22 +130,10 @@ void taskOne(void *parameter)
       // ----------------------------------------------------------
       // Adaptive refresh rate
       // ----------------------------------------------------------
-      if (speed_knots < 10.0f)
-      {
-        intervalMs = UINT32_MAX;      // disable redraws
-      }
-      else if (speed_knots < 20.0f)
-      {
-        intervalMs = 5000;            // every 5 s
-      }
-      else if (speed_knots < 38.0f)
-      {
-        intervalMs = 3000;            // every 3 s
-      }
-      else
-      {
-        intervalMs = 1000;            // every 1 s
-      }
+      if      (speed_knots < 10.0f) {intervalMs = UINT32_MAX;}
+      else if (speed_knots < 20.0f) {intervalMs = 5000;      }
+      else if (speed_knots < 38.0f) {intervalMs = 3000;      }
+      else                          {intervalMs = 1000;      }
 
       // ----------------------------------------------------------
       // Throttled partial redraw
@@ -156,7 +144,7 @@ void taskOne(void *parameter)
           (now - lastSpeedUpdateMs) >= intervalMs)
       {
         lastSpeedUpdateMs = now;
-        screen_request_partial(0, 120);   // speed band
+        screen_request_partial(0, 120); 
       }
     }
 

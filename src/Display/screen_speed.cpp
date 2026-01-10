@@ -25,152 +25,10 @@
 #include "config_manager.h"        // User configuration
 
 // -----------------------------------------------------------------------------
-// Local UI state (screen_speed-owned)
+// Local UI state 
 // -----------------------------------------------------------------------------
 static int ui_offset = 0;          // Horizontal UI offset (shared style)
 
-// Progress bar label buffer
-static char bar_info[16];
-
-// -----------------------------------------------------------------------------
-// Progress bar state (owned here, shared with display logic)
-// -----------------------------------------------------------------------------
-int bar_length             = 1852; // Distance represented by bar (meters)
-int bar_position           = 32;   // Vertical position of bar
-int total_bar_length       = 240;  // Pixel width of bar
-int run_rectangle_length   = 0;    // Filled portion (pixels)
-
-// -----------------------------------------------------------------------------
-// Font/layout variants for speed display
-// -----------------------------------------------------------------------------
-void Speed_font0(const char*, const char*, float, float, float, int);
-void Speed_font1(const char*, const char*, float, float, float, int);
-void Speed_font3(const char*, float);
-
-// ============================================================================
-// Speed_font0
-//
-// Classic layout:
-// - Two labels (left/right)
-// - Two small values
-// - One large live speed
-// ============================================================================
-void Speed_font0(
-    const char* message1,
-    const char* message2,
-    float speed1,
-    float speed2,
-    float speed,
-    int screen
-) {
-    const int decimals_small = (screen == 2) ? 0 : 1;
-
-    display.setFont(Fonts::Body12);
-    display.setTextColor(GxEPD_BLACK);
-
-    // Left label + value
-    display.setCursor(ui_offset, Layout::ROW12(1));
-    display.print(message1);
-
-    if (screen <= 2) {
-        display.setFont(Fonts::Body18);
-        display.print(speed1, decimals_small);
-    }
-
-    // Right label + value
-    display.setFont(Fonts::Body12);
-    display.setCursor(ui_offset + 122, Layout::ROW12(1));
-    display.print(message2);
-
-    display.setFont(Fonts::Body18);
-    display.print(speed2, decimals_small);
-
-    // Main speed
-    display.setFont(Fonts::SpeedXL);
-    display.setCursor(ui_offset, 120);
-    display.print(speed, 1);
-}
-
-// ============================================================================
-// Speed_font1
-//
-// Compact multi-mode layout used for:
-// - Run / Avg
-// - Alfa
-// - NM / distance screens
-// ============================================================================
-void Speed_font1(
-    const char* message1,
-    const char* message2,
-    float speed1,
-    float speed2,
-    float speed,
-    int screen
-) {
-    display.setCursor(ui_offset, 36);
-
-    if (screen == 0) {
-        display.setFont(Fonts::SpeedM);
-        display.print(speed1, 1);
-
-        display.setFont(Fonts::Body12);
-        display.setCursor(ui_offset + 113, 36);
-        display.print(message2);
-
-        display.setFont(Fonts::SpeedM);
-        display.print(speed2, 1);
-    }
-    else if (screen == 1) {
-        display.setFont(Fonts::Body12);
-        display.print(message1);
-
-        display.setFont(Fonts::SpeedM);
-        display.print(speed1, 0);
-
-        display.setFont(Fonts::Body12);
-        display.print(message2);
-
-        display.setFont(Fonts::SpeedM);
-        display.print(speed2, 0);
-    }
-    else if (screen == 2) {
-        display.setFont(Fonts::Body18);
-        display.print(message1);
-
-        display.setFont(Fonts::SpeedM);
-        display.print(speed1, 2);
-    }
-    else if (screen == 3) {
-        display.setFont(Fonts::Body18);
-        display.print(message1);
-    }
-
-    // Main speed
-    display.setFont(Fonts::SpeedXL);
-    display.setCursor(ui_offset, 120);
-    display.println(speed, 1);
-}
-
-// ============================================================================
-// Speed_font3
-//
-// Minimalist large-font layout:
-// - Single label
-// - Single speed value
-// ============================================================================
-void Speed_font3(
-    const char* message1,
-    float speed
-) {
-    display.setFont(&FreeSansBold24pt7b);
-    display.setCursor(ui_offset, 36);
-    bar_position = 40;
-    display.print(message1);
-
-    display.setCursor(ui_offset, 120);
-    display.setFont(Fonts::SpeedXL);
-    display.print(speed, 1);
-}
 
 // ============================================================================
 // draw_SPEED
@@ -187,7 +45,7 @@ void draw_SPEED()
     // GPS not good enough → warning
     // -------------------------------------------------------------------------
     if (!GPS_Signal_OK) {
-        display.setFont(Fonts::Body18);
+        display.setFont(Fonts::Body12);
         display.setCursor(ui_offset, 60);
         display.print("Low GPS signal");
         return;
@@ -198,7 +56,6 @@ void draw_SPEED()
     // gps_speed_value is mm/s
     // -------------------------------------------------------------------------
     const float speed_knots = gps_speed_value * MMPS_TO_KNOTS;
-
     const int whole = int(speed_knots);
     const int frac  = int(speed_knots * 10) % 10;
 

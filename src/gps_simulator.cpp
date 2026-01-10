@@ -33,7 +33,7 @@
 // ============================================================================
 // Constants
 // ============================================================================
-static constexpr float STRAIGHT_DIST_M = 2000.0f;
+static constexpr float STRAIGHT_DIST_M = 200.0f;
 static constexpr float KNOTS_TO_MPS    = 0.514444f;
 
 static constexpr float STRAIGHT_KTS    = 40.0f;
