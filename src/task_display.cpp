@@ -30,7 +30,9 @@
 static volatile bool display_dirty  = true;
 static volatile bool partial_dirty  = false;
 
+static int partial_x = 0;
 static int partial_y = 0;
+static int partial_w = 0;
 static int partial_h = 0;
 
 // Display task handle (exported via task_display.h)
@@ -51,15 +53,17 @@ void screen_request_redraw()
 // -----------------------------------------------------------------------------
 // Request PARTIAL redraw (caller defines dirty band)
 // -----------------------------------------------------------------------------
-void screen_request_partial(int y, int h)
+void screen_request_partial(int x, int y, int w, int h)
 {
-  partial_y     = y;
-  partial_h     = h;
-  partial_dirty = true;
+    partial_x     = x;
+    partial_y     = y;
+    partial_w     = w;
+    partial_h     = h;
+    partial_dirty = true;
 
-  if (t2) {
-    xTaskNotifyGive(t2);
-  }
+    if (t2) {
+        xTaskNotifyGive(t2);
+    }
 }
 
 // ============================================================================
@@ -83,8 +87,10 @@ void taskTwo(void* parameter)
       // Decide refresh type
       const bool doPartial = partial_dirty && !display_dirty;
 
-      // Snapshot partial region early (avoid races)
+      // Snapshot partial region early
+      const int px = partial_x;
       const int py = partial_y;
+      const int pw = partial_w;
       const int ph = partial_h;
 
       // Clear latches
@@ -99,7 +105,7 @@ void taskTwo(void* parameter)
       // Select refresh window
       // -----------------------------------------------------------------------
       if (doPartial) {
-        display.setPartialWindow(0,0,250,122);
+        display.setPartialWindow(px, py, pw, ph);
       } else {
         display.setFullWindow();
       }
@@ -115,7 +121,7 @@ void taskTwo(void* parameter)
           display.fillScreen(GxEPD_WHITE);
         } else {
           // Partial refresh clears ONLY dirty band
-          display.fillRect(0,0,250,122,GxEPD_WHITE);
+          display.fillRect (px, py, pw, ph ,GxEPD_WHITE);
         }
 
         // Draw active screen

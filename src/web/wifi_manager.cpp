@@ -185,11 +185,7 @@ void wifi_start_sta()
 
 LOG_WIFI("STA", "Connected IP=%s", WiFi.localIP().toString().c_str());
 
-// Only redraw rows 3–8 (status area)
-screen_request_partial(
-  Layout::SNAP8(Layout::ROW9(4)),   // start ABOVE WiFi row
-  Layout::SNAP8(Layout::ROW9(7)) - Layout::SNAP8(Layout::ROW9(4)) + 16
-);
+      screen_request_partial(0,0,250,122);
 
 
 

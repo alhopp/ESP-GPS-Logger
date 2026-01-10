@@ -13,4 +13,4 @@ void taskTwo(void* parameter);
 void screen_request_redraw();
 
 // Request a partial screen redraw (async, display-task owned)
-void screen_request_partial(int y, int h);
+void screen_request_partial(int x, int y, int w, int h);
