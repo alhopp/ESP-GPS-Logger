@@ -111,7 +111,7 @@ void taskOne(void *parameter)
         if (sv != lastSV)
         {
           lastSV = sv;
-          screen_request_partial(1, 1);   // small sats counter area
+          screen_request_partial(1, 1); 
         }
       }
     }
@@ -144,7 +144,7 @@ void taskOne(void *parameter)
           (now - lastSpeedUpdateMs) >= intervalMs)
       {
         lastSpeedUpdateMs = now;
-        screen_request_partial(0, 120); 
+        screen_request_partial(1, 1); 
       }
     }
 
@@ -195,7 +195,7 @@ static void processGpsMessages(uint8_t msgType)
     // -------- Mode transition --------
     if (GPS_Signal_OK && getMode() == MODE_WAIT_SATS) {
       setMode(MODE_LOGGING);
-      screen_request_redraw();
+      screen_request_partial(1, 1); 
     }
     
 

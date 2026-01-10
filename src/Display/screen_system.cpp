@@ -27,26 +27,15 @@
 
 
 // Forward declarations 
-static void drawSystemLayout(
-  const char* title,
-  const char* subtitle,
-  const char* key1,
-  const char* val1,
-  const char* key2,
-  const char* val2
-);
+static void drawSystemLayout(const char* title, const char* subtitle, const char* key1,
+  const char* val1, const char* key2, const char* val2);
 
+static void drawCenteredText(const char* text, int y, const GFXfont* font);
 
 // ============================================================================
 // UI STATE (avoid globals where possible; keep deterministic)
 // ============================================================================
 static int ui_offset = 0;
-
-// Small helper: keep ui_offset within a sane range (your original intent)
-static inline int clampUiOffset(int v)
-{
-  return constrain(v, 1, 9);
-}
 
 
 // ============================================================================
@@ -62,37 +51,34 @@ void draw_BOOT()
     static char voltBuf[16];
     snprintf(voltBuf, sizeof(voltBuf), "%.2f V", RTC_voltage_bat);
 
-    drawSystemLayout(
-      "ESP-GPS SLEEPING",
-      "Battery too low",
-      "Volt", voltBuf,
-      nullptr, nullptr
-    );
-
-    // Extra message line (kept explicit)
-    display.setFont(Fonts::Body9);
-    display.setCursor(ui_offset, Layout::ROW9(8));
-    display.print("Please charge LiPo");
-
-    // Optional reason / RTC text
+    drawCenteredText("ESP-GPS SLEEPING", Layout::ROW9(3), Fonts::Body12);
+    drawCenteredText("Battery too low",  Layout::ROW9(5), Fonts::Body9 );
+    
+    // RTC text
     if (RTC_Sleep_txt[0]) {
-      display.setCursor(ui_offset, Layout::ROW9(9));
+      display.setCursor(ui_offset, Layout::ROW9(7));
       display.print(RTC_Sleep_txt);
     }
 
     return;
   }
 
-  // --------------------------------------------------
-  // NORMAL BOOT PATH
-  // --------------------------------------------------
-  drawSystemLayout(
-    "BOOTING",
-    "Initialising system",
-    nullptr, nullptr,
-    nullptr, nullptr
-  );
+   drawCenteredText("ESP-GPS",             Layout::ROW9(3), Fonts::Body12);
+   drawCenteredText("Initialising system", Layout::ROW9(5), Fonts::Body9 );
+  
 }
+
+
+
+void draw_WAIT_SATS()
+{
+  static char satsBuf[32];
+  snprintf(satsBuf, sizeof(satsBuf), "Sat Fix %d of 5", ubxMessage.navPvt.numSV);
+  drawCenteredText(satsBuf, Layout::ROW9(7), Fonts::Body9 );
+
+}
+
+
 
 
 
@@ -117,21 +103,6 @@ void draw_WIFI_SOFT_AP()
       : WiFi.softAPIP().toString().c_str()
   );
 }
-
-
-void draw_WAIT_SATS()
-{
-  static char satsBuf[8];
-  snprintf(satsBuf, sizeof(satsBuf), "%d", ubxMessage.navPvt.numSV);
-
-  drawSystemLayout(
-    "WAITING FOR GPS",
-    "Acquiring satellites",
-    "Sats", satsBuf,
-    nullptr, nullptr
-  );
-}
-
 
 // ============================================================================
 // MODE: SLEEP  (shutdown / save progress screen)
@@ -216,6 +187,20 @@ void draw_SLEEP()
   }
 }
 
+
+static void drawCenteredText(const char* text, int y, const GFXfont* font)
+{
+    int16_t x1, y1;
+    uint16_t w, h;
+
+    display.setFont(font);
+    display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
+
+    display.setCursor((display.width() - w) / 2, y);
+    display.print(text);
+}
+
+
 // ============================================================================
 // Shared system screen layout
 // - Title
@@ -232,7 +217,6 @@ static void drawSystemLayout(
   const char* val2 = nullptr
 )
 {
-   //drawChrome(ui_offset, true);
 
   // --- TITLE ---
   display.setFont(Fonts::Body12);

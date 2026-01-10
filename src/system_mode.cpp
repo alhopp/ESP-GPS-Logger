@@ -141,6 +141,4 @@ void setMode(SystemMode newMode)
     default:
       break;
   }
-
-screen_request_redraw();
 }

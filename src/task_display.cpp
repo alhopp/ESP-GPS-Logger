@@ -115,7 +115,7 @@ void taskTwo(void* parameter)
           display.fillScreen(GxEPD_WHITE);
         } else {
           // Partial refresh clears ONLY dirty band
-          display.fillRect(0,40,250,94,GxEPD_WHITE);
+          display.fillRect(0,0,250,122,GxEPD_WHITE);
         }
 
         // Draw active screen

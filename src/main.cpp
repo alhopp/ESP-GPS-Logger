@@ -37,7 +37,6 @@
 // SYSTEM / UI
 // -----------------------------------------------------------------------------
 #include "system_mode.h"
-#include <esp_system.h>
 #include "Definitions.h"
 #include "rtc_state.h" 
 
@@ -45,9 +44,9 @@
 // CONFIGURATION / THRESHOLDS
 // -----------------------------------------------------------------------------
 
-// Gesture thresholds
-static constexpr uint32_t SLEEP_HOLD_MS   = 1000;  // ~1s
-static constexpr uint32_t WIFI_HOLD_MS    = 4000;  // ~4s
+// Gesture thresholds ms
+static constexpr uint32_t SLEEP_HOLD_MS   = 1000;  
+static constexpr uint32_t WIFI_HOLD_MS    = 4000;
 static constexpr uint32_t BOOT_IGNORE_MS  = 1500;
 
 static constexpr uint32_t LOW_STABLE_MS     = 30;
@@ -106,8 +105,6 @@ void setup()
   startTasks();
 
   setMode(MODE_WAIT_SATS);
-  screen_request_redraw();
-
 
 }
 
@@ -222,7 +219,7 @@ static void magnet_poll()
 
     if (getMode() == MODE_WIFI_SOFT_AP) {
       setMode(MODE_LOGGING);
-       screen_request_redraw();
+       screen_request_partial(1,1);
     } else {
       setMode(MODE_WIFI_SOFT_AP);
     }
@@ -238,10 +235,10 @@ static void magnet_poll()
     if (held >= SLEEP_HOLD_MS && held < WIFI_HOLD_MS) {
       if (getMode() == MODE_SLEEP) {
         setMode(MODE_LOGGING);
-         screen_request_redraw();
+         screen_request_partial(1,1);
       } else {
         setMode(MODE_SLEEP);
-         screen_request_redraw();
+        screen_request_partial(1,1);
       }
     }
   }
