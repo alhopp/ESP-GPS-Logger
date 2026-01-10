@@ -20,15 +20,13 @@
 #include "Display/screen_speed.h"
 #include "Display/E_paper.h"       // Physical e-paper display instance
 #include "Fonts.h"                 // Font definitions
-#include "Layout.h"                // Row / layout helpers
 #include "Globals.h"               // Global runtime values
-#include "config_manager.h"        // User configuration
 
 // -----------------------------------------------------------------------------
-// Local UI state 
+// Local UI state Layout constants
 // -----------------------------------------------------------------------------
-static int ui_offset = 0;          // Horizontal UI offset (shared style)
-
+static int ui_offset  = 0;          // Horizontal UI offset (shared style)
+constexpr int SPEED_Y = 112;        // Vertical UI offset
 
 // ============================================================================
 // draw_SPEED
@@ -55,6 +53,7 @@ void draw_SPEED()
     // Speed in knots (raw GPS → knots)
     // gps_speed_value is mm/s
     // -------------------------------------------------------------------------
+
     const float speed_knots = gps_speed_value * MMPS_TO_KNOTS;
     const int whole = int(speed_knots);
     const int frac  = int(speed_knots * 10) % 10;
@@ -63,7 +62,7 @@ void draw_SPEED()
     // Draw large speed
     // -------------------------------------------------------------------------
     display.setFont(Fonts::Huge75);
-    display.setCursor(ui_offset + 8, 112);
+    display.setCursor(ui_offset + 8, SPEED_Y);
     display.print(whole);
 
     display.setFont(Fonts::Big30);
