@@ -11,6 +11,7 @@
 #include "Fonts.h"
 #include "Definitions.h"
 #include "Layout.h"
+#include "Globals.h"
 
 #include "system_mode.h"
 
@@ -27,7 +28,7 @@
 // - display task owns ALL rendering + deep sleep
 // ============================================================================
 
-static volatile bool display_dirty  = true;
+static volatile bool display_dirty  = false;
 static volatile bool partial_dirty  = false;
 
 static int partial_x = 0;
@@ -79,7 +80,8 @@ void taskTwo(void* parameter)
 
   for (;;)
   {
-    // -------------------------------------------------------------------------
+
+      // -------------------------------------------------------------------------
     // Wake only when something changed
     // -------------------------------------------------------------------------
     if (display_dirty || partial_dirty)
@@ -104,7 +106,7 @@ void taskTwo(void* parameter)
       // -----------------------------------------------------------------------
       // Select refresh window
       // -----------------------------------------------------------------------
-      if (doPartial) {
+     if (doPartial || mode == MODE_BOOT || mode == MODE_WAIT_SATS) {
         display.setPartialWindow(px, py, pw, ph);
       } else {
         display.setFullWindow();

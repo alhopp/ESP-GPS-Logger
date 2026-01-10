@@ -22,6 +22,7 @@
 #include "rtc_state.h"
 #include "Globals.h"
 #include "Definitions.h"
+#include "task_display.h"
 
 // -----------------------------------------------------------------------------
 // INTERNAL STATE
@@ -76,11 +77,10 @@ BootResult initBoot()
   display.init(115200, true, 2, false);
   display.setRotation(1);
   display.setTextColor(GxEPD_BLACK);
-  
-  // Hold splash ONLY on true cold boot
-  if (!reset_boot) {
-    delay(1200);
-  }
+  screen_request_partial(0, 0,250, 123);
+
+
+
 
   // ---------------------------------------------------------------------------
   // Fatal boot conditions (report only)
