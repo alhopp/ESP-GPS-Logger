@@ -132,15 +132,6 @@ void taskOne(void *parameter)
         }
     }
 
-   // if (getMode() == MODE_LOGGING && GPS_Signal_OK && Time_Set_OK && !logging_started) {
-  //  if (getMode() == MODE_LOGGING && GPS_Signal_OK && !logging_started) {
-
-//      Open_files();
-  //    Shut_down_Save_session = true;
- //     logging_started = true;
-//
-  //    LOG_STORAGE("LOG", "Session started");
-    //}
 
 
     // -------------------------------------------------------------------------
