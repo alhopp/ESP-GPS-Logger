@@ -135,6 +135,7 @@ void setMode(SystemMode newMode)
 
       // Wi-Fi can come up after UI is visible
       wifi_start_ap();
+      screen_request_partial(0,0,250,122);
       break;
 
 
@@ -142,6 +143,7 @@ void setMode(SystemMode newMode)
       LOG_SYS("MODE", "ENTER SLEEP");
       wifi_stop();
       gps_power_off();
+     // screen_request_partial(0,0,250,122);
       break;
 
 

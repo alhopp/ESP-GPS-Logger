@@ -264,12 +264,16 @@ server.on("/api/files", HTTP_GET, [&] {
     // Only allow real GPS log files
     const char* ext = strrchr(name, '.');
     if (!ext ||
-        (strcmp(ext, ".sbp") &&
-         strcmp(ext, ".ubx") &&
-         strcmp(ext, ".gpx"))) {
-      f.close();
-      continue;
-    }
+      (strcmp(ext, ".sbp") &&
+      strcmp(ext, ".ubx") &&
+      strcmp(ext, ".gpx") &&
+      strcmp(ext, ".gpy") &&
+      strcmp(ext, ".txt"))) {
+    f.close();
+    continue;
+  }
+
+
 
     // -----------------------------------------------------------------------
     // VALID FILE
