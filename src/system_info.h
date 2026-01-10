@@ -10,6 +10,8 @@ struct SystemInfo {
   const char* sample_rate;     // "5 Hz"
   const char* gnss_mode;       // "GPS + GLONASS + GALILEO"
   const char* dynamic_model;   // "SEA"
+  
+  const char* display;         // "LilyGO T5 B74"   
 };
 
 extern const SystemInfo systemInfo;

@@ -118,6 +118,7 @@ server.on("/api/config", HTTP_GET, [&] {
   j["system"]["gnss_module"]      = systemInfo.gnss_module;
   j["system"]["storage_mb"]       = systemInfo.storage_mb;
   j["system"]["software_version"] = systemInfo.software_version;
+  j["system"]["display"]          = systemInfo.display;
 
   // -------------------------------------------------------------------------
   // GPS (read-only identity + live config)

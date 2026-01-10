@@ -8,5 +8,7 @@ const SystemInfo systemInfo = {
   .speed_units     = "Knots",
   .sample_rate     = "5 Hz",
   .gnss_mode       = "GPS + GLONASS + GALILEO",
-  .dynamic_model   = "SEA"
+  .dynamic_model   = "SEA",
+  .display         = "LilyGO T5 B74"
+
 };
