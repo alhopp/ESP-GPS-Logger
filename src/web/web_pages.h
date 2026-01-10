@@ -97,6 +97,22 @@ input,select{
   color:var(--a)
 }
 
+/* System read-only list */
+.sys-row{
+  display:flex;
+  justify-content:space-between;
+  padding:10px 0;
+  border-bottom:1px solid var(--e);
+  font-size:14px
+}
+.sys-row span:first-child{
+  color:var(--f)
+}
+.sys-row span:last-child{
+  font-weight:600;
+  color:#000
+}
+
 footer{
   padding:14px;
   border-top:1px solid var(--e);
@@ -143,12 +159,11 @@ footer button{
 </div>
 
 <div class=card>
-<h3>Power</h3>
-<label>Battery Calibration</label>
-<input id=cal_bat type=number step=0.01>
-
-<label>Shutdown Voltage (V)</label>
-<input id=shutdown_voltage type=number step=0.1>
+<h3>Statistics</h3>
+<label>Stat Screens</label>
+<input id=Stat_screens type=number>
+<label>Stat Screen Sequence</label>
+<input id=stat_screen>
 </div>
 
 <div class=card>
@@ -174,34 +189,18 @@ footer button{
 </div>
 
 <div class=card>
-<h3>Statistics</h3>
-<label>Stat Screens</label>
-<input id=Stat_screens type=number>
-
-<label>Stat Screen Sequence</label>
-<input id=stat_screen>
-</div>
-
-<div class=card>
-<h3>Time</h3>
-<label>Timezone</label>
-<select id=timezone>
-<option value="-12">UTC-12</option>
-<option value="0">UTC</option>
-<option value="8">UTC+8 (Perth)</option>
-<option value="10">UTC+10 (Sydney)</option>
-</select>
-
-<label><input type=checkbox id=timezone_DST> Daylight Saving</label>
-</div>
-
-<div class=card>
 <h3>Logging</h3>
 <div class=toggle><span>TXT</span><label><input type=checkbox id=logTXT><div class=slider></div></label></div>
 <div class=toggle><span>UBX</span><label><input type=checkbox id=logUBX><div class=slider></div></label></div>
 <div class=toggle><span>SBP</span><label><input type=checkbox id=logSBP><div class=slider></div></label></div>
 <div class=toggle><span>GPY</span><label><input type=checkbox id=logGPY><div class=slider></div></label></div>
 <div class=toggle><span>GPX</span><label><input type=checkbox id=logGPX><div class=slider></div></label></div>
+</div>
+
+<div class=card>
+<h3>Power</h3>
+<label>Battery Calibration</label>
+<input id=cal_bat type=number step=0.01>
 </div>
 
 <div class=card>
@@ -217,19 +216,17 @@ footer button{
 <!-- SYSTEM -->
 <section id=system>
 <div class=card>
-<h3>GPS</h3>
-<label>Speed Units</label>
-<input value="Knots" readonly>
-<label>Sample Rate</label>
-<input id=sample_rate readonly>
-<label>GNSS</label>
-<input id=gnss readonly>
-<label>Dynamic Model</label>
-<input value="Sea" readonly>
+<h3>GPS Status</h3>
+
+<div class=sys-row><span>Speed Units</span><span>Knots</span></div>
+<div class=sys-row><span>Sample Rate</span><span id=sys_sample_rate></span></div>
+<div class=sys-row><span>GNSS</span><span id=sys_gnss></span></div>
+<div class=sys-row><span>Dynamic Model</span><span>Sea</span></div>
+
 </div>
 </section>
 
-<footer>
+<footer id=footer>
 <button onclick=save()>Save</button>
 </footer>
 
@@ -240,6 +237,9 @@ function tab(id,b){
   document.querySelectorAll("nav button,section").forEach(e=>e.classList.remove("a"));
   b.classList.add("a");
   $(id).classList.add("a");
+
+  // Hide Save button on System tab
+  footer.style.display = (id==="system") ? "none" : "block";
 }
 
 function set(e,v){
@@ -250,33 +250,23 @@ function set(e,v){
 async function load(){
   const c=await(await fetch("/api/config")).json();
 
-  // UI
   set(Sleep_info,c.ui?.Sleep_info);
-  set(Board_Logo,c.ui?.Board_Logo);
-  set(Sail_Logo,c.ui?.Sail_Logo);
   set(Stat_screens,c.ui?.Stat_screens);
   set(stat_screen,c.ui?.stat_screen);
-
-  // Power
+  set(Board_Logo,c.ui?.Board_Logo);
+  set(Sail_Logo,c.ui?.Sail_Logo);
   set(cal_bat,c.power?.cal_bat);
-  set(shutdown_voltage,c.power?.shutdown_voltage);
 
-  // Time
-  set(timezone,c.system?.timezone);
-  set(timezone_DST,c.system?.timezone_DST);
-
-  // Logging
   set(logTXT,c.logging?.logTXT);
   set(logUBX,c.logging?.logUBX);
   set(logSBP,c.logging?.logSBP);
   set(logGPY,c.logging?.logGPY);
   set(logGPX,c.logging?.logGPX);
 
-  // System
-  set(sample_rate,c.gps?.sample_rate);
-  set(gnss,c.gps?.gnss);
+  // System (read-only)
+  $("sys_sample_rate").textContent = c.gps?.sample_rate + " Hz";
+  $("sys_gnss").textContent = c.gps?.gnss;
 
-  // Wi-Fi
   ssid.value=c.wifi?.ssid||"";
 
   loadFiles();
@@ -286,19 +276,12 @@ async function save(){
   const p={
     ui:{
       Sleep_info:Sleep_info.value,
-      Board_Logo:+Board_Logo.value,
-      Sail_Logo:+Sail_Logo.value,
       Stat_screens:+Stat_screens.value,
-      stat_screen:stat_screen.value
+      stat_screen:stat_screen.value,
+      Board_Logo:+Board_Logo.value,
+      Sail_Logo:+Sail_Logo.value
     },
-    power:{
-      cal_bat:+cal_bat.value,
-      shutdown_voltage:+shutdown_voltage.value
-    },
-    system:{
-      timezone:+timezone.value,
-      timezone_DST:timezone_DST.checked
-    },
+    power:{ cal_bat:+cal_bat.value },
     logging:{
       logTXT:logTXT.checked,
       logUBX:logUBX.checked,
