@@ -39,6 +39,46 @@ static void sendJson(WebServer &s, JsonDocument &doc)
 // -----------------------------------------------------------------------------
 // start server
 // -----------------------------------------------------------------------------
+static const char* basenameOnly(const char* path)
+{
+  if (!path) return nullptr;
+  const char* p = strrchr(path, '/');
+  return p ? p + 1 : path;
+}
+
+static bool isValidLogFilename(const char* path)
+{
+  const char* name = basenameOnly(path);
+  if (!name || !*name) return false;
+
+  size_t len = strlen(name);
+
+  // Reasonable GPS log length (timestamps + MAC)
+  if (len < 8 || len > 96) return false;
+
+
+  // Printable ASCII only
+  for (const char* p = name; *p; ++p) {
+    if (*p < 32 || *p > 126) return false;
+  }
+
+  // Extension check
+  const char* ext = strrchr(name, '.');
+  if (!ext) return false;
+
+  if (strcmp(ext, ".txt") &&
+      strcmp(ext, ".sbp") &&
+      strcmp(ext, ".ubx") &&
+      strcmp(ext, ".gpx") &&
+      strcmp(ext, ".gpy")) {
+    return false;
+  }
+
+  return true;
+}
+
+
+
 
 void webserver_start(WebServer &server)
 {
@@ -197,11 +237,9 @@ void webserver_start(WebServer &server)
     sendJson(server, j);
   });
 
-  // ---------------------------------------------------------------------------
-  // FILE LIST
-  // ---------------------------------------------------------------------------
+  
 // ---------------------------------------------------------------------------
-// FILE LIST  (SD card only, hardened)
+// FILE LIST  ( /logs only — fast & clean )
 // ---------------------------------------------------------------------------
 server.on("/api/files", HTTP_GET, [&] {
 
@@ -218,9 +256,12 @@ server.on("/api/files", HTTP_GET, [&] {
   j["free_kb"] = storageFreeKBytes();
   JsonArray arr = j.createNestedArray("files");
 
-  fs::FS& fs = SD_MMC;
-  File root = fs.open("/");
+  // -------------------------------------------------------------------------
+  // Open /logs only
+  // -------------------------------------------------------------------------
+  File root = SD_MMC.open("/logs");
   if (!root || !root.isDirectory()) {
+    // SD OK, just no logs yet
     sendJson(server, j);
     return;
   }
@@ -229,64 +270,37 @@ server.on("/api/files", HTTP_GET, [&] {
     File f = root.openNextFile();
     if (!f) break;
 
-    // -----------------------------------------------------------------------
-    // HARD FILTERS
-    // -----------------------------------------------------------------------
-
     // Never list directories
     if (f.isDirectory()) {
       f.close();
       continue;
     }
 
-    const char* name = f.name();
-    if (!name) {
+    const char* full = f.name();
+    const char* name = basenameOnly(full);
+    size_t size = f.size();
+
+    // Strict filename filter
+    if (!isValidLogFilename(name)) {
       f.close();
       continue;
     }
 
-    // Reject historical JSON / API garbage
-    if (name[0] == '"' ||
-        strstr(name, "ok") == name ||
-        strstr(name, "free_kb") ||
-        strstr(name, "{") ||
-        strstr(name, "}")) {
+    // Sanity size
+    if (size == 0 || size > (100UL * 1024UL * 1024UL)) {
       f.close();
       continue;
     }
 
-    // Ignore zero-length junk
-    if (f.size() == 0) {
-      f.close();
-      continue;
-    }
-
-    // Only allow real GPS log files
-    const char* ext = strrchr(name, '.');
-    if (!ext ||
-      (strcmp(ext, ".sbp") &&
-      strcmp(ext, ".ubx") &&
-      strcmp(ext, ".gpx") &&
-      strcmp(ext, ".gpy") &&
-      strcmp(ext, ".txt"))) {
-    f.close();
-    continue;
-  }
-
-
-
-    // -----------------------------------------------------------------------
-    // VALID FILE
-    // -----------------------------------------------------------------------
     JsonObject o = arr.createNestedObject();
     o["name"] = name;
-    o["size"] = f.size();
+    o["size"] = size;
 
     f.close();
   }
 
-  root.close();
-  sendJson(server, j);
+  root.close();            
+  sendJson(server, j);     
 });
 
 
@@ -300,7 +314,7 @@ server.on("/api/files", HTTP_GET, [&] {
       return;
     }
 
-    String path = "/" + server.arg("name");
+   String path = "/logs/" + server.arg("name");
     File f = SD_MMC.open(path, FILE_READ);
     if (!f) {
       server.send(404);
@@ -322,7 +336,8 @@ server.on("/api/files", HTTP_GET, [&] {
 
     StaticJsonDocument<256> j;
     deserializeJson(j, server.arg("plain"));
-    String path = "/" + String((const char*)j["name"]);
+    String path = "/logs/" + String((const char*)j["name"]);
+
 
     bool ok = SD_MMC.remove(path);
     server.send(200, "application/json", ok ? "{\"ok\":true}" : "{\"ok\":false}");

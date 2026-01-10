@@ -73,30 +73,43 @@ void Open_files(void)
   }
 
   // ---------------------------------------------------------------------------
-  // Build base filename
+  // Build base filename  ( /logs/<name>_YYYYMMDD_HHMM_MAC )
   // ---------------------------------------------------------------------------
   char baseFilename[96];
+  char pathBase[128];
 
   getLocalTime(&tmstruct);
 
+  // Ensure log directory exists (safe to call repeatedly)
+  if (!SD_MMC.exists("/logs")) {
+    SD_MMC.mkdir("/logs");
+  }
+
+  // Build basename WITHOUT leading slash
   snprintf(baseFilename, sizeof(baseFilename),
-           "/%s_%04d%02d%02d_%02d%02d_%02X%02X%02X",
-           config.UBXfile,                  // base name from config
-           tmstruct.tm_year + 1900,
-           tmstruct.tm_mon + 1,
-           tmstruct.tm_mday,
-           tmstruct.tm_hour,
-           tmstruct.tm_min,
-           mac[3], mac[4], mac[5]);
+          "%s_%04d%02d%02d_%02d%02d_%02X%02X%02X",
+          config.UBXfile,                  // base name from config
+          tmstruct.tm_year + 1900,
+          tmstruct.tm_mon + 1,
+          tmstruct.tm_mday,
+          tmstruct.tm_hour,
+          tmstruct.tm_min,
+          mac[3], mac[4], mac[5]);
+
+  // Full path base inside /logs
+  snprintf(pathBase, sizeof(pathBase),
+          "/logs/%s",
+          baseFilename);
 
   // ---------------------------------------------------------------------------
   // Final filenames
   // ---------------------------------------------------------------------------
-  snprintf(filenameERR, sizeof(filenameERR), "%s.txt", baseFilename);
-  snprintf(filenameUBX, sizeof(filenameUBX), "%s.ubx", baseFilename);
-  snprintf(filenameSBP, sizeof(filenameSBP), "%s.sbp", baseFilename);
-  snprintf(filenameGPY, sizeof(filenameGPY), "%s.gpy", baseFilename);
-  snprintf(filenameGPX, sizeof(filenameGPX), "%s.gpx", baseFilename);
+  snprintf(filenameERR, sizeof(filenameERR), "%s.txt", pathBase);
+  snprintf(filenameUBX, sizeof(filenameUBX), "%s.ubx", pathBase);
+  snprintf(filenameSBP, sizeof(filenameSBP), "%s.sbp", pathBase);
+  snprintf(filenameGPY, sizeof(filenameGPY), "%s.gpy", pathBase);
+  snprintf(filenameGPX, sizeof(filenameGPX), "%s.gpx", pathBase);
+
 
   // ---------------------------------------------------------------------------
   // Open files
@@ -135,20 +148,23 @@ void Open_files(void)
 // Flush the files periodically to ensure data is written to the storage
 // -----------------------------------------------------------------------------
 
-void Flush_files(void) {
-  if (config.sample_rate <= 10) {
-    static int load_balance = 0;
-    if (load_balance == 0) ubxfile.flush();
-    if (load_balance == 1) errorfile.flush();
-    if (load_balance == 2) gpyfile.flush();
-    if (load_balance == 3) sbpfile.flush();
-    if (load_balance == 4) {
-      gpxfile.flush();
-      load_balance = -1;
-    }
-    load_balance++;
+void Flush_files(void)
+{
+  if (config.sample_rate > 10) return;
+
+  static int load_balance = 0;
+
+  switch (load_balance) {
+    case 0: if (ubxfile)   ubxfile.flush();   break;
+    case 1: if (errorfile) errorfile.flush(); break;
+    case 2: if (gpyfile)   gpyfile.flush();   break;
+    case 3: if (sbpfile)   sbpfile.flush();   break;
+    case 4: if (gpxfile)   gpxfile.flush();   break;
   }
+
+  load_balance = (load_balance + 1) % 5;
 }
+
 
 
 void Log_to_SD(void) {
@@ -157,10 +173,13 @@ void Log_to_SD(void) {
 
     old_iTOW = ubxMessage.navPvt.iTOW;
 
-    if (config.logUBX == true) {
-      ubxfile.write(0xB5);
-      ubxfile.write(0x62);
-      ubxfile.write((const uint8_t *)&ubxMessage.navPvt, sizeof(ubxMessage.navPvt));
+  if (config.logUBX && ubxfile) {
+  ubxfile.write(0xB5);
+  ubxfile.write(0x62);
+  ubxfile.write((const uint8_t *)&ubxMessage.navPvt,
+                sizeof(ubxMessage.navPvt));
+}
+
 
       static int old_nav_sat_message = 0;
       if (nav_sat_message != old_nav_sat_message) {
@@ -187,7 +206,6 @@ void Log_to_SD(void) {
       log_GPX(GPX_FRAME, gpxfile);
     }
   }
-}
 
 
 // -----------------------------------------------------------------------------
