@@ -62,44 +62,73 @@ char filename_NO_EXT[64] = "/";
 // Open files for logging based on MAC address and timestamp
 // -----------------------------------------------------------------------------
 
-void Open_files(void) {
-  // Prepare timestamp and MAC address strings
-  char timestamp[16], macAddr[16], baseFilename[64] = "/"; 
+void Open_files(void)
+{
+  // ---------------------------------------------------------------------------
+  // Ensure GPS time is valid
+  // ---------------------------------------------------------------------------
+  if (!Time_Set_OK) {
+    Serial.println("[STORAGE] Open_files called without valid GPS time");
+    return;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Build base filename
+  // ---------------------------------------------------------------------------
+  char baseFilename[96];
+
   getLocalTime(&tmstruct);
-  sprintf(timestamp, "_%u%02u%02u%02u%02u", tmstruct.tm_year - 100, tmstruct.tm_mon + 1, tmstruct.tm_mday, tmstruct.tm_hour, tmstruct.tm_min);
-  sprintf(macAddr, "_%2X%2X%2X", mac[3], mac[4], mac[5]);
 
-  // Construct base filename
-  strcat(strcpy(baseFilename, config.UBXfile), timestamp);
-  strcat(baseFilename, macAddr);
+  snprintf(baseFilename, sizeof(baseFilename),
+           "/%s_%04d%02d%02d_%02d%02d_%02X%02X%02X",
+           config.UBXfile,                  // base name from config
+           tmstruct.tm_year + 1900,
+           tmstruct.tm_mon + 1,
+           tmstruct.tm_mday,
+           tmstruct.tm_hour,
+           tmstruct.tm_min,
+           mac[3], mac[4], mac[5]);
 
-  // Assign filenames for different formats with respective extensions
+  // ---------------------------------------------------------------------------
+  // Final filenames
+  // ---------------------------------------------------------------------------
   snprintf(filenameERR, sizeof(filenameERR), "%s.txt", baseFilename);
   snprintf(filenameUBX, sizeof(filenameUBX), "%s.ubx", baseFilename);
   snprintf(filenameSBP, sizeof(filenameSBP), "%s.sbp", baseFilename);
   snprintf(filenameGPY, sizeof(filenameGPY), "%s.gpy", baseFilename);
   snprintf(filenameGPX, sizeof(filenameGPX), "%s.gpx", baseFilename);
 
-  // Open files for writing in append mode
-  if (config.logUBX) ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
+  // ---------------------------------------------------------------------------
+  // Open files
+  // ---------------------------------------------------------------------------
+  if (config.logUBX) {
+    ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
+  }
+
 #if defined(GPY_H)
   if (config.logGPY) {
     gpyfile = SD_MMC.open(filenameGPY, FILE_APPEND);
     log_GPY_Header(gpyfile);
   }
 #endif
+
   if (config.logSBP) {
     sbpfile = SD_MMC.open(filenameSBP, FILE_APPEND);
     log_header_SBP(sbpfile);
   }
+
   if (config.logGPX) {
     gpxfile = SD_MMC.open(filenameGPX, FILE_APPEND);
     log_GPX(GPX_HEADER, gpxfile);
   }
+
   if (config.logTXT) {
     errorfile = SD_MMC.open(filenameERR, FILE_APPEND);
   }
+
+  Serial.printf("[STORAGE] LOG : Session started %s\n", baseFilename);
 }
+
 
 
 // -----------------------------------------------------------------------------

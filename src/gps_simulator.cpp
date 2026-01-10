@@ -201,7 +201,36 @@ int gps_simulator_step()
   ubxMessage.navPvt.lon     = lon * 1e7;
   ubxMessage.navPvt.gSpeed  = speed_mps * 1000.0;     // mm/s
   ubxMessage.navPvt.heading = heading_deg * 100000.0; // deg * 1e5
-  ubxMessage.navPvt.nano    = 0;
+
+
+  // --------------------------------------------------------------------------
+  // Simulated GPS date/time (UTC)
+  // --------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    // Simulated GPS date/time (UTC)
+    // --------------------------------------------------------------------------
+    static bool time_init = false;
+
+    if (!time_init && ubxMessage.navPvt.fixType >= 3)
+    {
+    ubxMessage.navPvt.year  = 2026;
+    ubxMessage.navPvt.month = 1;
+    ubxMessage.navPvt.day   = 10;
+
+    ubxMessage.navPvt.hour = 8;
+    ubxMessage.navPvt.min  = 30;
+    ubxMessage.navPvt.sec  = 0;
+
+    ubxMessage.navPvt.nano = 0;
+    ubxMessage.navPvt.tAcc = 50000;   // 50 µs
+
+    // validDate | validTime | fullyResolved
+    ubxMessage.navPvt.valid = 0b111;
+
+    time_init = true;
+    }
+
+
 
   return MT_NAV_PVT;
 }

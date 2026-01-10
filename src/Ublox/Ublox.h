@@ -113,7 +113,7 @@ struct NAV_DOP {
 struct NAV_PVT {
   uint32_t iTOW;
   uint16_t year;
-  uint8_t month,day,hour,minute,second,valid;
+  uint8_t month,day,hour,min,sec,valid;
   uint32_t tAcc;
   int32_t nano;
   uint8_t fixType,flags,flags2,numSV;

@@ -86,8 +86,8 @@ void log_SBP(File file) {
     uint8_t  month = ubxMessage.navPvt.month;
     uint8_t  day   = ubxMessage.navPvt.day;
     uint8_t  hour  = ubxMessage.navPvt.hour;
-    uint16_t min   = ubxMessage.navPvt.minute;
-    uint16_t sec   = ubxMessage.navPvt.second;
+    uint16_t min   = ubxMessage.navPvt.min;
+    uint16_t sec   = ubxMessage.navPvt.sec;
 
     // Satellite mask placeholder (filled later)
     uint32_t numSV = 0xFFFFFFFF;
@@ -114,7 +114,7 @@ void log_SBP(File file) {
 
     // UTC milliseconds within the current second (rounded)
     sbp_frame.UtcSec =
-        ubxMessage.navPvt.second * 1000 +
+        ubxMessage.navPvt.sec * 1000 +
         (ubxMessage.navPvt.nano + 500000) / 1000000;
 
     // Pack date/time into a compact integer format

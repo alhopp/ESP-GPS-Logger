@@ -43,6 +43,8 @@ static void processGpsMessages(uint8_t msgType);
 // --------------------------------------------------
 // GPS task
 // --------------------------------------------------
+static bool logging_started = false;
+
 void taskOne(void *parameter)
 {
   static uint8_t  lastSV = 0;
@@ -116,11 +118,37 @@ void taskOne(void *parameter)
       }
     }
 
+
+     // -------- Time set & start logging --------
+   if (!Time_Set_OK &&
+    GPS_Signal_OK &&
+    (ubxMessage.navPvt.valid & 0b011) == 0b011)  // date + time valid
+    {
+        if (Set_GPS_Time(config.timezone)) {
+            Time_Set_OK = true;
+            Shut_down_Save_session = true;
+            start_logging_millis = millis();
+            Open_files();   
+        }
+    }
+
+   // if (getMode() == MODE_LOGGING && GPS_Signal_OK && Time_Set_OK && !logging_started) {
+  //  if (getMode() == MODE_LOGGING && GPS_Signal_OK && !logging_started) {
+
+//      Open_files();
+  //    Shut_down_Save_session = true;
+ //     logging_started = true;
+//
+  //    LOG_STORAGE("LOG", "Session started");
+    //}
+
+
     // -------------------------------------------------------------------------
     // LOGGING → adaptive speed display update
     // -------------------------------------------------------------------------
-    if (getMode() == MODE_LOGGING && GPS_Signal_OK)
+    if (getMode() == MODE_LOGGING && GPS_Signal_OK )
     {
+
       // Convert raw GPS speed (mm/s → knots)
       const float speed_knots =
         ubxMessage.navPvt.gSpeed * MMPS_TO_KNOTS;
@@ -195,33 +223,25 @@ static void processGpsMessages(uint8_t msgType)
     // -------- Mode transition --------
     if (GPS_Signal_OK && getMode() == MODE_WAIT_SATS) {
       setMode(MODE_LOGGING);
-       screen_request_partial(0,0,250,122);
     }
     
-
-   
 
     if (GPS_Signal_OK) {
       GPS_delay++;
     }
 
     // -------- Time set & start logging --------
-    if (!Time_Set_OK &&
-        GPS_Signal_OK &&
-        GPS_delay > (TIME_DELAY_FIRST_FIX * config.sample_rate)) {
-
-      static int avg_speed = 0;
-      avg_speed = (avg_speed + ubxMessage.navPvt.gSpeed * 19) / 20;
-
-      if (avg_speed > (config.start_logging_speed * 1000)) {
-        if (Set_GPS_Time(config.timezone)) {
-          Time_Set_OK = true;
-          Shut_down_Save_session = true;
-          start_logging_millis = millis();
-          Open_files();
-        }
-      }
-    }
+  // if (!Time_Set_OK &&
+  //  GPS_Signal_OK &&
+  //  (ubxMessage.navPvt.valid & 0b011) == 0b011)  // date + time valid
+  //  {
+  //      if (Set_GPS_Time(config.timezone)) {
+  //          Time_Set_OK = true;
+  //          Shut_down_Save_session = true;
+  //          start_logging_millis = millis();
+  //          Open_files();   
+  //      }
+  //  }
 
     // -------- Normal logging --------
     if (Time_Set_OK &&

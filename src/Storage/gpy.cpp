@@ -78,9 +78,9 @@ void log_GPY(File file) {
     time_t utc_Sec;
     struct tm frame_time;
 
-    frame_time.tm_sec  = ubxMessage.navPvt.second;
+    frame_time.tm_sec  = ubxMessage.navPvt.sec;
     frame_time.tm_hour = ubxMessage.navPvt.hour;
-    frame_time.tm_min  = ubxMessage.navPvt.minute;
+    frame_time.tm_min  = ubxMessage.navPvt.min;
     frame_time.tm_mday = ubxMessage.navPvt.day;
     frame_time.tm_mon  = ubxMessage.navPvt.month - 1;     // tm_mon: 0–11
     frame_time.tm_year = ubxMessage.navPvt.year - 1900;   // tm_year: since 1900

@@ -57,8 +57,8 @@ bool Set_GPS_Time(float time_offset)
     if (pvt.year < 2023) return false;
 
     tm t{};
-    t.tm_sec  = pvt.second;
-    t.tm_min  = pvt.minute;
+    t.tm_sec  = pvt.sec;
+    t.tm_min  = pvt.min;
     t.tm_hour = pvt.hour + (int)time_offset;
     t.tm_mday = pvt.day;
     t.tm_mon  = pvt.month - 1;        // 0–11

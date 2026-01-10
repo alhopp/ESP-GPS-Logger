@@ -93,8 +93,8 @@ void log_GPX(GPX_Part part, File file)
             month  = ubxMessage.navPvt.month;
             day    = ubxMessage.navPvt.day;
             hour   = ubxMessage.navPvt.hour;
-            minute = ubxMessage.navPvt.minute;
-            sec    = ubxMessage.navPvt.second;
+            minute = ubxMessage.navPvt.min;
+            sec    = ubxMessage.navPvt.sec;
 
             y = 0;
 
