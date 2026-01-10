@@ -47,7 +47,6 @@
 // -----------------------------------------------------------------------------
 #include "Display/screen_system.h"
 #include "config_manager.h"
-#include "esp_logo.h"
 
 // -----------------------------------------------------------------------------
 // Display task signalling (CRITICAL — KEEP)

@@ -17,20 +17,22 @@
 
 #include "Layout.h"
 #include "Fonts.h"
-#include "esp_logo.h"
+#include "logos.h"
 
 #include "Storage/storage_manager.h"
 #include "web/wifi_manager.h"
 #include "rtc_state.h"
 
 #include "Display/E_paper.h"
-
+#include "Fonts/BitmapSurfbuddies.h"
 
 // Forward declarations 
 static void drawSystemLayout(const char* title, const char* subtitle, const char* key1,
   const char* val1, const char* key2, const char* val2);
 
 static void drawCenteredText(const char* text, int y, const GFXfont* font);
+
+static void drawCenteredBitmap(const uint8_t* bmp, int w, int h, int y);
 
 // ============================================================================
 // UI STATE (avoid globals where possible; keep deterministic)
@@ -63,8 +65,10 @@ void draw_BOOT()
     return;
   }
 
-   drawCenteredText("ESP-GPS",             Layout::ROW9(3), Fonts::Body12);
-   drawCenteredText("Initialising system", Layout::ROW9(5), Fonts::Body9 );
+  // Logo
+  display.drawBitmap(198, 6, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK )  ;
+  drawCenteredText("ESP-GPS",             Layout::ROW9(3), Fonts::Body12);
+  drawCenteredText("Initialising system", Layout::ROW9(5), Fonts::Body9 );
   
 }
 
@@ -252,4 +256,3 @@ static void drawSystemLayout(
     display.print(val2);
   }
 }
-
