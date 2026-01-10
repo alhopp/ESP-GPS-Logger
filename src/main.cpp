@@ -78,10 +78,10 @@ static void startTasks()
 {
   BaseType_t ok;
 
-  ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS", 10000, nullptr, 1, &t1, 1);
+  ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS", 6096, nullptr, 1, &t1, 1);
   if (ok != pdPASS) LOG_TASK("Create", "GPS task failed");
 
-  ok = xTaskCreatePinnedToCore(taskTwo, "TaskDisplay", 10000, nullptr, 1, &t2, 0);
+  ok = xTaskCreatePinnedToCore(taskTwo, "TaskDisplay", 6096, nullptr, 1, &t2, 0);
   if (ok != pdPASS) LOG_TASK("Create", "Display task failed");
 
   LOG_TASK("Start", "tasks started");
