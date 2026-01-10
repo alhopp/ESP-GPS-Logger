@@ -82,7 +82,6 @@ struct Config
   // System / diagnostics
   int     config_fail;
   uint8_t ublox_type;
-  uint8_t M10_high_nav;
   int     cpu_freq;
 
   // Reference points / geometry

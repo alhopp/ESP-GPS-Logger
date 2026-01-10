@@ -17,17 +17,53 @@ namespace ubx {
 // ============================================================================
 namespace cfg {
 
-// Enable all major GNSS constellations simultaneously:
+// Enable a GNSS constellations simultaneously:
 //
 //   • GPS
 //   • GLONASS
 //   • GALILEO
-//   • BEIDOU
 //
 // Improves fix robustness and satellite availability.
 // Used once during Init_ubloxM10().
 //
-constexpr uint8_t all_4gnss[] PROGMEM = {0xB5,0x62,0x06,0x8A,0x09,0x00,0x01,0x01,0x00,0x00,0x3F,0x00,0x31,0x10,0x01,0x3F,0xFF};
+// Enable GNSS constellations simultaneously:
+//
+//   • GPS
+//   • GLONASS
+//   • GALILEO
+//
+// Disable others to preserve tracking channels.
+// Safe for M10 at ≤5 Hz.
+// Applied once during Init_ubloxM10().
+//
+constexpr uint8_t m10_3gnss[] PROGMEM = {
+  0xB5, 0x62,
+  0x06, 0x8A,              // CFG-VALSET
+  0x25, 0x00,              // payload length = 37 bytes
+  0x01, 0x01,              // version=1, layer=RAM
+  0x00, 0x00,              // reserved
+
+  // CFG-GNSS-GPS_ENA      = 1
+  0x1F, 0x00, 0x31, 0x10,  0x01,
+
+  // CFG-GNSS-GLO_ENA      = 1
+  0x20, 0x00, 0x31, 0x10,  0x01,
+
+  // CFG-GNSS-GAL_ENA      = 1
+  0x21, 0x00, 0x31, 0x10,  0x01,
+
+  // CFG-GNSS-BDS_ENA      = 0
+  0x22, 0x00, 0x31, 0x10,  0x00,
+
+  // CFG-GNSS-QZSS_ENA    = 0
+  0x23, 0x00, 0x31, 0x10,  0x00,
+
+  // CFG-GNSS-SBAS_ENA    = 0
+  0x24, 0x00, 0x31, 0x10,  0x00,
+
+  // checksum
+  0x7A, 0x12
+};
 
 // Disable all NMEA output
 // (prevents ASCII noise on the serial line)

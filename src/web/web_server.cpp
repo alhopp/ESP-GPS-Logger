@@ -12,6 +12,8 @@
 #include "system_mode.h"
 #include "Storage/storage_manager.h"   // <-- NEW
 
+#include "system_info.h"
+
 static bool webStarted = false;
 
 // -----------------------------------------------------------------------------
@@ -96,54 +98,78 @@ void webserver_start(WebServer &server)
   });
 
   // ---------------------------------------------------------------------------
-  // GET CONFIG
-  // ---------------------------------------------------------------------------
-  server.on("/api/config", HTTP_GET, [&] {
-    StaticJsonDocument<2048> j;
+// GET CONFIG
+// ---------------------------------------------------------------------------
+server.on("/api/config", HTTP_GET, [&] {
+  StaticJsonDocument<2048> j;
 
-    j["wifi"]["ssid"] = wifi_get_saved_ssid();
+  // -------------------------------------------------------------------------
+  // Wi-Fi
+  // -------------------------------------------------------------------------
+  j["wifi"]["ssid"] = wifi_get_saved_ssid();
 
-    j["system"]["cpu_freq"]     = config.cpu_freq;
-    j["system"]["timezone"]     = config.timezone;
-    j["system"]["timezone_DST"] = config.timezone_DST;
+  // -------------------------------------------------------------------------
+  // System (read-only / firmware-defined)
+  // -------------------------------------------------------------------------
+  j["system"]["cpu_freq"]         = config.cpu_freq;
+  j["system"]["timezone"]         = config.timezone;
+  j["system"]["timezone_DST"]     = config.timezone_DST;
 
-    j["gps"]["sample_rate"]   = config.sample_rate;
-    j["gps"]["dynamic_model"] = config.dynamic_model;
-    j["gps"]["cal_speed"]     = config.cal_speed;
-    j["gps"]["stat_speed"]    = config.stat_speed;
-    j["gps"]["start_logging_speed"] = config.start_logging_speed;
+  j["system"]["gnss_module"]      = systemInfo.gnss_module;
+  j["system"]["storage_mb"]       = systemInfo.storage_mb;
+  j["system"]["software_version"] = systemInfo.software_version;
 
-    j["power"]["shutdown_voltage"] = config.shutdown_voltage;
-    j["power"]["bat_choice"]       = config.bat_choice;
-    j["power"]["cal_bat"]          = config.cal_bat;
+  // -------------------------------------------------------------------------
+  // GPS (read-only identity + live config)
+  // -------------------------------------------------------------------------
+  j["gps"]["speed_units"]         = systemInfo.speed_units;
+  j["gps"]["sample_rate"]         = systemInfo.sample_rate;
+  j["gps"]["gnss"]                = systemInfo.gnss_mode;
+  j["gps"]["dynamic_model"]       = systemInfo.dynamic_model;
 
-    j["logging"]["track_distance"] = config.track_distance;
-    j["logging"]["archive_days"]   = config.archive_days;
-    j["logging"]["file_date_time"] = config.file_date_time;
+  j["gps"]["cal_speed"]           = config.cal_speed;
+  j["gps"]["stat_speed"]          = config.stat_speed;
+  j["gps"]["start_logging_speed"] = config.start_logging_speed;
 
-    j["logging"]["logTXT"] = config.logTXT;
-    j["logging"]["logUBX"] = config.logUBX;
-    j["logging"]["logSBP"] = config.logSBP;
-    j["logging"]["logGPY"] = config.logGPY;
-    j["logging"]["logGPX"] = config.logGPX;
+  // -------------------------------------------------------------------------
+  // Power
+  // -------------------------------------------------------------------------
+  j["power"]["bat_choice"] = config.bat_choice;
+  j["power"]["cal_bat"]    = config.cal_bat;
 
-    j["ui"]["field"]             = config.field;
-    j["ui"]["speed_large_font"]  = config.speed_large_font;
-    j["ui"]["bar_length"]        = config.bar_length;
-    j["ui"]["sleep_off_screen"]  = config.sleep_off_screen;
-    j["ui"]["Board_Logo"]        = config.Board_Logo;
-    j["ui"]["Sail_Logo"]         = config.Sail_Logo;
+  // -------------------------------------------------------------------------
+  // Logging
+  // -------------------------------------------------------------------------
+  j["logging"]["track_distance"] = config.track_distance;
+  j["logging"]["archive_days"]   = config.archive_days;
+  j["logging"]["file_date_time"] = config.file_date_time;
 
-    j["ui"]["Stat_screens"]      = config.Stat_screens;
-    j["ui"]["Stat_screens_time"] = config.Stat_screens_time;
+  j["logging"]["logTXT"] = config.logTXT;
+  j["logging"]["logUBX"] = config.logUBX;
+  j["logging"]["logSBP"] = config.logSBP;
+  j["logging"]["logGPY"] = config.logGPY;
+  j["logging"]["logGPX"] = config.logGPX;
 
-    j["ui"]["speed_screen"]  = config.speed_screen;
-    j["ui"]["stat_screen"]   = config.stat_screen;
-    j["ui"]["gpio12_screen"] = config.gpio12_screen;
-    j["ui"]["Sleep_info"]    = config.Sleep_info;
+  // -------------------------------------------------------------------------
+  // UI
+  // -------------------------------------------------------------------------
+  j["ui"]["field"]            = config.field;
+  j["ui"]["speed_large_font"] = config.speed_large_font;
+  j["ui"]["bar_length"]       = config.bar_length;
+  j["ui"]["sleep_off_screen"] = config.sleep_off_screen;
+  j["ui"]["Board_Logo"]       = config.Board_Logo;
+  j["ui"]["Sail_Logo"]        = config.Sail_Logo;
 
-    sendJson(server, j);
-  });
+  j["ui"]["Stat_screens"]      = config.Stat_screens;
+  j["ui"]["Stat_screens_time"] = config.Stat_screens_time;
+  j["ui"]["speed_screen"]      = config.speed_screen;
+  j["ui"]["stat_screen"]       = config.stat_screen;
+  j["ui"]["gpio12_screen"]     = config.gpio12_screen;
+  j["ui"]["Sleep_info"]        = config.Sleep_info;
+
+  sendJson(server, j);
+});
+
 
   // ---------------------------------------------------------------------------
   // POST CONFIG

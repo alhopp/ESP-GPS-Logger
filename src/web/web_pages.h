@@ -13,12 +13,39 @@ static const char PAGE_CONFIG_APP[] PROGMEM = R"rawliteral(
   --d:#fff;--e:#dbe2ee;--f:#5b6b82
 }
 *{box-sizing:border-box}
-body{margin:0;font:15px system-ui;background:var(--c)}
-header{padding:14px;text-align:center;font-weight:600;background:var(--b);color:#fff}
+body{
+  margin:0;
+  font:17px system-ui;
+  background:var(--c)
+}
+header{
+  padding:16px;
+  font-size:22px;
+  font-weight:700;
+  text-align:center;
+  background:var(--b);
+  color:#fff
+}
 
-nav{display:flex;background:#e9eff7;border-bottom:1px solid var(--e)}
-nav button{flex:1;padding:14px;border:0;background:none;color:var(--f)}
-nav button.a{color:var(--a);border-bottom:3px solid var(--a);background:#f8fbff}
+nav{
+  display:flex;
+  background:#e9eff7;
+  border-bottom:1px solid var(--e)
+}
+nav button{
+  flex:1;
+  padding:16px;
+  border:0;
+  background:none;
+  color:var(--f);
+  font-size:18px;
+  font-weight:600
+}
+nav button.a{
+  color:var(--a);
+  border-bottom:3px solid var(--a);
+  background:#f8fbff
+}
 
 section{display:none;padding:16px}
 section.a{display:block}
@@ -27,42 +54,57 @@ section.a{display:block}
   background:var(--d);
   border:1px solid var(--e);
   border-radius:12px;
-  padding:14px;
-  margin-bottom:14px
+  padding:16px;
+  margin-bottom:16px
 }
 
-h3{margin:0 0 8px;font-size:15px;color:var(--a)}
-label{display:block;margin-top:10px;font-size:13px;color:var(--f)}
+h3{
+  margin:0 0 10px;
+  font-size:18px;
+  color:var(--a)
+}
+
+label{
+  display:block;
+  margin-top:12px;
+  font-size:15px;
+  color:var(--f)
+}
 
 input,select{
   width:100%;
-  padding:11px;
-  margin-top:4px;
+  padding:12px;
+  margin-top:6px;
   border:1px solid var(--e);
   border-radius:8px;
-  font-size:16px
+  font-size:17px
 }
 
-.small{font-size:12px;color:var(--f);margin-top:6px}
+.small{
+  font-size:15px;
+  color:var(--f);
+  margin-top:6px
+}
 
 /* Toggle switches */
 .toggle{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-top:12px
+  margin-top:14px;
+  font-size:16px
 }
 .toggle input{display:none}
 .slider{
-  width:50px;height:28px;
+  width:52px;height:30px;
   background:#cfd6e4;
-  border-radius:28px;
+  border-radius:30px;
   position:relative
 }
 .slider:before{
   content:"";
   position:absolute;
-  width:24px;height:24px;
+  width:26px;height:26px;
   left:2px;top:2px;
   background:#fff;
   border-radius:50%;
@@ -79,20 +121,20 @@ input,select{
 .file-list{
   max-height:60vh;
   overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
+  -webkit-overflow-scrolling:touch
 }
 .file-row{
   display:flex;
   justify-content:space-between;
-  padding:12px 4px;
+  padding:14px 4px;
   border-bottom:1px solid var(--e)
 }
-.file-name{font-size:14px;word-break:break-all}
-.file-size{font-size:12px;color:var(--f)}
+.file-name{font-size:15px;word-break:break-all}
+.file-size{font-size:14px;color:var(--f)}
 .file-actions button{
   border:none;
   background:none;
-  font-size:22px;
+  font-size:24px;
   padding:6px;
   color:var(--a)
 }
@@ -101,29 +143,28 @@ input,select{
 .sys-row{
   display:flex;
   justify-content:space-between;
-  padding:10px 0;
+  padding:14px 0;
   border-bottom:1px solid var(--e);
-  font-size:14px
+  font-size:16px
 }
-.sys-row span:first-child{
-  color:var(--f)
-}
+.sys-row span:first-child{color:var(--f)}
 .sys-row span:last-child{
   font-weight:600;
   color:#000
 }
 
 footer{
-  padding:14px;
+  padding:16px;
   border-top:1px solid var(--e);
   background:#f0f4fa
 }
 footer button{
   width:100%;
-  padding:14px;
-  border-radius:10px;
+  padding:16px;
+  border-radius:12px;
   border:0;
-  font-weight:600;
+  font-weight:700;
+  font-size:18px;
   background:var(--a);
   color:#fff
 }
@@ -216,15 +257,22 @@ footer button{
 <!-- SYSTEM -->
 <section id=system>
 <div class=card>
-<h3>GPS Status</h3>
+<h3>System</h3>
+
+<div class=sys-row><span>GNSS Module</span><span>u-blox NEO-M10</span></div>
+<div class=sys-row><span>Storage</span><span>128 MB</span></div>
+<div class=sys-row><span>Software</span><span>Version 1</span></div>
+
+<hr style="border:none;border-top:1px solid var(--e);margin:10px 0">
 
 <div class=sys-row><span>Speed Units</span><span>Knots</span></div>
 <div class=sys-row><span>Sample Rate</span><span id=sys_sample_rate></span></div>
 <div class=sys-row><span>GNSS</span><span id=sys_gnss></span></div>
-<div class=sys-row><span>Dynamic Model</span><span>Sea</span></div>
+<div class=sys-row><span>Dynamic Model</span><span id=sys_dynamic_model></span></div>
 
 </div>
 </section>
+
 
 <footer id=footer>
 <button onclick=save()>Save</button>
@@ -237,8 +285,6 @@ function tab(id,b){
   document.querySelectorAll("nav button,section").forEach(e=>e.classList.remove("a"));
   b.classList.add("a");
   $(id).classList.add("a");
-
-  // Hide Save button on System tab
   footer.style.display = (id==="system") ? "none" : "block";
 }
 
@@ -263,9 +309,10 @@ async function load(){
   set(logGPY,c.logging?.logGPY);
   set(logGPX,c.logging?.logGPX);
 
-  // System (read-only)
-  $("sys_sample_rate").textContent = c.gps?.sample_rate + " Hz";
-  $("sys_gnss").textContent = c.gps?.gnss;
+  // System (firmware-defined)
+  $("sys_sample_rate").textContent   = c.gps?.sample_rate || "";
+  $("sys_gnss").textContent          = c.gps?.gnss || "";
+  $("sys_dynamic_model").textContent = c.gps?.dynamic_model || "";
 
   ssid.value=c.wifi?.ssid||"";
 

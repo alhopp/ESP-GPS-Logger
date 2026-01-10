@@ -129,7 +129,7 @@ void Init_ubloxM10(void)
     // 3. Enable all supported GNSS constellations
     // ---------------------------------------------------------------------
     LOG_GPS("CFG", "GNSS: GPS + GAL + GLO + BDS(B1C)");
-    sendUbx(ubx::cfg::all_4gnss);
+    sendUbx(ubx::cfg::m10_3gnss);
     delay(WAIT_MS);
 
     // ---------------------------------------------------------------------
