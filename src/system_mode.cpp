@@ -56,6 +56,14 @@ const char* modeToString(SystemMode mode)
 
 
 
+void systemModeLoop()
+{
+  if (getMode() == MODE_WIFI_SOFT_AP) {
+    wifi_loop();
+  }
+}
+
+
 // -----------------------------------------------------------------------------
 // STATE TRANSITION
 // -----------------------------------------------------------------------------

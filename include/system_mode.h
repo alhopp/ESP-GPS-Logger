@@ -48,6 +48,9 @@ SystemMode getMode();
 //
 void setMode(SystemMode newMode);
 
+void systemModeLoop();
+
+
 // Optional helper for logging / diagnostics
 // (Must NOT be used for UI or control logic)
 const char* modeToString(SystemMode mode);
