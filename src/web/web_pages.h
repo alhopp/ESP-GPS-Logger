@@ -116,6 +116,21 @@ footer button:disabled{opacity:.45}
   <button id=saveBtn onclick=save() disabled>Save</button>
 </footer>
 
+<div id=infoModal class=modal>
+  <div class=modal-card>
+    <h3>Screens explained</h3>
+    <p>These screens control which performance data will be displayed on the device.</p>
+    <ul>
+      <li><b>10 Sec</b> - Best 10-second average speed</li>
+      <li><b>Alpha</b> - Alpha racing result (gybe performance)</li>
+      <li><b>Nautical Mile</b> - Best nautical mile run</li>
+      <li><b>One Hour</b> - Best 1-hour average speed</li>
+      <li><b>Distance</b> - Total distance sailed</li>
+    </ul>
+    <button onclick="closeInfo()">Close</button>
+  </div>
+</div>
+
 <script>
 const $=i=>document.getElementById(i);
 let dirty=false;

@@ -185,7 +185,7 @@ void wifi_start_sta()
 
 LOG_WIFI("STA", "Connected IP=%s", WiFi.localIP().toString().c_str());
 
-      screen_request_partial(0,0,250,122);
+    //  screen_request_partial(0,0,250,122);
 
 
 
