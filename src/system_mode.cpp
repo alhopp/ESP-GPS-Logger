@@ -26,6 +26,8 @@
 #include "esp_sleep.h"
 #include "task_display.h"
 
+#include "Storage/storage_file_operations.h"
+
 // -----------------------------------------------------------------------------
 // INTERNAL STATE
 // -----------------------------------------------------------------------------
@@ -86,6 +88,7 @@ void setMode(SystemMode newMode)
   switch (currentMode) {
 
     case MODE_LOGGING:
+      Close_files();
       // Leaving primary mission mode
       // (logging task reacts independently)
       break;

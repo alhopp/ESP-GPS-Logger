@@ -29,6 +29,8 @@
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"
 
+#include "system_mode.h"
+
 #include "Ublox/Ublox.h"
 
 #include "Globals.h"
@@ -38,6 +40,8 @@
 char dataStr[255] = "";  // String for logging data
 char Buffer[50] = "";    // Temporary string for appending data
 uint64_t GPS_UTC_ms;     // Absolute UTC time with ms resolution at start of logging
+
+static uint32_t last_sbp_iTOW = 0;
 
 // -----------------------------------------------------------------------------
 // File handles for different file formats
@@ -126,9 +130,9 @@ void Open_files(void)
 #endif
 
   if (config.logSBP) {
-    sbpfile = SD_MMC.open(filenameSBP, FILE_APPEND);
-    log_header_SBP(sbpfile);
-  }
+     sbpfile = SD_MMC.open(filenameSBP, FILE_WRITE);
+     if (sbpfile.size() == 0) log_header_SBP(sbpfile);
+    }
 
   if (config.logGPX) {
     gpxfile = SD_MMC.open(filenameGPX, FILE_APPEND);
@@ -200,9 +204,18 @@ void Log_to_SD(void)
   }
 #endif
 
-  if (config.logSBP && sbpfile) {
-    log_SBP(sbpfile);   // ✅ now actually runs
+ if (config.logSBP && sbpfile && getMode() == MODE_LOGGING) {
+
+  uint32_t itow = ubxMessage.navPvt.iTOW;
+
+  if (itow != last_sbp_iTOW) {
+    last_sbp_iTOW = itow;
+
+    log_SBP(sbpfile);
   }
+  } 
+
+
 
   if (config.logGPX && gpxfile) {
     log_GPX(GPX_FRAME, gpxfile);
@@ -215,24 +228,21 @@ void Log_to_SD(void)
 // Close all open files to ensure data is properly saved
 // -----------------------------------------------------------------------------
 
-void Close_files(void) {
-  // Check and close each file if they are open
-  if (ubxfile) {
-    ubxfile.close();
-  }
-  if (errorfile) {
-    errorfile.close();
-  }
-  if (gpyfile) {
-    gpyfile.close();
-  }
+void Close_files(void)
+{
   if (sbpfile) {
+    sbpfile.flush();
     sbpfile.close();
+    sbpfile = File();
+    Serial.println("[SBP] closed cleanly");
   }
-  if (gpxfile) {
-    gpxfile.close();
-  }
+
+  if (ubxfile)   { ubxfile.flush();   ubxfile.close();   ubxfile = File(); }
+  if (errorfile) { errorfile.flush(); errorfile.close(); errorfile = File(); }
+  if (gpyfile)   { gpyfile.flush();   gpyfile.close();   gpyfile = File(); }
+  if (gpxfile)   { gpxfile.flush();   gpxfile.close();   gpxfile = File(); }
 }
+
 
 // -----------------------------------------------------------------------------
 // Prints the content of a file to the Serial

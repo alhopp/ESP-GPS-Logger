@@ -331,12 +331,17 @@ server.on("/api/files", HTTP_GET, [&] {
       return;
     }
 
-   String path = "/logs/" + server.arg("name");
+    String name = server.arg("name");
+    String path = "/logs/" + name;
     File f = SD_MMC.open(path, FILE_READ);
     if (!f) {
       server.send(404);
       return;
     }
+
+    // 👇 THIS IS THE IMPORTANT PART
+    server.sendHeader("Content-Disposition",
+                      "attachment; filename=\"" + name + "\"");
 
     server.streamFile(f, "application/octet-stream");
     f.close();
