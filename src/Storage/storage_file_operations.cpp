@@ -167,45 +167,48 @@ void Flush_files(void)
 
 
 
-void Log_to_SD(void) {
-  if (Time_Set_OK == true) {
-    static long old_iTOW;
-
-    old_iTOW = ubxMessage.navPvt.iTOW;
+void Log_to_SD(void)
+{
+  if (!Time_Set_OK) return;
 
   if (config.logUBX && ubxfile) {
-  ubxfile.write(0xB5);
-  ubxfile.write(0x62);
-  ubxfile.write((const uint8_t *)&ubxMessage.navPvt,
-                sizeof(ubxMessage.navPvt));
-}
+    ubxfile.write(0xB5);
+    ubxfile.write(0x62);
+    ubxfile.write((const uint8_t *)&ubxMessage.navPvt,
+                  sizeof(ubxMessage.navPvt));
 
-
-      static int old_nav_sat_message = 0;
-      if (nav_sat_message != old_nav_sat_message) {
-        old_nav_sat_message = nav_sat_message;
-        ubxfile.write(0xB5);
-        ubxfile.write(0x62);
-        ubxfile.write((const uint8_t *)&ubxMessage.navSat, (ubxMessage.navSatHdr.len + 6));  //nav_sat has a variable length, add chkA and chkB !!!
-      }
-    }
-    if (config.logUBX_nav_sat) {  //only add navDOP msg to ubx file if nav_sat active
+    static int old_nav_sat_message = 0;
+    if (nav_sat_message != old_nav_sat_message) {
+      old_nav_sat_message = nav_sat_message;
       ubxfile.write(0xB5);
       ubxfile.write(0x62);
-      ubxfile.write((const uint8_t *)&ubxMessage.navDOP, sizeof(ubxMessage.navDOP));
-    }
-#if defined(GPY_H)
-    if (config.logGPY == true) {
-      log_GPY(gpyfile);
-    }
-#endif
-    if (config.logSBP == true) {
-      log_SBP(sbpfile);
-    }
-    if (config.logGPX == true) {
-      log_GPX(GPX_FRAME, gpxfile);
+      ubxfile.write((const uint8_t *)&ubxMessage.navSat,
+                     (ubxMessage.navSatHdr.len + 6));
     }
   }
+
+  if (config.logUBX_nav_sat && ubxfile) {
+    ubxfile.write(0xB5);
+    ubxfile.write(0x62);
+    ubxfile.write((const uint8_t *)&ubxMessage.navDOP,
+                  sizeof(ubxMessage.navDOP));
+  }
+
+#if defined(GPY_H)
+  if (config.logGPY && gpyfile) {
+    log_GPY(gpyfile);
+  }
+#endif
+
+  if (config.logSBP && sbpfile) {
+    log_SBP(sbpfile);   // ✅ now actually runs
+  }
+
+  if (config.logGPX && gpxfile) {
+    log_GPX(GPX_FRAME, gpxfile);
+  }
+}
+
 
 
 // -----------------------------------------------------------------------------

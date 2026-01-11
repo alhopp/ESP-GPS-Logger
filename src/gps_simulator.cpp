@@ -123,6 +123,19 @@ int gps_simulator_step()
   ubxMessage.navPvt.iTOW = sim_ms;
 
   // --------------------------------------------------------------------------
+  // Advance simulated UTC seconds
+  // --------------------------------------------------------------------------
+  static uint32_t last_sec_tick = 0;
+
+  uint32_t sec_tick = sim_ms / 1000;
+  if (sec_tick != last_sec_tick) {
+    last_sec_tick = sec_tick;
+    ubxMessage.navPvt.sec++;
+    if (ubxMessage.navPvt.sec >= 60) ubxMessage.navPvt.sec = 0;
+  }
+
+
+  // --------------------------------------------------------------------------
   // Satellite acquisition (≈15 seconds total)
   // --------------------------------------------------------------------------
   if (sat_count < 10 && (now - last_sat_step) >= 1500) {
@@ -144,6 +157,10 @@ int gps_simulator_step()
     ubxMessage.navPvt.nano    = 0;
     return MT_NAV_PVT;
   }
+
+   ubxMessage.navDOP.hDOP = 120;  // 1.20 HDOP (reasonable)
+   ubxMessage.navPvt.velD = 0;    // flat motion
+
 
   // --------------------------------------------------------------------------
   // Motion model

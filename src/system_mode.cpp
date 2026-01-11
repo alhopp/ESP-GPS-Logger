@@ -131,6 +131,10 @@ void setMode(SystemMode newMode)
       break;
 
     case MODE_WIFI_SOFT_AP:
+      // Ensure Serial is alive for config / web diagnostics
+      Serial.begin(115200);
+      delay(10);
+      LOG_SYS("MODE", "ENTER WIFI_SOFT_AP (CONFIG)");
       gps_power_off();
 
       // Wi-Fi can come up after UI is visible

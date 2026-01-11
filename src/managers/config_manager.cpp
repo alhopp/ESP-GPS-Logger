@@ -165,10 +165,10 @@ static void setDefaultConfig()
   config.Sail_Logo            = 1;
   config.sleep_off_screen     = 11;
   config.bat_choice           = 0;
-  config.logTXT               = 1;
+  config.logTXT               = 0;
   config.logUBX               = 0;
-  config.logSBP               = 0;
-  config.logGPY               = 1;
+  config.logSBP               = 1;
+  config.logGPY               = 0;
   config.logGPX               = 0;
   config.file_date_time       = 1;
   config.dynamic_model        = 0;
@@ -420,10 +420,6 @@ static void applyDerivedConfig()
 
   RTC_SLEEP_screen = config.sleep_off_screen % 10;
   RTC_OFF_screen   = (config.sleep_off_screen / 10) % 10;
-
-  if (config.file_date_time == 0) {
-    config.logTXT = 1;
-  }
 
   // ---------------------------------------------------------------------------
   // FIX: never allow negative counts (when strings are short)
