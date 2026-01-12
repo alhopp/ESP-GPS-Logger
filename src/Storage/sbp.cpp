@@ -4,6 +4,11 @@
 
 #include <SD_MMC.h>
 
+#include <dirent.h>
+#include <sys/stat.h>
+static bool sbp_test_done = false;
+
+
 SBP_Header sbp_header = {
   30,
   0xA0,
@@ -24,98 +29,88 @@ void log_header_SBP(File &file) {
 
 
 
-
-static void wipeDir(fs::FS &fs, const char *path)
-{
-  File dir = fs.open(path);
-  if (!dir || !dir.isDirectory()) return;
-
-  File entry;
-  while ((entry = dir.openNextFile())) {
-    String fullPath = String(path);
-    if (!fullPath.endsWith("/")) fullPath += "/";
-    fullPath += entry.name();
-
-    if (entry.isDirectory()) {
-      entry.close();
-      wipeDir(fs, fullPath.c_str());
-      fs.rmdir(fullPath.c_str());
-    } else {
-      entry.close();
-      fs.remove(fullPath.c_str());
-    }
-  }
-  dir.close();
-}
-
-
-
 void log_SBP(File &file)
+
 {
 
-   static bool wiped = false;
-  if (!wiped) {
-
-    if (!SD_MMC.cardType()) {
-      LOG_ERROR("SD", "not mounted, cannot wipe");
-      return;
-    }
-
-    LOG_STORAGE("SD", "FULL WIPE START");
-
-    // Wipe everything under root
-    wipeDir(SD_MMC, "/");
-
-    // Recreate logs directory
-    SD_MMC.mkdir("/logs");
-
-    LOG_STORAGE("SD", "FULL WIPE COMPLETE");
-    wiped = true;
-  }
-
-  static bool done = false;
-  if (done) return;
-
-  // Make sure SD is mounted
-  if (!SD_MMC.cardType()) {
-    LOG_ERROR("TEST", "SD_MMC not available");
+  if (sbp_test_done)
     return;
-  }
 
-  // Make sure /logs exists
-  if (!SD_MMC.exists("/logs")) {
-    SD_MMC.mkdir("/logs");
-  }
+  sbp_test_done = true;
 
-  LOG_STORAGE("TEST", "log_SBP → writing 10 test files");
 
-  char path[64];
 
-  for (int i = 1; i <= 10; i++) {
-    snprintf(path, sizeof(path), "/logs/sbp_test_%02d.txt", i);
-
-    Serial.println(path);
-
-    File f = SD_MMC.open(path, FILE_WRITE);
-    if (!f) {
-      LOG_ERROR("TEST", "open failed: %s", path);
-      continue;
-    }
-
-    f.println("SBP FILE MANAGER TEST");
-    f.printf("File number : %d\n", i);
-    f.printf("Millis      : %lu\n", millis());
-    f.println("--------------------------------");
-    f.println("If this file appears in the UI,");
-    f.println("the SD file manager works.");
-
-    f.close();
-  }
-
-  done = true;
-  LOG_STORAGE("TEST", "log_SBP test complete");
+// Make sure SD is mounted
+if (!SD_MMC.cardType()) {
+  LOG_ERROR("TEST", "SD_MMC not available");
+  return;
 }
 
+// Make sure /logs exists
+if (!SD_MMC.exists("/logs")) {
+  SD_MMC.mkdir("/logs");
+}
+
+LOG_STORAGE("TEST", "log_SBP → writing 10 test files");
+
+char path[64];
+
+for (int i = 1; i <= 10; i++) {
+  snprintf(path, sizeof(path), "/logs/sbp_test_%02d.txt", i);
+  Serial.println(path);
+
+  File f = SD_MMC.open(path, FILE_WRITE);
+  if (!f) {
+    LOG_ERROR("TEST", "open failed: %s", path);
+    continue;
+  }
+
+  f.println("SBP FILE MANAGER TEST");
+  f.printf("File number : %d\n", i);
+  f.printf("Millis      : %lu\n", millis());
+  f.println("--------------------------------");
+  f.println("If this file appears in the UI,");
+  f.println("the SD file manager works.");
+  f.close();
+}
+
+/// --------------------------------------------------
+// 🔍 IMMEDIATE READBACK (POSIX – SAFE)
+// --------------------------------------------------
+
+Serial.println("\n=== READBACK /logs ===");
+
+DIR* dir = opendir("/sdcard/logs");
+if (!dir) {
+  Serial.println("FAILED to open /sdcard/logs");
+} else {
+  struct dirent* ent;
+  int count = 0;
+
+  while ((ent = readdir(dir)) != nullptr) {
+
+    // Only regular files
+    if (ent->d_type != DT_REG)
+      continue;
+
+    String name = ent->d_name;
+    String path = String("/sdcard/logs/") + name;
+
+    struct stat st;
+    if (stat(path.c_str(), &st) != 0)
+      continue;
+
+    Serial.printf("FOUND: %s (%ld bytes)\n",
+                  name.c_str(),
+                  st.st_size);
+    count++;
+  }
+
+  closedir(dir);
+  Serial.printf("TOTAL FILES FOUND: %d\n", count);
+}
+
+}
 
 /*
 void log_SBP(File &file)

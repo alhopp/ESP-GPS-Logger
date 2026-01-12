@@ -30,6 +30,10 @@
 #include "system_mode.h"
 #include "Storage/storage_manager.h"
 
+#include <dirent.h>     // DIR, opendir, readdir, closedir, struct dirent
+#include <sys/stat.h>   // stat()
+
+
 // -----------------------------------------------------------------------------
 // Helper utilities (local to this translation unit)
 // -----------------------------------------------------------------------------
@@ -67,77 +71,38 @@ void registerFileEndpoints(WebServer &server)
   server.on("/api/files", HTTP_GET, [&] {
 
   DynamicJsonDocument j(8192);
-  
   j["ok"] = true;
   JsonArray files = j.createNestedArray("files");
 
-  // --- open, close, reopen (CRITICAL) ---
-  File root = SD_MMC.open("/logs");
-  if (!root || !root.isDirectory()) {
+  DIR* dir = opendir("/sdcard/logs");
+  if (!dir) {
     j["ok"] = false;
     server.send(200, "application/json", j.as<String>());
     return;
   }
-  root.close();
-  delay(2);
-  root = SD_MMC.open("/logs");
 
-  // --- iterate ---
-  while (true) {
-    File f = root.openNextFile();
-    if (!f) break;
+  struct dirent* ent;
+  while ((ent = readdir(dir)) != nullptr) {
 
-    if (!f.isDirectory()) {
-      JsonObject o = files.createNestedObject();
-      o["name"] = String(f.name());
-      o["size"] = f.size();
-    }
+    if (ent->d_type != DT_REG)
+      continue;
 
-    f.close();
+    String name = ent->d_name;
+    String path = "/sdcard/logs/" + name;
+
+    struct stat st;
+    if (stat(path.c_str(), &st) != 0)
+      continue;
+
+    JsonObject o = files.createNestedObject();
+    o["name"] = name;
+    o["size"] = st.st_size;
   }
 
-  root.close();
+  closedir(dir);
 
   server.send(200, "application/json", j.as<String>());
 });
-
-  // ---------------------------------------------------------------------------
-  // FILE DOWNLOAD
-  //
-  // Streams a single validated log file to the client.
-  // ---------------------------------------------------------------------------
-  server.on("/api/file", HTTP_GET, [&] {
-    if (!sdOK || !server.hasArg("name")) {
-      server.send(404);
-      return;
-    }
-
-    String name = server.arg("name");
-    const char* base = basenameOnly(name.c_str());
-    const char* ext  = strrchr(base, '.');
-
-    if (!ext ||
-        (strcasecmp(ext, ".txt") &&
-        strcasecmp(ext, ".sbp") &&
-        strcasecmp(ext, ".ubx") &&
-        strcasecmp(ext, ".gpx") &&
-        strcasecmp(ext, ".gpy"))) {
-      server.send(400);
-      return;
-    }
-
-    String path = "/logs/" + name;
-    File f = SD_MMC.open(path, FILE_READ);
-    if (!f) {
-      server.send(404);
-      return;
-    }
-
-    // Force browser download
-    server.sendHeader("Content-Disposition","attachment; filename=\"" + name + "\"");
-    server.streamFile(f, "application/octet-stream");
-    f.close();
-  });
 
   // ---------------------------------------------------------------------------
   // FILE DELETE
