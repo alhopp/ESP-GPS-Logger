@@ -6,7 +6,6 @@
 // Public API
 // ----------------------------------------------------
 void initStorage();
-uint64_t storageFreeKBytes();
 
 // ----------------------------------------------------
 // Global storage state

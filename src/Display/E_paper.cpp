@@ -252,18 +252,3 @@ int DateTimeRtc(int ui_offset)
   return 0;
 }
 
-// ============================================================================
-// Storage info (BOOT + INFO — KEEP)
-// ============================================================================
-
-void sdCardInfo()
-{
-  if (sdOK) {
-    display.printf("SD    : %llu MB\n",
-                   storageFreeKBytes() / 1024);
-  }
-  else if (LITTLEFS_OK) {
-    display.printf("Local : %llu KB\n",
-                   storageFreeKBytes());
-  }
-}
