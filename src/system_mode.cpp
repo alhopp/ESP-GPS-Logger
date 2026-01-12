@@ -26,6 +26,7 @@
 #include "esp_sleep.h"
 #include "task_display.h"
 
+#include "Storage/storage_manager.h"
 #include "Storage/storage_file_operations.h"
 
 // -----------------------------------------------------------------------------
@@ -36,10 +37,7 @@ static volatile SystemMode currentMode = MODE_BOOT;
 // -----------------------------------------------------------------------------
 // PUBLIC API
 // -----------------------------------------------------------------------------
-SystemMode getMode()
-{
-  return currentMode;
-}
+SystemMode getMode(){return currentMode;}
 
 // -----------------------------------------------------------------------------
 // MODE → STRING (debug / logging only)
@@ -56,13 +54,9 @@ const char* modeToString(SystemMode mode)
   }
 }
 
-
-
 void systemModeLoop()
 {
-  if (getMode() == MODE_WIFI_SOFT_AP) {
-    wifi_loop();
-  }
+  if (getMode() == MODE_WIFI_SOFT_AP) {wifi_loop(); }
 }
 
 
@@ -78,9 +72,7 @@ void setMode(SystemMode newMode)
     return;
   }
 
-  LOG_SYS("MODE", "EXIT %s → ENTER %s",
-          modeToString(currentMode),
-          modeToString(newMode));
+  LOG_SYS("MODE", "EXIT %s → ENTER %s", modeToString(currentMode),modeToString(newMode));
 
   // ---------------------------------------------------------------------------
   // EXIT actions (based on OLD mode)
@@ -88,14 +80,20 @@ void setMode(SystemMode newMode)
   switch (currentMode) {
 
     case MODE_LOGGING:
+      LOG_SYS("MODE", "EXIT LOGGING");
+
+      storage_shutting_down = true;   // <-- ADD THIS
+      delay(20);                      // allow in-flight writes to finish
+
       Close_files();
-      // Leaving primary mission mode
-      // (logging task reacts independently)
+      storage_off();
       break;
 
+
     case MODE_WIFI_SOFT_AP:
-      // Leaving configuration mode → shut down Wi-Fi
+      storage_shutting_down = true;        
       wifi_stop();
+      storage_off();   
       break;
 
     case MODE_SLEEP:
@@ -108,51 +106,56 @@ void setMode(SystemMode newMode)
       break;
   }
 
-  // ---------------------------------------------------------------------------
-  // STATE COMMIT
-  //
-  // IMPORTANT:
-  // - Assignment MUST occur before ENTER actions
-  // - ENTER handlers may legally call getMode()
-  // ---------------------------------------------------------------------------
   currentMode = newMode;
 
   // ---------------------------------------------------------------------------
   // ENTER actions (based on NEW mode)
   //
-  // Rules:
-  // - Side-effects only
-  // - No UI, no drawing, no rendering
   // ---------------------------------------------------------------------------
   switch (currentMode) {
 
     case MODE_LOGGING:
       LOG_SYS("MODE", "ENTER LOGGING → Wi-Fi OFF");
-
+      storage_shutting_down = false;
       wifi_stop();
-      gps_power_on();  
+      gps_power_on();
+
+      if (!storage_on()) {
+        LOG_ERROR("SD", "storage_on failed → abort logging");
+        // Optional: force fallback mode here
+        // setMode(MODE_SLEEP);
+        break;
+      }
+
+      Open_files();   // start session files only AFTER SD is mounted
       break;
 
     case MODE_WIFI_SOFT_AP:
-      // Ensure Serial is alive for config / web diagnostics
+      storage_shutting_down = false;
+
       Serial.begin(115200);
       delay(10);
       LOG_SYS("MODE", "ENTER WIFI_SOFT_AP (CONFIG)");
+
       gps_power_off();
 
-      // Wi-Fi can come up after UI is visible
+      if (!storage_on()) {
+        LOG_ERROR("SD", "storage_on failed in CONFIG");
+        // Optional: still allow config via LittleFS-only
+      }
+
       wifi_start_ap();
       screen_request_partial(0,0,250,122);
       break;
 
-
-    case MODE_SLEEP:
+   case MODE_SLEEP:
       LOG_SYS("MODE", "ENTER SLEEP");
+
       wifi_stop();
       gps_power_off();
-     // screen_request_partial(0,0,250,122);
-      break;
 
+      storage_off();   
+      break;
 
     case MODE_BOOT:
     default:

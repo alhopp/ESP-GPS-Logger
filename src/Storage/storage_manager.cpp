@@ -13,6 +13,7 @@
 // -----------------------------------------------------------------------------
 
 #include "Storage/storage_manager.h"
+#include "Storage/storage_file_operations.h"
 
 #include <SD.h>
 #include <SD_MMC.h>
@@ -45,17 +46,24 @@ enum class StorageBackend : uint8_t {
 bool sdOK        = false;
 bool LITTLEFS_OK = false;
 
+volatile bool storage_shutting_down = false;
+
 // -----------------------------------------------------------------------------
 // INTERNAL STATE
 // -----------------------------------------------------------------------------
 static StorageBackend s_backend = StorageBackend::NONE;
 static SPIClass       s_sdSPI(VSPI);
 
+
+
 // -----------------------------------------------------------------------------
 // INTERNAL HELPERS
 // -----------------------------------------------------------------------------
-static bool mountSD_MMC();
+
 static bool mountSD_SPI();
+
+static bool mountSD_MMC();
+static void unmountSD_MMC();
 
 static fs::FS& activeFS();
 static bool quickIOTest(fs::FS& fs, const char* path);
@@ -63,6 +71,9 @@ static bool quickIOTest(fs::FS& fs, const char* path);
 static void logLittleFSStats();
 static void logSDStats();
 static void sdBytes(uint64_t& total, uint64_t& used);
+
+static bool sd_mounted = false;
+
 
 // -----------------------------------------------------------------------------
 // PUBLIC API
@@ -132,6 +143,29 @@ void initStorage()
 }
 
 
+bool storage_on()
+{
+  if (!sdOK)
+    return false;
+
+  if (s_backend == StorageBackend::SD_MMC)
+    return mountSD_MMC();
+
+  if (s_backend == StorageBackend::SD_SPI)
+    return true;   // SPI SD stays powered in your design
+
+  return false;
+}
+
+void storage_off()
+{
+  if (s_backend == StorageBackend::SD_MMC)
+    unmountSD_MMC();
+
+  // SPI SD: optional no-op unless you power-gate it
+}
+
+
 
 // -----------------------------------------------------------------------------
 // INTERNAL IMPLEMENTATION
@@ -147,22 +181,44 @@ static fs::FS& activeFS()
 
 static bool mountSD_MMC()
 {
+  if (sd_mounted)
+    return true;
+
   LOG_STORAGE("SD MMC", "preflight");
 
-  // DAT0 pull-up prevents some boards from hanging when no card is present.
   pinMode(SDMMC_DAT0_PIN, INPUT_PULLUP);
   delay(2);
 
   LOG_STORAGE("SD MMC", "init");
 
-  // 1-bit mode is the most tolerant default across “weird wiring”.
   if (!SD_MMC.begin(SD_MMC_MOUNTPOINT, SD_MMC_1BIT_MODE)) {
     LOG_STORAGE("SD MMC", "no card");
+    sd_mounted = false;
     return false;
   }
 
+  sd_mounted = true;
   return true;
 }
+
+static void unmountSD_MMC()
+{
+  if (!sd_mounted)
+    return;
+
+  LOG_STORAGE("SD MMC", "closing files");
+
+  // Close all open log files FIRST
+  Close_files();   // you already have this
+
+  LOG_STORAGE("SD MMC", "unmount");
+
+  // Clean FAT unmount
+  SD_MMC.end();
+
+  sd_mounted = false;
+}
+
 
 static bool mountSD_SPI()
 {

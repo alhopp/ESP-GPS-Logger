@@ -7,8 +7,19 @@
 // ----------------------------------------------------
 void initStorage();
 
+bool storage_on();
+void storage_off();
+
+
 // ----------------------------------------------------
 // Global storage state
 // ----------------------------------------------------
 extern bool sdOK;
 extern bool LITTLEFS_OK;
+
+// Hardware-fixed SD configuration
+static constexpr const char* SD_MMC_MOUNTPOINT = "/sdcard";
+static constexpr bool        SD_MMC_1BIT_MODE  = true;
+
+extern volatile bool storage_shutting_down;
+

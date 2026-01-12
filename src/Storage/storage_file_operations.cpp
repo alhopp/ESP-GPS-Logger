@@ -70,6 +70,8 @@ char filename_NO_EXT[128 ] = "/";
 
 void Open_files(void)
 {
+  if (storage_shutting_down) return;
+  
   // ---------------------------------------------------------------------------
   // Ensure GPS time is valid
   // ---------------------------------------------------------------------------
@@ -158,6 +160,9 @@ void Open_files(void)
 
 void Flush_files(void)
 {
+if (storage_shutting_down)
+  return;
+
   if (config.sample_rate > 10) return;
 
  static uint8_t load_balance = 0;
@@ -179,6 +184,10 @@ load_balance = (load_balance + 1) % 5;
 
 void Log_to_SD(void)
 {
+
+  if (storage_shutting_down)
+  return;
+
   if (!Time_Set_OK) return;
 
   if (config.logUBX && ubxfile) {

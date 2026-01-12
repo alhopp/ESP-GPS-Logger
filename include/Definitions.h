@@ -80,10 +80,6 @@ constexpr double Punt4_lon =  3.245366;
 // SPI SD tuning
 constexpr uint32_t SD_SPI_FREQ_HZ = 25000000UL;   // drop to 10MHz if cards are flaky
 
-// SD_MMC behaviour
-constexpr const char* SD_MMC_MOUNTPOINT = "/sdcard";
-constexpr bool SD_MMC_1BIT_MODE         = true;  // safest default across SD / SDNAND
-
 
 // ============================================================================
 // Board wiring
