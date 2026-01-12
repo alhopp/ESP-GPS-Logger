@@ -86,8 +86,9 @@ static void startTasks()
 
   LOG_TASK("Start", "tasks started");
 
-  if (t1) Serial.printf("[TASK   ] t1_hw=%u\r\n", uxTaskGetStackHighWaterMark(t1));
-  if (t2) Serial.printf("[TASK   ] t2_hw=%u\r\n", uxTaskGetStackHighWaterMark(t2));
 
-  Serial.println();
+  if (t1) LOG_TASK("stack", "t1_hw=%u", uxTaskGetStackHighWaterMark(t1));
+  if (t2) LOG_TASK("stack", "t2_hw=%u", uxTaskGetStackHighWaterMark(t2));
+
+ 
 }

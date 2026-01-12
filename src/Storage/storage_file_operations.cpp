@@ -34,6 +34,8 @@
 #include "Ublox/Ublox.h"
 
 #include "Globals.h"
+#include "Definitions.h"
+
 // -----------------------------------------------------------------------------
 // Data buffers and variables for logging
 // -----------------------------------------------------------------------------
@@ -72,7 +74,8 @@ void Open_files(void)
   // Ensure GPS time is valid
   // ---------------------------------------------------------------------------
   if (!Time_Set_OK) {
-    Serial.println("[STORAGE] Open_files called without valid GPS time");
+    LOG_STORAGE("Open_files", "called without valid GPS time");
+
     return;
   }
 
@@ -143,7 +146,8 @@ void Open_files(void)
     errorfile = SD_MMC.open(filenameERR, FILE_APPEND);
   }
 
-  Serial.printf("[STORAGE] LOG : Session started %s\n", baseFilename);
+  LOG_STORAGE("LOG", "Session started %s", baseFilename);
+
 }
 
 
@@ -235,7 +239,8 @@ void Close_files(void)
     sbpfile.flush();
     sbpfile.close();
     sbpfile = File();
-    Serial.println("[SBP] closed cleanly");
+    LOG_STORAGE("SBP", "closed cleanly");
+
   }
 
   if (ubxfile)   { ubxfile.flush();   ubxfile.close();   ubxfile = File(); }
@@ -255,7 +260,8 @@ void printFile(const char *filename) {
   if(sdOK) file = SD_MMC.open(filename);
   if(LITTLEFS_OK) file = LittleFS.open(filename);
   if (!file.available()) {
-    Serial.println(F("Failed to read file"));
+    LOG_ERROR("FILE", "Failed to read file");
+
     return;
   }
   // Extract each character by one by one

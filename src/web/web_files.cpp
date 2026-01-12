@@ -217,8 +217,7 @@ void registerFileEndpoints(WebServer &server)
     }
 
     // Force browser download
-    server.sendHeader("Content-Disposition",
-                      "attachment; filename=\"" + name + "\"");
+    server.sendHeader("Content-Disposition","attachment; filename=\"" + name + "\"");
     server.streamFile(f, "application/octet-stream");
     f.close();
   });
