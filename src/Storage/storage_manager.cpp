@@ -153,25 +153,6 @@ uint64_t storageFreeKBytes()
 }
 
 
-int storageLogTimeLeftMinutes()
-{
-  const uint64_t free_kbytes = storageFreeKBytes();
-  if (!free_kbytes) return 0;
-
-  // Your existing rate model (bytes/sec-ish)
-  const int data_rate =
-      (config.logGPY * 24 +
-       config.logUBX * 100 +
-       config.logSBP * 32 +
-       1) * config.sample_rate +
-      config.logGPX * 230;
-
-  if (data_rate <= 0) return 0;
-
-  const uint64_t seconds = (free_kbytes * 1024ULL) / (uint64_t)data_rate;
-  return (int)(seconds / 60ULL);
-}
-
 // -----------------------------------------------------------------------------
 // INTERNAL IMPLEMENTATION
 // -----------------------------------------------------------------------------

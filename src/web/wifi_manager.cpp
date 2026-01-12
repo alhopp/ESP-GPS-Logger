@@ -19,6 +19,8 @@
 
 #include "Definitions.h"
 #include "web/web_server.h"
+#include "web_files.h"
+
 
 // ============================================================================
 // Configuration
@@ -150,6 +152,7 @@ static void startServer()
   if (serverStarted) return;
 
   webserver_start(server);
+  registerFileEndpoints(server);
   serverStarted = true;
 }
 

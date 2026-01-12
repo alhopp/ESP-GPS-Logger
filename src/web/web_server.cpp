@@ -1,5 +1,9 @@
+
+
 #include "web_server.h"
 #include "web_pages.h"
+#include "web_files.h"
+
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -10,27 +14,21 @@
 #include "config_manager.h"
 #include "web/wifi_manager.h"
 #include "system_mode.h"
-#include "Storage/storage_manager.h"   // <-- NEW
+#include "Storage/storage_manager.h"
 
 #include "system_info.h"
 
+// -----------------------------------------------------------------------------
+// Server lifecycle state
+// -----------------------------------------------------------------------------
+
+// Guards against starting the web server more than once
 static bool webStarted = false;
 
-// -----------------------------------------------------------------------------
-// helpers
-// -----------------------------------------------------------------------------
-
-static bool isPrintableFilename(const char* s)
-{
-  if (!s || !*s) return false;
-
-  for (const char* p = s; *p; ++p) {
-    if (*p < 32 || *p > 126) return false;
-  }
-  return true;
-}
 
 
+// Serialize a JsonDocument and send it as a JSON HTTP response.
+// Centralized here to keep handlers clean and consistent.
 static void sendJson(WebServer &s, JsonDocument &doc)
 {
   String out;
@@ -38,61 +36,20 @@ static void sendJson(WebServer &s, JsonDocument &doc)
   s.send(200, "application/json", out);
 }
 
-// -----------------------------------------------------------------------------
-// start server
-// -----------------------------------------------------------------------------
-static const char* basenameOnly(const char* path)
-{
-  if (!path) return nullptr;
-  const char* p = strrchr(path, '/');
-  return p ? p + 1 : path;
-}
-
-static bool isValidLogFilename(const char* path)
-{
-  const char* name = basenameOnly(path);
-  if (!name || !*name) return false;
-
-  size_t len = strlen(name);
-
-  // Reasonable GPS log length (timestamps + MAC)
-  if (len < 8 || len > 96) return false;
-
-
-  // Printable ASCII only
-  for (const char* p = name; *p; ++p) {
-    if (*p < 32 || *p > 126) return false;
-  }
-
-  // Extension check
-  const char* ext = strrchr(name, '.');
-  if (!ext) return false;
-
-  if (strcmp(ext, ".txt") &&
-      strcmp(ext, ".sbp") &&
-      strcmp(ext, ".ubx") &&
-      strcmp(ext, ".gpx") &&
-      strcmp(ext, ".gpy")) {
-    return false;
-  }
-
-  return true;
-}
-
-
-
 
 void webserver_start(WebServer &server)
 {
+  // Prevent double-start
   if (webStarted) return;
 
   // ---------------------------------------------------------------------------
-  // Root / SPA
+  // Root / Single-Page App
   // ---------------------------------------------------------------------------
   server.on("/", HTTP_GET, [&] {
     server.send(200, "text/html", PAGE_CONFIG_APP);
   });
 
+  // Ignore favicon requests (avoids useless log noise)
   server.on("/favicon.ico", HTTP_GET, [&] {
     server.send(204);
   });
@@ -101,7 +58,7 @@ void webserver_start(WebServer &server)
 // GET CONFIG
 // ---------------------------------------------------------------------------
 server.on("/api/config", HTTP_GET, [&] {
-  StaticJsonDocument<2048> j;
+  DynamicJsonDocument j(2048);
 
   // -------------------------------------------------------------------------
   // Wi-Fi
@@ -177,7 +134,7 @@ server.on("/api/config", HTTP_GET, [&] {
   // ---------------------------------------------------------------------------
   server.on("/api/config", HTTP_POST, [&] {
 
-    StaticJsonDocument<2048> j;
+    DynamicJsonDocument j(2048);
     if (deserializeJson(j, server.arg("plain"))) {
       server.send(400, "text/plain", "Bad JSON");
       return;
@@ -255,117 +212,8 @@ server.on("/api/config", HTTP_GET, [&] {
   });
 
   
-// ---------------------------------------------------------------------------
-// FILE LIST  ( /logs only — fast & clean )
-// ---------------------------------------------------------------------------
-server.on("/api/files", HTTP_GET, [&] {
 
-  StaticJsonDocument<2048> j;
-
-  // SD not available
-  if (!sdOK) {
-    j["ok"] = false;
-    sendJson(server, j);
-    return;
-  }
-
-  j["ok"]      = true;
-  j["free_kb"] = storageFreeKBytes();
-  JsonArray arr = j.createNestedArray("files");
-
-  // -------------------------------------------------------------------------
-  // Open /logs only
-  // -------------------------------------------------------------------------
-  File root = SD_MMC.open("/logs");
-  if (!root || !root.isDirectory()) {
-    // SD OK, just no logs yet
-    sendJson(server, j);
-    return;
-  }
-
-  while (true) {
-    File f = root.openNextFile();
-    if (!f) break;
-
-    // Never list directories
-    if (f.isDirectory()) {
-      f.close();
-      continue;
-    }
-
-    const char* full = f.name();
-    const char* name = basenameOnly(full);
-    size_t size = f.size();
-
-    // Strict filename filter
-    if (!isValidLogFilename(name)) {
-      f.close();
-      continue;
-    }
-
-    // Sanity size
-    if (size == 0 || size > (100UL * 1024UL * 1024UL)) {
-      f.close();
-      continue;
-    }
-
-    JsonObject o = arr.createNestedObject();
-    o["name"] = name;
-    o["size"] = size;
-
-    f.close();
-  }
-
-  root.close();            
-  sendJson(server, j);     
-});
-
-
-
-  // ---------------------------------------------------------------------------
-  // FILE DOWNLOAD
-  // ---------------------------------------------------------------------------
-  server.on("/api/file", HTTP_GET, [&] {
-    if (!sdOK || !server.hasArg("name")) {
-      server.send(404);
-      return;
-    }
-
-    String name = server.arg("name");
-    String path = "/logs/" + name;
-    File f = SD_MMC.open(path, FILE_READ);
-    if (!f) {
-      server.send(404);
-      return;
-    }
-
-    // 👇 THIS IS THE IMPORTANT PART
-    server.sendHeader("Content-Disposition",
-                      "attachment; filename=\"" + name + "\"");
-
-    server.streamFile(f, "application/octet-stream");
-    f.close();
-  });
-
-  // ---------------------------------------------------------------------------
-  // FILE DELETE
-  // ---------------------------------------------------------------------------
-  server.on("/api/file", HTTP_DELETE, [&] {
-    if (!sdOK) {
-      server.send(200, "application/json", "{\"ok\":false}");
-      return;
-    }
-
-    StaticJsonDocument<256> j;
-    deserializeJson(j, server.arg("plain"));
-    String path = "/logs/" + String((const char*)j["name"]);
-
-
-    bool ok = SD_MMC.remove(path);
-    server.send(200, "application/json", ok ? "{\"ok\":true}" : "{\"ok\":false}");
-  });
-
-  // ---------------------------------------------------------------------------
+ // ---------------------------------------------------------------------------
   // WIFI CONNECT
   // ---------------------------------------------------------------------------
   server.on("/api/wifi/connect", HTTP_POST, [&] {

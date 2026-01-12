@@ -7,7 +7,6 @@
 // ----------------------------------------------------
 void initStorage();
 uint64_t storageFreeKBytes();
-int storageLogTimeLeftMinutes();
 
 // ----------------------------------------------------
 // Global storage state
