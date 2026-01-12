@@ -132,15 +132,6 @@ void initStorage()
 }
 
 
-
-#include "Storage/storage_manager.h"
-
-#include <SD_MMC.h>
-#include <LittleFS.h>
-
-// If you already track mount state in storage_manager.cpp, use that instead.
-// This implementation queries the backends directly.
-
 uint64_t storageFreeKBytes()
 {
   // Prefer SD_MMC if a card is present / mounted

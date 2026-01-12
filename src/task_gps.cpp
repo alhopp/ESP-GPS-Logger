@@ -92,8 +92,7 @@ void taskOne(void *parameter)
       {
         lastLogMs = millis();
 
-        LOG_GPS("PVT",
-          "fix=%u sv=%u lat=%.6f lon=%.6f spd=%.2f",
+        LOG_GPS("PVT", "fix=%u sv=%u lat=%.6f lon=%.6f spd=%.2f",
           ubxMessage.navPvt.fixType,
           ubxMessage.navPvt.numSV,
           ubxMessage.navPvt.lat * 1e-7,
@@ -234,9 +233,7 @@ static void processGpsMessages(uint8_t msgType)
   //  }
 
     // -------- Normal logging --------
-    if (Time_Set_OK &&
-        nav_pvt_message > 10 &&
-        nav_pvt_message != old_message) {
+    if (Time_Set_OK && nav_pvt_message > 10 && nav_pvt_message != old_message) {
 
       old_message = nav_pvt_message;
       gps_speed_value   = ubxMessage.navPvt.gSpeed;

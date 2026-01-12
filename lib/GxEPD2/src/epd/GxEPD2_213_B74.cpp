@@ -365,7 +365,7 @@ void GxEPD2_213_B74::_Update_Full()
   _writeCommand(0x22);
   _writeData(0xf7);
   _writeCommand(0x20);
-  _waitWhileBusy("_Update_Full", full_refresh_time);
+  _waitWhileBusy(nullptr, full_refresh_time);
   _power_is_on = false;
 }
 
@@ -374,6 +374,9 @@ void GxEPD2_213_B74::_Update_Part()
   _writeCommand(0x22);
   _writeData(0xfc);
   _writeCommand(0x20);
-  _waitWhileBusy("_Update_Part", partial_refresh_time);
+  _waitWhileBusy(nullptr, partial_refresh_time);
   _power_is_on = true;
 }
+
+
+

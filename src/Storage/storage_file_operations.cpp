@@ -55,12 +55,12 @@ File gpxfile;
 // -----------------------------------------------------------------------------
 // Character arrays for filenames (for error, UBX, GPY, SBP, GPX files)
 // -----------------------------------------------------------------------------
-char filenameERR[64] = "/";
-char filenameUBX[64] = "/";
-char filenameGPY[64] = "/";
-char filenameSBP[64] = "/";
-char filenameGPX[64] = "/";
-char filename_NO_EXT[64] = "/";
+char filenameERR[128] = "/";
+char filenameUBX[128] = "/";
+char filenameGPY[128] = "/";
+char filenameSBP[128] = "/";
+char filenameGPX[128] = "/";
+char filename_NO_EXT[128 ] = "/";
 
 // -----------------------------------------------------------------------------
 // Open files for logging based on MAC address and timestamp
@@ -165,9 +165,9 @@ void Flush_files(void)
     case 3: if (sbpfile)   sbpfile.flush();   break;
     case 4: if (gpxfile)   gpxfile.flush();   break;
   }
-
-  load_balance = (load_balance + 1) % 5;
 }
+
+
 
 
 
@@ -224,6 +224,7 @@ void Log_to_SD(void)
 
 
 
+
 // -----------------------------------------------------------------------------
 // Close all open files to ensure data is properly saved
 // -----------------------------------------------------------------------------
@@ -276,3 +277,5 @@ void logERR(const char *message) {
     errorfile.print(message);
   }
 }
+
+
