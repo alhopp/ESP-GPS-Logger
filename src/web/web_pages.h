@@ -49,6 +49,13 @@ input,select{width:100%;padding:12px;margin-top:4px;border:1px solid var(--e);bo
 
 
 .file-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--e)}
+.file-swipe{position:relative;overflow:hidden}
+.file-swipe-inner{display:flex;align-items:center;transition:transform .2s ease;background:var(--d)}
+.file-swipe.delete .file-swipe-inner{transform:translateX(-72px)}
+.file-delete{position:absolute;right:0;top:0;width:72px;height:100%;background:#fdecea;color:#c62828;display:flex;align-items:center;justify-content:center;font-size:22px;user-select:none}
+
+
+
 .file-name{font-size:15px}
 .file-size{font-size:13px;color:var(--f)}
 
@@ -177,11 +184,7 @@ function openInfo(){$("infoModal").style.display="flex"}
 function closeInfo(){$("infoModal").style.display="none"}
 function downloadFile(n){window.location="/api/file?name="+encodeURIComponent(n)}
 
-async function deleteFile(n){
-  if(!confirm("Delete "+n+"?"))return;
-  await fetch("/api/file",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:n})});
-  loadFiles();
-}
+
 
 async function load(){
   const c=await(await fetch("/api/config")).json();
@@ -203,6 +206,8 @@ async function load(){
   ssid.value=c.wifi?.ssid||"";
   saveBtn.disabled=true;dirty=false;
   loadFiles();
+  enableSwipeToDelete();
+
 }
 
 async function save(){
@@ -214,28 +219,55 @@ async function save(){
   const r=await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
   if(r.ok){saveBtn.disabled=true;dirty=false}
 }
-
 async function loadFiles(){
-  fileList.innerHTML = "";
-
-  const r = await fetch("/api/files");
-  const j = await r.json();
-
-  if (!j.ok) {
-    sdInfo.textContent = "No SD";
-    return;
-  }
-
-  sdInfo.textContent = `${j.files.length} files`;
-
-  j.files.forEach(f => {
-    fileList.innerHTML += `
-      <div class="file-row">
+  fileList.innerHTML="";
+  const r=await fetch("/api/files");
+  const j=await r.json();
+  if(!j.ok){sdInfo.textContent="No SD";return}
+  sdInfo.textContent=`${j.files.length} files`;
+  j.files.forEach(f=>{
+    fileList.innerHTML+=`<div class="file-row file-swipe" data-name="${f.name}">
+      <div class="file-delete">🗑</div>
+      <div class="file-swipe-inner">
         <div>
           <div class="file-name">${f.name}</div>
           <div class="file-size">${(f.size/1024).toFixed(1)} KB</div>
         </div>
-      </div>`;
+      </div>
+    </div>`;
+  });
+  enableSwipeToDelete();
+}
+
+function enableSwipeToDelete(){
+  document.querySelectorAll(".file-swipe").forEach(r=>{
+    let x0=0,x=0,sw=!1,
+        i=r.querySelector(".file-swipe-inner"),
+        d=r.querySelector(".file-delete"),
+        n=r.dataset.name;
+
+    r.addEventListener("touchstart",e=>{
+      x0=e.touches[0].clientX;sw=!0;i.style.transition="none";
+    },{passive:!0});
+
+    r.addEventListener("touchmove",e=>{
+      if(!sw)return;
+      x=e.touches[0].clientX-x0;
+      x<0&&x>-90&&(i.style.transform=`translateX(${x}px)`);
+    },{passive:!0});
+
+    r.addEventListener("touchend",()=>{
+      i.style.transition="";
+      sw=!1;
+      x<-40?r.classList.add("delete"):(r.classList.remove("delete"),i.style.transform="");
+      x=0;
+    });
+
+    d.onclick=async()=>{
+      if(!confirm(`Delete ${n}?`))return;
+      await fetch("/api/file",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:n})});
+      loadFiles();
+    };
   });
 }
 
