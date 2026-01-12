@@ -60,23 +60,23 @@ void webserver_start(WebServer &server)
   // Prevent double-start
   if (webStarted) return;
 
-  // ---------------------------------------------------------------------------
-  // Root / Single-Page App
-  // ---------------------------------------------------------------------------
 
   // Serve the main configuration UI
-  server.on("/", HTTP_GET, [&] {
-    server.send(200, "text/html", PAGE_CONFIG_APP);
-  });
+  server.on("/", HTTP_GET, [&] {server.send(200, "text/html", PAGE_CONFIG_APP); });
 
-  // Ignore favicon requests (avoids useless log noise)
-  server.on("/favicon.ico", HTTP_GET, [&] {
-    server.send(204);
-  });
+  // iOS Safari noise suppression
+  server.on("/apple-touch-icon.png", HTTP_GET, [&] { server.send(204); });
+  server.on("/apple-touch-icon-precomposed.png", HTTP_GET, [&] { server.send(204); });
+  server.on("/favicon.ico", HTTP_GET, [&] { server.send(204); });
+
+  // Common browser probes (harmless but noisy)
+  server.on("/manifest.json", HTTP_GET, [&] { server.send(204); });
+  server.on("/robots.txt", HTTP_GET, [&] { server.send(204); });
+  server.on("/service-worker.js", HTTP_GET, [&] { server.send(204); });
+
 
   // ---------------------------------------------------------------------------
   // GET CONFIG
-  //
   // Returns the current system configuration as JSON
   // ---------------------------------------------------------------------------
   server.on("/api/config", HTTP_GET, [&] {
@@ -252,6 +252,13 @@ void webserver_start(WebServer &server)
   // FILE APIs (delegated)
   // ---------------------------------------------------------------------------
   registerFileEndpoints(server);
+
+  // ---------------------------------------------------------------------------
+  // Catch-all: silence unknown browser requests
+  // ---------------------------------------------------------------------------
+  server.onNotFound([&]() {
+    server.send(204);
+  });
 
   // ---------------------------------------------------------------------------
   // Start server

@@ -12,7 +12,21 @@ nav button{flex:1;padding:18px;border:0;background:none;color:var(--f);font-size
 nav button.a{color:var(--a);border-bottom:3px solid var(--a);background:#f8fbff}
 
 section{display:none;padding:16px}
-section.a{display:block}
+
+section.a {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 112px); /* header + nav height */
+  overflow: hidden;
+}
+
+#files .card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* CRITICAL for iOS */
+}
+
 
 .card{background:var(--d);border:1px solid var(--e);border-radius:14px;padding:16px;margin-bottom:16px}
 h3{margin:0 0 10px;font-size:18px;color:var(--a)}
@@ -26,7 +40,14 @@ input,select{width:100%;padding:12px;margin-top:4px;border:1px solid var(--e);bo
 .toggle input:checked+.slider{background:var(--a)}
 .toggle input:checked+.slider:before{transform:translateX(22px)}
 
-.file-list{max-height:60vh;overflow-y:auto}
+.file-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0; /* iOS requires this */
+}
+
+
 .file-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--e)}
 .file-name{font-size:15px}
 .file-size{font-size:13px;color:var(--f)}
