@@ -67,8 +67,8 @@ void registerFileEndpoints(WebServer &server)
   server.on("/api/files", HTTP_GET, [&] {
 
   DynamicJsonDocument j(8192);
+  
   j["ok"] = true;
-
   JsonArray files = j.createNestedArray("files");
 
   // --- open, close, reopen (CRITICAL) ---

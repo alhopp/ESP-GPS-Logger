@@ -216,15 +216,29 @@ async function save(){
 }
 
 async function loadFiles(){
-  fileList.innerHTML="";
-  const r=await fetch("/api/files"),j=await r.json();
-  if(!j.ok){sdInfo.textContent="No SD";return}
-  sdInfo.textContent=`Free ${Math.floor(j.free_kb/1024)} MB`;
-  j.files.forEach(f=>fileList.innerHTML+=
-  `<div class=file-row><div><div class=file-name>${f.name}</div><div class=file-size>${(f.size/1024).toFixed(1)} KB</div></div>
-   <div class=file-actions><div class="file-btn download" onclick="downloadFile('${f.name}')">⬇️</div>
-   <div class="file-btn delete" onclick="deleteFile('${f.name}')">🗑</div></div></div>`);
+  fileList.innerHTML = "";
+
+  const r = await fetch("/api/files");
+  const j = await r.json();
+
+  if (!j.ok) {
+    sdInfo.textContent = "No SD";
+    return;
+  }
+
+  sdInfo.textContent = `${j.files.length} files`;
+
+  j.files.forEach(f => {
+    fileList.innerHTML += `
+      <div class="file-row">
+        <div>
+          <div class="file-name">${f.name}</div>
+          <div class="file-size">${(f.size/1024).toFixed(1)} KB</div>
+        </div>
+      </div>`;
+  });
 }
+
 
 load();
 </script>
