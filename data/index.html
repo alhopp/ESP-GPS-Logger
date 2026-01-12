@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ESP32 GPS</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/app.css">
+</head>
+
+<body>
+
+<header>ESP32 GPS</header>
+
+<nav>
+  <button class="a" onclick="tab('files',this)">Files</button>
+  <button onclick="tab('settings',this)">Settings</button>
+  <button onclick="tab('system',this)">System</button>
+</nav>
+
+<section id="files" class="a">
+  <div class="card">
+    <h3>Logs</h3>
+    <div id="sdInfo">Scanning…</div>
+    <div class="file-list" id="fileList"></div>
+  </div>
+</section>
+
+<section id="settings">…</section>
+<section id="system">…</section>
+
+<footer>
+  <button id="saveBtn" onclick="save()" disabled>Save</button>
+</footer>
+
+<!-- Script -->
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+:root{--a:#1e88e5;--b:#0b2a4a;--c:#f4f7fb;--d:#fff;--e:#dbe2ee;--f:#5b6b82}
+*{box-sizing:border-box}
+body{margin:0;font:18px system-ui;background:var(--c);padding-bottom:96px}
+
+/* Header + Nav */
+header{padding:18px;font-size:22px;font-weight:700;text-align:center;background:var(--b);color:#fff}
+nav{display:flex;background:#e9eff7;border-bottom:1px solid var(--e)}
+nav button{flex:1;padding:18px;border:0;background:none;color:var(--f);font-size:19px;font-weight:600}
+nav button.a{color:var(--a);border-bottom:3px solid var(--a);background:#f8fbff}
+
+/* Sections */
+section{display:none;padding:16px}
+section.a{display:flex;flex-direction:column;height:calc(100vh - 112px);overflow:hidden}
+
+/* Cards */
+.card{background:var(--d);border:1px solid var(--e);border-radius:14px;padding:16px;margin-bottom:16px}
+h3{margin:0 0 10px;font-size:18px;color:var(--a)}
+
+/* Inputs */
+label{display:block;margin-top:10px;font-size:14px;color:var(--f)}
+input,select{width:100%;padding:12px;margin-top:4px;border:1px solid var(--e);border-radius:10px;font-size:17px}
+
+/* File list */
+.file-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
+.file-row{border-bottom:1px solid var(--e)}
+.file-swipe{position:relative;overflow:hidden}
+
+/* Delete layer */
+.file-delete{
+  position:absolute;right:0;top:0;bottom:0;width:72px;
+  background:#fdecea;color:#c62828;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;user-select:none
+}
+
+/* Swipe layer */
+.file-swipe-inner{
+  width:100%;display:flex;align-items:center;
+  background:var(--d);padding:12px 0;
+  transition:transform .2s ease;
+  transform:translateX(0);will-change:transform
+}
+.file-swipe.delete .file-swipe-inner{transform:translateX(-72px)}
+
+.file-icon{
+  width:32px;height:32px;
+  margin:0 12px 0 8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;color:var(--a);
+  flex-shrink:0;
+}
+
+.file-text{display:flex;flex-direction:column}
+.file-name{font-size:15px}
+.file-size{font-size:13px;color:var(--f)}
+
+/* Footer */
+footer{position:sticky;bottom:0;padding:16px;border-top:1px solid var(--e);background:#f0f4fa}
+footer button{width:100%;padding:16px;border-radius:12px;border:0;font-size:18px;font-weight:600;background:var(--a);color:#fff}
+footer button:disabled{opacity:.45}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center}
+.modal-card{background:#fff;border-radius:14px;padding:20px;width:90%;max-width:420px}

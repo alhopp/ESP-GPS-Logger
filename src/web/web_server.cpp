@@ -19,7 +19,6 @@
 // ============================================================================
 
 #include "web/web_server.h"
-#include "web/web_pages.h"
 #include "web/web_files.h"
 
 #include <Arduino.h>
@@ -30,6 +29,9 @@
 #include "config_manager.h"
 #include "web/wifi_manager.h"
 #include "system_info.h"
+
+#include <LittleFS.h>
+
 
 // -----------------------------------------------------------------------------
 // Server lifecycle state
@@ -61,8 +63,38 @@ void webserver_start(WebServer &server)
   if (webStarted) return;
 
 
-  // Serve the main configuration UI
-  server.on("/", HTTP_GET, [&] {server.send(200, "text/html", PAGE_CONFIG_APP); });
+server.on("/", HTTP_GET, [&](){
+  File f = LittleFS.open("/index.html", "r");
+  if (!f) {
+    server.send(404, "text/plain", "index.html missing");
+    return;
+  }
+  server.streamFile(f, "text/html");
+  f.close();
+});
+
+server.on("/app.css", HTTP_GET, [&](){
+  File f = LittleFS.open("/app.css", "r");
+  if (!f) {
+    server.send(404, "text/plain", "app.css missing");
+    return;
+  }
+  server.streamFile(f, "text/css");
+  f.close();
+});
+
+server.on("/app.js", HTTP_GET, [&](){
+  File f = LittleFS.open("/app.js", "r");
+  if (!f) {
+    server.send(404, "text/plain", "app.js missing");
+    return;
+  }
+  server.streamFile(f, "application/javascript");
+  f.close();
+});
+
+
+
 
   // iOS Safari noise suppression
   server.on("/apple-touch-icon.png", HTTP_GET, [&] { server.send(204); });
