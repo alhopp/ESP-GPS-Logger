@@ -4,8 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ESP32 GPS</title>
-
-  <!-- Styles -->
   <link rel="stylesheet" href="/app.css">
 </head>
 
@@ -30,6 +28,7 @@
 
 <!-- ================= SETTINGS ================= -->
 <section id="settings">
+
   <div class="card">
     <h3>User</h3>
     <label>Name</label>
@@ -57,6 +56,30 @@
       <option value="3">Wave</option>
       <option value="4">Foil</option>
     </select>
+  </div>
+
+  <div class="card">
+    <h3>Screens</h3>
+
+    <div class="toggle">
+      <span>Speed Screen</span>
+      <label><input type="checkbox" id="speed_screen"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle">
+      <span>Stats Screen</span>
+      <label><input type="checkbox" id="stat_screen"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle">
+      <span>GPIO12 Screen</span>
+      <label><input type="checkbox" id="gpio12_screen"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle">
+      <span>Sleep Info Screen</span>
+      <label><input type="checkbox" id="sleep_off_screen"><div class="slider"></div></label>
+    </div>
   </div>
 
   <div class="card">
@@ -123,7 +146,6 @@
   <button id="saveBtn" onclick="save()" disabled>Save</button>
 </footer>
 
-<!-- Script -->
 <script src="/app.js"></script>
 </body>
 </html>
