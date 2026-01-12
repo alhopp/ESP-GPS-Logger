@@ -66,74 +66,40 @@ void registerFileEndpoints(WebServer &server)
   // ---------------------------------------------------------------------------
   server.on("/api/files", HTTP_GET, [&] {
 
-    // Large response → heap allocation (prevents stack overflow / reboot)
-    DynamicJsonDocument j(16384);
+  DynamicJsonDocument j(8192);
+  j["ok"] = true;
 
-    // Only allow access if SD is present and we are in CONFIG (SoftAP) mode
-    if (!sdOK || getMode() != MODE_WIFI_SOFT_AP) {
-      j["ok"]  = false;
-      j["err"] = "sd_unavailable_or_not_config";
-      server.send(200, "application/json", j.as<String>());
-      return;
-    }
+  JsonArray files = j.createNestedArray("files");
 
-    j["ok"]      = true;
-    j["free_kb"] = storageFreeKBytes();
-    JsonArray arr = j.createNestedArray("files");
+  // --- open, close, reopen (CRITICAL) ---
+  File root = SD_MMC.open("/logs");
+  if (!root || !root.isDirectory()) {
+    j["ok"] = false;
+    server.send(200, "application/json", j.as<String>());
+    return;
+  }
+  root.close();
+  delay(2);
+  root = SD_MMC.open("/logs");
 
-    // Open /logs directory only
-    File root = SD_MMC.open("/logs");
-    if (!root || !root.isDirectory()) {
-      server.send(200, "application/json", j.as<String>());
-      return;
-    }
+  // --- iterate ---
+  while (true) {
+    File f = root.openNextFile();
+    if (!f) break;
 
-    root.rewindDirectory();
-
-    int count = 0;
-    while (true) {
-      File f = root.openNextFile();
-      if (!f) break;
-
-      if (f.isDirectory()) {
-        f.close();
-        continue;
-      }
-
-      char namebuf[96];
-      strlcpy(namebuf, basenameOnly(f.name()), sizeof(namebuf));
-
-      const char* ext = strrchr(namebuf, '.');
-      if (!ext ||
-          (strcasecmp(ext, ".txt") &&
-          strcasecmp(ext, ".sbp") &&
-          strcasecmp(ext, ".ubx") &&
-          strcasecmp(ext, ".gpx") &&
-          strcasecmp(ext, ".gpy"))) {
-        f.close();
-        continue;
-      }
-
-      JsonObject o = arr.createNestedObject();
-      o["name"] = namebuf;
+    if (!f.isDirectory()) {
+      JsonObject o = files.createNestedObject();
+      o["name"] = String(f.name());
       o["size"] = f.size();
-
-      f.close();
     }
 
-      root.close();
+    f.close();
+  }
 
-      // Detect JSON overflow explicitly
-      if (j.overflowed()) {
-        DynamicJsonDocument e(256);
-        e["ok"]  = false;
-        e["err"] = "json_overflow";
-        server.send(200, "application/json", e.as<String>());
-        return;
-      }
+  root.close();
 
-      server.send(200, "application/json", j.as<String>());
-    });
+  server.send(200, "application/json", j.as<String>());
+});
 
   // ---------------------------------------------------------------------------
   // FILE DOWNLOAD
@@ -147,7 +113,7 @@ void registerFileEndpoints(WebServer &server)
     }
 
     String name = server.arg("name");
-   const char* base = basenameOnly(name.c_str());
+    const char* base = basenameOnly(name.c_str());
     const char* ext  = strrchr(base, '.');
 
     if (!ext ||

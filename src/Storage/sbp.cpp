@@ -94,7 +94,7 @@ void log_SBP(File &file)
   for (int i = 1; i <= 10; i++) {
     snprintf(path, sizeof(path), "/logs/sbp_test_%02d.txt", i);
 
-    Serial.printf("Files: %d\n", i);
+    Serial.println(path);
 
     File f = SD_MMC.open(path, FILE_WRITE);
     if (!f) {
