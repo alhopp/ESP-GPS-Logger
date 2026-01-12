@@ -160,15 +160,17 @@ void Flush_files(void)
 {
   if (config.sample_rate > 10) return;
 
-  static int load_balance = 0;
+ static uint8_t load_balance = 0;
 
-  switch (load_balance) {
-    case 0: if (ubxfile)   ubxfile.flush();   break;
-    case 1: if (errorfile) errorfile.flush(); break;
-    case 2: if (gpyfile)   gpyfile.flush();   break;
-    case 3: if (sbpfile)   sbpfile.flush();   break;
-    case 4: if (gpxfile)   gpxfile.flush();   break;
-  }
+switch (load_balance) {
+  case 0: if (ubxfile)   ubxfile.flush();   break;
+  case 1: if (errorfile) errorfile.flush(); break;
+  case 2: if (gpyfile)   gpyfile.flush();   break;
+  case 3: if (sbpfile)   sbpfile.flush();   break;
+  case 4: if (gpxfile)   gpxfile.flush();   break;
+}
+
+load_balance = (load_balance + 1) % 5;
 }
 
 
@@ -250,28 +252,6 @@ void Close_files(void)
 }
 
 
-// -----------------------------------------------------------------------------
-// Prints the content of a file to the Serial
-// -----------------------------------------------------------------------------
-
-void printFile(const char *filename) {
-  // Open file for reading
-  File file;
-  if(sdOK) file = SD_MMC.open(filename);
-  if(LITTLEFS_OK) file = LittleFS.open(filename);
-  if (!file.available()) {
-    LOG_ERROR("FILE", "Failed to read file");
-
-    return;
-  }
-  // Extract each character by one by one
-  while (file.available()) {
-    Serial.print((char)file.read());
-  }
-  Serial.println();
-  // Close the file
-  file.close();
-}
 
 // -----------------------------------------------------------------------------
 // Log an error message to the error file
