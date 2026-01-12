@@ -19,6 +19,7 @@
   <button onclick="tab('system',this)">System</button>
 </nav>
 
+<!-- ================= FILES ================= -->
 <section id="files" class="a">
   <div class="card">
     <h3>Logs</h3>
@@ -27,8 +28,96 @@
   </div>
 </section>
 
-<section id="settings">…</section>
-<section id="system">…</section>
+<!-- ================= SETTINGS ================= -->
+<section id="settings">
+  <div class="card">
+    <h3>User</h3>
+    <label>Name</label>
+    <input id="Sleep_info">
+  </div>
+
+  <div class="card">
+    <h3>Logos</h3>
+
+    <label>Board Logo</label>
+    <select id="Board_Logo">
+      <option value="0">Off</option>
+      <option value="1">Generic</option>
+      <option value="2">Slalom</option>
+      <option value="3">Foil</option>
+      <option value="4">Wave</option>
+      <option value="5">Speed</option>
+    </select>
+
+    <label>Sail Logo</label>
+    <select id="Sail_Logo">
+      <option value="0">Off</option>
+      <option value="1">Neutral</option>
+      <option value="2">Race</option>
+      <option value="3">Wave</option>
+      <option value="4">Foil</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h3>Logging</h3>
+
+    <div class="toggle">
+      <span>TXT</span>
+      <label><input type="checkbox" id="logTXT"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle">
+      <span>UBX</span>
+      <label><input type="checkbox" id="logUBX"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle">
+      <span>SBP</span>
+      <label><input type="checkbox" id="logSBP"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle">
+      <span>GPY</span>
+      <label><input type="checkbox" id="logGPY"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle">
+      <span>GPX</span>
+      <label><input type="checkbox" id="logGPX"><div class="slider"></div></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Wi-Fi</h3>
+    <label>SSID</label>
+    <input id="ssid">
+    <label>Password</label>
+    <input id="password" type="password">
+  </div>
+</section>
+
+<!-- ================= SYSTEM ================= -->
+<section id="system">
+  <div class="card">
+    <h3>GNSS</h3>
+    <div class="sys-row"><span>Module</span><span id="sys_gnss_module"></span></div>
+    <div class="sys-row"><span>Constellation</span><span id="sys_gnss"></span></div>
+    <div class="sys-row"><span>Sample Rate</span><span id="sys_sample_rate"></span></div>
+    <div class="sys-row"><span>Dynamic Model</span><span id="sys_dynamic_model"></span></div>
+  </div>
+
+  <div class="card">
+    <h3>Hardware</h3>
+    <div class="sys-row"><span>Display</span><span id="sys_display"></span></div>
+    <div class="sys-row"><span>Storage</span><span id="sys_storage"></span></div>
+  </div>
+
+  <div class="card">
+    <h3>Software</h3>
+    <div class="sys-row"><span>Version</span><span id="sys_version"></span></div>
+  </div>
+</section>
 
 <footer>
   <button id="saveBtn" onclick="save()" disabled>Save</button>
