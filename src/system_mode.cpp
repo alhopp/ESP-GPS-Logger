@@ -3,19 +3,26 @@
 //
 // Central system mode state machine.
 //
-// Responsibilities:
-// - Own the authoritative SystemMode
-// - Execute EXIT actions for the old mode
-// - Commit the state transition
-// - Execute ENTER actions for the new mode
+// This module owns the authoritative SystemMode and is responsible for
+// performing *side-effect transitions* between modes:
+//
+//   - Wi-Fi on/off
+//   - GPS power control
+//   - Storage mount / unmount
+//   - Sleep entry / exit preparation
 //
 // Design rules:
-// - Side-effects ONLY (Wi-Fi, GPS, power, sleep)
-// - No UI, no drawing, no rendering
-// - Display logic reacts independently via getMode()
+// - NO rendering, NO UI logic, NO drawing
+// - NO business logic
+// - Side-effects ONLY
+// - Display reacts independently via getMode()
+// - Storage lifecycle is explicitly managed at mode boundaries
 // -----------------------------------------------------------------------------
 
+
 #include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include "system_mode.h"
 #include "web/wifi_manager.h"
@@ -29,15 +36,23 @@
 #include "Storage/storage_manager.h"
 #include "Storage/storage_file_operations.h"
 
+
 // -----------------------------------------------------------------------------
 // INTERNAL STATE
 // -----------------------------------------------------------------------------
+// Single source of truth for system mode.
+// Volatile because it is read by multiple tasks.
 static volatile SystemMode currentMode = MODE_BOOT;
+
 
 // -----------------------------------------------------------------------------
 // PUBLIC API
 // -----------------------------------------------------------------------------
-SystemMode getMode(){return currentMode;}
+SystemMode getMode()
+{
+  return currentMode;
+}
+
 
 // -----------------------------------------------------------------------------
 // MODE → STRING (debug / logging only)
@@ -54,9 +69,16 @@ const char* modeToString(SystemMode mode)
   }
 }
 
+
+// -----------------------------------------------------------------------------
+// MODE-SPECIFIC LOOP HOOK
+// -----------------------------------------------------------------------------
 void systemModeLoop()
 {
-  if (getMode() == MODE_WIFI_SOFT_AP) {wifi_loop(); }
+  // Only CONFIG mode has a live event loop
+  if (getMode() == MODE_WIFI_SOFT_AP) {
+    wifi_loop();
+  }
 }
 
 
@@ -72,89 +94,113 @@ void setMode(SystemMode newMode)
     return;
   }
 
-  LOG_SYS("MODE", "EXIT %s → ENTER %s", modeToString(currentMode),modeToString(newMode));
+  LOG_SYS("MODE", "EXIT %s → ENTER %s",
+          modeToString(currentMode),
+          modeToString(newMode));
 
   // ---------------------------------------------------------------------------
   // EXIT actions (based on OLD mode)
+  //
+  // IMPORTANT:
+  // - These actions complete BEFORE the state commit
+  // - They are allowed to assume the OLD mode is still active
   // ---------------------------------------------------------------------------
   switch (currentMode) {
 
     case MODE_LOGGING:
-      LOG_SYS("MODE", "EXIT LOGGING");
+      // Signal all storage writers to stop immediately
+      storage_shutting_down = true;
 
-      storage_shutting_down = true;   // <-- ADD THIS
-      delay(20);                      // allow in-flight writes to finish
+      // Allow in-flight SD writes to drain safely
+      vTaskDelay(pdMS_TO_TICKS(20));
 
+      // Close files first, then unmount storage
       Close_files();
       storage_off();
       break;
 
-
     case MODE_WIFI_SOFT_AP:
-      storage_shutting_down = true;        
+      // Configuration mode exit:
+      // stop SD activity, then shut down Wi-Fi
+      storage_shutting_down = true;
       wifi_stop();
-      storage_off();   
+      storage_off();
       break;
 
     case MODE_SLEEP:
+      // Waking from sleep — hardware re-enable happens in ENTER
       LOG_SYS("MODE", "EXIT SLEEP → power up");
-      screen_request_partial(0,0,250,122);
-       break;
+      screen_request_partial(0, 0, 250, 122);
+      break;
 
     case MODE_BOOT:
     default:
       break;
   }
 
+  // ---------------------------------------------------------------------------
+  // STATE COMMIT
+  //
+  // MUST happen before ENTER actions.
+  // ENTER handlers may legally call getMode().
+  // ---------------------------------------------------------------------------
   currentMode = newMode;
 
   // ---------------------------------------------------------------------------
   // ENTER actions (based on NEW mode)
   //
+  // Rules:
+  // - Side-effects ONLY
+  // - No rendering
+  // - No long-running logic
   // ---------------------------------------------------------------------------
   switch (currentMode) {
 
     case MODE_LOGGING:
       LOG_SYS("MODE", "ENTER LOGGING → Wi-Fi OFF");
+
       storage_shutting_down = false;
+
       wifi_stop();
       gps_power_on();
 
+      // Storage must be mounted BEFORE any files are opened
       if (!storage_on()) {
         LOG_ERROR("SD", "storage_on failed → abort logging");
-        // Optional: force fallback mode here
-        // setMode(MODE_SLEEP);
         break;
       }
 
-      Open_files();   // start session files only AFTER SD is mounted
+      Open_files();   // session files start here
       break;
 
     case MODE_WIFI_SOFT_AP:
       storage_shutting_down = false;
 
       Serial.begin(115200);
-      delay(10);
+      vTaskDelay(pdMS_TO_TICKS(10));
+
       LOG_SYS("MODE", "ENTER WIFI_SOFT_AP (CONFIG)");
 
       gps_power_off();
 
+      // SD is optional but preferred for file manager access
       if (!storage_on()) {
         LOG_ERROR("SD", "storage_on failed in CONFIG");
-        // Optional: still allow config via LittleFS-only
+        // System continues using LittleFS only
       }
 
       wifi_start_ap();
-      screen_request_partial(0,0,250,122);
+      screen_request_partial(0, 0, 250, 122);
       break;
 
-   case MODE_SLEEP:
+    case MODE_SLEEP:
       LOG_SYS("MODE", "ENTER SLEEP");
 
       wifi_stop();
       gps_power_off();
 
-      storage_off();   
+      // Final defensive unmount before deep sleep
+      storage_off();
       break;
 
     case MODE_BOOT:
