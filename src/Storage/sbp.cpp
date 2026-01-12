@@ -57,7 +57,6 @@ char path[64];
 
 for (int i = 1; i <= 10; i++) {
   snprintf(path, sizeof(path), "/logs/sbp_test_%02d.txt", i);
-  Serial.println(path);
 
   File f = SD_MMC.open(path, FILE_WRITE);
   if (!f) {
@@ -72,42 +71,6 @@ for (int i = 1; i <= 10; i++) {
   f.println("If this file appears in the UI,");
   f.println("the SD file manager works.");
   f.close();
-}
-
-/// --------------------------------------------------
-// 🔍 IMMEDIATE READBACK (POSIX – SAFE)
-// --------------------------------------------------
-
-Serial.println("\n=== READBACK /logs ===");
-
-DIR* dir = opendir("/sdcard/logs");
-if (!dir) {
-  Serial.println("FAILED to open /sdcard/logs");
-} else {
-  struct dirent* ent;
-  int count = 0;
-
-  while ((ent = readdir(dir)) != nullptr) {
-
-    // Only regular files
-    if (ent->d_type != DT_REG)
-      continue;
-
-    String name = ent->d_name;
-    String path = String("/sdcard/logs/") + name;
-
-    struct stat st;
-    if (stat(path.c_str(), &st) != 0)
-      continue;
-
-    Serial.printf("FOUND: %s (%ld bytes)\n",
-                  name.c_str(),
-                  st.st_size);
-    count++;
-  }
-
-  closedir(dir);
-  Serial.printf("TOTAL FILES FOUND: %d\n", count);
 }
 
 }
