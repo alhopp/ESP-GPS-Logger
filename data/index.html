@@ -1,13 +1,15 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ESP32 GPS</title>
-  <link rel="stylesheet" href="/app.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESP32 GPS</title>
+<link rel="stylesheet" href="/app.css">
 </head>
 
 <body>
+
+<div id="splash"><img src="/ESP32_logo.jpg"></div>
 
 <header>ESP32 GPS</header>
 
@@ -29,12 +31,39 @@
 <!-- ================= SETTINGS ================= -->
 <section id="settings">
 
+  <!-- User -->
   <div class="card">
     <h3>User</h3>
     <label>Name</label>
     <input id="Sleep_info">
   </div>
 
+  <!-- Screens (holding toggles) -->
+  <div class="card">
+    <h3>Screens</h3>
+
+    <div class="toggle"><span>10 sec</span>
+      <label><input type="checkbox" id="stat_10s"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle"><span>5 × 10 sec</span>
+      <label><input type="checkbox" id="stat_5x10"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle"><span>Alpha</span>
+      <label><input type="checkbox" id="stat_alpha"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle"><span>Nautical mile</span>
+      <label><input type="checkbox" id="stat_nm"><div class="slider"></div></label>
+    </div>
+
+    <div class="toggle"><span>1 hour</span>
+      <label><input type="checkbox" id="stat_hour"><div class="slider"></div></label>
+    </div>
+  </div>
+
+  <!-- Logos -->
   <div class="card">
     <h3>Logos</h3>
 
@@ -58,59 +87,32 @@
     </select>
   </div>
 
-  <div class="card">
-    <h3>Screens</h3>
-
-    <div class="toggle">
-      <span>Speed Screen</span>
-      <label><input type="checkbox" id="speed_screen"><div class="slider"></div></label>
-    </div>
-
-    <div class="toggle">
-      <span>Stats Screen</span>
-      <label><input type="checkbox" id="stat_screen"><div class="slider"></div></label>
-    </div>
-
-    <div class="toggle">
-      <span>GPIO12 Screen</span>
-      <label><input type="checkbox" id="gpio12_screen"><div class="slider"></div></label>
-    </div>
-
-    <div class="toggle">
-      <span>Sleep Info Screen</span>
-      <label><input type="checkbox" id="sleep_off_screen"><div class="slider"></div></label>
-    </div>
-  </div>
-
+  <!-- Logging -->
   <div class="card">
     <h3>Logging</h3>
 
-    <div class="toggle">
-      <span>TXT</span>
+    <div class="toggle"><span>TXT</span>
       <label><input type="checkbox" id="logTXT"><div class="slider"></div></label>
     </div>
 
-    <div class="toggle">
-      <span>UBX</span>
+    <div class="toggle"><span>UBX</span>
       <label><input type="checkbox" id="logUBX"><div class="slider"></div></label>
     </div>
 
-    <div class="toggle">
-      <span>SBP</span>
+    <div class="toggle"><span>SBP</span>
       <label><input type="checkbox" id="logSBP"><div class="slider"></div></label>
     </div>
 
-    <div class="toggle">
-      <span>GPY</span>
+    <div class="toggle"><span>GPY</span>
       <label><input type="checkbox" id="logGPY"><div class="slider"></div></label>
     </div>
 
-    <div class="toggle">
-      <span>GPX</span>
+    <div class="toggle"><span>GPX</span>
       <label><input type="checkbox" id="logGPX"><div class="slider"></div></label>
     </div>
   </div>
 
+  <!-- Wi-Fi -->
   <div class="card">
     <h3>Wi-Fi</h3>
     <label>SSID</label>
@@ -118,10 +120,12 @@
     <label>Password</label>
     <input id="password" type="password">
   </div>
+
 </section>
 
 <!-- ================= SYSTEM ================= -->
 <section id="system">
+
   <div class="card">
     <h3>GNSS</h3>
     <div class="sys-row"><span>Module</span><span id="sys_gnss_module"></span></div>
@@ -140,6 +144,7 @@
     <h3>Software</h3>
     <div class="sys-row"><span>Version</span><span id="sys_version"></span></div>
   </div>
+
 </section>
 
 <footer>
@@ -147,5 +152,6 @@
 </footer>
 
 <script src="/app.js"></script>
+
 </body>
 </html>

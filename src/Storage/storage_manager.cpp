@@ -215,7 +215,7 @@ static void unmountSD_MMC()
 
   // Clean FAT unmount
   SD_MMC.end();
-
+  vTaskDelay(pdMS_TO_TICKS(300));
   sd_mounted = false;
 }
 

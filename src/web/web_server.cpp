@@ -62,38 +62,14 @@ void webserver_start(WebServer &server)
   // Prevent double-start
   if (webStarted) return;
 
+  server.serveStatic("/", LittleFS, "/");
 
-server.on("/", HTTP_GET, [&](){
+  server.on("/", HTTP_GET, [&](){
   File f = LittleFS.open("/index.html", "r");
-  if (!f) {
-    server.send(404, "text/plain", "index.html missing");
-    return;
-  }
+  if (!f) { server.send(404, "text/plain", "index.html missing"); return; }
   server.streamFile(f, "text/html");
   f.close();
-});
-
-server.on("/app.css", HTTP_GET, [&](){
-  File f = LittleFS.open("/app.css", "r");
-  if (!f) {
-    server.send(404, "text/plain", "app.css missing");
-    return;
-  }
-  server.streamFile(f, "text/css");
-  f.close();
-});
-
-server.on("/app.js", HTTP_GET, [&](){
-  File f = LittleFS.open("/app.js", "r");
-  if (!f) {
-    server.send(404, "text/plain", "app.js missing");
-    return;
-  }
-  server.streamFile(f, "application/javascript");
-  f.close();
-});
-
-
+  });
 
 
   // iOS Safari noise suppression

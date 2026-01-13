@@ -151,6 +151,9 @@ async function save(){
   }
 }
 
+addEventListener("load",()=>setTimeout(()=>{let s=document.getElementById("splash");if(!s)return;s.classList.add("hide");setTimeout(()=>s.remove(),500)},2000));
+
+
 /* ---------------- Init ---------------- */
 loadFiles();
 enableSwipe();

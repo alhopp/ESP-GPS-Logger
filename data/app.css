@@ -1,3 +1,7 @@
+#splash{position:fixed;inset:0;background:#0b2a4a;display:flex;align-items:center;justify-content:center;z-index:9999;transition:.4s}
+#splash img{width:160px;max-width:60%}
+#splash.hide{opacity:0;pointer-events:none}
+
 :root{--a:#1e88e5;--b:#0b2a4a;--c:#f4f7fb;--d:#fff;--e:#dbe2ee;--f:#5b6b82}
 *{box-sizing:border-box}
 body{margin:0;font:18px system-ui;background:var(--c);padding-bottom:96px}
