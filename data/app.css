@@ -6,17 +6,70 @@
 /* ---------------- Theme ---------------- */
 :root{--a:#1e88e5;--b:#0b2a4a;--c:#f4f7fb;--d:#fff;--e:#dbe2ee;--f:#5b6b82}
 *{box-sizing:border-box}
-body{margin:0;font:18px system-ui;background:var(--c);padding-bottom:96px}
+body{
+  margin:0;
+  font:18px system-ui;
+  background:var(--c);
+  padding-bottom:96px;
+  overflow:hidden; /* body no longer scrolls */
+}
 
 /* ---------------- Header / Nav ---------------- */
-header{padding:18px;font-size:22px;font-weight:700;text-align:center;background:var(--b);color:#fff}
-nav{display:flex;background:#e9eff7;border-bottom:1px solid var(--e)}
-nav button{flex:1;padding:18px;border:0;background:none;color:var(--f);font-size:19px;font-weight:600}
-nav button.a{color:var(--a);border-bottom:3px solid var(--a);background:#f8fbff}
+header{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  padding:18px;
+  font-size:22px;
+  font-weight:700;
+  text-align:center;
+  background:var(--b);
+  color:#fff;
+  z-index:1000;
+}
+
+nav{
+  position:fixed;
+  top:60px; /* header height */
+  left:0;
+  right:0;
+  display:flex;
+  background:#e9eff7;
+  border-bottom:1px solid var(--e);
+  z-index:999;
+}
+
+nav button{
+  flex:1;
+  padding:18px;
+  border:0;
+  background:none;
+  color:var(--f);
+  font-size:19px;
+  font-weight:600;
+}
+
+nav button.a{
+  color:var(--a);
+  border-bottom:3px solid var(--a);
+  background:#f8fbff;
+}
 
 /* ---------------- Sections ---------------- */
-section{display:none;padding:16px}
-section.a{display:flex;flex-direction:column;height:calc(100vh - 112px);overflow:hidden}
+section{
+  display:none;
+  padding:16px;
+  margin-top:112px; /* header + nav */
+  height:calc(100vh - 112px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+section.a{
+  display:flex;
+  flex-direction:column;
+}
 
 /* ---------------- Cards ---------------- */
 .card{background:var(--d);border:1px solid var(--e);border-radius:14px;padding:16px;margin-bottom:16px}
@@ -36,15 +89,30 @@ input,select{width:100%;padding:12px;margin-top:4px;border:1px solid var(--e);bo
 .file-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 .file-swipe{position:relative;overflow:hidden}
 .file-row{border-bottom:1px solid var(--e);transition:background .15s,height .2s,opacity .2s}
-.file-delete{position:absolute;right:0;top:0;bottom:0;width:72px;background:#fdecea;color:#c62828;display:flex;align-items:center;justify-content:center;font-size:22px;user-select:none;transform:translateX(72px);transition:transform .2s ease}
+
+.file-delete{
+  position:absolute;
+  right:0;
+  top:0;
+  bottom:0;
+  width:72px;
+  background:#fdecea;
+  color:#c62828;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:22px;
+  user-select:none;
+  transform:translateX(72px);
+  transition:transform .2s ease;
+}
 
 /* show delete only when swiped */
 .file-row.delete .file-delete{transform:translateX(0)}
-.file-row.delete .file-name{color:#c62828;font-weight:600;}
-.file-row.delete .file-size{color:#e57373;}
+.file-row.delete .file-name{color:#c62828;font-weight:600}
+.file-row.delete .file-size{color:#e57373}
 
-
-/* row layout (no transform here anymore) */
+/* row layout */
 .file-swipe-inner{
   width:100%;
   display:flex;
@@ -55,9 +123,7 @@ input,select{width:100%;padding:12px;margin-top:4px;border:1px solid var(--e);bo
 }
 
 /* slide content left when delete mode active */
-.file-row.delete .file-swipe-inner{
-  transform:translateX(-72px);
-}
+.file-row.delete .file-swipe-inner{transform:translateX(-72px)}
 
 /* filename slides less than the row */
 .file-row.delete .file-text{
@@ -77,17 +143,31 @@ input,select{width:100%;padding:12px;margin-top:4px;border:1px solid var(--e);bo
 .sys-row span:last-child{font-weight:600}
 
 /* ---------------- Footer ---------------- */
-footer{position:sticky;bottom:0;padding:16px;border-top:1px solid var(--e);background:#f0f4fa}
-footer button{width:100%;padding:16px;border-radius:12px;border:0;font-size:18px;font-weight:600;background:var(--a);color:#fff}
+footer{
+  position:sticky;
+  bottom:0;
+  padding:16px;
+  border-top:1px solid var(--e);
+  background:#f0f4fa;
+}
+
+footer button{
+  width:100%;
+  padding:16px;
+  border-radius:12px;
+  border:0;
+  font-size:18px;
+  font-weight:600;
+  background:var(--a);
+  color:#fff;
+}
+
 footer button:disabled{opacity:.45}
+
+/* hide Save button on Files + System tabs */
+section#files.a ~ footer,
+section#system.a ~ footer{display:none}
 
 /* ---------------- Modal ---------------- */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center}
 .modal-card{background:#fff;border-radius:14px;padding:20px;width:90%;max-width:420px}
-
-/* hide Save button on Files + System tabs */
-section#files.a ~ footer,
-section#system.a ~ footer{display:none;}
-
-
-
