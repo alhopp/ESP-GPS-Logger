@@ -31,26 +31,19 @@
 <!-- ================= SETTINGS ================= -->
 <section id="settings">
 
-  <!-- User -->
+  <!-- Screens -->
   <div class="card">
-    <h3>User</h3>
-    <label>Name</label>
-    <input id="Sleep_info">
-  </div>
+    <h3>Performance Screens</h3>
 
-  <!-- Screens (holding toggles) -->
-  <div class="card">
-    <h3>Screens</h3>
-
-    <div class="toggle"><span>10 sec</span>
+    <div class="toggle"><span>2 seconds</span>
       <label><input type="checkbox" id="stat_10s"><div class="slider"></div></label>
     </div>
 
-    <div class="toggle"><span>5 × 10 sec</span>
+    <div class="toggle"><span>5 × 10 seconds</span>
       <label><input type="checkbox" id="stat_5x10"><div class="slider"></div></label>
     </div>
 
-    <div class="toggle"><span>Alpha</span>
+    <div class="toggle"><span>Alpha - Gybe</span>
       <label><input type="checkbox" id="stat_alpha"><div class="slider"></div></label>
     </div>
 
@@ -61,55 +54,28 @@
     <div class="toggle"><span>1 hour</span>
       <label><input type="checkbox" id="stat_hour"><div class="slider"></div></label>
     </div>
-  </div>
 
-  <!-- Logos -->
-  <div class="card">
-    <h3>Logos</h3>
-
-    <label>Board Logo</label>
-    <select id="Board_Logo">
-      <option value="0">Off</option>
-      <option value="1">Generic</option>
-      <option value="2">Slalom</option>
-      <option value="3">Foil</option>
-      <option value="4">Wave</option>
-      <option value="5">Speed</option>
-    </select>
-
-    <label>Sail Logo</label>
-    <select id="Sail_Logo">
-      <option value="0">Off</option>
-      <option value="1">Neutral</option>
-      <option value="2">Race</option>
-      <option value="3">Wave</option>
-      <option value="4">Foil</option>
-    </select>
-  </div>
-
-  <!-- Logging -->
-  <div class="card">
-    <h3>Logging</h3>
-
-    <div class="toggle"><span>TXT</span>
-      <label><input type="checkbox" id="logTXT"><div class="slider"></div></label>
+    <div class="toggle"><span>Distance</span>
+      <label><input type="checkbox" id="stat_hour"><div class="slider"></div></label>
     </div>
 
-    <div class="toggle"><span>UBX</span>
-      <label><input type="checkbox" id="logUBX"><div class="slider"></div></label>
-    </div>
+    <!-- -------- File Logging (under Screens) -------- -->
+    <h3 style="margin-top:24px">File Logging</h3>
 
-    <div class="toggle"><span>SBP</span>
+    <div class="toggle"><span>"Raw GNS (SBP)"</span>
       <label><input type="checkbox" id="logSBP"><div class="slider"></div></label>
     </div>
 
-    <div class="toggle"><span>GPY</span>
-      <label><input type="checkbox" id="logGPY"><div class="slider"></div></label>
+    <div class="toggle"><span>"Raw GNSS (UBX)"</span>
+      <label><input type="checkbox" id="logUBX"><div class="slider"></div></label>
     </div>
+  </div>
 
-    <div class="toggle"><span>GPX</span>
-      <label><input type="checkbox" id="logGPX"><div class="slider"></div></label>
-    </div>
+  <!-- User -->
+  <div class="card">
+    <h3>User</h3>
+    <label>Name</label>
+    <input id="Sleep_info">
   </div>
 
   <!-- Wi-Fi -->

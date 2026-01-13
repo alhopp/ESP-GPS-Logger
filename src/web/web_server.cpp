@@ -59,7 +59,7 @@ void webserver_start(WebServer &server)
   server.on("/api/config", HTTP_GET, [&] {
     DynamicJsonDocument j(2048);
 
-    j["wifi"]["ssid"] = wifi_get_saved_ssid();
+    j["wifi"]["ssid"]               = wifi_get_saved_ssid();
 
     j["system"]["cpu_freq"]         = config.cpu_freq;
     j["system"]["timezone"]         = config.timezone;
@@ -86,8 +86,6 @@ void webserver_start(WebServer &server)
     j["logging"]["logTXT"]         = config.logTXT;
     j["logging"]["logUBX"]         = config.logUBX;
     j["logging"]["logSBP"]         = config.logSBP;
-    j["logging"]["logGPY"]         = config.logGPY;
-    j["logging"]["logGPX"]         = config.logGPX;
 
     j["ui"]["field"]             = config.field;
     j["ui"]["speed_large_font"]  = config.speed_large_font;
@@ -119,6 +117,14 @@ void webserver_start(WebServer &server)
         pass = j["wifi"]["password"].as<const char*>();
       wifi_set_credentials(ssid, pass);
     }
+
+  // ---------------- Logging ----------------
+  if (j["logging"]) 
+  {
+    if (j["logging"]["logUBX"] != nullptr)config.logUBX = j["logging"]["logUBX"];
+    if (j["logging"]["logSBP"] != nullptr)config.logSBP = j["logging"]["logSBP"];
+  }
+
 
     saveConfig();
     server.send(200, "text/plain", "OK");
