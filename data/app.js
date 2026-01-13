@@ -2,12 +2,16 @@ const $ = i => document.getElementById(i);
 let swipeBound = false, dirty = false;
 
 /* ---------------- Tabs ---------------- */
-function tab(id, b){
-  document.querySelectorAll("nav button,section").forEach(e => e.classList.remove("a"));
+function tab(id,b){
+  document.querySelectorAll("nav button,section").forEach(e=>e.classList.remove("a"));
   b.classList.add("a");
-  const s = $(id);
-  if (s) s.classList.add("a");
+  const s=$(id);
+  s.classList.add("a");
+
+  // always reset scroll position
+  s.scrollTop = 0;
 }
+
 
 /* ---------------- Dirty tracking ---------------- */
 const markDirty = (saveBtn) => {
