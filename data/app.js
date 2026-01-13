@@ -51,13 +51,14 @@ async function loadFiles(){
 /* ---------------- Swipe delete ---------------- */
 function enableSwipe(){
   if(swipeBound)return; swipeBound=true;
-  let row,inner,x0,y0,dx=0,sw=false;
+  let row,icon,x0,y0,dx=0,sw=false;
 
   fileList.addEventListener("touchstart",e=>{
     row=e.target.closest(".file-swipe"); if(!row)return;
-    inner=row.querySelector(".file-swipe-inner");
+    icon=row.querySelector(".file-icon");
     x0=e.touches[0].clientX; y0=e.touches[0].clientY;
-    dx=0; sw=true; inner.style.transition="none";
+    dx=0; sw=true;
+    icon.style.transition="none";
   },{passive:true});
 
   fileList.addEventListener("touchmove",e=>{
@@ -66,20 +67,30 @@ function enableSwipe(){
     if(Math.abs(x-x0)>Math.abs(y-y0)+6){
       e.preventDefault();
       dx=Math.max(-72,Math.min(0,x-x0));
-      inner.style.transform=`translateX(${dx}px)`;
+      icon.style.transform=`translateX(${dx}px)`;
+      icon.style.opacity=1+dx/72;
     }
   },{passive:false});
 
   fileList.addEventListener("touchend",()=>{
-    if(!sw)return; sw=false; inner.style.transition="";
-    dx<-36?row.classList.add("delete"):row.classList.remove("delete");
-    inner.style.transform=row.classList.contains("delete")?"translateX(-72px)":"";
+    if(!sw)return; sw=false;
+    icon.style.transition="";
+    if(dx<-36){
+      row.classList.add("delete");
+      icon.style.transform="translateX(-72px)";
+      icon.style.opacity=0;
+    }else{
+      row.classList.remove("delete");
+      icon.style.transform="";
+      icon.style.opacity="";
+    }
   },{passive:true});
 
   fileList.addEventListener("click",async e=>{
     const d=e.target.closest(".file-delete"); if(!d)return;
     const r=d.closest(".file-swipe");
-   await fetch("/api/file",{
+
+    await fetch("/api/file",{
       method:"DELETE",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({name:r.dataset.name})
@@ -94,15 +105,13 @@ function enableSwipe(){
     // update counter only
     const n=fileList.children.length;
     sdInfo.textContent=`${n-1} files`;
-
-      });
-    }
+  });
+}
 
 /* ---------------- Config load ---------------- */
 async function loadConfig(){
   const c=await (await fetch("/api/config")).json();
 
-  /* Settings */
   setVal(Sleep_info,c.ui?.Sleep_info);
   setVal(Board_Logo,c.ui?.Board_Logo);
   setVal(Sail_Logo,c.ui?.Sail_Logo);
@@ -115,7 +124,6 @@ async function loadConfig(){
 
   setVal(ssid,c.wifi?.ssid);
 
-  /* System (read-only) */
   sys_gnss_module.textContent=c.system?.gnss_module||"-";
   sys_gnss.textContent=c.gps?.gnss||"-";
   sys_sample_rate.textContent=c.gps?.sample_rate||"-";
@@ -161,8 +169,12 @@ async function save(){
   }
 }
 
-addEventListener("load",()=>setTimeout(()=>{let s=document.getElementById("splash");if(!s)return;s.classList.add("hide");setTimeout(()=>s.remove(),500)},2000));
-
+addEventListener("load",()=>setTimeout(()=>{
+  let s=document.getElementById("splash");
+  if(!s)return;
+  s.classList.add("hide");
+  setTimeout(()=>s.remove(),500);
+},2000));
 
 /* ---------------- Init ---------------- */
 loadFiles();
