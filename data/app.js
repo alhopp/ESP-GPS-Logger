@@ -79,14 +79,24 @@ function enableSwipe(){
   fileList.addEventListener("click",async e=>{
     const d=e.target.closest(".file-delete"); if(!d)return;
     const r=d.closest(".file-swipe");
-    await fetch("/api/file",{
+   await fetch("/api/file",{
       method:"DELETE",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({name:r.dataset.name})
     });
-    loadFiles();
-  });
-}
+
+    // smooth remove
+    r.style.transition="height .2s,opacity .2s";
+    r.style.opacity=0;
+    r.style.height=0;
+    setTimeout(()=>r.remove(),200);
+
+    // update counter only
+    const n=fileList.children.length;
+    sdInfo.textContent=`${n-1} files`;
+
+      });
+    }
 
 /* ---------------- Config load ---------------- */
 async function loadConfig(){
