@@ -33,7 +33,7 @@
 
   <!-- Performance Screens -->
   <div class="card">
-    <h3>Performance Screens</h3>
+    <h3>Performance Screens<button class="info-btn" data-info="performance">ⓘ</button></h3>
     <div class="toggle"><span>2 seconds</span><label><input type="checkbox" id="stat_10s"><div class="slider"></div></label></div>
     <div class="toggle"><span>5 × 10 seconds</span><label><input type="checkbox" id="stat_5x10"><div class="slider"></div></label></div>
     <div class="toggle"><span>Alpha – Gybe</span><label><input type="checkbox" id="stat_alpha"><div class="slider"></div></label></div>
@@ -44,23 +44,23 @@
 
    <!-- Wi-Fi -->
   <div class="card">
-    <h3>Wi-Fi</h3>
+    <h3>Wi-Fi<button class="info-btn" data-info="wifi">ⓘ</button></h3>
     <label>SSID</label>
     <input id="ssid">
     <label>Password</label>
     <input id="password" type="password">
   </div>
-  
+
   <!-- File Logging -->
   <div class="card">
-    <h3>File Logging</h3>
+    <h3>File Logging<button class="info-btn" data-info="logging">ⓘ</button></h3>
     <div class="toggle"><span>Raw GNSS (SBP)</span><label><input type="checkbox" id="logSBP"><div class="slider"></div></label></div>
     <div class="toggle"><span>Raw GNSS (UBX)</span><label><input type="checkbox" id="logUBX"><div class="slider"></div></label></div>
   </div>
 
   <!-- Sleep Screen -->
   <div class="card">
-    <h3>Sleep Screen Text</h3>
+    <h3>Sleep Screen Text<button class="info-btn" data-info="sleep">ⓘ</button></h3>
     <label>Name</label>
     <input id="Sleep_info">
   </div>
@@ -90,6 +90,18 @@
     <div class="sys-row"><span>Version</span><span id="sys_version"></span></div>
   </div>
 </section>
+
+<div class="modal" id="infoModal">
+  <div class="modal-card">
+    <h3 id="infoTitle"></h3>
+    <p id="infoText"></p>
+
+    <div class="modal-actions">
+      <button class="modal-close" onclick="closeInfo()">Close</button>
+    </div>
+  </div>
+</div>
+
 
 <footer>
   <button id="saveBtn" onclick="save()" disabled>Save</button>

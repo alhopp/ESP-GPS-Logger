@@ -282,3 +282,51 @@ addEventListener("load", async () => {
   enableSwipe(els.fileList, els.sdInfo);
   await loadConfig(els);
 });
+
+const infoContent = {
+  performance: {
+    title: "Performance Screens",
+    text: "These screens show live performance metrics while sailing, such as alpha speed, nautical mile, and timed averages. Enable only the screens you actively use to keep cycling fast and focused."
+  },
+  logging: {
+    title: "File Logging",
+    text: "Controls which raw GNSS data formats are recorded to the SD card. These are mainly used for post-session analysis and record verification and usually only need to be set once."
+  },
+  wifi: {
+    title: "Wi-Fi",
+    text: "Configure the Wi-Fi network used when the device is in configuration mode. Wi-Fi is only active when explicitly enabled and does not run during logging."
+  },
+  sleep: {
+    title: "Sleep Screen Text",
+    text: "Custom text shown on the sleep screen. Useful for displaying your name, contact details, or device identification."
+  }
+};
+
+function openInfo(key){
+  const m = document.getElementById("infoModal");
+  const c = infoContent[key];
+  if(!m || !c) return;
+
+  document.getElementById("infoTitle").textContent = c.title;
+  document.getElementById("infoText").textContent  = c.text;
+  m.style.display = "flex";
+}
+
+function closeInfo(){
+  const m = document.getElementById("infoModal");
+  if(m) m.style.display = "none";
+}
+
+// delegate clicks
+document.addEventListener("click", e => {
+  const b = e.target.closest(".info-btn");
+  if(b) openInfo(b.dataset.info);
+});
+
+document.getElementById("infoModal")?.addEventListener("click", e=>{
+  if(e.target.id === "infoModal") closeInfo();
+});
+
+
+
+
