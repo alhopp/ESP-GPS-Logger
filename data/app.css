@@ -40,6 +40,9 @@ input,select{width:100%;padding:12px;margin-top:4px;border:1px solid var(--e);bo
 
 /* show delete only when swiped */
 .file-row.delete .file-delete{transform:translateX(0)}
+.file-row.delete .file-name{color:#c62828;font-weight:600;}
+.file-row.delete .file-size{color:#e57373;}
+
 
 /* row layout (no transform here anymore) */
 .file-swipe-inner{width:100%;display:flex;align-items:center;background:var(--d);padding:12px 0}
@@ -63,3 +66,10 @@ footer button:disabled{opacity:.45}
 /* ---------------- Modal ---------------- */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center}
 .modal-card{background:#fff;border-radius:14px;padding:20px;width:90%;max-width:420px}
+
+/* hide Save button on Files + System tabs */
+section#files.a ~ footer,
+section#system.a ~ footer{display:none;}
+
+
+
