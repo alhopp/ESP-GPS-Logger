@@ -28,17 +28,12 @@ void log_header_SBP(File &file) {
 }
 
 
-
+/*
 void log_SBP(File &file)
-
 {
 
-  if (sbp_test_done)
-    return;
-
+  if (sbp_test_done)return;
   sbp_test_done = true;
-
-
 
 // Make sure SD is mounted
 if (!SD_MMC.cardType()) {
@@ -47,9 +42,7 @@ if (!SD_MMC.cardType()) {
 }
 
 // Make sure /logs exists
-if (!SD_MMC.exists("/logs")) {
-  SD_MMC.mkdir("/logs");
-}
+if (!SD_MMC.exists("/logs")) {SD_MMC.mkdir("/logs");}
 
 LOG_STORAGE("TEST", "log_SBP → writing 10 test files");
 
@@ -74,8 +67,10 @@ for (int i = 1; i <= 10; i++) {
 }
 
 }
+*/
 
-/*
+
+
 void log_SBP(File &file)
 {
   if (ubxMessage.navPvt.fixType < 3)
@@ -119,13 +114,12 @@ void log_SBP(File &file)
   sbp_frame.Cog   = ubxMessage.navPvt.heading / 1000;
 
   sbp_frame.SVIDCnt = ubxMessage.navPvt.numSV;
-  if (sbp_frame.SVIDCnt == 0) {
-   sbp_frame.SVIDList = 0;
-    } else if (sbp_frame.SVIDCnt >= 32) {
-  sbp_frame.SVIDList = 0xFFFFFFFF;
-    } else {
-  sbp_frame.SVIDList = (1UL << sbp_frame.SVIDCnt) - 1;
-}
+  if (sbp_frame.SVIDCnt == 0) 
+   {sbp_frame.SVIDList = 0;}
+  else if
+   (sbp_frame.SVIDCnt >= 32) {sbp_frame.SVIDList = 0xFFFFFFFF;}
+  else
+   {sbp_frame.SVIDList = (1UL << sbp_frame.SVIDCnt) - 1;}
 
 
   sbp_frame.HDOP = HDOP;
@@ -137,4 +131,3 @@ void log_SBP(File &file)
 }
 
 
-*/

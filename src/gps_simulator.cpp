@@ -39,9 +39,16 @@ static constexpr float KNOTS_TO_MPS    = 0.514444f;
 static constexpr float STRAIGHT_KTS    = 40.0f;
 static constexpr float TURN_KTS        = 20.0f;
 
+
+
 // ============================================================================
 // Simulator state
 // ============================================================================
+
+
+static uint32_t last_emit_ms = 0;
+static constexpr uint32_t SIM_RATE_MS = 200; // 5 Hz
+
 static bool     sim_initialised = false;
 
 static uint32_t sim_ms          = 0;
@@ -105,9 +112,7 @@ void gps_simulator_init()
 // ============================================================================
 int gps_simulator_step()
 {
-  if (!sim_initialised) {
-    gps_simulator_init();
-  }
+  if (!sim_initialised) {gps_simulator_init();}
 
   // --------------------------------------------------------------------------
   // Real-time delta
@@ -121,6 +126,20 @@ int gps_simulator_step()
 
   sim_ms += uint32_t(dt * 1000.0f);
   ubxMessage.navPvt.iTOW = sim_ms;
+
+  // --------------------------------------------------------------------------
+  // Enforce simulator output rate (5 Hz)
+  // --------------------------------------------------------------------------
+  // Enforce simulator output rate (exact 5 Hz)
+    if (now - last_emit_ms < SIM_RATE_MS) {
+      return MT_NONE;
+    }
+    last_emit_ms += SIM_RATE_MS;
+
+    sim_ms += SIM_RATE_MS;
+    ubxMessage.navPvt.iTOW = sim_ms;
+
+
 
   // --------------------------------------------------------------------------
   // Advance simulated UTC seconds
