@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=5,user-scalable=yes">
 <title>ESP32 GPS</title>
 <link rel="stylesheet" href="/app.css">
 </head>
@@ -31,54 +31,18 @@
 <!-- ================= SETTINGS ================= -->
 <section id="settings">
 
-  <!-- Screens -->
+  <!-- Performance Screens -->
   <div class="card">
     <h3>Performance Screens</h3>
-
-    <div class="toggle"><span>2 seconds</span>
-      <label><input type="checkbox" id="stat_10s"><div class="slider"></div></label>
-    </div>
-
-    <div class="toggle"><span>5 × 10 seconds</span>
-      <label><input type="checkbox" id="stat_5x10"><div class="slider"></div></label>
-    </div>
-
-    <div class="toggle"><span>Alpha - Gybe</span>
-      <label><input type="checkbox" id="stat_alpha"><div class="slider"></div></label>
-    </div>
-
-    <div class="toggle"><span>Nautical mile</span>
-      <label><input type="checkbox" id="stat_nm"><div class="slider"></div></label>
-    </div>
-
-    <div class="toggle"><span>1 hour</span>
-      <label><input type="checkbox" id="stat_hour"><div class="slider"></div></label>
-    </div>
-
-    <div class="toggle"><span>Distance</span>
-      <label><input type="checkbox" id="stat_hour"><div class="slider"></div></label>
-    </div>
-
-    <!-- -------- File Logging (under Screens) -------- -->
-    <h3 style="margin-top:24px">File Logging</h3>
-
-    <div class="toggle"><span>"Raw GNS (SBP)"</span>
-      <label><input type="checkbox" id="logSBP"><div class="slider"></div></label>
-    </div>
-
-    <div class="toggle"><span>"Raw GNSS (UBX)"</span>
-      <label><input type="checkbox" id="logUBX"><div class="slider"></div></label>
-    </div>
+    <div class="toggle"><span>2 seconds</span><label><input type="checkbox" id="stat_10s"><div class="slider"></div></label></div>
+    <div class="toggle"><span>5 × 10 seconds</span><label><input type="checkbox" id="stat_5x10"><div class="slider"></div></label></div>
+    <div class="toggle"><span>Alpha – Gybe</span><label><input type="checkbox" id="stat_alpha"><div class="slider"></div></label></div>
+    <div class="toggle"><span>Nautical mile</span><label><input type="checkbox" id="stat_nm"><div class="slider"></div></label></div>
+    <div class="toggle"><span>1 hour</span><label><input type="checkbox" id="stat_hour"><div class="slider"></div></label></div>
+    <div class="toggle"><span>Distance</span><label><input type="checkbox" id="stat_distance"><div class="slider"></div></label></div>
   </div>
 
-  <!-- User -->
-  <div class="card">
-    <h3>User</h3>
-    <label>Name</label>
-    <input id="Sleep_info">
-  </div>
-
-  <!-- Wi-Fi -->
+   <!-- Wi-Fi -->
   <div class="card">
     <h3>Wi-Fi</h3>
     <label>SSID</label>
@@ -86,12 +50,27 @@
     <label>Password</label>
     <input id="password" type="password">
   </div>
+  
+  <!-- File Logging -->
+  <div class="card">
+    <h3>File Logging</h3>
+    <div class="toggle"><span>Raw GNSS (SBP)</span><label><input type="checkbox" id="logSBP"><div class="slider"></div></label></div>
+    <div class="toggle"><span>Raw GNSS (UBX)</span><label><input type="checkbox" id="logUBX"><div class="slider"></div></label></div>
+  </div>
+
+  <!-- Sleep Screen -->
+  <div class="card">
+    <h3>Sleep Screen Text</h3>
+    <label>Name</label>
+    <input id="Sleep_info">
+  </div>
+
+ 
 
 </section>
 
 <!-- ================= SYSTEM ================= -->
 <section id="system">
-
   <div class="card">
     <h3>GNSS</h3>
     <div class="sys-row"><span>Module</span><span id="sys_gnss_module"></span></div>
@@ -110,7 +89,6 @@
     <h3>Software</h3>
     <div class="sys-row"><span>Version</span><span id="sys_version"></span></div>
   </div>
-
 </section>
 
 <footer>
