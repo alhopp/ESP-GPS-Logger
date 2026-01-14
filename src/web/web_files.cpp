@@ -113,14 +113,10 @@ void registerFileEndpoints(WebServer &server)
       return;
     }
 
-//    server.sendHeader("Content-Disposition", String("attachment; filename=\"") + base + "\"" );
-
-    server.sendHeader("Content-Disposition", String("attachment; filename=\"") + base + "\"; filename*=UTF-8''" + base);
-
-
-    server.sendHeader("Cache-Control", "no-store");
+    //   server.sendHeader("Cache-Control", "no-store");
     server.streamFile(f, "application/octet-stream");
     f.close();
+
   });
 
   // ---------------------------------------------------------------------------
