@@ -20,9 +20,7 @@
 #include <FS.h>
 #include <LittleFS.h>
 
-#include "Storage/gpx.h"
 #include "Storage/sbp.h"
-#include "Storage/gpy.h"
 #include "config_manager.h"
 
 #include "Storage/storage_file_operations.h"
@@ -50,18 +48,15 @@ static uint32_t last_sbp_iTOW = 0;
 // -----------------------------------------------------------------------------
 File ubxfile;
 File errorfile;
-File gpyfile;  
 File sbpfile;
-File gpxfile;
+
 
 // -----------------------------------------------------------------------------
-// Character arrays for filenames (for error, UBX, GPY, SBP, GPX files)
+// Character arrays for filenames (for error, UBX, SBP, files)
 // -----------------------------------------------------------------------------
 char filenameERR[128] = "/";
 char filenameUBX[128] = "/";
-char filenameGPY[128] = "/";
 char filenameSBP[128] = "/";
-char filenameGPX[128] = "/";
 char filename_NO_EXT[128 ] = "/";
 
 // -----------------------------------------------------------------------------
@@ -116,8 +111,6 @@ void Open_files(void)
   snprintf(filenameERR, sizeof(filenameERR), "%s.txt", pathBase);
   snprintf(filenameUBX, sizeof(filenameUBX), "%s.ubx", pathBase);
   snprintf(filenameSBP, sizeof(filenameSBP), "%s.sbp", pathBase);
-  snprintf(filenameGPY, sizeof(filenameGPY), "%s.gpy", pathBase);
-  snprintf(filenameGPX, sizeof(filenameGPX), "%s.gpx", pathBase);
 
 
   // ---------------------------------------------------------------------------
@@ -127,23 +120,10 @@ void Open_files(void)
     ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
   }
 
-#if defined(GPY_H)
-  if (config.logGPY) {
-    gpyfile = SD_MMC.open(filenameGPY, FILE_APPEND);
-    log_GPY_Header(gpyfile);
-  }
-#endif
-
   if (config.logSBP) {
      sbpfile = SD_MMC.open(filenameSBP, FILE_WRITE);
      if (sbpfile.size() == 0) log_header_SBP(sbpfile);
     }
-
-  if (config.logGPX) {
-    gpxfile = SD_MMC.open(filenameGPX, FILE_APPEND);
-    log_GPX(GPX_HEADER, gpxfile);
-  }
-
   if (config.logTXT) {
     errorfile = SD_MMC.open(filenameERR, FILE_APPEND);
   }
@@ -170,9 +150,8 @@ if (storage_shutting_down)
 switch (load_balance) {
   case 0: if (ubxfile)   ubxfile.flush();   break;
   case 1: if (errorfile) errorfile.flush(); break;
-  case 2: if (gpyfile)   gpyfile.flush();   break;
   case 3: if (sbpfile)   sbpfile.flush();   break;
-  case 4: if (gpxfile)   gpxfile.flush();   break;
+
 }
 
 load_balance = (load_balance + 1) % 5;
@@ -231,10 +210,6 @@ void Log_to_SD(void)
   } 
 
 
-
-  if (config.logGPX && gpxfile) {
-    log_GPX(GPX_FRAME, gpxfile);
-  }
 }
 
 
@@ -256,8 +231,7 @@ void Close_files(void)
 
   if (ubxfile)   { ubxfile.flush();   ubxfile.close();   ubxfile = File(); }
   if (errorfile) { errorfile.flush(); errorfile.close(); errorfile = File(); }
-  if (gpyfile)   { gpyfile.flush();   gpyfile.close();   gpyfile = File(); }
-  if (gpxfile)   { gpxfile.flush();   gpxfile.close();   gpxfile = File(); }
+
 }
 
 

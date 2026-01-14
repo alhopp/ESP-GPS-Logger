@@ -150,7 +150,7 @@ struct NAV_SAT_HDR {
 // CENTRAL MESSAGE CONTAINER
 //
 // All parsed UBX messages land here.
-// Read by UI, SD logging, stats, GPX/GPY/SBP writers.
+// Read by UI, SD logging, stats, SBP writers.
 // ============================================================================
 struct UBXMessage {
   NAV_PVT     navPvt;

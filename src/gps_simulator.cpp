@@ -14,6 +14,7 @@
 // -----------------------------------------------------------------------------
 static constexpr float STRAIGHT_DIST_M=200.0f, KNOTS_TO_MPS=0.514444f, STRAIGHT_KTS=40.0f, TURN_KTS=20.0f;
 static constexpr uint32_t SIM_RATE_MS=200; // 5 Hz
+static constexpr double SPEED_RAMP_MPS2 = 1.8; // ~0.35 kn/s accel/decel
 
 // -----------------------------------------------------------------------------
 // Simulator state
@@ -32,6 +33,16 @@ static double turn_radius=30.0, turn_progress_deg=0.0, turn_rate_deg_per_sec=0.0
 // Helpers
 // -----------------------------------------------------------------------------
 static inline double randf(double minv,double maxv){ return minv+(maxv-minv)*(double(rand())/RAND_MAX); }
+
+static inline void ramp_speed(double target, double dt)
+{
+  const double max_delta = SPEED_RAMP_MPS2 * dt;
+  const double diff = target - speed_mps;
+
+  if (fabs(diff) <= max_delta) speed_mps = target;
+  else speed_mps += (diff > 0 ? max_delta : -max_delta);
+}
+
 
 // -----------------------------------------------------------------------------
 // Init
@@ -86,28 +97,31 @@ int gps_simulator_step()
 
   // motion model
   if(!turning){
-    const double target=STRAIGHT_KTS*KNOTS_TO_MPS;
-    speed_mps=target+randf(-1.5,1.5)*KNOTS_TO_MPS;
+  const double target = STRAIGHT_KTS * KNOTS_TO_MPS;
+  ramp_speed(target, dt);
+  speed_mps += randf(-0.15, 0.15) * KNOTS_TO_MPS;
 
-    const double d=speed_mps*dt;
-    leg_distance+=d;
+  const double d=speed_mps*dt;
+  leg_distance+=d;
 
-    if(leg_distance>=STRAIGHT_DIST_M){
-      turning=true; leg_distance=0.0;
-      turn_radius=randf(25.0,35.0);
-      turn_progress_deg=0.0;
-      const double omega=speed_mps/turn_radius;
-      turn_rate_deg_per_sec=omega*(180.0/M_PI);
+  if(leg_distance>=STRAIGHT_DIST_M){
+    turning=true; leg_distance=0.0;
+    turn_radius=randf(25.0,35.0);
+    turn_progress_deg=0.0;
+    const double omega=speed_mps/turn_radius;
+    turn_rate_deg_per_sec=omega*(180.0/M_PI);
     }
   }else{
-    const double target=TURN_KTS*KNOTS_TO_MPS;
-    speed_mps=target+randf(-1.0,1.0)*KNOTS_TO_MPS;
+    const double target = TURN_KTS * KNOTS_TO_MPS;
+    ramp_speed(target, dt);
+    speed_mps += randf(-0.10, 0.10) * KNOTS_TO_MPS;
 
     const double dHead=turn_rate_deg_per_sec*dt;
     heading_deg+=dHead; turn_progress_deg+=fabs(dHead);
 
     if(turn_progress_deg>=180.0){ heading_deg=fmod(heading_deg,360.0); turning=false; }
   }
+
 
   // position update (local earth approx)
   const double d=speed_mps*dt;

@@ -168,8 +168,6 @@ static void setDefaultConfig()
   config.logTXT               = 0;
   config.logUBX               = 0;
   config.logSBP               = 1;
-  config.logGPY               = 0;
-  config.logGPX               = 0;
   config.file_date_time       = 1;
   config.dynamic_model        = 0;
   config.timezone             = 1.0f;
@@ -228,8 +226,7 @@ static bool loadConfigFromFile(File &file)
   config.logTXT               = doc["logTXT"]               | config.logTXT;
   config.logUBX               = doc["logUBX"]               | config.logUBX;
   config.logSBP               = doc["logSBP"]               | config.logSBP;
-  config.logGPY               = doc["logGPY"]               | config.logGPY;
-  config.logGPX               = doc["logGPX"]               | config.logGPX;
+
   config.file_date_time       = doc["file_date_time"]       | config.file_date_time;
 
   config.dynamic_model        = doc["dynamic_model"]        | config.dynamic_model;
@@ -305,8 +302,7 @@ static void writeConfigToFile(File &file)
   doc["logTXT"]               = config.logTXT;
   doc["logUBX"]               = config.logUBX;
   doc["logSBP"]               = config.logSBP;
-  doc["logGPY"]               = config.logGPY;
-  doc["logGPX"]               = config.logGPX;
+
   doc["file_date_time"]       = config.file_date_time;
 
   doc["dynamic_model"]        = config.dynamic_model;
@@ -505,8 +501,7 @@ static void dumpConfig()
   Serial.print("[CONFIG ] logTXT               = "); Serial.println(config.logTXT);
   Serial.print("[CONFIG ] logUBX               = "); Serial.println(config.logUBX);
   Serial.print("[CONFIG ] logSBP               = "); Serial.println(config.logSBP);
-  Serial.print("[CONFIG ] logGPY               = "); Serial.println(config.logGPY);
-  Serial.print("[CONFIG ] logGPX               = "); Serial.println(config.logGPX);
+
   Serial.print("[CONFIG ] file_date_time       = "); Serial.println(config.file_date_time);
   Serial.print("[CONFIG ] dynamic_model        = "); Serial.println(config.dynamic_model);
   Serial.print("[CONFIG ] timezone             = "); Serial.println(config.timezone);

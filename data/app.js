@@ -9,13 +9,9 @@ function tab(id,b){
 }
 
 /* ---------------- Dirty tracking ---------------- */
-const markDirty = saveBtn => {
-  if (!dirty){ dirty = true; if (saveBtn) saveBtn.disabled = false; }
-};
+const markDirty = saveBtn => {if (!dirty){ dirty = true; if (saveBtn) saveBtn.disabled = false; }};
 
-addEventListener("load", () => {
-  const saveBtn = $("saveBtn");
-  document.addEventListener("input", e => { if (e.target && !e.target._loading) markDirty(saveBtn); });
+addEventListener("load", () => {const saveBtn = $("saveBtn");document.addEventListener("input", e => { if (e.target && !e.target._loading) markDirty(saveBtn); });
 });
 
 /* ---------------- Helpers ---------------- */
@@ -128,8 +124,7 @@ async function loadConfig(els){
   setChk(els.logTXT,c.logging?.logTXT);
   setChk(els.logUBX,c.logging?.logUBX);
   setChk(els.logSBP,c.logging?.logSBP);
-  setChk(els.logGPY,c.logging?.logGPY);
-  setChk(els.logGPX,c.logging?.logGPX);
+
 
   setVal(els.ssid,c.wifi?.ssid);
 
@@ -148,7 +143,7 @@ async function loadConfig(els){
 async function save(els){
   const p={
     ui:{Sleep_info:els.Sleep_info?.value??"",Board_Logo:+(els.Board_Logo?.value??0),Sail_Logo:+(els.Sail_Logo?.value??0)},
-    logging:{logTXT:!!els.logTXT?.checked,logUBX:!!els.logUBX?.checked,logSBP:!!els.logSBP?.checked,logGPY:!!els.logGPY?.checked,logGPX:!!els.logGPX?.checked},
+    logging:{logTXT:!!els.logTXT?.checked,logUBX:!!els.logUBX?.checked,logSBP:!!els.logSBP?.checked},
     wifi:{ssid:els.ssid?.value??"",password:els.password?.value??""}
   };
   const r=await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
@@ -166,7 +161,7 @@ addEventListener("load",async()=>{
   const els={
     saveBtn:$("saveBtn"),fileList:$("fileList"),sdInfo:$("sdInfo"),
     Sleep_info:$("Sleep_info"),Board_Logo:$("Board_Logo"),Sail_Logo:$("Sail_Logo"),
-    logTXT:$("logTXT"),logUBX:$("logUBX"),logSBP:$("logSBP"),logGPY:$("logGPY"),logGPX:$("logGPX"),
+    logTXT:$("logTXT"),logUBX:$("logUBX"),logSBP:$("logSBP"),
     ssid:$("ssid"),password:$("password"),
     sys_gnss_module:$("sys_gnss_module"),sys_gnss:$("sys_gnss"),
     sys_sample_rate:$("sys_sample_rate"),sys_dynamic_model:$("sys_dynamic_model"),

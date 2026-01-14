@@ -39,12 +39,7 @@ static bool isValidLogFile(const char* name)
   const char* ext = strrchr(name, '.');
   if (!ext) return false;
 
-  return !strcasecmp(ext, ".txt") ||
-         !strcasecmp(ext, ".sbp") ||
-         !strcasecmp(ext, ".ubx") ||
-         !strcasecmp(ext, ".gpx") ||
-         !strcasecmp(ext, ".gpy");
-}
+  return !strcasecmp(ext, ".txt") || !strcasecmp(ext, ".sbp") || !strcasecmp(ext, ".ubx");}
 
 // -----------------------------------------------------------------------------
 // Endpoint registration

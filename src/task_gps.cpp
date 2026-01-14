@@ -84,7 +84,7 @@ void taskOne(void *parameter)
     {
       // Core GPS state machine
       processGpsMessages(msg);
-
+      Log_to_SD();   // ← move logging HERE
       // ----------------------------------------------------------
       // Periodic debug logging
       // ----------------------------------------------------------
@@ -250,8 +250,6 @@ static void processGpsMessages(uint8_t msgType)
           (ubxMessage.navPvt.gSpeed / 1000.0f) > MAX_GPS_SPEED_OK) {
         gps_speed_value = 0;
       }
-
-      Log_to_SD();
 
       Ublox.push_data(
         ubxMessage.navPvt.lat / 10000000.0f,

@@ -15,9 +15,8 @@
 #include <LittleFS.h>
 
 #include "Definitions.h"
-#include "Storage/gpx.h"
+
 #include "Storage/sbp.h"
-#include "Storage/gpy.h"
 #include "config_manager.h"
 
 #include "rtc_state.h"

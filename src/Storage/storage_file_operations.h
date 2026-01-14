@@ -5,9 +5,8 @@
 // Declare the file handles as extern so they can be used in other .cpp files
 extern File ubxfile;
 extern File errorfile;
-extern File gpyfile;
 extern File sbpfile;
-extern File gpxfile;
+
 
 void Open_files(void);
 void Log_to_SD(void); 

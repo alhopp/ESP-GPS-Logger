@@ -62,9 +62,7 @@ struct Config
   bool  logUBX;
   bool  logUBX_nav_sat;
   bool  logSBP;
-  bool  logGPY;
-  bool  logGPX;
-
+ 
   int   file_date_time;
   int   archive_days;
   int   bar_length;
