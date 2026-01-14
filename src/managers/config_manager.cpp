@@ -151,7 +151,6 @@ static void setDefaultConfig()
 
 
   // -------- Other strings --------
-  strlcpy(config.UBXfile,    "/ubxGPS",   sizeof(config.UBXfile));
   strlcpy(config.Sleep_info, "ESP32 GPS", sizeof(config.Sleep_info));
   strlcpy(config.ssid,       "",          sizeof(config.ssid));
   strlcpy(config.password,   "",          sizeof(config.password));
@@ -194,7 +193,7 @@ static bool loadConfigFromFile(File &file)
   const char* s;
   if((s=doc["stat_screen"])    && s[0]) strlcpy(config.stat_screen,s,sizeof(config.stat_screen));
   if((s=doc["Sleep_info"])     && s[0]) strlcpy(config.Sleep_info,s,sizeof(config.Sleep_info));
-  if((s=doc["UBXfile"])        && s[0]) strlcpy(config.UBXfile,s,sizeof(config.UBXfile));
+
 
   return true;
 }
@@ -372,7 +371,7 @@ static void dumpConfig()
   // -------- strings --------
   Serial.print("[CONFIG ] stat_screen      = "); Serial.println(config.stat_screen);
   Serial.print("[CONFIG ] Sleep_info       = "); Serial.println(config.Sleep_info);
-  Serial.print("[CONFIG ] UBXfile          = "); Serial.println(config.UBXfile);
+
 
   // ---------------------------------------------------------------------------
   // SystemInfo (static / runtime)
