@@ -256,7 +256,7 @@ float GPS_Track::Update_Track(void){
     End_iTOW_ms= ubxMessage.navPvt.iTOW;
     Track_time_ms=End_iTOW_ms-Start_iTOW_ms;
     float track_dis=(float)theoretical_track_distance;
-    Track_speed=track_dis*1000/Track_time_ms*config.cal_speed;
+    Track_speed=track_dis*1000/Track_time_ms*systemInfo.cal_speed;
     time_hour[0]=tmstruct.tm_hour;
     time_min[0]=tmstruct.tm_min;
     time_sec[0]=tmstruct.tm_sec;

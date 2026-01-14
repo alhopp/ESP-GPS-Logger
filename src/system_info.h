@@ -16,6 +16,7 @@ struct SystemInfo {
   uint32_t    cpu_freq;           // e.g. 80 MHz
 
   const char* speed_units;        // "Knots"
+  float       cal_speed;          // e.g. 3.6
 
 };
 extern const SystemInfo systemInfo;

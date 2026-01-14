@@ -117,7 +117,7 @@ static void setDefaultConfig()
   // -------- Core numeric defaults --------
   config.cal_bat             = 1.75f;
   config.shutdown_voltage    = 3.2f;
-  config.cal_speed           = 3.6f;
+
   config.track_distance      = 1852;
 
   // -------- UI / behaviour --------

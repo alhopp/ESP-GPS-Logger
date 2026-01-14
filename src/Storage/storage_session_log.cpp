@@ -54,7 +54,7 @@ void Session_info(GPS_data G) {
   strcat(message, tekst);
   sprintf(tekst, "CPU freq logging: %d MHz\n", systemInfo.cpu_freq);  // Log CPU frequency
   strcat(message, tekst);
-  sprintf(tekst, "Speed calibration: %f \n", config.cal_speed);  // Log speed calibration factor
+  sprintf(tekst, "Speed calibration: %f \n", systemInfo.cal_speed);  // Log speed calibration factor
   strcat(message, tekst);
   sprintf(tekst, "Lipo calibration: %.3f \n", RTC_calibration_bat);  // Log battery calibration factor
   strcat(message, tekst);
@@ -75,7 +75,7 @@ void Session_results_M(GPS_speed M) {
   for (int i = 9; i > 4; i--) {
     char tekst[20] = "";
     char message[255] = "";
-    int Calibration = config.cal_speed * 1000;  // Speed calibration
+    int Calibration = systemInfo.cal_speed * 1000;  // Speed calibration
     dtostrf(M.avg_speed[i] * MMPS_TO_KNOTS, 1, 3, tekst);  // Format average speed
     strcat(message, tekst);
     if (Calibration == 3600) strcat(message, " km/h ");
@@ -116,7 +116,7 @@ void Session_results_M(GPS_speed M) {
 void Session_results_S(GPS_time S) {
   char tekst[20] = "";
   char message[255] = "";
-  int Calibration = config.cal_speed * 1000;  // Speed calibration
+  int Calibration = systemInfo.cal_speed * 1000;  // Speed calibration
   dtostrf(S.avg_5runs * MMPS_TO_KNOTS, 1, 3, tekst);  // Format average speed
   strcat(message, tekst);
   if (Calibration == 3600) strcat(message, " km/h avg 5_best_runs\n");
@@ -162,7 +162,7 @@ void Session_results_Alfa(Alfa_speed A, GPS_speed M) {
   for (int i = 9; i > 4; i--) {
     char tekst[20] = "";
     char message[255] = "";
-    int Calibration = config.cal_speed * 1000;  // Speed calibration
+    int Calibration = systemInfo.cal_speed * 1000;  // Speed calibration
     dtostrf(A.avg_speed[i] * MMPS_TO_KNOTS, 1, 3, tekst);  // Format average speed
     strcat(message, tekst);
     if (Calibration == 3600) strcat(message, " km/h ");

@@ -13,7 +13,7 @@ const SystemInfo systemInfo = {
   .display              = "LilyGO T5 B74",
   .cpu_freq             = 80,
 
-   
   .speed_units          = "Knots",
+  .cal_speed            = 3.6f,
 
 };
