@@ -78,7 +78,7 @@ struct Config
   // System / diagnostics
   int     config_fail;
   uint8_t ublox_type;
-  int     cpu_freq;
+
 
   // Reference points / geometry
   double p1_lon, p1_lat;

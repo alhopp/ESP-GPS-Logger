@@ -57,7 +57,6 @@ void webserver_start(WebServer &server)
 
   j["wifi"]["ssid"]                    = wifi_get_saved_ssid();
 
-  j["system"]["cpu_freq"]              = config.cpu_freq;
   j["system"]["timezone"]              = config.timezone;
   j["system"]["timezone_DST"]          = config.timezone_DST;
   j["system"]["gnss_module"]           = systemInfo.gnss_module;

@@ -118,7 +118,6 @@ static void setDefaultConfig()
   config.cal_bat             = 1.75f;
   config.shutdown_voltage    = 3.2f;
   config.cal_speed           = 3.6f;
-  config.cpu_freq            = 80;
   config.track_distance      = 1852;
 
   // -------- UI / behaviour --------
@@ -257,10 +256,7 @@ static void validateConfig()
     config.track_distance=1852;
   }
 
-  if(config.cpu_freq!=80&&config.cpu_freq!=160&&config.cpu_freq!=240){
-    LOG_CONFIG("CONFIG","cpu_freq invalid → defaulting to 80");
-    config.cpu_freq=80;
-  }
+ 
   if(config.bar_length<=0){
     LOG_CONFIG("CONFIG","bar_length invalid → defaulting to 1852");
     config.bar_length=1852;
@@ -339,7 +335,6 @@ static void dumpConfig()
 
   Serial.print("[CONFIG ] cal_bat              = "); Serial.println(config.cal_bat);
   Serial.print("[CONFIG ] shutdown_voltage     = "); Serial.println(config.shutdown_voltage);
-  Serial.print("[CONFIG ] cpu_freq             = "); Serial.println(config.cpu_freq);
   Serial.print("[CONFIG ] bar_length           = "); Serial.println(config.bar_length);
   Serial.print("[CONFIG ] Stat_screens         = "); Serial.println(config.Stat_screens);
   Serial.print("[CONFIG ] stat_speed           = "); Serial.println(config.stat_speed);

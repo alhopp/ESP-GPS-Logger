@@ -52,7 +52,7 @@ void Session_info(GPS_data G) {
   strcat(message, tekst);
   sprintf(tekst, "Sample rate: %d Hz\n", systemInfo.sample_rate);  // Log sample rate
   strcat(message, tekst);
-  sprintf(tekst, "CPU freq logging: %d MHz\n", config.cpu_freq);  // Log CPU frequency
+  sprintf(tekst, "CPU freq logging: %d MHz\n", systemInfo.cpu_freq);  // Log CPU frequency
   strcat(message, tekst);
   sprintf(tekst, "Speed calibration: %f \n", config.cal_speed);  // Log speed calibration factor
   strcat(message, tekst);
