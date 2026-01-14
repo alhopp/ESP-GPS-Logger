@@ -1,24 +1,10 @@
 // ============================================================================
 // web_files.cpp
 //
-// Web-facing SD card file API for the ESP32 GPS Logger.
-//
-// Responsibilities:
-// - Expose read-only access to log files stored on SD (/logs)
-// - Provide safe, validated endpoints for:
-//     • Listing log files
-//     • Downloading individual files
-//     • Deleting files (explicit user action)
-//
-// Design & safety notes:
-// - All file operations are restricted to the /logs directory
-// - Filenames are aggressively validated before *any* filesystem access
-// - Directory enumeration is capped to avoid heap / JSON exhaustion
-// - Endpoints are only active while in CONFIG (SoftAP) mode
-//
-// ESP32-specific notes:
-// - File.name() returns a transient internal buffer → copy immediately
-// - Large JSON responses must live on the heap (DynamicJsonDocument)
+// Web API for SD log file access (CONFIG mode only).
+// Provides endpoints to list, download, and delete log files under /logs.
+// Safety: strict filename validation, directory confinement, streaming only.
+// Notes: File.name() buffers are transient; large JSON uses heap.
 // ============================================================================
 
 #include "web_files.h"
@@ -27,25 +13,16 @@
 #include <ArduinoJson.h>
 #include <SD_MMC.h>
 
-#include "system_mode.h"
 #include "Storage/storage_manager.h"
 
-#include <dirent.h>     // DIR, opendir, readdir, closedir, struct dirent
-#include <sys/stat.h>   // stat()
-
+#include <dirent.h>
+#include <sys/stat.h>
 
 // -----------------------------------------------------------------------------
-// Helper utilities (local to this translation unit)
+// Helpers (local)
 // -----------------------------------------------------------------------------
 
-// Extract the basename (filename only) from a full filesystem path.
-//
-// Example:
-//   "/logs/run_20260110.sbp" → "run_20260110.sbp"
-//
-// Notes:
-// - Returned pointer refers to the input string
-// - Callers MUST copy the result immediately if persistence is required
+// Return filename portion of a path (caller must copy if needed)
 static const char* basenameOnly(const char* path)
 {
   if (!path) return nullptr;
@@ -53,61 +30,102 @@ static const char* basenameOnly(const char* path)
   return p ? p + 1 : path;
 }
 
+// Validate log filename + extension, reject paths
+static bool isValidLogFile(const char* name)
+{
+  if (!name || !*name) return false;
+  if (strchr(name, '/') || strchr(name, '\\')) return false;
 
+  const char* ext = strrchr(name, '.');
+  if (!ext) return false;
+
+  return !strcasecmp(ext, ".txt") ||
+         !strcasecmp(ext, ".sbp") ||
+         !strcasecmp(ext, ".ubx") ||
+         !strcasecmp(ext, ".gpx") ||
+         !strcasecmp(ext, ".gpy");
+}
 
 // -----------------------------------------------------------------------------
-// API registration
+// Endpoint registration
 // -----------------------------------------------------------------------------
 
-// Register all file-related HTTP endpoints on the provided WebServer instance.
 void registerFileEndpoints(WebServer &server)
 {
   // ---------------------------------------------------------------------------
-  // FILE LIST
-  //
-  // Returns a JSON array of valid log files found in /logs.
-  // Includes filename and size only.
+  // GET /api/files
+  // List log files in /logs (name + size only)
   // ---------------------------------------------------------------------------
   server.on("/api/files", HTTP_GET, [&] {
 
-  DynamicJsonDocument j(8192);
-  j["ok"] = true;
-  JsonArray files = j.createNestedArray("files");
+    DynamicJsonDocument j(8192);
+    j["ok"] = true;
+    JsonArray files = j.createNestedArray("files");
 
-  DIR* dir = opendir("/sdcard/logs");
-  if (!dir) {
-    j["ok"] = false;
+    DIR* dir = opendir("/sdcard/logs");
+    if (!dir) {
+      j["ok"] = false;
+      server.send(200, "application/json", j.as<String>());
+      return;
+    }
+
+    struct dirent* ent;
+    while ((ent = readdir(dir)) != nullptr) {
+      if (ent->d_type != DT_REG) continue;
+
+      String name = ent->d_name;
+      String path = "/sdcard/logs/" + name;
+
+      struct stat st;
+      if (stat(path.c_str(), &st) != 0) continue;
+
+      JsonObject o = files.createNestedObject();
+      o["name"] = name;
+      o["size"] = st.st_size;
+    }
+
+    closedir(dir);
     server.send(200, "application/json", j.as<String>());
-    return;
-  }
-
-  struct dirent* ent;
-  while ((ent = readdir(dir)) != nullptr) {
-
-    if (ent->d_type != DT_REG)
-      continue;
-
-    String name = ent->d_name;
-    String path = "/sdcard/logs/" + name;
-
-    struct stat st;
-    if (stat(path.c_str(), &st) != 0)
-      continue;
-
-    JsonObject o = files.createNestedObject();
-    o["name"] = name;
-    o["size"] = st.st_size;
-  }
-
-  closedir(dir);
-
-  server.send(200, "application/json", j.as<String>());
-});
+  });
 
   // ---------------------------------------------------------------------------
-  // FILE DELETE
-  //
-  // Deletes a single validated log file from /logs.
+  // GET /api/download?file=...
+  // Stream validated log file (forced download)
+  // ---------------------------------------------------------------------------
+  server.on("/api/download", HTTP_GET, [&] {
+
+    if (!sdOK || !server.hasArg("file")) {
+      server.send(400);
+      return;
+    }
+
+    const char* base = basenameOnly(server.arg("file").c_str());
+    if (!isValidLogFile(base)) {server.send(400);return; }
+
+    char path[128];
+    snprintf(path, sizeof(path), "/logs/%s", base);
+
+    if (!SD_MMC.exists(path)) {server.send(404); return;}
+
+    File f = SD_MMC.open(path, FILE_READ);
+    if (!f) {
+      server.send(500);
+      return;
+    }
+
+//    server.sendHeader("Content-Disposition", String("attachment; filename=\"") + base + "\"" );
+
+    server.sendHeader("Content-Disposition", String("attachment; filename=\"") + base + "\"; filename*=UTF-8''" + base);
+
+
+    server.sendHeader("Cache-Control", "no-store");
+    server.streamFile(f, "application/octet-stream");
+    f.close();
+  });
+
+  // ---------------------------------------------------------------------------
+  // DELETE /api/file
+  // Delete a single validated log file
   // ---------------------------------------------------------------------------
   server.on("/api/file", HTTP_DELETE, [&] {
 
@@ -122,28 +140,14 @@ void registerFileEndpoints(WebServer &server)
       return;
     }
 
-    const char* name = j["name"];
-    if (!name) {
+    const char* base = basenameOnly(j["name"]);
+    if (!isValidLogFile(base)) {
       server.send(400);
       return;
     }
-
-    const char* base = basenameOnly(name);
-    const char* ext  = strrchr(base, '.');
-
-    if (!ext ||
-        (strcasecmp(ext, ".txt") &&
-        strcasecmp(ext, ".sbp") &&
-        strcasecmp(ext, ".ubx") &&
-        strcasecmp(ext, ".gpx") &&
-        strcasecmp(ext, ".gpy"))) {
-      server.send(400);
-      return;
-    }
-
 
     char path[128];
-    snprintf(path, sizeof(path), "/logs/%s", name);
+    snprintf(path, sizeof(path), "/logs/%s", base);
 
     bool ok = SD_MMC.remove(path);
     server.send(200, "application/json",

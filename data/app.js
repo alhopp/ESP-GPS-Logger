@@ -78,7 +78,7 @@ async function loadFiles(fileList, sdInfo){
   });
 }
 
-/* ---------------- Swipe delete ---------------- */
+/* ---------------- Swipe delete + download ---------------- */
 function enableSwipe(fileList, sdInfo){
   if (swipeBound) return;
   if (!fileList || !sdInfo) return;
@@ -86,16 +86,36 @@ function enableSwipe(fileList, sdInfo){
   swipeBound = true;
 
   let row, icon, x0, y0, dx = 0, sw = false;
+  let moved = false;
+  let tapCandidate = null;
+  let tapStartOnDelete = false;
+
+  function triggerDownload(name){
+    if (!name) return;
+    // cache-buster helps stop “weird filename” prompts / cached downloads
+    const url = `/api/download?file=${encodeURIComponent(name)}&t=${Date.now()}`;
+
+    const a = document.createElement("a");
+    a.href = url;
+    // Let server Content-Disposition decide filename; browser prompt is more consistent this way
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
 
   fileList.addEventListener("touchstart", e => {
     row = e.target.closest(".file-swipe");
     if (!row) return;
+
+    tapCandidate = row;
+    tapStartOnDelete = !!e.target.closest(".file-delete");
 
     icon = row.querySelector(".file-icon");
     x0 = e.touches[0].clientX;
     y0 = e.touches[0].clientY;
     dx = 0;
     sw = true;
+    moved = false;
 
     if (icon) icon.style.transition = "none";
   }, { passive: true });
@@ -106,7 +126,12 @@ function enableSwipe(fileList, sdInfo){
     const x = e.touches[0].clientX;
     const y = e.touches[0].clientY;
 
-    if (Math.abs(x - x0) > Math.abs(y - y0) + 6){
+    const adx = Math.abs(x - x0);
+    const ady = Math.abs(y - y0);
+
+    // Only treat as a swipe if it's clearly horizontal and exceeds a small threshold
+    if (adx > ady + 8 && adx > 12){
+      moved = true;
       e.preventDefault();
       dx = Math.max(-72, Math.min(0, x - x0));
 
@@ -123,6 +148,7 @@ function enableSwipe(fileList, sdInfo){
 
     if (icon) icon.style.transition = "";
 
+    // Apply swipe state (same as before)
     if (dx < -36){
       if (row) row.classList.add("delete");
       if (icon){
@@ -136,37 +162,61 @@ function enableSwipe(fileList, sdInfo){
         icon.style.opacity = "";
       }
     }
+
+    // If it was a true tap (not moved), download on touch devices
+    // (but never when delete is open or user tapped the trash)
+    if (tapCandidate && !moved && !tapStartOnDelete && !tapCandidate.classList.contains("delete")){
+      triggerDownload(tapCandidate.dataset.name);
+    }
+
+    tapCandidate = null;
+    tapStartOnDelete = false;
+    moved = false; // reset so a later desktop click isn’t blocked
   }, { passive: true });
 
-fileList.addEventListener("click", async e => {
-  let d = e.target;
+  // Desktop click → download (touch devices already handled by touchend)
+  fileList.addEventListener("click", e => {
+    const r = e.target.closest(".file-swipe");
+    if (!r) return;
 
-  // climb up manually if needed
-  if (!d.classList || !d.classList.contains("file-delete")) {
-    d = d.closest && d.closest(".file-delete");
-  }
-  if (!d) return;
+    // Ignore delete button
+    if (e.target.closest(".file-delete")) return;
 
-  const r = d.closest(".file-swipe");
-  if (!r) return;
+    // If delete is exposed, a click should NOT download
+    if (r.classList.contains("delete")) return;
 
-  await fetch("/api/file", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: r.dataset.name })
+    triggerDownload(r.dataset.name);
   });
 
-  // smooth remove
-  r.style.transition = "height .2s,opacity .2s";
-  r.style.opacity = 0;
-  r.style.height = 0;
-  setTimeout(() => r.remove(), 200);
+  // delete (unchanged)
+  fileList.addEventListener("click", async e => {
+    let d = e.target;
 
-  // update counter only
-  const n = fileList.children.length;
-  sdInfo.textContent = `${n - 1} files`;
-});
+    // climb up manually if needed
+    if (!d.classList || !d.classList.contains("file-delete")) {
+      d = d.closest && d.closest(".file-delete");
+    }
+    if (!d) return;
 
+    const r = d.closest(".file-swipe");
+    if (!r) return;
+
+    await fetch("/api/file", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: r.dataset.name })
+    });
+
+    // smooth remove
+    r.style.transition = "height .2s,opacity .2s";
+    r.style.opacity = 0;
+    r.style.height = 0;
+    setTimeout(() => r.remove(), 200);
+
+    // update counter only
+    const n = fileList.children.length;
+    sdInfo.textContent = `${n - 1} files`;
+  });
 }
 
 /* ---------------- Config load ---------------- */
@@ -326,7 +376,3 @@ document.addEventListener("click", e => {
 document.getElementById("infoModal")?.addEventListener("click", e=>{
   if(e.target.id === "infoModal") closeInfo();
 });
-
-
-
-

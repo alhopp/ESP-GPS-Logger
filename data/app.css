@@ -20,6 +20,7 @@ nav button.a{color:var(--a);border-bottom:3px solid var(--a);background:#f8fbff}
 /* ---------------- Sections ---------------- */
 section{display:none;padding:16px;margin-top:112px;height:calc(100vh - 112px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:112px}
 section.a{display:flex;flex-direction:column}
+section .card:first-child{margin-top:12px;}
 
 /* ---------------- Cards ---------------- */
 .card{background:var(--d);border:1px solid var(--e);border-radius:14px;padding:16px;margin-bottom:16px}
@@ -78,5 +79,3 @@ section#files.a~footer,section#system.a~footer{display:none}
 /* remove scroll bars */
 section,.file-list{-ms-overflow-style:none;scrollbar-width:none}
 section::-webkit-scrollbar,.file-list::-webkit-scrollbar{display:none}
-section:after{content:"";position:fixed;left:0;right:0;bottom:96px;height:24px;background:linear-gradient(to bottom,rgba(244,247,251,0),rgba(244,247,251,.9));pointer-events:none}
-
