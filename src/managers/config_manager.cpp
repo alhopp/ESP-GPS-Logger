@@ -18,6 +18,8 @@
 #include "rtc_state.h"
 #include "Globals.h"
 
+#include "system_info.h"
+
 // -----------------------------------------------------------------------------
 // Config location (LittleFS only)
 // -----------------------------------------------------------------------------
@@ -344,33 +346,61 @@ void TimeZone_env(float timezone)
 }
 
 // -----------------------------------------------------------------------------
-// Config dump (SERIAL DIAGNOSTICS)
+// Config dump (JSON-loaded fields + SystemInfo)
 // -----------------------------------------------------------------------------
 static void dumpConfig()
 {
   Serial.println();
-  Serial.println("[CONFIG ] Dump ----------------------------");
+  Serial.println("[CONFIG ] ===== Loaded from JSON =====");
 
-  Serial.print("[CONFIG ] cal_bat              = "); Serial.println(config.cal_bat);
-  Serial.print("[CONFIG ] shutdown_voltage     = "); Serial.println(config.shutdown_voltage);
-  Serial.print("[CONFIG ] bar_length           = "); Serial.println(config.bar_length);
-  Serial.print("[CONFIG ] Stat_screens         = "); Serial.println(config.Stat_screens);
-  Serial.print("[CONFIG ] stat_speed           = "); Serial.println(config.stat_speed);
-  Serial.print("[CONFIG ] archive_days         = "); Serial.println(config.archive_days);
+  // -------- numeric / boolean --------
+  Serial.print("[CONFIG ] cal_bat          = "); Serial.println(config.cal_bat);
+  Serial.print("[CONFIG ] shutdown_voltage = "); Serial.println(config.shutdown_voltage);
 
-  Serial.print("[CONFIG ] logTXT               = "); Serial.println(config.logTXT);
-  Serial.print("[CONFIG ] logUBX               = "); Serial.println(config.logUBX);
-  Serial.print("[CONFIG ] logSBP               = "); Serial.println(config.logSBP);
+  Serial.print("[CONFIG ] bar_length       = "); Serial.println(config.bar_length);
+  Serial.print("[CONFIG ] Stat_screens     = "); Serial.println(config.Stat_screens);
+  Serial.print("[CONFIG ] stat_speed       = "); Serial.println(config.stat_speed);
 
-  Serial.print("[CONFIG ] timezone             = "); Serial.println(config.timezone);
-  Serial.print("[CONFIG ] timezone_DST         = "); Serial.println(config.timezone_DST);
-  Serial.print("[CONFIG ] track_distance       = "); Serial.println(config.track_distance);
+  Serial.print("[CONFIG ] logUBX           = "); Serial.println(config.logUBX);
+  Serial.print("[CONFIG ] logSBP           = "); Serial.println(config.logSBP);
 
+  Serial.print("[CONFIG ] timezone         = "); Serial.println(config.timezone);
+  Serial.print("[CONFIG ] timezone_DST     = "); Serial.println(config.timezone_DST);
+  Serial.print("[CONFIG ] track_distance   = "); Serial.println(config.track_distance);
 
-  Serial.print("[CONFIG ] stat_screen          = "); Serial.println(config.stat_screen);
-  Serial.print("[CONFIG ] gpio12_screen        = "); Serial.println(config.gpio12_screen);
-  Serial.print("[CONFIG ] Sleep_info           = "); Serial.println(config.Sleep_info);
+  // -------- performance screen toggles --------
+  Serial.println("[CONFIG ] Performance screens");
+  Serial.print("[CONFIG ]   2s             = "); Serial.println(config.stat_2s);
+  Serial.print("[CONFIG ]   10s            = "); Serial.println(config.stat_10s);
+  Serial.print("[CONFIG ]   alpha          = "); Serial.println(config.stat_alpha);
+  Serial.print("[CONFIG ]   nm             = "); Serial.println(config.stat_nm);
+  Serial.print("[CONFIG ]   1h             = "); Serial.println(config.stat_1h);
+  Serial.print("[CONFIG ]   distance       = "); Serial.println(config.stat_distance);
 
-  Serial.println("[CONFIG ] ---------------------------------");
+  // -------- strings --------
+  Serial.print("[CONFIG ] stat_screen      = "); Serial.println(config.stat_screen);
+  Serial.print("[CONFIG ] gpio12_screen    = "); Serial.println(config.gpio12_screen);
+  Serial.print("[CONFIG ] Sleep_info       = "); Serial.println(config.Sleep_info);
+  Serial.print("[CONFIG ] UBXfile          = "); Serial.println(config.UBXfile);
+
+  // ---------------------------------------------------------------------------
+  // SystemInfo (static / runtime)
+  // ---------------------------------------------------------------------------
+  Serial.println();
+  Serial.println("[SYSTEM ] ===== Static system info =====");
+
+  Serial.print("[SYSTEM ] gnss_module      = "); Serial.println(systemInfo.gnss_module);
+  Serial.print("[SYSTEM ] gnss_mode        = "); Serial.println(systemInfo.gnss_mode);
+  Serial.print("[SYSTEM ] dynamic_model    = "); Serial.println(systemInfo.dynamic_model);
+  Serial.print("[SYSTEM ] sample_rate      = "); Serial.println(systemInfo.sample_rate);
+  Serial.print("[SYSTEM ] speed_units      = "); Serial.println(systemInfo.speed_units);
+  Serial.print("[SYSTEM ] cal_speed        = "); Serial.println(systemInfo.cal_speed);
+
+  Serial.print("[SYSTEM ] storage_mb       = "); Serial.println(systemInfo.storage_mb);
+  Serial.print("[SYSTEM ] display          = "); Serial.println(systemInfo.display);
+  Serial.print("[SYSTEM ] cpu_freq         = "); Serial.println(systemInfo.cpu_freq);
+  Serial.print("[SYSTEM ] software_version = "); Serial.println(systemInfo.software_version);
+
+  Serial.println("=======================================");
   Serial.println();
 }
