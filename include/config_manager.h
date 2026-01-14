@@ -40,12 +40,12 @@ struct Config
   int   Stat_screens;       // enabled stat screens
   int   Stat_screens_time;  // seconds per stat screen
   int   GPIO12_screens;     // stat screens when GPIO12 active
-  int   sleep_off_screen;
+
 
 
   char  stat_screen[22];    // selected stat screens
   char  gpio12_screen[10];  // screens when GPIO12 toggles
-  char  speed_screen[10];   // selected speed fields
+
 
   int   screen_count;
   int   gpio12_count;

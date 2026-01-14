@@ -27,6 +27,7 @@
 
 #include "GPS/GPS_data.h"
 
+#include "system_info.h"
 
 int SD_MMC_read_speed;   // Speed of reading from SD/MMC
 int SD_MMC_write_speed;  // Speed of writing to SD/MMC
@@ -49,7 +50,7 @@ void Session_info(GPS_data G) {
   strcat(message, tekst);
   sprintf(tekst, "Total distance: %d m\n", (int)G.total_distance / 1000);  // Convert meters to kilometers
   strcat(message, tekst);
-  sprintf(tekst, "Sample rate: %d Hz\n", config.sample_rate);  // Log sample rate
+  sprintf(tekst, "Sample rate: %d Hz\n", systemInfo.sample_rate);  // Log sample rate
   strcat(message, tekst);
   sprintf(tekst, "CPU freq logging: %d MHz\n", config.cpu_freq);  // Log CPU frequency
   strcat(message, tekst);
@@ -90,7 +91,7 @@ void Session_results_M(GPS_speed M) {
     dtostrf(M.time_sec[i], 1, 0, tekst);
     strcat(message, tekst);
     strcat(message, " Distance: ");
-    dtostrf(M.m_Distance[i] / 1000.0f / config.sample_rate, 1, 2, tekst);  // Convert to kilometers
+    dtostrf(M.m_Distance[i] / 1000.0f / systemInfo.sample_rate, 1, 2, tekst);  // Convert to kilometers
     strcat(message, tekst);
     strcat(message, " Msg_nr: ");
     dtostrf(M.message_nr[i], 1, 0, tekst);

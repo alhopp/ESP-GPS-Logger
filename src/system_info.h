@@ -7,7 +7,7 @@ struct SystemInfo {
   const char* software_version;// e.g. "Version 1"
 
   const char* speed_units;     // "Knots"
-  const char* sample_rate;     // "5 Hz"
+  uint32_t  sample_rate;     // "5 Hz"
   const char* gnss_mode;       // "GPS + GLONASS + GALILEO"
   const char* dynamic_model;   // "SEA"
   

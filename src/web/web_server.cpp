@@ -69,7 +69,6 @@ void webserver_start(WebServer &server)
   j["gps"]["sample_rate"]              = systemInfo.sample_rate;
   j["gps"]["gnss"]                     = systemInfo.gnss_mode;
   j["gps"]["dynamic_model"]            = systemInfo.dynamic_model;
-  j["gps"]["cal_speed"]                = config.cal_speed;
   j["gps"]["stat_speed"]               = config.stat_speed;
 
 
@@ -83,10 +82,9 @@ void webserver_start(WebServer &server)
   j["logging"]["logSBP"]               = config.logSBP;
 
   j["ui"]["bar_length"]                = config.bar_length;
-  j["ui"]["sleep_off_screen"]          = config.sleep_off_screen;
 
   j["ui"]["Stat_screens"]              = config.Stat_screens;
-  j["ui"]["speed_screen"]              = config.speed_screen;
+
   j["ui"]["stat_screen"]               = config.stat_screen;
   j["ui"]["gpio12_screen"]             = config.gpio12_screen;
   j["ui"]["Sleep_info"]                = config.Sleep_info;

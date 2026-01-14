@@ -36,6 +36,7 @@
 #include <LittleFS.h>
 #include "Storage/storage_manager.h"
 
+#include "system_info.h"
 
 // -----------------------------------------------------------------------------
 // UI primitives & layout (KEEP)
@@ -161,7 +162,7 @@ int device_boot_log(int rows, int ws)
 
     display.printf("Gps %s at %dHz",
                     gpsChip(1),
-                    config.sample_rate);
+                    systemInfo.sample_rate);
   }
 
   return r;

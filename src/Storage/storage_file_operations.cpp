@@ -16,6 +16,8 @@
 #include "Globals.h"
 #include "Definitions.h"
 
+#include "system_info.h"
+
 // -----------------------------------------------------------------------------
 // State / buffers
 // -----------------------------------------------------------------------------
@@ -61,7 +63,7 @@ void Open_files(void)
 // -----------------------------------------------------------------------------
 void Flush_files(void)
 {
-  if(storage_shutting_down||config.sample_rate>10) return;
+  if(storage_shutting_down||systemInfo.sample_rate>10) return;
   static uint8_t lb=0;
   switch(lb){
     case 0: if(ubxfile)   ubxfile.flush();   break;

@@ -6,6 +6,10 @@
 #include "gps_manager.h"
 #include "Globals.h"
 
+
+#include "system_info.h"
+
+
 uint16_t _gSpeed[BUFFER_SIZE]; 
 float _lat[BUFFER_ALFA]; 
 float _long[BUFFER_ALFA];
@@ -59,7 +63,7 @@ void GPS_data::push_data(float latitude,
     if ((ubxMessage.navPvt.numSV >= FILTER_MIN_SATS) &&
         ((ubxMessage.navPvt.sAcc * 0.001f) < FILTER_MAX_sACC))
     {
-        const uint32_t delta_dist = gSpeed / config.sample_rate; // mm per sample
+        const uint32_t delta_dist = gSpeed / systemInfo.sample_rate; // mm per sample
 
         total_distance += delta_dist;
         run_distance   += delta_dist;
@@ -76,10 +80,10 @@ void GPS_data::push_data(float latitude,
 
     avg_gSpeed += gSpeed;
 
-    if ((index_GPS % config.sample_rate) == 0) {
+    if ((index_GPS % systemInfo.sample_rate) == 0) {
         index_sec++;
         _secSpeed[index_sec % BUFFER_SIZE] =
-            avg_gSpeed / config.sample_rate;
+            avg_gSpeed / systemInfo.sample_rate;
 
         avg_gSpeed = 0;
     }
@@ -270,7 +274,7 @@ GPS_speed::GPS_speed(int afstand){
 
 
 double GPS_speed::Update_distance(int actual_run){ 
-  m_Set_Distance=m_set_distance*1000*config.sample_rate;//opgelet, m_set_distance moet nu in mm, dus *1000 + functie van sample_rate !! 
+  m_Set_Distance=m_set_distance*1000*systemInfo.sample_rate;//opgelet, m_set_distance moet nu in mm, dus *1000 + functie van sample_rate !! 
   m_distance=m_distance+_gSpeed[index_GPS%BUFFER_SIZE];//resolutie = 0.1 mm nu, 2,147,483,647 = 214748 m, dus maar 214 km !! 
   if((index_GPS-m_index)>=BUFFER_SIZE){     //controle buffer overflow
       m_distance=0;
@@ -336,12 +340,12 @@ void GPS_time::Reset_stats(void){
 
 
 float GPS_time::Update_speed(int actual_run){
-  if(time_window*config.sample_rate<BUFFER_SIZE){      //indien tijdvenster kleiner is dan de sample_rate*BUFFER, normale buffer gebruiken
+  if(time_window*systemInfo.sample_rate<BUFFER_SIZE){      //indien tijdvenster kleiner is dan de sample_rate*BUFFER, normale buffer gebruiken
         avg_s_sum=avg_s_sum+_gSpeed[index_GPS%BUFFER_SIZE]; //altijd gSpeed optellen bij elke update
-        if(index_GPS>=time_window*config.sample_rate){
-            avg_s_sum=avg_s_sum-_gSpeed[(index_GPS-(time_window*config.sample_rate))%BUFFER_SIZE];//vanaf 10s bereikt, terug -10s aftrekken van som
+        if(index_GPS>=time_window*systemInfo.sample_rate){
+            avg_s_sum=avg_s_sum-_gSpeed[(index_GPS-(time_window*systemInfo.sample_rate))%BUFFER_SIZE];//vanaf 10s bereikt, terug -10s aftrekken van som
             }
-            avg_s=(double)avg_s_sum/time_window/config.sample_rate;
+            avg_s=(double)avg_s_sum/time_window/systemInfo.sample_rate;
             if(s_max_speed<avg_s){
               s_max_speed=avg_s;
               speed_run[actual_run%NR_OF_BAR]=avg_s;
@@ -390,7 +394,7 @@ float GPS_time::Update_speed(int actual_run){
             old_run=actual_run;
             return s_max_speed;
   }
-  else if(index_GPS%config.sample_rate==0){        //overschakelen naar seconden buffer, maar één update/seconde !!
+  else if(index_GPS%systemInfo.sample_rate==0){        //overschakelen naar seconden buffer, maar één update/seconde !!
             avg_s_sum=avg_s_sum+(int)_secSpeed[index_sec%BUFFER_SIZE]; //_secSpeed[BUFFER_SIZE] en index_sec 
             if(index_sec>=time_window){
                 avg_s_sum=avg_s_sum-(int)_secSpeed[(index_sec-time_window)%BUFFER_SIZE];//vanaf 10s bereikt, terug -10s aftrekken van som
@@ -452,7 +456,7 @@ float Alfa_speed::Update_Alfa(GPS_speed M){
           this_run[0]=alfa_counter;//was alfa_count
           avg_speed[0]=alfa_speed_max; 
           message_nr[0]=nav_pvt_message;
-          alfa_distance[0]=M.m_distance_alfa/config.sample_rate;
+          alfa_distance[0]=M.m_distance_alfa/systemInfo.sample_rate;
           }
     }
   //if((alfa_speed_max>0.0f)&&(straight_dist_square>(alfa_circle_square*1.4))){//alfa max gaat pas op 0 indien 500 m na de gijp, rechte afstand na de gijp
@@ -508,7 +512,7 @@ int New_run_detection(float actual_heading, float S2_speed){
    int course_deviation_min=JIBE_COURSE_DEVIATION_MIN;//min hoek afwijking om gijp te detecteren, was 40
    int time_delay_new_run=TIME_DELAY_NEW_RUN;//vertraging om nieuwe run te starten, sw 4.59
    heading_SD=heading;
-   Mean_heading=Mean_heading*(mean_heading_time*config.sample_rate-1)/(mean_heading_time*config.sample_rate)+heading/(mean_heading_time*config.sample_rate);
+   Mean_heading=Mean_heading*(mean_heading_time*systemInfo.sample_rate-1)/(mean_heading_time*systemInfo.sample_rate)+heading/(mean_heading_time*systemInfo.sample_rate);
    /*detection stand still, more then 2s with velocity<1m/s**************************************************************************************************/
    if(S2_speed>speed_detection_min)velocity_5=1;    //snelheid was hoger dan 4m/s        
    if((S2_speed<standstill_detection_max)&&(velocity_5==1))velocity_0=1;//snelheid is kleiner dan 1m/s
@@ -517,7 +521,7 @@ int New_run_detection(float actual_heading, float S2_speed){
    if((velocity_0==1)&&(S2_speed>speed_detection_min)){
      velocity_5=0;
      velocity_0=0;
-     delay_counter=(time_delay_new_run-1)*config.sample_rate;//delay only 1 s after standstill + speed> min speed !!
+     delay_counter=(time_delay_new_run-1)*systemInfo.sample_rate;//delay only 1 s after standstill + speed> min speed !!
     }
    /*Nieuwe run gedetecteerd omwille heading change*****************************************************************************************************************/
    static bool straight_course;
@@ -529,7 +533,7 @@ int New_run_detection(float actual_heading, float S2_speed){
       alfa_counter++;//jibe detection for alfa_indicator ....
       }
    delay_counter++;   
-   if(delay_counter==(time_delay_new_run*config.sample_rate)) run_counter++;   
+   if(delay_counter==(time_delay_new_run*systemInfo.sample_rate)) run_counter++;   
    return run_counter;   
 }
 
@@ -555,8 +559,8 @@ float Alfa_indicator(GPS_speed M250,GPS_speed M100,float actual_heading){
   old_alfa_counter=alfa_counter;  
   P_lat=_lat[index_GPS%BUFFER_ALFA];//actuele positie lat
   P_long=_long[index_GPS%BUFFER_ALFA];//actuele positie long
-  P_lat_heading= _lat[(index_GPS-2*config.sample_rate)%BUFFER_ALFA];//-2s  positie lat         //cos(ubxMessage.navPvt.heading*PI/180.0f/100000.0f)*111120+P_lat;//was eerst sin,extra punt berekenen heading, berekenen met afstand/lengte graad !!
-  P_long_heading=_long[(index_GPS-2*config.sample_rate)%BUFFER_ALFA];//-2s  positie long//sin(ubxMessage.navPvt.heading*PI/180.0f/100000.0f)*111120*cos(DEG2RAD*P_lat)+P_long;//berekenen met afstand/lengte graad!!
+  P_lat_heading= _lat[(index_GPS-2*systemInfo.sample_rate)%BUFFER_ALFA];//-2s  positie lat         //cos(ubxMessage.navPvt.heading*PI/180.0f/100000.0f)*111120+P_lat;//was eerst sin,extra punt berekenen heading, berekenen met afstand/lengte graad !!
+  P_long_heading=_long[(index_GPS-2*systemInfo.sample_rate)%BUFFER_ALFA];//-2s  positie long//sin(ubxMessage.navPvt.heading*PI/180.0f/100000.0f)*111120*cos(DEG2RAD*P_lat)+P_long;//berekenen met afstand/lengte graad!!
   alfa_exit= Dis_point_line(P1_long,P1_lat,P_long,P_lat,P_long_heading,P_lat_heading);//
   alfa_afstand=Dis_point_line(P_long,P_lat,P1_long,P1_lat,P2_long,P2_lat);
   return alfa_afstand;  //actuele loodrechte afstand tov de lijn P2-P1, mag max 50m zijn voor een geldige alfa !!
