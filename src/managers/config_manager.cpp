@@ -133,6 +133,14 @@ static void setDefaultConfig()
   config.logUBX              = 0;
   config.logSBP              = 1;
 
+  //-------- Performance screens (on/off) --------------------------  
+  config.stat_alpha     = true;
+  config.stat_nm        = true;
+  config.stat_1h        = true;
+  
+  config.stat_2s        = false;
+  config.stat_10s       = false;
+  config.stat_distance  = false;
 
 
   // -------- Critical screen strings (must never be empty) --------
@@ -171,6 +179,14 @@ static bool loadConfigFromFile(File &file)
   config.timezone_DST        =doc["timezone_DST"]        |config.timezone_DST;
   config.track_distance      =doc["track_distance"]      |config.track_distance;
 
+  // Performance screens (on/off)
+  config.stat_2s        = doc["stat_2s"]        | config.stat_2s;
+  config.stat_10s       = doc["stat_10s"]       | config.stat_10s;
+  config.stat_alpha     = doc["stat_alpha"]     | config.stat_alpha;
+  config.stat_nm        = doc["stat_nm"]        | config.stat_nm;
+  config.stat_1h        = doc["stat_1h"]        | config.stat_1h;
+  config.stat_distance  = doc["stat_distance"]  | config.stat_distance;
+
   // strings (only if non-empty)
   const char* s;
   if((s=doc["stat_screen"])    && s[0]) strlcpy(config.stat_screen,s,sizeof(config.stat_screen));
@@ -204,7 +220,13 @@ static void writeConfigToFile(File &file)
   doc["timezone_DST"]     = config.timezone_DST;
   doc["track_distance"]   = config.track_distance;
 
-
+  // Performance screens (on/off)
+  doc["stat_2s"]        = config.stat_2s;
+  doc["stat_10s"]       = config.stat_10s;
+  doc["stat_alpha"]     = config.stat_alpha;
+  doc["stat_nm"]        = config.stat_nm;
+  doc["stat_1h"]        = config.stat_1h;
+  doc["stat_distance"]  = config.stat_distance;
 
   // strings (only if non-empty)
 
@@ -279,9 +301,7 @@ static void applyDerivedConfig()
   const int statLen  = (int)strlen(config.stat_screen);
   const int gpioLen  = (int)strlen(config.gpio12_screen);
 
-  config.screen_count = (statLen  > 0) ? (statLen  - 1) : 0;
   config.gpio12_count = (gpioLen  > 0) ? (gpioLen  - 1) : 0;
-
   TimeZone_env(config.timezone);
 }
 

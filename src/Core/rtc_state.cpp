@@ -76,7 +76,6 @@ RTC_DATA_ATTR float RTC_voltage_bat          = 3.6f;
 RTC_DATA_ATTR float RTC_old_voltage_bat      = 3.6f;
 RTC_DATA_ATTR float RTC_minimum_voltage_bat  = MINIMUM_VOLTAGE;
 
-RTC_DATA_ATTR int   RTC_bat_choice            = 0;
 RTC_DATA_ATTR int   RTC_highest_read          = STARTVALUE_HIGHEST_READ;
 
 // ---------------------------------------------------------------------------

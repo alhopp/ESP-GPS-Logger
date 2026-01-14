@@ -69,7 +69,6 @@ extern RTC_DATA_ATTR float RTC_voltage_bat;
 extern RTC_DATA_ATTR float RTC_old_voltage_bat;
 extern RTC_DATA_ATTR float RTC_minimum_voltage_bat;
 
-extern RTC_DATA_ATTR int   RTC_bat_choice;
 extern RTC_DATA_ATTR int   RTC_highest_read;
 
 // ---------------------------------------------------------------------------

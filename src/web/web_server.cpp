@@ -73,11 +73,21 @@ server.on("/api/config",HTTP_GET,[&]{
   j["power"]["cal_bat"]              = config.cal_bat;
 
   j["logging"]["track_distance"]     = config.track_distance;
+  
   j["logging"]["logUBX"]             = config.logUBX;
   j["logging"]["logSBP"]             = config.logSBP;
 
   j["ui"]["bar_length"]              = config.bar_length;
   j["ui"]["Sleep_info"]              = config.Sleep_info;
+
+  // Performance screens (on/off)
+  j["stats"]["s2"]                  = config.stat_2s;
+  j["stats"]["s10"]                 = config.stat_10s;
+  j["stats"]["alpha"]               = config.stat_alpha;
+  j["stats"]["nm"]                  = config.stat_nm;
+  j["stats"]["h1"]                  = config.stat_1h;
+  j["stats"]["distance"]            = config.stat_distance;
+
 
   sendJson(server,j);
 });
@@ -102,6 +112,17 @@ server.on("/api/config",HTTP_GET,[&]{
       if(j["logging"]["logUBX"]!=nullptr) config.logUBX=j["logging"]["logUBX"];
       if(j["logging"]["logSBP"]!=nullptr) config.logSBP=j["logging"]["logSBP"];
     }
+
+    if (j["stats"]) {
+      if (j["stats"]["s2"]        != nullptr) config.stat_2s        = j["stats"]["s2"];
+      if (j["stats"]["s10"]       != nullptr) config.stat_10s       = j["stats"]["s10"];
+      if (j["stats"]["alpha"]     != nullptr) config.stat_alpha     = j["stats"]["alpha"];
+      if (j["stats"]["nm"]        != nullptr) config.stat_nm        = j["stats"]["nm"];
+      if (j["stats"]["h1"]        != nullptr) config.stat_1h        = j["stats"]["h1"];
+      if (j["stats"]["distance"]  != nullptr) config.stat_distance  = j["stats"]["distance"];
+    }
+
+
 
     saveConfig();
     server.send(200,"text/plain","OK");

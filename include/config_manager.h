@@ -24,20 +24,26 @@ struct Config
   // --------------------------------------------------------------------------
   float cal_bat;            // calibration factor for battery voltage
   float shutdown_voltage;   // shutdown threshold (V)
-  bool  bat_choice;         // true = %, false = voltage
+
 
   // GPS / speed
 
   int   stat_speed;         // max speed (m/s) to show stat screens
   int   start_logging_speed;
 
-  // Screen / UI configuration
+  // Screen / UI configuration  $$$$$$$$$$$$$MOST OF THIS CAN GO
   int   field;              // default speed screen field
-  int   field_actual;       // current field
-  int   speed_large_font;   // large font on first line
   int   Stat_screens;       // enabled stat screens
-  int   Stat_screens_time;  // seconds per stat screen
-  int   GPIO12_screens;     // stat screens when GPIO12 active
+
+
+
+  // Performance screens (on/off)
+  bool stat_2s;
+  bool stat_10s;
+  bool stat_alpha;
+  bool stat_nm;
+  bool stat_1h;
+  bool stat_distance;
 
 
 
@@ -45,7 +51,7 @@ struct Config
   char  gpio12_screen[10];  // screens when GPIO12 toggles
 
 
-  int   screen_count;
+
   int   gpio12_count;
   int   speed_count;
 

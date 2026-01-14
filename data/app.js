@@ -140,6 +140,13 @@ async function loadConfig(els){
 
   setText(els.sys_version,      c.system?.software_version);
 
+  // performance stats
+  setChk(els.stat_10s,       c.stats?.s10);
+  setChk(els.stat_5x10,      c.stats?.s5x10);
+  setChk(els.stat_alpha,     c.stats?.alpha);
+  setChk(els.stat_nm,        c.stats?.nm);
+  setChk(els.stat_hour,      c.stats?.h1);
+  setChk(els.stat_distance,  c.stats?.distance);
 
 
 
@@ -150,12 +157,40 @@ async function loadConfig(els){
 async function save(els){
   const p={
     ui:{Sleep_info:els.Sleep_info?.value??""},
-    logging:{logTXT:!!els.logTXT?.checked,logUBX:!!els.logUBX?.checked,logSBP:!!els.logSBP?.checked},
-    wifi:{ssid:els.ssid?.value??"",password:els.password?.value??""}
+
+    logging:{
+      logTXT:!!els.logTXT?.checked,
+      logUBX:!!els.logUBX?.checked,
+      logSBP:!!els.logSBP?.checked
+    },
+
+    wifi:{
+      ssid:els.ssid?.value??"",
+      password:els.password?.value??""
+    },
+
+    stats:{
+      s10:      !!els.stat_10s?.checked,
+      s5x10:    !!els.stat_5x10?.checked,
+      alpha:    !!els.stat_alpha?.checked,
+      nm:       !!els.stat_nm?.checked,
+      h1:       !!els.stat_hour?.checked,
+      distance: !!els.stat_distance?.checked
+    }
   };
-  const r=await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
-  if(r.ok){ if(els.saveBtn) els.saveBtn.disabled=true; dirty=false; }
+
+  const r=await fetch("/api/config",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(p)
+  });
+
+  if(r.ok){
+    if(els.saveBtn) els.saveBtn.disabled=true;
+    dirty=false;
+  }
 }
+
 
 /* ---------------- Splash ---------------- */
 addEventListener("load",()=>setTimeout(()=>{
@@ -177,6 +212,14 @@ addEventListener("load",async()=>{
     logTXT:$("logTXT"),logUBX:$("logUBX"),logSBP:$("logSBP"),
     ssid:$("ssid"),password:$("password"),
 
+    // performance stats toggles
+    stat_10s:$("stat_10s"),
+    stat_5x10:$("stat_5x10"),
+    stat_alpha:$("stat_alpha"),
+    stat_nm:$("stat_nm"),
+    stat_hour:$("stat_hour"),
+    stat_distance:$("stat_distance"),
+    
     // system
     sys_gnss_module:$("sys_gnss_module"),
     sys_gnss:$("sys_gnss"),
