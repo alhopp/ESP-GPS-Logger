@@ -309,3 +309,12 @@ section#files.a ~ footer,section#system.a ~ footer{display:none}
   input,select{background:#0b1220;color:#e9eff7;border-color:#223248}
   .modal-card{background:#0e1728}
 }
+
+/* Allow Settings to scroll past last input (keyboard-safe) */
+section#settings{
+  padding-bottom:calc(200px + env(safe-area-inset-bottom));
+  scroll-padding-bottom:200px;
+}
+
+
+
