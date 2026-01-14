@@ -121,6 +121,9 @@ server.on("/api/config",HTTP_GET,[&]{
       if (j["stats"]["distance"]  != nullptr) config.stat_distance  = j["stats"]["distance"];
     }
 
+    if (j["ui"]["Sleep_info"] != nullptr)
+      strlcpy(config.Sleep_info,j["ui"]["Sleep_info"].as<const char*>(),sizeof(config.Sleep_info));
+
     saveConfig();
     server.send(200,"text/plain","OK");
   });

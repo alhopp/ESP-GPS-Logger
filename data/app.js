@@ -1,5 +1,30 @@
 const $ = i => document.getElementById(i);
-let swipeBound = false, dirty = false;
+
+// ---------------- Dirty tracking (authoritative) ----------------
+let dirty = false;
+
+function markDirty(saveBtn){
+  if (dirty) return;
+  dirty = true;
+  if (saveBtn) saveBtn.disabled = false;
+}
+
+addEventListener("load",()=>{
+  const saveBtn = $("saveBtn");
+
+  const onDirty = e=>{
+    if (!e.target || e.target._loading) return;
+    if (!(e.target.matches("input,select,textarea"))) return;
+    markDirty(saveBtn);
+  };
+
+  // Text inputs, selects, sliders
+  document.addEventListener("input", onDirty);
+
+  // Checkboxes + mobile Safari/WebView
+  document.addEventListener("change", onDirty);
+});
+
 
 /* ---------------- Tabs ---------------- */
 function tab(id,b){
@@ -8,11 +33,7 @@ function tab(id,b){
   const s=$(id); s.classList.add("a"); s.scrollTop = 0;
 }
 
-/* ---------------- Dirty tracking ---------------- */
-const markDirty = saveBtn => {if (!dirty){ dirty = true; if (saveBtn) saveBtn.disabled = false; }};
 
-addEventListener("load", () => {const saveBtn = $("saveBtn");document.addEventListener("input", e => { if (e.target && !e.target._loading) markDirty(saveBtn); });
-});
 
 /* ---------------- Helpers ---------------- */
 function setVal(el,v){ if (!el) return; el._loading=true; el.value=v??""; el._loading=false; }
@@ -141,9 +162,8 @@ async function loadConfig(els){
   setText(els.sys_version,      c.system?.software_version);
 
   // performance stats
-  setChk(els.stat_2s,        c.stats?.stat_2s);
-  setChk(els.stat_10s,       c.stats?.s10);
-  setChk(els.stat_5x10,      c.stats?.s5x10);
+  setChk(els.stat_2s,        c.stats?.s2);
+  setChk(els.stat_5x10,      c.stats?.s10);
   setChk(els.stat_alpha,     c.stats?.alpha);
   setChk(els.stat_nm,        c.stats?.nm);
   setChk(els.stat_hour,      c.stats?.h1);
@@ -170,15 +190,15 @@ async function save(els){
       password:els.password?.value??""
     },
 
-    stats:{
+   stats:{
       s2:       !!els.stat_2s?.checked,
-      s10:      !!els.stat_10s?.checked,
-      s5x10:    !!els.stat_5x10?.checked,
+      s10:      !!els.stat_5x10?.checked,
       alpha:    !!els.stat_alpha?.checked,
       nm:       !!els.stat_nm?.checked,
       h1:       !!els.stat_hour?.checked,
       distance: !!els.stat_distance?.checked
-    }
+   }
+
   };
 
   const r=await fetch("/api/config",{
@@ -216,7 +236,6 @@ addEventListener("load",async()=>{
 
     // performance stats toggles
     stat_2s:       $("stat_2s"),
-    stat_10s:      $("stat_10s"),
     stat_5x10:     $("stat_5x10"),
     stat_alpha:    $("stat_alpha"),
     stat_nm:       $("stat_nm"),
