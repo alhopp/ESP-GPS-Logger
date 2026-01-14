@@ -11,9 +11,6 @@
 // ---------------------------------------------------------------------------
 
 extern RTC_DATA_ATTR char RTC_Sleep_txt[32];
-extern RTC_DATA_ATTR int  RTC_Sail_Logo;
-extern RTC_DATA_ATTR int  RTC_Board_Logo;
-
 extern RTC_DATA_ATTR int  RTC_SLEEP_screen;
 extern RTC_DATA_ATTR int  RTC_OFF_screen;
 

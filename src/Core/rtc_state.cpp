@@ -10,8 +10,6 @@
 // ---------------------------------------------------------------------------
 
 RTC_DATA_ATTR char  RTC_Sleep_txt[32] = "Your ID";
-RTC_DATA_ATTR int   RTC_Sail_Logo     = 0;
-RTC_DATA_ATTR int   RTC_Board_Logo    = 0;
 
 RTC_DATA_ATTR int   RTC_SLEEP_screen  = 0;
 RTC_DATA_ATTR int   RTC_OFF_screen    = 0;

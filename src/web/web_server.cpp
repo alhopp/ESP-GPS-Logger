@@ -71,7 +71,7 @@ void webserver_start(WebServer &server)
   j["gps"]["dynamic_model"]            = systemInfo.dynamic_model;
   j["gps"]["cal_speed"]                = config.cal_speed;
   j["gps"]["stat_speed"]               = config.stat_speed;
-  j["gps"]["start_logging_speed"]      = config.start_logging_speed;
+
 
   j["power"]["cal_bat"]                = config.cal_bat;
 
@@ -84,8 +84,7 @@ void webserver_start(WebServer &server)
 
   j["ui"]["bar_length"]                = config.bar_length;
   j["ui"]["sleep_off_screen"]          = config.sleep_off_screen;
-  j["ui"]["Board_Logo"]                = config.Board_Logo;
-  j["ui"]["Sail_Logo"]                 = config.Sail_Logo;
+
   j["ui"]["Stat_screens"]              = config.Stat_screens;
   j["ui"]["speed_screen"]              = config.speed_screen;
   j["ui"]["stat_screen"]               = config.stat_screen;

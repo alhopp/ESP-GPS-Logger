@@ -118,8 +118,7 @@ async function loadConfig(els){
   const c=await r.json();
 
   setVal(els.Sleep_info,c.ui?.Sleep_info);
-  setVal(els.Board_Logo,c.ui?.Board_Logo);
-  setVal(els.Sail_Logo,c.ui?.Sail_Logo);
+
 
   setChk(els.logTXT,c.logging?.logTXT);
   setChk(els.logUBX,c.logging?.logUBX);
@@ -142,7 +141,7 @@ async function loadConfig(els){
 /* ---------------- Save ---------------- */
 async function save(els){
   const p={
-    ui:{Sleep_info:els.Sleep_info?.value??"",Board_Logo:+(els.Board_Logo?.value??0),Sail_Logo:+(els.Sail_Logo?.value??0)},
+    ui:{Sleep_info:els.Sleep_info?.value??""},
     logging:{logTXT:!!els.logTXT?.checked,logUBX:!!els.logUBX?.checked,logSBP:!!els.logSBP?.checked},
     wifi:{ssid:els.ssid?.value??"",password:els.password?.value??""}
   };
@@ -160,7 +159,7 @@ addEventListener("load",()=>setTimeout(()=>{
 addEventListener("load",async()=>{
   const els={
     saveBtn:$("saveBtn"),fileList:$("fileList"),sdInfo:$("sdInfo"),
-    Sleep_info:$("Sleep_info"),Board_Logo:$("Board_Logo"),Sail_Logo:$("Sail_Logo"),
+    Sleep_info:$("Sleep_info"),
     logTXT:$("logTXT"),logUBX:$("logUBX"),logSBP:$("logSBP"),
     ssid:$("ssid"),password:$("password"),
     sys_gnss_module:$("sys_gnss_module"),sys_gnss:$("sys_gnss"),

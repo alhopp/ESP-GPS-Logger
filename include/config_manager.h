@@ -41,8 +41,7 @@ struct Config
   int   Stat_screens_time;  // seconds per stat screen
   int   GPIO12_screens;     // stat screens when GPIO12 active
   int   sleep_off_screen;
-  int   Board_Logo;
-  int   Sail_Logo;
+
 
   char  stat_screen[22];    // selected stat screens
   char  gpio12_screen[10];  // screens when GPIO12 toggles

@@ -126,11 +126,9 @@ static void setDefaultConfig()
   config.bar_length          = 1852;
   config.Stat_screens        = 12;
   config.stat_speed          = 1;
-  config.start_logging_speed = 1;
   config.sleep_off_screen    = 11;
 
   // -------- System --------
-  config.archive_days        = 10;
   config.timezone            = 1.0f;
   config.timezone_DST        = 1;
 
@@ -140,9 +138,6 @@ static void setDefaultConfig()
   config.logSBP              = 1;
   config.file_date_time      = 1;
 
-  // -------- Logos --------
-  config.Board_Logo          = 1;
-  config.Sail_Logo           = 1;
 
   // -------- Critical screen strings (must never be empty) --------
   strlcpy(config.speed_screen,  "1",  sizeof(config.speed_screen));
@@ -176,10 +171,6 @@ static bool loadConfigFromFile(File &file)
   config.bar_length          =doc["bar_length"]          |config.bar_length;
   config.Stat_screens        =doc["Stat_screens"]        |config.Stat_screens;
   config.stat_speed          =doc["stat_speed"]          |config.stat_speed;
-  config.start_logging_speed =doc["start_logging_speed"] |config.start_logging_speed;
-  config.archive_days        =doc["archive_days"]        |config.archive_days;
-  config.Board_Logo          =doc["Board_Logo"]          |config.Board_Logo;
-  config.Sail_Logo           =doc["Sail_Logo"]           |config.Sail_Logo;
   config.sleep_off_screen    =doc["sleep_off_screen"]    |config.sleep_off_screen;
   config.logTXT              =doc["logTXT"]              |config.logTXT;
   config.logUBX              =doc["logUBX"]              |config.logUBX;
@@ -212,9 +203,7 @@ static void writeConfigToFile(File &file)
   doc["cal_speed"]=config.cal_speed;       doc["sample_rate"]=config.sample_rate;
   doc["cpu_freq"]=config.cpu_freq;           doc["bar_length"]=config.bar_length;   
     doc["Stat_screens"]=config.Stat_screens;  
-  doc["stat_speed"]=config.stat_speed;     doc["start_logging_speed"]=config.start_logging_speed;
-  doc["archive_days"]=config.archive_days;
-  doc["Board_Logo"]=config.Board_Logo;     doc["Sail_Logo"]=config.Sail_Logo;
+  doc["stat_speed"]=config.stat_speed;     
   doc["sleep_off_screen"]=config.sleep_off_screen;
   doc["logTXT"]=config.logTXT;             doc["logUBX"]=config.logUBX;
   doc["logSBP"]=config.logSBP;
@@ -308,9 +297,6 @@ static void applyDerivedConfig()
   RTC_minimum_voltage_bat = config.shutdown_voltage;
   strcpy(RTC_Sleep_txt, config.Sleep_info);
 
-  RTC_Board_Logo = config.Board_Logo;
-  RTC_Sail_Logo  = config.Sail_Logo;
-
   RTC_SLEEP_screen = config.sleep_off_screen % 10;
   RTC_OFF_screen   = (config.sleep_off_screen / 10) % 10;
 
@@ -382,10 +368,8 @@ static void dumpConfig()
   Serial.print("[CONFIG ] bar_length           = "); Serial.println(config.bar_length);
   Serial.print("[CONFIG ] Stat_screens         = "); Serial.println(config.Stat_screens);
   Serial.print("[CONFIG ] stat_speed           = "); Serial.println(config.stat_speed);
-  Serial.print("[CONFIG ] start_logging_speed  = "); Serial.println(config.start_logging_speed);
   Serial.print("[CONFIG ] archive_days         = "); Serial.println(config.archive_days);
-  Serial.print("[CONFIG ] Board_Logo           = "); Serial.println(config.Board_Logo);
-  Serial.print("[CONFIG ] Sail_Logo            = "); Serial.println(config.Sail_Logo);
+
   Serial.print("[CONFIG ] sleep_off_screen     = "); Serial.println(config.sleep_off_screen);
   Serial.print("[CONFIG ] logTXT               = "); Serial.println(config.logTXT);
   Serial.print("[CONFIG ] logUBX               = "); Serial.println(config.logUBX);
