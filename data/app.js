@@ -141,6 +141,7 @@ async function loadConfig(els){
   setText(els.sys_version,      c.system?.software_version);
 
   // performance stats
+  setChk(els.stat_2s,        c.stats?.stat_2s);
   setChk(els.stat_10s,       c.stats?.s10);
   setChk(els.stat_5x10,      c.stats?.s5x10);
   setChk(els.stat_alpha,     c.stats?.alpha);
@@ -170,6 +171,7 @@ async function save(els){
     },
 
     stats:{
+      s2:       !!els.stat_2s?.checked,
       s10:      !!els.stat_10s?.checked,
       s5x10:    !!els.stat_5x10?.checked,
       alpha:    !!els.stat_alpha?.checked,
@@ -213,12 +215,14 @@ addEventListener("load",async()=>{
     ssid:$("ssid"),password:$("password"),
 
     // performance stats toggles
-    stat_10s:$("stat_10s"),
-    stat_5x10:$("stat_5x10"),
-    stat_alpha:$("stat_alpha"),
-    stat_nm:$("stat_nm"),
-    stat_hour:$("stat_hour"),
-    stat_distance:$("stat_distance"),
+    stat_2s:       $("stat_2s"),
+    stat_10s:      $("stat_10s"),
+    stat_5x10:     $("stat_5x10"),
+    stat_alpha:    $("stat_alpha"),
+    stat_nm:       $("stat_nm"),
+    stat_hour:     $("stat_hour"),
+    stat_distance: $("stat_distance"),
+
     
     // system
     sys_gnss_module:$("sys_gnss_module"),

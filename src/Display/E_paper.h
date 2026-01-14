@@ -88,7 +88,6 @@ extern int   ftpStatus;
 extern int   bootCount;
 extern int   run_count;
 extern int   stat_count;
-extern int   GPIO12_screen;
 
 extern float alfa_window;
 extern double delta_heading;

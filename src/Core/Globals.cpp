@@ -63,10 +63,7 @@ float heading_SD;
 int start_logging_millis;
 int next_gpy_full_frame = 0;
 
-// ============================================================================
-// UI / SCREEN STATE
-// ============================================================================
-int GPIO12_screen = 0;   // screen selector / UI mode
+
 
 // ============================================================================
 // BATTERY / POWER MONITORING

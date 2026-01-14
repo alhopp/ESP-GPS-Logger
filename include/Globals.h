@@ -62,10 +62,7 @@ extern int  start_logging_millis;
 extern int  next_gpy_full_frame;
 extern bool GPS_logging;
 
-// ============================================================================
-// UI / SCREEN STATE
-// ============================================================================
-extern int GPIO12_screen;
+
 
 // ============================================================================
 // BATTERY / POWER MONITORING

@@ -10,7 +10,7 @@ const SystemInfo systemInfo = {
 
   128,                             // storage_mb
 
-  "Version 1",                     // software_version
+  "2026.02.14",                     // software_version
   "LilyGO T5 B74",                 // display
   80,                              // cpu_freq
 

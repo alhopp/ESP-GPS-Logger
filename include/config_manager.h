@@ -48,7 +48,7 @@ struct Config
 
 
   char  stat_screen[22];    // selected stat screens
-  char  gpio12_screen[10];  // screens when GPIO12 toggles
+
 
 
 

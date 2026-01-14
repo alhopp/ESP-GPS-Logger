@@ -63,17 +63,17 @@ server.on("/api/config",HTTP_GET,[&]{
   j["system"]["cpu_freq"]            = systemInfo.cpu_freq;
   j["system"]["speed_units"]         = systemInfo.speed_units;
   j["system"]["cal_speed"]           = systemInfo.cal_speed;
-
+  
   // ---------------- Config (user editable) ----------------
-  j["system"]["timezone"]            = config.timezone;
-  j["system"]["timezone_DST"]        = config.timezone_DST;
 
+  j["config"]["timezone"]            = config.timezone;
+  j["config"]["timezone_DST"]        = config.timezone_DST;
+  
   j["gps"]["stat_speed"]             = config.stat_speed;
 
   j["power"]["cal_bat"]              = config.cal_bat;
 
   j["logging"]["track_distance"]     = config.track_distance;
-
   j["logging"]["logUBX"]             = config.logUBX;
   j["logging"]["logSBP"]             = config.logSBP;
 
@@ -87,7 +87,6 @@ server.on("/api/config",HTTP_GET,[&]{
   j["stats"]["nm"]                  = config.stat_nm;
   j["stats"]["h1"]                  = config.stat_1h;
   j["stats"]["distance"]            = config.stat_distance;
-
 
   sendJson(server,j);
 });
@@ -121,8 +120,6 @@ server.on("/api/config",HTTP_GET,[&]{
       if (j["stats"]["h1"]        != nullptr) config.stat_1h        = j["stats"]["h1"];
       if (j["stats"]["distance"]  != nullptr) config.stat_distance  = j["stats"]["distance"];
     }
-
-
 
     saveConfig();
     server.send(200,"text/plain","OK");

@@ -4,7 +4,6 @@
 //
 // Loads / validates config from LittleFS (/config.txt), creates defaults if
 // missing or invalid, applies derived runtime values, and heals fragile fields
-// (notably gpio12_screen).
 //
 // Must run after storage init and before Wi-Fi, logging, or tasks.
 // -----------------------------------------------------------------------------
@@ -136,6 +135,8 @@ static void setDefaultConfig()
   config.logSBP              = 1;
 
   //-------- Performance screens (on/off) --------------------------  
+
+  
   config.stat_alpha     = true;
   config.stat_nm        = true;
   config.stat_1h        = true;
@@ -147,7 +148,7 @@ static void setDefaultConfig()
 
   // -------- Critical screen strings (must never be empty) --------
   strlcpy(config.stat_screen,   "12", sizeof(config.stat_screen));
-  strlcpy(config.gpio12_screen, "4",  sizeof(config.gpio12_screen));
+
 
   // -------- Other strings --------
   strlcpy(config.UBXfile,    "/ubxGPS",   sizeof(config.UBXfile));
@@ -192,7 +193,6 @@ static bool loadConfigFromFile(File &file)
   // strings (only if non-empty)
   const char* s;
   if((s=doc["stat_screen"])    && s[0]) strlcpy(config.stat_screen,s,sizeof(config.stat_screen));
-  if((s=doc["gpio12_screen"])  && s[0]) sanitizeScreenString(config.gpio12_screen,sizeof(config.gpio12_screen),s);
   if((s=doc["Sleep_info"])     && s[0]) strlcpy(config.Sleep_info,s,sizeof(config.Sleep_info));
   if((s=doc["UBXfile"])        && s[0]) strlcpy(config.UBXfile,s,sizeof(config.UBXfile));
 
@@ -256,10 +256,7 @@ static void sanitizeScreenString(char *dst,size_t dstSize,const char *src)
 static void validateConfig()
 {
  
-  if(!config.gpio12_screen[0]){
-    LOG_CONFIG("CONFIG","gpio12_screen empty → defaulting to '4'");
-    strlcpy(config.gpio12_screen,"4",sizeof(config.gpio12_screen));
-  }
+
   if(!config.stat_screen[0]){
     LOG_CONFIG("CONFIG","stat_screen empty → defaulting to '12'");
     strlcpy(config.stat_screen,"12",sizeof(config.stat_screen));
@@ -296,9 +293,9 @@ static void applyDerivedConfig()
   // FIX: never allow negative counts (when strings are short)
   // ---------------------------------------------------------------------------
   const int statLen  = (int)strlen(config.stat_screen);
-  const int gpioLen  = (int)strlen(config.gpio12_screen);
 
-  config.gpio12_count = (gpioLen  > 0) ? (gpioLen  - 1) : 0;
+
+
   TimeZone_env(config.timezone);
 }
 
@@ -374,7 +371,6 @@ static void dumpConfig()
 
   // -------- strings --------
   Serial.print("[CONFIG ] stat_screen      = "); Serial.println(config.stat_screen);
-  Serial.print("[CONFIG ] gpio12_screen    = "); Serial.println(config.gpio12_screen);
   Serial.print("[CONFIG ] Sleep_info       = "); Serial.println(config.Sleep_info);
   Serial.print("[CONFIG ] UBXfile          = "); Serial.println(config.UBXfile);
 
