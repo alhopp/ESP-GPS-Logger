@@ -31,7 +31,7 @@ struct Config
 
   // Screen / UI configuration  $$$$$$$$$$$$$MOST OF THIS CAN GO
   int   field;              // default speed screen field
-  int   Stat_screens;       // enabled stat screens
+
 
   // Performance screens (on/off)
   bool stat_2s;
@@ -40,8 +40,6 @@ struct Config
   bool stat_nm;
   bool stat_1h;
   bool stat_distance;
-
-  char  stat_screen[22];    // selected stat screens
 
   int   gpio12_count;
   int   speed_count;

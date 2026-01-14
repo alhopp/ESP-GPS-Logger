@@ -123,7 +123,6 @@ static void setDefaultConfig()
 
   // -------- UI / behaviour --------
   config.bar_length          = 1852;
-  config.Stat_screens        = 12;
   config.stat_speed          = 1;
 
   // -------- System --------
@@ -145,9 +144,6 @@ static void setDefaultConfig()
   config.stat_10s       = false;
   config.stat_distance  = false;
 
-
-  // -------- Critical screen strings (must never be empty) --------
-  strlcpy(config.stat_screen,   "12", sizeof(config.stat_screen));
 
 
   // -------- Other strings --------
@@ -172,7 +168,6 @@ static bool loadConfigFromFile(File &file)
   config.shutdown_voltage    =doc["shutdown_voltage"]    |config.shutdown_voltage;
 
   config.bar_length          =doc["bar_length"]          |config.bar_length;
-  config.Stat_screens        =doc["Stat_screens"]        |config.Stat_screens;
   config.stat_speed          =doc["stat_speed"]          |config.stat_speed;
 
   config.logUBX              =doc["logUBX"]              |config.logUBX;
@@ -191,7 +186,6 @@ static bool loadConfigFromFile(File &file)
 
   // strings (only if non-empty)
   const char* s;
-  if((s=doc["stat_screen"])    && s[0]) strlcpy(config.stat_screen,s,sizeof(config.stat_screen));
   if((s=doc["Sleep_info"])     && s[0]) strlcpy(config.Sleep_info,s,sizeof(config.Sleep_info));
 
 
@@ -210,7 +204,6 @@ static void writeConfigToFile(File &file)
   doc["shutdown_voltage"] = config.shutdown_voltage;
 
   doc["bar_length"]       = config.bar_length;
-  doc["Stat_screens"]     = config.Stat_screens;
 
   doc["logUBX"]           = config.logUBX;
   doc["logSBP"]           = config.logSBP;
@@ -228,7 +221,6 @@ static void writeConfigToFile(File &file)
   doc["stat_distance"]  = config.stat_distance;
 
   // strings (only if non-empty)
-  if(config.stat_screen[0])   doc["stat_screen"]=config.stat_screen;
   if(config.Sleep_info[0])    doc["Sleep_info"]=config.Sleep_info;
 
   serializeJsonPretty(doc,file);
@@ -255,14 +247,6 @@ static void sanitizeScreenString(char *dst,size_t dstSize,const char *src)
 static void validateConfig()
 {
  
-
-  if(!config.stat_screen[0]){
-    LOG_CONFIG("CONFIG","stat_screen empty → defaulting to '12'");
-    strlcpy(config.stat_screen,"12",sizeof(config.stat_screen));
-  }
-
- 
-
   // numeric sanity
   if(config.track_distance<=0){
     LOG_CONFIG("CONFIG","track_distance invalid → defaulting to 1852");
@@ -286,14 +270,6 @@ static void applyDerivedConfig()
 
   RTC_minimum_voltage_bat = config.shutdown_voltage;
   strcpy(RTC_Sleep_txt, config.Sleep_info);
-
-
-  // ---------------------------------------------------------------------------
-  // FIX: never allow negative counts (when strings are short)
-  // ---------------------------------------------------------------------------
-  const int statLen  = (int)strlen(config.stat_screen);
-
-
 
   TimeZone_env(config.timezone);
 }
@@ -349,7 +325,6 @@ static void dumpConfig()
   Serial.print("[CONFIG ] shutdown_voltage = "); Serial.println(config.shutdown_voltage);
 
   Serial.print("[CONFIG ] bar_length       = "); Serial.println(config.bar_length);
-  Serial.print("[CONFIG ] Stat_screens     = "); Serial.println(config.Stat_screens);
   Serial.print("[CONFIG ] stat_speed       = "); Serial.println(config.stat_speed);
 
   Serial.print("[CONFIG ] logUBX           = "); Serial.println(config.logUBX);
@@ -369,7 +344,6 @@ static void dumpConfig()
   Serial.print("[CONFIG ]   distance       = "); Serial.println(config.stat_distance);
 
   // -------- strings --------
-  Serial.print("[CONFIG ] stat_screen      = "); Serial.println(config.stat_screen);
   Serial.print("[CONFIG ] Sleep_info       = "); Serial.println(config.Sleep_info);
 
 

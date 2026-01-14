@@ -469,7 +469,7 @@ float Alfa_speed::Update_Alfa(GPS_speed M){
       dtostrf(alfa_speed_max*MMPS_TO_KNOTS, 2, 2, tekst);
       strcat(message,tekst); 
       strcat(message,"\n");    
-      //logERR(message);
+
       alfa_speed=0;alfa_speed_max=0;
       }
   old_run_count=run_count;    
