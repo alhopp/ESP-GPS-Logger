@@ -26,7 +26,7 @@ struct Config
   float shutdown_voltage;   // shutdown threshold (V)
 
   // GPS / speed
-  int   stat_speed;         // max speed (m/s) to show stat screens
+
   int   start_logging_speed;
 
   // Screen / UI configuration  $$$$$$$$$$$$$MOST OF THIS CAN GO

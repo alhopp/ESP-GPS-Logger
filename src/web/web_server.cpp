@@ -72,7 +72,6 @@ void webserver_start(WebServer &server)
     configJ["timezone_DST"]    = config.timezone_DST;
 
     JsonObject gps = j.createNestedObject("gps");
-    gps["stat_speed"]          = config.stat_speed;
 
     JsonObject power = j.createNestedObject("power");
     power["cal_bat"] = config.cal_bat;

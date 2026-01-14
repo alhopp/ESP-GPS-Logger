@@ -201,6 +201,7 @@ async function loadConfig(els){
 
 
   setVal(els.ssid,c.wifi?.ssid);
+  setVal(els.password, c.wifi?.password);
 
   setText(els.sys_gnss_module,   c.system?.gnss_module);
   setText(els.sys_gnss,          c.system?.gnss_mode);
@@ -240,9 +241,10 @@ async function save(els){
       logSBP:!!els.logSBP?.checked
     },
 
+        
     wifi:{
-      ssid:els.ssid?.value??"",
-      password:els.password?.value??""
+      ssid: els.ssid?.value ?? "",
+      ...(els.password?.value ? { password: els.password.value } : {})
     },
 
    stats:{

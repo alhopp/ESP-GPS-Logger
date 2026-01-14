@@ -123,7 +123,7 @@ static void setDefaultConfig()
 
   // -------- UI / behaviour --------
   config.bar_length          = 1852;
-  config.stat_speed          = 1;
+
 
   // -------- System --------
   config.timezone            = 1.0f;
@@ -168,7 +168,6 @@ static bool loadConfigFromFile(File &file)
   config.shutdown_voltage    =doc["shutdown_voltage"]    |config.shutdown_voltage;
 
   config.bar_length          =doc["bar_length"]          |config.bar_length;
-  config.stat_speed          =doc["stat_speed"]          |config.stat_speed;
 
   config.logUBX              =doc["logUBX"]              |config.logUBX;
   config.logSBP              =doc["logSBP"]              |config.logSBP;
@@ -325,7 +324,6 @@ static void dumpConfig()
   Serial.print("[CONFIG ] shutdown_voltage = "); Serial.println(config.shutdown_voltage);
 
   Serial.print("[CONFIG ] bar_length       = "); Serial.println(config.bar_length);
-  Serial.print("[CONFIG ] stat_speed       = "); Serial.println(config.stat_speed);
 
   Serial.print("[CONFIG ] logUBX           = "); Serial.println(config.logUBX);
   Serial.print("[CONFIG ] logSBP           = "); Serial.println(config.logSBP);
