@@ -85,7 +85,7 @@ void initConfig()
   // ---------------------------------------------------------------------------
   // Heal + apply derived values
   // ---------------------------------------------------------------------------
-  validateConfig();           // critical for screen strings
+  validateConfig();       
   applyDerivedConfig();
 
   LOG_CONFIG("Init","Configuration loaded");
@@ -112,32 +112,56 @@ void saveConfig()
 // -----------------------------------------------------------------------------
 static void setDefaultConfig()
 {
-  LOG_CONFIG("Defaults","Applying defaults");
+  LOG_CONFIG("Defaults", "Applying defaults");
 
-  config.cal_bat=1.75f;  config.shutdown_voltage=3.2f;   config.cal_speed=3.6f;
-  config.sample_rate=5;  config.cpu_freq=80;             config.field=1;
-  config.speed_large_font=0; config.bar_length=1852;     config.Stat_screens=12;
-  config.Stat_screens_time=4; config.stat_speed=1;       config.start_logging_speed=1;
-  config.archive_days=10; config.Board_Logo=1;           config.Sail_Logo=1;
-  config.sleep_off_screen=11; config.bat_choice=0;
-  config.logTXT=0; config.logUBX=0; config.logSBP=1;
-  config.file_date_time=1; config.dynamic_model=0;
-  config.timezone=1.0f; config.timezone_DST=1;
-  config.track_distance=1852;
+  // -------- Core numeric defaults --------
+  config.cal_bat             = 1.75f;
+  config.shutdown_voltage    = 3.2f;
+  config.cal_speed           = 3.6f;
+  config.sample_rate         = 5;
+  config.cpu_freq            = 80;
+  config.track_distance      = 1852;
 
-  // critical strings
-  strlcpy(config.speed_screen,"1",sizeof(config.speed_screen));
-  strlcpy(config.stat_screen,"12",sizeof(config.stat_screen));
-  strlcpy(config.gpio12_screen,"4",sizeof(config.gpio12_screen));
+  // -------- UI / behaviour --------
+  config.speed_large_font    = 0;
+  config.bar_length          = 1852;
+  config.Stat_screens        = 12;
+  config.Stat_screens_time   = 4;
+  config.stat_speed          = 1;
+  config.start_logging_speed = 1;
+  config.sleep_off_screen    = 11;
 
-  // other strings
-  strlcpy(config.UBXfile,"/ubxGPS",sizeof(config.UBXfile));
-  strlcpy(config.Sleep_info,"ESP32 GPS",sizeof(config.Sleep_info));
-  strlcpy(config.ssid,"",sizeof(config.ssid));
-  strlcpy(config.password,"",sizeof(config.password));
-  strlcpy(config.ssid2,"ESP32_GPS",sizeof(config.ssid2));
-  strlcpy(config.password2,"",sizeof(config.password2));
+  // -------- System --------
+  config.archive_days        = 10;
+  config.bat_choice          = 0;
+  config.dynamic_model       = 0;
+  config.timezone            = 1.0f;
+  config.timezone_DST        = 1;
+
+  // -------- Logging --------
+  config.logTXT              = 0;
+  config.logUBX              = 0;
+  config.logSBP              = 1;
+  config.file_date_time      = 1;
+
+  // -------- Logos --------
+  config.Board_Logo          = 1;
+  config.Sail_Logo           = 1;
+
+  // -------- Critical screen strings (must never be empty) --------
+  strlcpy(config.speed_screen,  "1",  sizeof(config.speed_screen));
+  strlcpy(config.stat_screen,   "12", sizeof(config.stat_screen));
+  strlcpy(config.gpio12_screen, "4",  sizeof(config.gpio12_screen));
+
+  // -------- Other strings --------
+  strlcpy(config.UBXfile,    "/ubxGPS",   sizeof(config.UBXfile));
+  strlcpy(config.Sleep_info, "ESP32 GPS", sizeof(config.Sleep_info));
+  strlcpy(config.ssid,       "",          sizeof(config.ssid));
+  strlcpy(config.password,   "",          sizeof(config.password));
+  strlcpy(config.ssid2,      "ESP32_GPS",  sizeof(config.ssid2));
+  strlcpy(config.password2,  "",          sizeof(config.password2));
 }
+
 
 // -----------------------------------------------------------------------------
 // Load from file
@@ -153,7 +177,6 @@ static bool loadConfigFromFile(File &file)
   config.cal_speed           =doc["cal_speed"]           |config.cal_speed;
   config.sample_rate         =doc["sample_rate"]         |config.sample_rate;
   config.cpu_freq            =doc["cpu_freq"]            |config.cpu_freq;
-  config.field               =doc["field"]               |config.field;
   config.speed_large_font    =doc["speed_large_font"]    |config.speed_large_font;
   config.bar_length          =doc["bar_length"]          |config.bar_length;
   config.Stat_screens        =doc["Stat_screens"]        |config.Stat_screens;
@@ -195,8 +218,7 @@ static void writeConfigToFile(File &file)
   // numeric / boolean
   doc["cal_bat"]=config.cal_bat;           doc["shutdown_voltage"]=config.shutdown_voltage;
   doc["cal_speed"]=config.cal_speed;       doc["sample_rate"]=config.sample_rate;
-  doc["cpu_freq"]=config.cpu_freq;         doc["field"]=config.field;
-  doc["speed_large_font"]=config.speed_large_font;
+  doc["cpu_freq"]=config.cpu_freq;           doc["speed_large_font"]=config.speed_large_font;
   doc["bar_length"]=config.bar_length;     doc["Stat_screens"]=config.Stat_screens;
   doc["Stat_screens_time"]=config.Stat_screens_time;
   doc["stat_speed"]=config.stat_speed;     doc["start_logging_speed"]=config.start_logging_speed;
@@ -314,10 +336,6 @@ static void applyDerivedConfig()
   config.speed_count  = (speedLen > 0) ? (speedLen - 1) : 0;
   config.gpio12_count = (gpioLen  > 0) ? (gpioLen  - 1) : 0;
 
-  // field_actual is stored as int in your struct; keep existing behaviour:
-  // (previous code assigned char -> int)
-  config.field_actual = (int)config.speed_screen[0];
-
   TimeZone_env(config.timezone);
 }
 
@@ -372,7 +390,6 @@ static void dumpConfig()
   Serial.print("[CONFIG ] cal_speed            = "); Serial.println(config.cal_speed);
   Serial.print("[CONFIG ] sample_rate          = "); Serial.println(config.sample_rate);
   Serial.print("[CONFIG ] cpu_freq             = "); Serial.println(config.cpu_freq);
-  Serial.print("[CONFIG ] field                = "); Serial.println(config.field);
   Serial.print("[CONFIG ] speed_large_font     = "); Serial.println(config.speed_large_font);
   Serial.print("[CONFIG ] bar_length           = "); Serial.println(config.bar_length);
   Serial.print("[CONFIG ] Stat_screens         = "); Serial.println(config.Stat_screens);

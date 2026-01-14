@@ -83,7 +83,7 @@ void webserver_start(WebServer &server)
   j["logging"]["logUBX"]               = config.logUBX;
   j["logging"]["logSBP"]               = config.logSBP;
 
-  j["ui"]["field"]                     = config.field;
+
   j["ui"]["speed_large_font"]          = config.speed_large_font;
   j["ui"]["bar_length"]                = config.bar_length;
   j["ui"]["sleep_off_screen"]          = config.sleep_off_screen;
