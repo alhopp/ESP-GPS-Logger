@@ -73,7 +73,7 @@ server.on("/api/config",HTTP_GET,[&]{
   j["power"]["cal_bat"]              = config.cal_bat;
 
   j["logging"]["track_distance"]     = config.track_distance;
-  
+
   j["logging"]["logUBX"]             = config.logUBX;
   j["logging"]["logSBP"]             = config.logSBP;
 
@@ -164,11 +164,6 @@ server.on("/api/config",HTTP_GET,[&]{
   });
 
   // ---------------------------------------------------------------------------
-  // Static assets (CSS / JS / images)
-  // ---------------------------------------------------------------------------
-  server.serveStatic("/",LittleFS,"/");
-
-  // ---------------------------------------------------------------------------
   // Browser noise suppression (clean logs)
   // ---------------------------------------------------------------------------
   server.on("/favicon.ico",                       HTTP_GET,[&]{ server.send(204); });
@@ -177,6 +172,11 @@ server.on("/api/config",HTTP_GET,[&]{
   server.on("/manifest.json",                     HTTP_GET,[&]{ server.send(204); });
   server.on("/robots.txt",                        HTTP_GET,[&]{ server.send(204); });
   server.on("/service-worker.js",                 HTTP_GET,[&]{ server.send(204); });
+
+  // ---------------------------------------------------------------------------
+  // Static assets (CSS / JS / images)
+  // ---------------------------------------------------------------------------
+  server.serveStatic("/",LittleFS,"/");
   server.onNotFound([&]{ server.send(204); });
 
   server.begin();
