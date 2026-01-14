@@ -27,8 +27,6 @@ struct SBP_frame { // 32 bytes
   uint8_t  vsdop;
 } __attribute__((packed));
 
-
-
 extern SBP_Header sbp_header;
 extern SBP_frame  sbp_frame;
 

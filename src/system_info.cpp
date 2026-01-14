@@ -6,7 +6,7 @@ const SystemInfo systemInfo = {
   .software_version     = "Version 1",
 
   .speed_units          = "Knots",
-  .sample_rate          = 5,
+  .sample_rate          = "5",
   .gnss_mode            = "GPS + GLONASS + GALILEO",
   .dynamic_model        = "SEA",
   .display              = "LilyGO T5 B74"

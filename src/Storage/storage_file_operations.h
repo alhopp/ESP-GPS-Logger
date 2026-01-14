@@ -4,7 +4,6 @@
 
 // Declare the file handles as extern so they can be used in other .cpp files
 extern File ubxfile;
-extern File errorfile;
 extern File sbpfile;
 
 

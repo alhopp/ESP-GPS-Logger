@@ -37,13 +37,7 @@ int SD_MMC_write_speed;  // Speed of writing to SD/MMC
 void Session_info(GPS_data G) {
   char tekst[64] = "";
   char message[512] = "";
-  
-  // Log device information
-  errorfile.print("T5 MAC address: ");
-  for (int i = 0; i < 6; i++) errorfile.print(mac[i], HEX);  // Print MAC address in HEX format
-  errorfile.println(" ");
-  errorfile.println(SW_version);  // Log software version
-  
+     
   // Log SD read/write speed
   sprintf(tekst, "SD_MMC Read speed= %d ms/MB Write speed= %d ms/MB s\n", SD_MMC_read_speed, SD_MMC_write_speed);
   strcat(message, tekst);
@@ -70,8 +64,7 @@ void Session_info(GPS_data G) {
   strcat(message, TimeZone);  // Log time zone name
   strcat(message, "\nDynamic model: ");
   
-  // Write the message to error file
-  errorfile.print(message);
+
 }
 
 // -----------------------------------------------------------------------------
@@ -113,8 +106,6 @@ void Session_results_M(GPS_speed M) {
     strcat(message, tekst);
     strcat(message, "\n");
     
-    // Write the message to the error file
-    errorfile.print(message);
   }
 }
 
@@ -131,8 +122,7 @@ void Session_results_S(GPS_time S) {
   else if ((Calibration >= 1943) & (Calibration <= 1945)) strcat(message, " knots avg 5_best_runs\n");
   else strcat(message, " avg 5_best_runs\n");
   
-  // Write the message to the error file
-  errorfile.print(message);
+
   
   // Log detailed session results
   for (int i = 9; i > 4; i--) {
@@ -160,9 +150,7 @@ void Session_results_S(GPS_time S) {
       sprintf(tekst, " CNO Max: %u Avg: %u Min: %u nr Sat: %u\n", S.Max_cno[i], S.Mean_cno[i], S.Min_cno[i], S.Mean_numSat[i]);
       strcat(message, tekst);
     } else strcat(message, "\n");
-    
-    // Write the message to the error file
-    errorfile.print(message);
+  
   }
 }
 
@@ -205,14 +193,6 @@ void Session_results_Alfa(Alfa_speed A, GPS_speed M) {
     strcat(message, tekst);
     strcat(message, "\n");
     
-    // Write the message to the error file
-    errorfile.print(message);
   }
 }
 
-// -----------------------------------------------------------------------------
-// Log GPS time data to the session file
-// -----------------------------------------------------------------------------
-void Session_gpstc(char* gpstc) {
-  errorfile.print(gpstc);  // Write GPS time string to the error file
-}

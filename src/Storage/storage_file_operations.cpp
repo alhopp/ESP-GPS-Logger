@@ -1,250 +1,114 @@
 // -----------------------------------------------------------------------------
 // File Operations Manager
-//
-// Responsibilities:
-// - Open files for logging (UBX, GPY, SBP, GPX, TXT) based on MAC address and timestamp
-// - Periodically flush the files to ensure data is written to the storage device
-// - Close all open files properly to ensure all data is saved
-// - Log error messages to the error file
-// 
-// This module interacts with storage devices (SD/MMC, LittleFS) to ensure persistent logging of data
-// in different formats for further analysis or troubleshooting.
-// -----------------------------------------------------------------------------
+// Opens / flushes / logs / closes UBX, SBP, TXT (+ others) session files.
+// ----------------------------------------------------------------------------- 
 
-
-// -----------------------------------------------------------------------------
-// Includes
-// -----------------------------------------------------------------------------
 #include <Arduino.h>
-
 #include <FS.h>
-#include <LittleFS.h>
 
 #include "Storage/sbp.h"
-#include "config_manager.h"
-
-#include "Storage/storage_file_operations.h"
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"
 
+#include "config_manager.h"
 #include "system_mode.h"
-
 #include "Ublox/Ublox.h"
-
 #include "Globals.h"
 #include "Definitions.h"
 
 // -----------------------------------------------------------------------------
-// Data buffers and variables for logging
+// State / buffers
 // -----------------------------------------------------------------------------
-char dataStr[255] = "";  // String for logging data
-char Buffer[50] = "";    // Temporary string for appending data
-uint64_t GPS_UTC_ms;     // Absolute UTC time with ms resolution at start of logging
+char dataStr[255]="", Buffer[50]="";
+uint64_t GPS_UTC_ms;
+static uint32_t last_sbp_iTOW=0;
 
-static uint32_t last_sbp_iTOW = 0;
+// Files
+File ubxfile, sbpfile;
 
-// -----------------------------------------------------------------------------
-// File handles for different file formats
-// -----------------------------------------------------------------------------
-File ubxfile;
-File errorfile;
-File sbpfile;
-
+// Filenames
+char filenameERR[128]="/", filenameUBX[128]="/", filenameSBP[128]="/";
 
 // -----------------------------------------------------------------------------
-// Character arrays for filenames (for error, UBX, SBP, files)
+// Open logging files
 // -----------------------------------------------------------------------------
-char filenameERR[128] = "/";
-char filenameUBX[128] = "/";
-char filenameSBP[128] = "/";
-char filename_NO_EXT[128 ] = "/";
-
-// -----------------------------------------------------------------------------
-// Open files for logging based on MAC address and timestamp
-// -----------------------------------------------------------------------------
-
 void Open_files(void)
 {
-  if (storage_shutting_down) return;
-  
-  // ---------------------------------------------------------------------------
-  // Ensure GPS time is valid
-  // ---------------------------------------------------------------------------
-  if (!Time_Set_OK) {
-    LOG_STORAGE("Open_files", "called without valid GPS time");
+  if(storage_shutting_down||!Time_Set_OK){ LOG_STORAGE("Open_files","called without valid GPS time"); return; }
 
-    return;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Build base filename  ( /logs/<name>_YYYYMMDD_HHMM_MAC )
-  // ---------------------------------------------------------------------------
-  char baseFilename[96];
-  char pathBase[128];
-
+  if(!SD_MMC.exists("/logs")) SD_MMC.mkdir("/logs");
   getLocalTime(&tmstruct);
 
-  // Ensure log directory exists (safe to call repeatedly)
-  if (!SD_MMC.exists("/logs")) {
-    SD_MMC.mkdir("/logs");
-  }
+  char base[96], path[128];
+  snprintf(base,sizeof(base),"%s_%04d%02d%02d_%02d%02d_%02X%02X%02X",
+           config.UBXfile,tmstruct.tm_year+1900,tmstruct.tm_mon+1,tmstruct.tm_mday,
+           tmstruct.tm_hour,tmstruct.tm_min,mac[3],mac[4],mac[5]);
+  snprintf(path,sizeof(path),"/logs/%s",base);
 
-  // Build basename WITHOUT leading slash
-  snprintf(baseFilename, sizeof(baseFilename),
-          "%s_%04d%02d%02d_%02d%02d_%02X%02X%02X",
-          config.UBXfile,                  // base name from config
-          tmstruct.tm_year + 1900,
-          tmstruct.tm_mon + 1,
-          tmstruct.tm_mday,
-          tmstruct.tm_hour,
-          tmstruct.tm_min,
-          mac[3], mac[4], mac[5]);
+  snprintf(filenameERR,sizeof(filenameERR),"%s.txt",path);
+  snprintf(filenameUBX,sizeof(filenameUBX),"%s.ubx",path);
+  snprintf(filenameSBP,sizeof(filenameSBP),"%s.sbp",path);
 
-  // Full path base inside /logs
-  snprintf(pathBase, sizeof(pathBase),
-          "/logs/%s",
-          baseFilename);
-
-  // ---------------------------------------------------------------------------
-  // Final filenames
-  // ---------------------------------------------------------------------------
-  snprintf(filenameERR, sizeof(filenameERR), "%s.txt", pathBase);
-  snprintf(filenameUBX, sizeof(filenameUBX), "%s.ubx", pathBase);
-  snprintf(filenameSBP, sizeof(filenameSBP), "%s.sbp", pathBase);
+  if(config.logUBX) ubxfile=SD_MMC.open(filenameUBX,FILE_APPEND);
+  if(config.logSBP){ sbpfile=SD_MMC.open(filenameSBP,FILE_WRITE); if(sbpfile.size()==0) log_header_SBP(sbpfile); }
 
 
-  // ---------------------------------------------------------------------------
-  // Open files
-  // ---------------------------------------------------------------------------
-  if (config.logUBX) {
-    ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
-  }
-
-  if (config.logSBP) {
-     sbpfile = SD_MMC.open(filenameSBP, FILE_WRITE);
-     if (sbpfile.size() == 0) log_header_SBP(sbpfile);
-    }
-  if (config.logTXT) {
-    errorfile = SD_MMC.open(filenameERR, FILE_APPEND);
-  }
-
-  LOG_STORAGE("LOG", "Session started %s", baseFilename);
-
+  LOG_STORAGE("LOG","Session started %s",base);
 }
 
-
-
 // -----------------------------------------------------------------------------
-// Flush the files periodically to ensure data is written to the storage
+// Periodic flush (load-balanced)
 // -----------------------------------------------------------------------------
-
 void Flush_files(void)
 {
-if (storage_shutting_down)
-  return;
-
-  if (config.sample_rate > 10) return;
-
- static uint8_t load_balance = 0;
-
-switch (load_balance) {
-  case 0: if (ubxfile)   ubxfile.flush();   break;
-  case 1: if (errorfile) errorfile.flush(); break;
-  case 3: if (sbpfile)   sbpfile.flush();   break;
-
+  if(storage_shutting_down||config.sample_rate>10) return;
+  static uint8_t lb=0;
+  switch(lb){
+    case 0: if(ubxfile)   ubxfile.flush();   break;
+    case 3: if(sbpfile)   sbpfile.flush();   break;
+  }
+  lb=(lb+1)%5;
 }
 
-load_balance = (load_balance + 1) % 5;
-}
-
-
-
-
-
+// -----------------------------------------------------------------------------
+// Write logging data
+// -----------------------------------------------------------------------------
 void Log_to_SD(void)
 {
+  if(storage_shutting_down||!Time_Set_OK) return;
 
-  if (storage_shutting_down)
-  return;
+  if(config.logUBX&&ubxfile){
+    ubxfile.write(0xB5); ubxfile.write(0x62);
+    ubxfile.write((const uint8_t*)&ubxMessage.navPvt,sizeof(ubxMessage.navPvt));
 
-  if (!Time_Set_OK) return;
-
-  if (config.logUBX && ubxfile) {
-    ubxfile.write(0xB5);
-    ubxfile.write(0x62);
-    ubxfile.write((const uint8_t *)&ubxMessage.navPvt,
-                  sizeof(ubxMessage.navPvt));
-
-    static int old_nav_sat_message = 0;
-    if (nav_sat_message != old_nav_sat_message) {
-      old_nav_sat_message = nav_sat_message;
-      ubxfile.write(0xB5);
-      ubxfile.write(0x62);
-      ubxfile.write((const uint8_t *)&ubxMessage.navSat,
-                     (ubxMessage.navSatHdr.len + 6));
+    static int old_sat=0;
+    if(nav_sat_message!=old_sat){
+      old_sat=nav_sat_message;
+      ubxfile.write(0xB5); ubxfile.write(0x62);
+      ubxfile.write((const uint8_t*)&ubxMessage.navSat,(ubxMessage.navSatHdr.len+6));
     }
   }
 
-  if (config.logUBX_nav_sat && ubxfile) {
-    ubxfile.write(0xB5);
-    ubxfile.write(0x62);
-    ubxfile.write((const uint8_t *)&ubxMessage.navDOP,
-                  sizeof(ubxMessage.navDOP));
+  if(config.logUBX_nav_sat&&ubxfile){
+    ubxfile.write(0xB5); ubxfile.write(0x62);
+    ubxfile.write((const uint8_t*)&ubxMessage.navDOP,sizeof(ubxMessage.navDOP));
   }
 
 #if defined(GPY_H)
-  if (config.logGPY && gpyfile) {
-    log_GPY(gpyfile);
-  }
+  if(config.logGPY&&gpyfile) log_GPY(gpyfile);
 #endif
 
- if (config.logSBP && sbpfile && getMode() == MODE_LOGGING) {
-
-  uint32_t itow = ubxMessage.navPvt.iTOW;
-
-  if (itow != last_sbp_iTOW) {
-    last_sbp_iTOW = itow;
-
-    log_SBP(sbpfile);
+  if(config.logSBP&&sbpfile&&getMode()==MODE_LOGGING){
+    uint32_t itow=ubxMessage.navPvt.iTOW;
+    if(itow!=last_sbp_iTOW){ last_sbp_iTOW=itow; log_SBP(sbpfile); }
   }
-  } 
-
-
 }
 
-
-
-
 // -----------------------------------------------------------------------------
-// Close all open files to ensure data is properly saved
+// Close files cleanly
 // -----------------------------------------------------------------------------
-
 void Close_files(void)
 {
-  if (sbpfile) {
-    sbpfile.flush();
-    sbpfile.close();
-    sbpfile = File();
-    LOG_STORAGE("SBP", "closed cleanly");
-
-  }
-
-  if (ubxfile)   { ubxfile.flush();   ubxfile.close();   ubxfile = File(); }
-  if (errorfile) { errorfile.flush(); errorfile.close(); errorfile = File(); }
-
+  if(sbpfile){ sbpfile.flush(); sbpfile.close(); sbpfile=File(); LOG_STORAGE("SBP","Closed cleanly"); }
+  if(ubxfile){ ubxfile.flush(); ubxfile.close(); ubxfile=File(); LOG_STORAGE("UBX","Closed cleanly"); }
 }
-
-
-
-// -----------------------------------------------------------------------------
-// Log an error message to the error file
-// -----------------------------------------------------------------------------
-
-
-void logERR(const char *message) {
-  if (config.logTXT) {
-    errorfile.print(message);
-  }
-}
-
-
