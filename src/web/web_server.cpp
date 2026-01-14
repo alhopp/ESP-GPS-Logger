@@ -42,30 +42,46 @@ void webserver_start(WebServer &server)
   if(webStarted) return;
 
   // ---------------------------------------------------------------------------
-  // GET /api/config  → populate SPA on load
-  // ---------------------------------------------------------------------------
-  server.on("/api/config",HTTP_GET,[&]{
-    DynamicJsonDocument j(2048);
+// GET /api/config → populate SPA on load
+// - config      : persisted user config (LittleFS)
+// - systemInfo  : compile-time / runtime system facts
+// ---------------------------------------------------------------------------
+server.on("/api/config",HTTP_GET,[&]{
+  DynamicJsonDocument j(2048);
 
-    j["wifi"]["ssid"]              = wifi_get_saved_ssid();
+  // ---------------- Wi-Fi ----------------
+  j["wifi"]["ssid"]                 = wifi_get_saved_ssid();
 
-    j["system"]["timezone"]        = config.timezone;
-    j["system"]["timezone_DST"]    = config.timezone_DST;
+  // ---------------- System (static / runtime) ----------------
+  j["system"]["gnss_module"]         = systemInfo.gnss_module;
+  j["system"]["gnss_mode"]           = systemInfo.gnss_mode;
+  j["system"]["dynamic_model"]       = systemInfo.dynamic_model;
+  j["system"]["sample_rate"]         = systemInfo.sample_rate;
+  j["system"]["storage_mb"]          = systemInfo.storage_mb;
+  j["system"]["software_version"]    = systemInfo.software_version;
+  j["system"]["display"]             = systemInfo.display;
+  j["system"]["cpu_freq"]            = systemInfo.cpu_freq;
+  j["system"]["speed_units"]         = systemInfo.speed_units;
+  j["system"]["cal_speed"]           = systemInfo.cal_speed;
 
-    j["gps"]["stat_speed"]         = config.stat_speed;
+  // ---------------- Config (user editable) ----------------
+  j["system"]["timezone"]            = config.timezone;
+  j["system"]["timezone_DST"]        = config.timezone_DST;
 
-    j["power"]["cal_bat"]          = config.cal_bat;
+  j["gps"]["stat_speed"]             = config.stat_speed;
 
-    j["logging"]["track_distance"] = config.track_distance;
+  j["power"]["cal_bat"]              = config.cal_bat;
 
-    j["logging"]["logUBX"]         = config.logUBX;
-    j["logging"]["logSBP"]         = config.logSBP;
+  j["logging"]["track_distance"]     = config.track_distance;
+  j["logging"]["logUBX"]             = config.logUBX;
+  j["logging"]["logSBP"]             = config.logSBP;
 
-    j["ui"]["bar_length"]          = config.bar_length;
-    j["ui"]["Sleep_info"]          = config.Sleep_info;
+  j["ui"]["bar_length"]              = config.bar_length;
+  j["ui"]["Sleep_info"]              = config.Sleep_info;
 
-    sendJson(server,j);
-  });
+  sendJson(server,j);
+});
+
 
   // ---------------------------------------------------------------------------
   // POST /api/config → partial config updates from UI
@@ -134,12 +150,12 @@ void webserver_start(WebServer &server)
   // ---------------------------------------------------------------------------
   // Browser noise suppression (clean logs)
   // ---------------------------------------------------------------------------
-  server.on("/favicon.ico",         HTTP_GET,[&]{ server.send(204); });
-  server.on("/apple-touch-icon.png",HTTP_GET,[&]{ server.send(204); });
-  server.on("/apple-touch-icon-precomposed.png",HTTP_GET,[&]{ server.send(204); });
-  server.on("/manifest.json",       HTTP_GET,[&]{ server.send(204); });
-  server.on("/robots.txt",HTTP_GET,[&]{ server.send(204); });
-  server.on("/service-worker.js",HTTP_GET,[&]{ server.send(204); });
+  server.on("/favicon.ico",                       HTTP_GET,[&]{ server.send(204); });
+  server.on("/apple-touch-icon.png",              HTTP_GET,[&]{ server.send(204); });
+  server.on("/apple-touch-icon-precomposed.png",  HTTP_GET,[&]{ server.send(204); });
+  server.on("/manifest.json",                     HTTP_GET,[&]{ server.send(204); });
+  server.on("/robots.txt",                        HTTP_GET,[&]{ server.send(204); });
+  server.on("/service-worker.js",                 HTTP_GET,[&]{ server.send(204); });
   server.onNotFound([&]{ server.send(204); });
 
   server.begin();

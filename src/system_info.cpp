@@ -1,19 +1,19 @@
 #include "system_info.h"
 
+#include "system_info.h"
+
 const SystemInfo systemInfo = {
-  .gnss_module          = "u-blox NEO-M10",
-  .gnss_mode            = "GPS + GLONASS + GALILEO",
-  .dynamic_model        = "SEA",  
-  .sample_rate          = 5,
+  "u-blox NEO-M10",                // gnss_module
+  "GPS + GLONASS + GALILEO",       // gnss_mode
+  "SEA",                           // dynamic_model
+  5,                               // sample_rate
 
-  .storage_mb           = 128,
-  
-  .software_version     = "Version 1",
+  128,                             // storage_mb
 
-  .display              = "LilyGO T5 B74",
-  .cpu_freq             = 80,
+  "Version 1",                     // software_version
+  "LilyGO T5 B74",                 // display
+  80,                              // cpu_freq
 
-  .speed_units          = "Knots",
-  .cal_speed            = 3.6f,
-
+  "Knots",                         // speed_units
+  3.6f                             // cal_speed
 };

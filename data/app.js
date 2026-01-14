@@ -119,7 +119,6 @@ async function loadConfig(els){
 
   setVal(els.Sleep_info,c.ui?.Sleep_info);
 
-
   setChk(els.logTXT,c.logging?.logTXT);
   setChk(els.logUBX,c.logging?.logUBX);
   setChk(els.logSBP,c.logging?.logSBP);
@@ -127,13 +126,22 @@ async function loadConfig(els){
 
   setVal(els.ssid,c.wifi?.ssid);
 
-  setText(els.sys_gnss_module,c.system?.gnss_module);
-  setText(els.sys_gnss,c.gps?.gnss);
-  setText(els.sys_sample_rate,c.gps?.sample_rate?(c.gps.sample_rate+" Hz"):null);
-  setText(els.sys_dynamic_model,c.gps?.dynamic_model);
-  setText(els.sys_display,c.system?.display);
-  setText(els.sys_storage,c.system?.storage_mb?(c.system.storage_mb+" MB"):null);
-  setText(els.sys_version,c.system?.software_version);
+  setText(els.sys_gnss_module,   c.system?.gnss_module);
+  setText(els.sys_gnss,          c.system?.gnss_mode);
+  setText(els.sys_sample_rate,  c.system?.sample_rate ? (c.system.sample_rate+" Hz") : null);
+  setText(els.sys_dynamic_model,c.system?.dynamic_model);
+
+  setText(els.sys_speed_units,  c.system?.speed_units);
+  setText(els.sys_cal_speed,    c.system?.cal_speed != null ? c.system.cal_speed : null);
+
+  setText(els.sys_display,      c.system?.display);
+  setText(els.sys_storage,      c.system?.storage_mb ? (c.system.storage_mb+" MB") : null);
+  setText(els.sys_cpu_freq,     c.system?.cpu_freq ? (c.system.cpu_freq+" MHz") : null);
+
+  setText(els.sys_version,      c.system?.software_version);
+
+
+
 
   if(els.saveBtn) els.saveBtn.disabled=true; dirty=false;
 }
@@ -158,16 +166,33 @@ addEventListener("load",()=>setTimeout(()=>{
 /* ---------------- Init ---------------- */
 addEventListener("load",async()=>{
   const els={
-    saveBtn:$("saveBtn"),fileList:$("fileList"),sdInfo:$("sdInfo"),
+    // common
+    saveBtn:$("saveBtn"),
+
+    // files
+    fileList:$("fileList"),sdInfo:$("sdInfo"),
+
+    // settings
     Sleep_info:$("Sleep_info"),
     logTXT:$("logTXT"),logUBX:$("logUBX"),logSBP:$("logSBP"),
     ssid:$("ssid"),password:$("password"),
-    sys_gnss_module:$("sys_gnss_module"),sys_gnss:$("sys_gnss"),
-    sys_sample_rate:$("sys_sample_rate"),sys_dynamic_model:$("sys_dynamic_model"),
-    sys_display:$("sys_display"),sys_storage:$("sys_storage"),sys_version:$("sys_version")
+
+    // system
+    sys_gnss_module:$("sys_gnss_module"),
+    sys_gnss:$("sys_gnss"),
+    sys_sample_rate:$("sys_sample_rate"),
+    sys_dynamic_model:$("sys_dynamic_model"),
+    sys_speed_units:$("sys_speed_units"),
+    sys_cal_speed:$("sys_cal_speed"),
+    sys_cpu_freq:$("sys_cpu_freq"),
+    sys_display:$("sys_display"),
+    sys_storage:$("sys_storage"),
+    sys_version:$("sys_version")
   };
+
   if(els.saveBtn) els.saveBtn.addEventListener("click",()=>save(els));
   await loadFiles(els.fileList,els.sdInfo);
   enableSwipe(els.fileList,els.sdInfo);
   await loadConfig(els);
 });
+
