@@ -42,54 +42,61 @@ void webserver_start(WebServer &server)
   if(webStarted) return;
 
   // ---------------------------------------------------------------------------
-// GET /api/config → populate SPA on load
-// - config      : persisted user config (LittleFS)
-// - systemInfo  : compile-time / runtime system facts
-// ---------------------------------------------------------------------------
-server.on("/api/config",HTTP_GET,[&]{
-  DynamicJsonDocument j(2048);
+  // GET /api/config → populate SPA on load
+  // - config      : persisted user config (LittleFS)
+  // - systemInfo  : compile-time / runtime system facts
+  // ---------------------------------------------------------------------------
+  server.on("/api/config", HTTP_GET, [&] {
+    DynamicJsonDocument j(3072);   // 👈 small safety margin
 
-  // ---------------- Wi-Fi ----------------
-  j["wifi"]["ssid"]                 = wifi_get_saved_ssid();
+    // ---------------- Wi-Fi ----------------
+    JsonObject wifi = j.createNestedObject("wifi");
+    wifi["ssid"] = wifi_get_saved_ssid();
 
-  // ---------------- System (static / runtime) ----------------
-  j["system"]["gnss_module"]         = systemInfo.gnss_module;
-  j["system"]["gnss_mode"]           = systemInfo.gnss_mode;
-  j["system"]["dynamic_model"]       = systemInfo.dynamic_model;
-  j["system"]["sample_rate"]         = systemInfo.sample_rate;
-  j["system"]["storage_mb"]          = systemInfo.storage_mb;
-  j["system"]["software_version"]    = systemInfo.software_version;
-  j["system"]["display"]             = systemInfo.display;
-  j["system"]["cpu_freq"]            = systemInfo.cpu_freq;
-  j["system"]["speed_units"]         = systemInfo.speed_units;
-  j["system"]["cal_speed"]           = systemInfo.cal_speed;
-  
-  // ---------------- Config (user editable) ----------------
+    // ---------------- System (static / runtime) ----------------
+    JsonObject system = j.createNestedObject("system");
+    system["gnss_module"]      = systemInfo.gnss_module;
+    system["gnss_mode"]        = systemInfo.gnss_mode;
+    system["dynamic_model"]    = systemInfo.dynamic_model;
+    system["sample_rate"]      = systemInfo.sample_rate;
+    system["storage_mb"]       = systemInfo.storage_mb;
+    system["software_version"] = systemInfo.software_version;
+    system["display"]          = systemInfo.display;
+    system["cpu_freq"]         = systemInfo.cpu_freq;
+    system["speed_units"]      = systemInfo.speed_units;
+    system["cal_speed"]        = systemInfo.cal_speed;
 
-  j["config"]["timezone"]            = config.timezone;
-  j["config"]["timezone_DST"]        = config.timezone_DST;
-  
-  j["gps"]["stat_speed"]             = config.stat_speed;
+    // ---------------- Config (user editable) ----------------
+    JsonObject configJ         = j.createNestedObject("config");
+    configJ["timezone"]        = config.timezone;
+    configJ["timezone_DST"]    = config.timezone_DST;
 
-  j["power"]["cal_bat"]              = config.cal_bat;
+    JsonObject gps = j.createNestedObject("gps");
+    gps["stat_speed"]          = config.stat_speed;
 
-  j["logging"]["track_distance"]     = config.track_distance;
-  j["logging"]["logUBX"]             = config.logUBX;
-  j["logging"]["logSBP"]             = config.logSBP;
+    JsonObject power = j.createNestedObject("power");
+    power["cal_bat"] = config.cal_bat;
 
-  j["ui"]["bar_length"]              = config.bar_length;
-  j["ui"]["Sleep_info"]              = config.Sleep_info;
+    JsonObject logging = j.createNestedObject("logging");
+    logging["track_distance"]  = config.track_distance;
+    logging["logUBX"]          = config.logUBX;
+    logging["logSBP"]          = config.logSBP;
 
-  // Performance screens (on/off)
-  j["stats"]["s2"]                  = config.stat_2s;
-  j["stats"]["s10"]                 = config.stat_10s;
-  j["stats"]["alpha"]               = config.stat_alpha;
-  j["stats"]["nm"]                  = config.stat_nm;
-  j["stats"]["h1"]                  = config.stat_1h;
-  j["stats"]["distance"]            = config.stat_distance;
+    JsonObject ui = j.createNestedObject("ui");
+    ui["bar_length"]           = config.bar_length;
+    ui["Sleep_info"]           = config.Sleep_info;
 
-  sendJson(server,j);
-});
+    // ---------------- Performance screens ----------------
+    JsonObject stats = j.createNestedObject("stats");
+    stats["s2"]                = config.stat_2s;
+    stats["s10"]               = config.stat_10s;
+    stats["alpha"]             = config.stat_alpha;
+    stats["nm"]                = config.stat_nm;
+    stats["h1"]                = config.stat_1h;
+    stats["distance"]          = config.stat_distance;
+
+    sendJson(server, j);
+  });
 
 
   // ---------------------------------------------------------------------------

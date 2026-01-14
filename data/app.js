@@ -2,6 +2,7 @@ const $ = i => document.getElementById(i);
 
 // ---------------- Dirty tracking (authoritative) ----------------
 let dirty = false;
+let swipeBound = false;
 
 function markDirty(saveBtn){
   if (dirty) return;
@@ -68,70 +69,124 @@ async function loadFiles(fileList, sdInfo){
 }
 
 /* ---------------- Swipe delete + download ---------------- */
-function enableSwipe(fileList, sdInfo){
-  if (swipeBound || !fileList || !sdInfo) return;
-  swipeBound=true;
+function enableSwipe(container, fileList, sdInfo){
+  if (swipeBound || !container || !fileList || !sdInfo) return;
+  swipeBound = true;
 
-  let row,icon,x0,y0,dx=0,sw=false,moved=false,tapCandidate=null,tapStartOnDelete=false;
+  let row, icon, x0, y0, dx = 0, sw = false, moved = false;
+  let tapCandidate = null, tapStartOnDelete = false;
 
   function triggerDownload(name){
     if (!name) return;
-    window.location.href=`/api/download?file=${encodeURIComponent(name)}&t=${Date.now()}`;
+    window.location.href =
+      `/api/download?file=${encodeURIComponent(name)}&t=${Date.now()}`;
   }
 
-  fileList.addEventListener("touchstart", e=>{
-    row=e.target.closest(".file-swipe"); if(!row) return;
-    tapCandidate=row; tapStartOnDelete=!!e.target.closest(".file-delete");
-    icon=row.querySelector(".file-icon");
-    x0=e.touches[0].clientX; y0=e.touches[0].clientY;
-    dx=0; sw=true; moved=false;
-    if(icon) icon.style.transition="none";
-  },{passive:true});
+  // ---------------- Touch start ----------------
+  container.addEventListener("touchstart", e=>{
+    row = e.target.closest(".file-swipe");
+    if (!row) return;
 
-  fileList.addEventListener("touchmove", e=>{
-    if(!sw) return;
-    const x=e.touches[0].clientX, y=e.touches[0].clientY;
-    const adx=Math.abs(x-x0), ady=Math.abs(y-y0);
-    if(adx>ady+8 && adx>12){
-      moved=true; e.preventDefault();
-      dx=Math.max(-72,Math.min(0,x-x0));
-      if(icon){ icon.style.transform=`translateX(${dx}px)`; icon.style.opacity=1+dx/72; }
-    }
-  },{passive:false});
+    tapCandidate = row;
+    tapStartOnDelete = !!e.target.closest(".file-delete");
 
-  fileList.addEventListener("touchend", ()=>{
-    if(!sw) return; sw=false;
-    if(icon) icon.style.transition="";
-    if(dx<-36){
-      if(row) row.classList.add("delete");
-      if(icon) (icon.style.transform="translateX(-72px)",icon.style.opacity=0);
-    }else{
-      if(row) row.classList.remove("delete");
-      if(icon){ icon.style.transform=""; icon.style.opacity=""; }
+    icon = row.querySelector(".file-icon");
+    x0 = e.touches[0].clientX;
+    y0 = e.touches[0].clientY;
+
+    dx = 0; sw = true; moved = false;
+    if (icon) icon.style.transition = "none";
+  }, { passive:true });
+
+  // ---------------- Touch move ----------------
+  container.addEventListener("touchmove", e=>{
+    if (!sw) return;
+
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    const adx = Math.abs(x - x0);
+    const ady = Math.abs(y - y0);
+
+    if (adx > ady + 8 && adx > 12) {
+      moved = true;
+      e.preventDefault();
+
+      dx = Math.max(-72, Math.min(0, x - x0));
+      if (icon) {
+        icon.style.transform = `translateX(${dx}px)`;
+        icon.style.opacity   = 1 + dx / 72;
+      }
     }
-    if(tapCandidate && !moved && !tapStartOnDelete && !tapCandidate.classList.contains("delete"))
+  }, { passive:false });
+
+  // ---------------- Touch end ----------------
+  container.addEventListener("touchend", ()=>{
+    if (!sw) return;
+    sw = false;
+
+    if (icon) icon.style.transition = "";
+
+    if (dx < -36) {
+      row.classList.add("delete");
+      if (icon) {
+        icon.style.transform = "translateX(-72px)";
+        icon.style.opacity = 0;
+      }
+    } else {
+      row.classList.remove("delete");
+      if (icon) {
+        icon.style.transform = "";
+        icon.style.opacity = "";
+      }
+    }
+
+    if (
+      tapCandidate &&
+      !moved &&
+      !tapStartOnDelete &&
+      !tapCandidate.classList.contains("delete")
+    ) {
       triggerDownload(tapCandidate.dataset.name);
-    tapCandidate=null; tapStartOnDelete=false; moved=false;
-  },{passive:true});
+    }
 
-  fileList.addEventListener("click", e=>{
-    const r=e.target.closest(".file-swipe");
-    if(!r || e.target.closest(".file-delete") || r.classList.contains("delete")) return;
+    tapCandidate = null;
+    tapStartOnDelete = false;
+    moved = false;
+  }, { passive:true });
+
+  // ---------------- Click download ----------------
+  container.addEventListener("click", e=>{
+    const r = e.target.closest(".file-swipe");
+    if (!r || e.target.closest(".file-delete") || r.classList.contains("delete"))
+      return;
     triggerDownload(r.dataset.name);
   });
 
-  fileList.addEventListener("click", async e=>{
-    let d=e.target;
-    if(!d.classList||!d.classList.contains("file-delete")) d=d.closest&&d.closest(".file-delete");
-    if(!d) return;
-    const r=d.closest(".file-swipe"); if(!r) return;
+  // ---------------- Click delete ----------------
+  container.addEventListener("click", async e=>{
+    let d = e.target;
+    if (!d.classList || !d.classList.contains("file-delete"))
+      d = d.closest && d.closest(".file-delete");
+    if (!d) return;
 
-    await fetch("/api/file",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:r.dataset.name})});
-    r.style.transition="height .2s,opacity .2s"; r.style.opacity=0; r.style.height=0;
+    const r = d.closest(".file-swipe");
+    if (!r) return;
+
+    await fetch("/api/file",{
+      method:"DELETE",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ name:r.dataset.name })
+    });
+
+    r.style.transition = "height .2s,opacity .2s";
+    r.style.opacity = 0;
+    r.style.height = 0;
     setTimeout(()=>r.remove(),200);
-    sdInfo.textContent=`${fileList.children.length-1} files`;
+
+    sdInfo.textContent = `${fileList.children.length - 1} files`;
   });
 }
+
 
 /* ---------------- Config load ---------------- */
 async function loadConfig(els){
@@ -258,7 +313,7 @@ addEventListener("load",async()=>{
 
   if(els.saveBtn) els.saveBtn.addEventListener("click",()=>save(els));
   await loadFiles(els.fileList,els.sdInfo);
-  enableSwipe(els.fileList,els.sdInfo);
+  enableSwipe($("files"), els.fileList, els.sdInfo);
   await loadConfig(els);
 });
 
