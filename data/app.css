@@ -58,8 +58,10 @@ input,select{width:100%;padding:12px;margin-top:4px;border:1px solid var(--e);bo
 
 /* ---------------- System Info ---------------- */
 .sys-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--e);font-size:16px}
+.sys-row:last-child{border-bottom:0}
 .sys-row span:first-child{color:var(--f)}
 .sys-row span:last-child{font-weight:600}
+
 
 /* ---------------- Footer ---------------- */
 footer{position:sticky;bottom:0;padding:16px;border-top:1px solid var(--e);background:#f0f4fa}
