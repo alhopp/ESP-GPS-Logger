@@ -213,8 +213,6 @@ static void writeConfigToFile(File &file)
   doc["bar_length"]       = config.bar_length;
   doc["Stat_screens"]     = config.Stat_screens;
 
-
-  doc["logTXT"]           = config.logTXT;
   doc["logUBX"]           = config.logUBX;
   doc["logSBP"]           = config.logSBP;
 
@@ -231,11 +229,8 @@ static void writeConfigToFile(File &file)
   doc["stat_distance"]  = config.stat_distance;
 
   // strings (only if non-empty)
-
   if(config.stat_screen[0])   doc["stat_screen"]=config.stat_screen;
-  if(config.gpio12_screen[0]) doc["gpio12_screen"]=config.gpio12_screen;
   if(config.Sleep_info[0])    doc["Sleep_info"]=config.Sleep_info;
-  if(config.UBXfile[0])       doc["UBXfile"]=config.UBXfile;
 
   serializeJsonPretty(doc,file);
 }
