@@ -30,7 +30,6 @@ struct Config
   float cal_speed;          // m/s → km/h (knots: 1.944)
   int   sample_rate;        // GPS rate (Hz): 1 / 5 / 10
   int   gnss;               // GNSS mode (GPS + GLONASS default)
-  int   dynamic_model;      // 0 = portable, 1 = sea
   int   stat_speed;         // max speed (m/s) to show stat screens
   int   start_logging_speed;
 

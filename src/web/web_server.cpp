@@ -73,7 +73,6 @@ void webserver_start(WebServer &server)
   j["gps"]["stat_speed"]               = config.stat_speed;
   j["gps"]["start_logging_speed"]      = config.start_logging_speed;
 
-  j["power"]["bat_choice"]             = config.bat_choice;
   j["power"]["cal_bat"]                = config.cal_bat;
 
   j["logging"]["track_distance"]       = config.track_distance;
@@ -83,14 +82,11 @@ void webserver_start(WebServer &server)
   j["logging"]["logUBX"]               = config.logUBX;
   j["logging"]["logSBP"]               = config.logSBP;
 
-
-  j["ui"]["speed_large_font"]          = config.speed_large_font;
   j["ui"]["bar_length"]                = config.bar_length;
   j["ui"]["sleep_off_screen"]          = config.sleep_off_screen;
   j["ui"]["Board_Logo"]                = config.Board_Logo;
   j["ui"]["Sail_Logo"]                 = config.Sail_Logo;
   j["ui"]["Stat_screens"]              = config.Stat_screens;
-  j["ui"]["Stat_screens_time"]         = config.Stat_screens_time;
   j["ui"]["speed_screen"]              = config.speed_screen;
   j["ui"]["stat_screen"]               = config.stat_screen;
   j["ui"]["gpio12_screen"]             = config.gpio12_screen;

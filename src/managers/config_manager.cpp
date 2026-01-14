@@ -123,18 +123,14 @@ static void setDefaultConfig()
   config.track_distance      = 1852;
 
   // -------- UI / behaviour --------
-  config.speed_large_font    = 0;
   config.bar_length          = 1852;
   config.Stat_screens        = 12;
-  config.Stat_screens_time   = 4;
   config.stat_speed          = 1;
   config.start_logging_speed = 1;
   config.sleep_off_screen    = 11;
 
   // -------- System --------
   config.archive_days        = 10;
-  config.bat_choice          = 0;
-  config.dynamic_model       = 0;
   config.timezone            = 1.0f;
   config.timezone_DST        = 1;
 
@@ -177,22 +173,18 @@ static bool loadConfigFromFile(File &file)
   config.cal_speed           =doc["cal_speed"]           |config.cal_speed;
   config.sample_rate         =doc["sample_rate"]         |config.sample_rate;
   config.cpu_freq            =doc["cpu_freq"]            |config.cpu_freq;
-  config.speed_large_font    =doc["speed_large_font"]    |config.speed_large_font;
   config.bar_length          =doc["bar_length"]          |config.bar_length;
   config.Stat_screens        =doc["Stat_screens"]        |config.Stat_screens;
-  config.Stat_screens_time   =doc["Stat_screens_time"]   |config.Stat_screens_time;
   config.stat_speed          =doc["stat_speed"]          |config.stat_speed;
   config.start_logging_speed =doc["start_logging_speed"] |config.start_logging_speed;
   config.archive_days        =doc["archive_days"]        |config.archive_days;
   config.Board_Logo          =doc["Board_Logo"]          |config.Board_Logo;
   config.Sail_Logo           =doc["Sail_Logo"]           |config.Sail_Logo;
   config.sleep_off_screen    =doc["sleep_off_screen"]    |config.sleep_off_screen;
-  config.bat_choice          =doc["bat_choice"]          |config.bat_choice;
   config.logTXT              =doc["logTXT"]              |config.logTXT;
   config.logUBX              =doc["logUBX"]              |config.logUBX;
   config.logSBP              =doc["logSBP"]              |config.logSBP;
   config.file_date_time      =doc["file_date_time"]      |config.file_date_time;
-  config.dynamic_model       =doc["dynamic_model"]       |config.dynamic_model;
   config.timezone            =doc["timezone"]            |config.timezone;
   config.timezone_DST        =doc["timezone_DST"]        |config.timezone_DST;
   config.track_distance      =doc["track_distance"]      |config.track_distance;
@@ -218,18 +210,15 @@ static void writeConfigToFile(File &file)
   // numeric / boolean
   doc["cal_bat"]=config.cal_bat;           doc["shutdown_voltage"]=config.shutdown_voltage;
   doc["cal_speed"]=config.cal_speed;       doc["sample_rate"]=config.sample_rate;
-  doc["cpu_freq"]=config.cpu_freq;           doc["speed_large_font"]=config.speed_large_font;
-  doc["bar_length"]=config.bar_length;     doc["Stat_screens"]=config.Stat_screens;
-  doc["Stat_screens_time"]=config.Stat_screens_time;
+  doc["cpu_freq"]=config.cpu_freq;           doc["bar_length"]=config.bar_length;   
+    doc["Stat_screens"]=config.Stat_screens;  
   doc["stat_speed"]=config.stat_speed;     doc["start_logging_speed"]=config.start_logging_speed;
   doc["archive_days"]=config.archive_days;
   doc["Board_Logo"]=config.Board_Logo;     doc["Sail_Logo"]=config.Sail_Logo;
   doc["sleep_off_screen"]=config.sleep_off_screen;
-  doc["bat_choice"]=config.bat_choice;
   doc["logTXT"]=config.logTXT;             doc["logUBX"]=config.logUBX;
   doc["logSBP"]=config.logSBP;
   doc["file_date_time"]=config.file_date_time;
-  doc["dynamic_model"]=config.dynamic_model;
   doc["timezone"]=config.timezone;         doc["timezone_DST"]=config.timezone_DST;
   doc["track_distance"]=config.track_distance;
 
@@ -390,23 +379,19 @@ static void dumpConfig()
   Serial.print("[CONFIG ] cal_speed            = "); Serial.println(config.cal_speed);
   Serial.print("[CONFIG ] sample_rate          = "); Serial.println(config.sample_rate);
   Serial.print("[CONFIG ] cpu_freq             = "); Serial.println(config.cpu_freq);
-  Serial.print("[CONFIG ] speed_large_font     = "); Serial.println(config.speed_large_font);
   Serial.print("[CONFIG ] bar_length           = "); Serial.println(config.bar_length);
   Serial.print("[CONFIG ] Stat_screens         = "); Serial.println(config.Stat_screens);
-  Serial.print("[CONFIG ] Stat_screens_time    = "); Serial.println(config.Stat_screens_time);
   Serial.print("[CONFIG ] stat_speed           = "); Serial.println(config.stat_speed);
   Serial.print("[CONFIG ] start_logging_speed  = "); Serial.println(config.start_logging_speed);
   Serial.print("[CONFIG ] archive_days         = "); Serial.println(config.archive_days);
   Serial.print("[CONFIG ] Board_Logo           = "); Serial.println(config.Board_Logo);
   Serial.print("[CONFIG ] Sail_Logo            = "); Serial.println(config.Sail_Logo);
   Serial.print("[CONFIG ] sleep_off_screen     = "); Serial.println(config.sleep_off_screen);
-  Serial.print("[CONFIG ] bat_choice           = "); Serial.println(config.bat_choice);
   Serial.print("[CONFIG ] logTXT               = "); Serial.println(config.logTXT);
   Serial.print("[CONFIG ] logUBX               = "); Serial.println(config.logUBX);
   Serial.print("[CONFIG ] logSBP               = "); Serial.println(config.logSBP);
 
   Serial.print("[CONFIG ] file_date_time       = "); Serial.println(config.file_date_time);
-  Serial.print("[CONFIG ] dynamic_model        = "); Serial.println(config.dynamic_model);
   Serial.print("[CONFIG ] timezone             = "); Serial.println(config.timezone);
   Serial.print("[CONFIG ] timezone_DST         = "); Serial.println(config.timezone_DST);
   Serial.print("[CONFIG ] track_distance       = "); Serial.println(config.track_distance);
