@@ -132,7 +132,7 @@ static void setDefaultConfig()
   // -------- Logging --------
   config.logUBX              = 0;
   config.logSBP              = 1;
-  config.file_date_time      = 1;
+
 
 
   // -------- Critical screen strings (must never be empty) --------
@@ -167,7 +167,6 @@ static bool loadConfigFromFile(File &file)
 
   config.logUBX              =doc["logUBX"]              |config.logUBX;
   config.logSBP              =doc["logSBP"]              |config.logSBP;
-  config.file_date_time      =doc["file_date_time"]      |config.file_date_time;
   config.timezone            =doc["timezone"]            |config.timezone;
   config.timezone_DST        =doc["timezone_DST"]        |config.timezone_DST;
   config.track_distance      =doc["track_distance"]      |config.track_distance;
@@ -201,7 +200,6 @@ static void writeConfigToFile(File &file)
   doc["logUBX"]           = config.logUBX;
   doc["logSBP"]           = config.logSBP;
 
-  doc["file_date_time"]   = config.file_date_time;
   doc["timezone"]         = config.timezone;
   doc["timezone_DST"]     = config.timezone_DST;
   doc["track_distance"]   = config.track_distance;
@@ -344,7 +342,6 @@ static void dumpConfig()
   Serial.print("[CONFIG ] logUBX               = "); Serial.println(config.logUBX);
   Serial.print("[CONFIG ] logSBP               = "); Serial.println(config.logSBP);
 
-  Serial.print("[CONFIG ] file_date_time       = "); Serial.println(config.file_date_time);
   Serial.print("[CONFIG ] timezone             = "); Serial.println(config.timezone);
   Serial.print("[CONFIG ] timezone_DST         = "); Serial.println(config.timezone_DST);
   Serial.print("[CONFIG ] track_distance       = "); Serial.println(config.track_distance);
