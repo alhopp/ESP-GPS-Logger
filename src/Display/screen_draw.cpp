@@ -26,6 +26,7 @@ DrawFn getDrawFnForMode(SystemMode mode)
 {
   switch (mode) {
     case MODE_BOOT:          return draw_BOOT;
+    case MODE_IDLE:          return draw_IDLE;
     case MODE_WAIT_SATS:     return draw_WAIT_SATS;
     case MODE_WIFI_SOFT_AP:  return draw_WIFI_SOFT_AP;
     case MODE_LOGGING:       return draw_SPEED;

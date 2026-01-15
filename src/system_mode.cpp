@@ -61,6 +61,7 @@ const char* modeToString(SystemMode mode)
 {
   switch (mode) {
     case MODE_BOOT:          return "BOOT";
+    case MODE_IDLE:          return "IDLE";
     case MODE_WAIT_SATS:     return "WAIT_SATS";
     case MODE_WIFI_SOFT_AP:  return "WIFI_SOFT_AP";
     case MODE_LOGGING:       return "LOGGING";

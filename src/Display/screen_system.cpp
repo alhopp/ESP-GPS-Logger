@@ -66,6 +66,27 @@ void draw_BOOT()
 
 }
 
+// ============================================================================
+// MODE: IDLE  (post-wake / waiting for user intent)
+// ============================================================================
+void draw_IDLE()
+{
+  // ---- Title ----
+  display.setFont(Fonts::Body12);
+  display.setTextColor(GxEPD_BLACK);
+  drawCenteredText("READY", Layout::ROW9(3), Fonts::Body12);
+
+  // ---- Instructions ----
+  display.setFont(Fonts::Body9);
+  drawCenteredText("Hold 2s \xE2\x86\x92 START",  Layout::ROW9(5), Fonts::Body9);
+  drawCenteredText("Hold 4s \xE2\x86\x92 CONFIG", Layout::ROW9(6), Fonts::Body9);
+
+  // ---- Footer ----
+  display.setFont(Fonts::Body9);
+  drawCenteredText("Release to cancel", Layout::ROW9(8), Fonts::Body9);
+}
+
+
 
 
 void draw_WAIT_SATS()

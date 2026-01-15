@@ -26,6 +26,9 @@
 // Early boot / low-battery screen
 void draw_BOOT();
 
+// Wait for Config or logging
+void draw_IDLE();
+
 // Configuration / Wi-Fi SoftAP screen
 void draw_WIFI_SOFT_AP();
 
