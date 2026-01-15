@@ -1,12 +1,23 @@
-
-
 // ============================================================================
-// Display task
+// task_display.cpp
+//
+// Display task:
+// - Owns ALL rendering (full + partial refresh)
+// - Owns ALL display timing and paging
+// - Owns deep sleep entry and wake configuration
+//
+// RULES:
+// - No drawing outside this file
+// - No sleep entry outside this file
+// - Other code may ONLY signal redraw intent
 // ============================================================================
 
 #include "task_display.h"
 
 #include <Arduino.h>
+
+#include "esp_sleep.h"
+#include "esp_task_wdt.h"
 
 #include "Fonts.h"
 #include "Definitions.h"
@@ -20,146 +31,89 @@
 #include "Display/screen_system.h"
 
 // ============================================================================
-// Display redraw signalling
-//
-// RULES:
-// - display_dirty  → full refresh
-// - partial_dirty  → partial refresh
-// - display task owns ALL rendering + deep sleep
+// Redraw signalling state
 // ============================================================================
 
-static volatile bool display_dirty  = false;
-static volatile bool partial_dirty  = false;
+static volatile bool display_dirty = false;   // full refresh requested
+static volatile bool partial_dirty = false;   // partial refresh requested
 
 static int partial_x = 0;
 static int partial_y = 0;
 static int partial_w = 0;
 static int partial_h = 0;
 
-// Display task handle (exported via task_display.h)
+// Display task handle (exported)
 TaskHandle_t t2 = nullptr;
 
-// -----------------------------------------------------------------------------
+// ============================================================================
+// Public redraw requests
+// ============================================================================
+
 // Request FULL redraw
-// -----------------------------------------------------------------------------
 void screen_request_redraw()
 {
   display_dirty = true;
-
-  if (t2) {
-    xTaskNotifyGive(t2);
-  }
+  if (t2) xTaskNotifyGive(t2);
 }
 
-// -----------------------------------------------------------------------------
-// Request PARTIAL redraw (caller defines dirty band)
-// -----------------------------------------------------------------------------
+// Request PARTIAL redraw
 void screen_request_partial(int x, int y, int w, int h)
 {
-    partial_x     = x;
-    partial_y     = y;
-    partial_w     = w;
-    partial_h     = h;
-    partial_dirty = true;
-
-    if (t2) {
-        xTaskNotifyGive(t2);
-    }
+  partial_x = x; partial_y = y; partial_w = w; partial_h = h;
+  partial_dirty = true;
+  if (t2) xTaskNotifyGive(t2);
 }
 
 // ============================================================================
 // Display Task
 // ============================================================================
 
+
 void taskTwo(void* parameter)
 {
-  // Publish task handle
   t2 = xTaskGetCurrentTaskHandle();
-
   LOG_TASK("Display", "task started");
 
   for (;;)
   {
-
-  
-    // -------------------------------------------------------------------------
-    // Wake only when something changed
-    // -------------------------------------------------------------------------
     if (display_dirty || partial_dirty)
     {
-      // Decide refresh type
       const bool doPartial = partial_dirty && !display_dirty;
+      const int px = partial_x, py = partial_y, pw = partial_w, ph = partial_h;
 
-      // Snapshot partial region early
-      const int px = partial_x;
-      const int py = partial_y;
-      const int pw = partial_w;
-      const int ph = partial_h;
-
-      // Clear latches
       display_dirty = false;
       partial_dirty = false;
 
-      // Resolve current mode + draw function
       const SystemMode mode = getMode();
-      const DrawFn     draw = getDrawFnForMode(mode);
+      const DrawFn draw = getDrawFnForMode(mode);
 
-      // -----------------------------------------------------------------------
-      // Select refresh window
-      // -----------------------------------------------------------------------
-     if (doPartial || mode == MODE_BOOT || mode == MODE_WAIT_SATS) {
-        display.setPartialWindow(px, py, pw, ph);
-      } else {
-        display.setFullWindow();
-      }
+      if (doPartial || mode == MODE_BOOT || mode == MODE_WAIT_SATS) display.setPartialWindow(px, py, pw, ph);
+      else display.setFullWindow();
 
-
-      // -----------------------------------------------------------------------
-      // Render loop (display task owns paging)
-      // -----------------------------------------------------------------------
       display.firstPage();
       do {
-        if (!doPartial) {
-          // Full refresh clears everything
-          display.fillScreen(GxEPD_WHITE);
-        } else {
-          // Partial refresh clears ONLY dirty band
-          display.fillRect (px, py, pw, ph ,GxEPD_WHITE);
-        }
+        if (!doPartial) display.fillScreen(GxEPD_WHITE);
+        else display.fillRect(px, py, pw, ph, GxEPD_WHITE);
 
-        // Draw active screen
-        if (draw) {
-          draw();
-        }
+        if (draw) draw();
+
+        // ---- WDT safety: let IDLE0 run during slow EPD paging
+        esp_task_wdt_reset();
+        vTaskDelay(1);
 
       } while (display.nextPage());
 
-      // -----------------------------------------------------------------------
-      // FINAL ACTION: SLEEP TRANSITION (owned HERE)
-      // -----------------------------------------------------------------------
       if (mode == MODE_SLEEP) {
-
         LOG_TASK("Display", "final refresh complete → deep sleep");
-
-        // Let EPD waveform settle
         delay(200);
 
-        // Ensure magnet released before sleeping
-        while (digitalRead(MAGNET_PIN) == LOW) {
-          delay(10);
-        }
-
-        // Wake on magnet / hall sensor
-        esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0);
-
-        // No return
+        // EXT1 wake (single pin active-low => ALL_LOW)
+        esp_sleep_enable_ext1_wakeup(1ULL << MAGNET_PIN, ESP_EXT1_WAKEUP_ALL_LOW);
         esp_deep_sleep_start();
       }
     }
 
-    // -------------------------------------------------------------------------
-    // Idle until notified (safety timeout prevents deadlock)
-    // -------------------------------------------------------------------------
+    // ---- ALWAYS block/yield here (prevents CPU0 starvation)
     ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
   }
 }

@@ -26,7 +26,7 @@ enum SystemMode {
   MODE_BOOT,
   MODE_WAIT_SATS,
 
-  MODE_WIFI_SOFT_AP,     // Config / captive portal
+  MODE_WIFI_SOFT_AP,    
 
   MODE_LOGGING,
   MODE_SLEEP,

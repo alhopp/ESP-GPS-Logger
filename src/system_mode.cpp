@@ -87,6 +87,8 @@ void systemModeLoop()
 // -----------------------------------------------------------------------------
 void setMode(SystemMode newMode)
 {
+
+  LOG_SYS("MODE", "REQUEST %s", modeToString(newMode));
   // ---------------------------------------------------------------------------
   // No-op if already in requested mode
   // ---------------------------------------------------------------------------
@@ -130,7 +132,6 @@ void setMode(SystemMode newMode)
     case MODE_SLEEP:
       // Waking from sleep — hardware re-enable happens in ENTER
       LOG_SYS("MODE", "EXIT SLEEP → power up");
-      screen_request_partial(0, 0, 250, 122);
       break;
 
     case MODE_BOOT:
@@ -145,7 +146,8 @@ void setMode(SystemMode newMode)
   // ENTER handlers may legally call getMode().
   // ---------------------------------------------------------------------------
   currentMode = newMode;
-
+  screen_request_partial(0, 0, 250, 122);
+  
   // ---------------------------------------------------------------------------
   // ENTER actions (based on NEW mode)
   //
@@ -190,7 +192,6 @@ void setMode(SystemMode newMode)
       }
 
       wifi_start_ap();
-      screen_request_partial(0, 0, 250, 122);
       break;
 
     case MODE_SLEEP:

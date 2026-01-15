@@ -2,13 +2,15 @@
 // main.cpp
 //
 // System entry point.
-// Consumes user intent via magnet_input.
-// All behaviour flows through setMode().
+// - Performs early boot validation
+// - Initialises core managers
+// - Starts RTOS tasks
+// - All runtime behaviour flows through setMode()
 // ============================================================================
 
 #include <Arduino.h>
 
-// --- Managers ----------------------------------------------------------------
+// --- Core managers ------------------------------------------------------------
 #include "boot_manager.h"
 #include "Storage/storage_manager.h"
 #include "config_manager.h"
@@ -19,30 +21,28 @@
 #include "task_gps.h"
 #include "task_display.h"
 
-// --- System / State ----------------------------------------------------------
+// --- System / input -----------------------------------------------------------
 #include "system_mode.h"
-#include "rtc_state.h"
-#include "Definitions.h"
-// --- Input -------------------------------------------------------------------
 #include "magnet_input.h"
+#include "Definitions.h"
 
-// --- Config support (serviced via systemModeLoop) ----------------------------
-#include "web/wifi_manager.h"
+#include "Globals.h"
 
-// --- Forward declarations ----------------------------------------------------
+// --- Forward declarations -----------------------------------------------------
 static void startTasks();
+
+
 
 // ============================================================================
 // Setup
 // ============================================================================
 void setup()
 {
+  woke_from_sleep =
+    (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1);
+
   const BootResult br = initBoot();
   if (br != BOOT_OK) {
-
-    const char* reason = bootFailReason();
-   
-
     setMode(MODE_SLEEP);
     return;
   }
@@ -51,10 +51,11 @@ void setup()
   initConfig();
   initGPS();
   magnet_init();
-
   startTasks();
-  setMode(MODE_WAIT_SATS);
+
+  // No setMode() here
 }
+
 
 // ============================================================================
 // Loop
@@ -74,7 +75,7 @@ static void startTasks()
 {
   BaseType_t ok;
 
-  ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS", 6096, nullptr, 1, &t1, 1);
+  ok = xTaskCreatePinnedToCore(taskOne, "TaskGPS",     6096, nullptr, 1, &t1, 1);
   if (ok != pdPASS) LOG_TASK("Create", "GPS task failed");
 
   ok = xTaskCreatePinnedToCore(taskTwo, "TaskDisplay", 6096, nullptr, 1, &t2, 0);
@@ -82,9 +83,6 @@ static void startTasks()
 
   LOG_TASK("Start", "tasks started");
 
-
   if (t1) LOG_TASK("stack", "t1_hw=%u", uxTaskGetStackHighWaterMark(t1));
   if (t2) LOG_TASK("stack", "t2_hw=%u", uxTaskGetStackHighWaterMark(t2));
-
- 
 }

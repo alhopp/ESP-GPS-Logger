@@ -1,91 +1,100 @@
 #include <Arduino.h>
 
 #include "magnet_input.h"
-
 #include "Definitions.h"
 #include "system_mode.h"
 
+#include "Globals.h"
 // -----------------------------------------------------------------------------
-// Gesture thresholds ms
+// Gesture thresholds
 // -----------------------------------------------------------------------------
 namespace {
-
-constexpr uint32_t HALL_STABLE_MS   = 20;    // Hall stability filter (10–30 ms)
-constexpr uint32_t SLEEP_HOLD_MS    = 1000;  // Short hold → start / stop
-constexpr uint32_t WIFI_HOLD_MS     = 4000;  // Long hold → CONFIG
-constexpr uint32_t BOOT_IGNORE_MS   = 1500;  // Ignore input just after boot
-
-} // anonymous namespace
+constexpr uint32_t HALL_STABLE_MS = 20;
+constexpr uint32_t SLEEP_HOLD_MS  = 1000;
+constexpr uint32_t WIFI_HOLD_MS   = 4000;
+constexpr uint32_t BOOT_IGNORE_MS = 1500;
+}
 
 // -----------------------------------------------------------------------------
 // Internal state
 // -----------------------------------------------------------------------------
-
 static uint32_t bootTime    = 0;
 static uint32_t pressTime   = 0;
 static bool     longHandled = false;
+static bool     waitingForRelease = false;
+
 
 // -----------------------------------------------------------------------------
-// MAGNET INIT
-//
-// Initialise the digital Hall sensor used as the sealed user control.
-// Records boot time so magnet input can be ignored during startup transients.
+// Init
 // -----------------------------------------------------------------------------
 void magnet_init()
 {
-  pinMode(MAGNET_PIN, INPUT);
+  pinMode(MAGNET_PIN, INPUT_PULLUP);
   bootTime = millis();
+
+  if (woke_from_sleep) {
+    waitingForRelease = true;   // force clean release
+    pressTime = 0;
+    longHandled = false;
+  }
 }
 
 // -----------------------------------------------------------------------------
-// MAGNET POLL (Hall switch optimised)
-//
-// Authoritative interpreter of *user intent* via a digital Hall sensor.
-//
-// Hall sensors are solid-state (no contact bounce), so this implementation uses
-// a lightweight stability filter rather than mechanical debounce.
-//
-// Gesture rules (authoritative):
-//   - < SLEEP_HOLD_MS
-//       * ignored
-//   - ≥ SLEEP_HOLD_MS and < WIFI_HOLD_MS
-//       * MODE_SLEEP              → start session (WAIT_SATS)
-//       * MODE_WAIT_SATS / LOGGING → stop session (SLEEP)
-//   - ≥ WIFI_HOLD_MS
-//       * MODE_SLEEP              → enter CONFIG (Wi-Fi AP)
-//       * all other modes         → ignored
-//
-// IMPORTANT:
-//   - No toggle semantics
-//   - No direct side-effects
-//   - All behaviour changes flow through setMode()
+// Poll
 // -----------------------------------------------------------------------------
 void magnet_poll()
 {
   const uint32_t now = millis();
 
+
+  static uint32_t lastLog = 0;
+  if (millis() - lastLog > 500) {
+  LOG_SYS("MAG", "poll alive mode=%s", modeToString(getMode()));
+  lastLog = millis();
+}
+
   // ---------------------------------------------------------------------------
-  // Ignore magnet input immediately after boot / wake
+  // After deep sleep wake:
+  // ignore magnet until it is released once
+  // ---------------------------------------------------------------------------
+  if (waitingForRelease) {
+  if (digitalRead(MAGNET_PIN) == HIGH) {
+    waitingForRelease = false;
+    woke_from_sleep = false;
+    bootTime = now;
+    // DO NOT return — allow normal processing to resume
+  } else {
+    return; // still held → ignore
+  }
+}
+
+static int lastRaw = -1;
+int raw = digitalRead(MAGNET_PIN);
+if (raw != lastRaw) {
+  LOG_SYS("MAG", "raw=%d", raw);
+  lastRaw = raw;
+}
+
+
+  // ---------------------------------------------------------------------------
+  // Ignore input briefly after cold boot / reset
   // ---------------------------------------------------------------------------
   if (now - bootTime < BOOT_IGNORE_MS) return;
 
   // ---------------------------------------------------------------------------
-  // Raw Hall sensor input
-  // LOW = magnetic field present
+  // Raw input (LOW = magnet present)
   // ---------------------------------------------------------------------------
   const bool rawActive = (digitalRead(MAGNET_PIN) == LOW);
 
   // ---------------------------------------------------------------------------
-  // Hall stability filter
-  // Require the raw state to be stable for HALL_STABLE_MS
+  // Stability filter
   // ---------------------------------------------------------------------------
-  static bool     active      = false;   // filtered / qualified state
+  static bool active = false;
   static uint32_t stableSince = 0;
 
   if (rawActive != active) {
-    if (stableSince == 0) {
-      stableSince = now;
-    } else if (now - stableSince >= HALL_STABLE_MS) {
+    if (!stableSince) stableSince = now;
+    else if (now - stableSince >= HALL_STABLE_MS) {
       active = rawActive;
       stableSince = 0;
     }
@@ -93,26 +102,34 @@ void magnet_poll()
     stableSince = 0;
   }
 
+
+static bool lastActive = false;
+if (active != lastActive) {
+LOG_SYS("MAG", "stable active=%d", active);
+lastActive = active;
+}
+
   static bool prevActive = false;
 
   // ---------------------------------------------------------------------------
-  // PRESS EDGE
-  // Capture the moment a qualified press begins
+  // PRESS edge
   // ---------------------------------------------------------------------------
   if (active && !prevActive) {
     pressTime   = now;
     longHandled = false;
+    LOG_SYS("MAG", "PRESS edge t=%lu", pressTime);
   }
 
   // ---------------------------------------------------------------------------
-  // LONG HOLD (≥ WIFI_HOLD_MS)
-  // Intent: Enter CONFIG (only from sleep)
+  // LONG HOLD → CONFIG (fires while still pressed)
   // ---------------------------------------------------------------------------
   if (active &&
       !longHandled &&
       (now - pressTime >= WIFI_HOLD_MS)) {
 
     longHandled = true;
+
+    LOG_SYS("MAG", "LONG HOLD fired after %lu ms", now - pressTime);
 
     if (getMode() == MODE_SLEEP) {
       LOG_SYS("INTENT", "Sleep → Config");
@@ -121,30 +138,26 @@ void magnet_poll()
   }
 
   // ---------------------------------------------------------------------------
-  // RELEASE (≥ SLEEP_HOLD_MS, < WIFI_HOLD_MS)
-  // Intent: Start or stop session
+  // RELEASE → short press start / stop
   // ---------------------------------------------------------------------------
   if (!active && prevActive && !longHandled) {
 
     const uint32_t held = now - pressTime;
 
-    if (held >= SLEEP_HOLD_MS && held < WIFI_HOLD_MS) {
+    LOG_SYS("MAG", "RELEASE held=%lu ms mode=%s",
+            held, modeToString(getMode()));
 
-      // ---- START SESSION ----
+    if (held >= SLEEP_HOLD_MS) {
+
       if (getMode() == MODE_SLEEP) {
         LOG_SYS("INTENT", "Sleep → Start");
         setMode(MODE_WAIT_SATS);
       }
-
-      // ---- STOP SESSION ----
       else if (getMode() == MODE_WAIT_SATS ||
                getMode() == MODE_LOGGING) {
         LOG_SYS("INTENT", "Session → Sleep");
         setMode(MODE_SLEEP);
       }
-
-      // MODE_WIFI_SOFT_AP (CONFIG):
-      // Intentionally ignored — exit via UI only
     }
   }
 

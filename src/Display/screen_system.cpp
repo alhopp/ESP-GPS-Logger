@@ -63,7 +63,7 @@ void draw_BOOT()
   display.drawBitmap(198, 6, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK )  ;
   drawCenteredText("ESP-GPS",             Layout::ROW9(3), Fonts::Body12);
   drawCenteredText("Initialising system", Layout::ROW9(5), Fonts::Body9 );
-  
+
 }
 
 

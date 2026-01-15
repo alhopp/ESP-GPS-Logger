@@ -81,3 +81,5 @@ int max_count_wdt_task0;
 // SHUTDOWN / SESSION CONTROL
 // ============================================================================
 bool Shut_down_Save_session = false;
+
+volatile bool woke_from_sleep = false;

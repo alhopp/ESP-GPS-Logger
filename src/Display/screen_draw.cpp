@@ -32,5 +32,6 @@ DrawFn getDrawFnForMode(SystemMode mode)
     case MODE_SLEEP:         return draw_SLEEP;
     default:                 return nullptr;
   }
+
 }
 

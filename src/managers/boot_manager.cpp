@@ -31,13 +31,12 @@
 
 
 constexpr uint8_t PIN_BAT    = 35;
+int BAT_SCALE = 5;
 
 // -----------------------------------------------------------------------------
 // Internal state
 // -----------------------------------------------------------------------------
 static const char* s_failReason = nullptr;
-
-int BAT_SCALE;
 
 // -----------------------------------------------------------------------------
 // initBoot()
@@ -71,7 +70,7 @@ BootResult initBoot()
   display.init(115200, true, 2, false);
   display.setRotation(1);
   display.setTextColor(GxEPD_BLACK);
-  screen_request_partial(0, 0, 250, 123);
+
 
   // ---- Fatal boot conditions (report only)
   if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
