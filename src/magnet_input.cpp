@@ -121,30 +121,31 @@ void magnet_poll()
     if (getMode() == MODE_IDLE) setMode(MODE_WIFI_SOFT_AP);
   }
 
-  // ---------------------------------------------------------------------------
-  // Release → short press action
-  // ---------------------------------------------------------------------------
-  if (!active && prevActive && !longHandled) {
+  // Release → short press action or config exit
+if (!active && prevActive && !longHandled) {
     const uint32_t held = now - pressTime;
 
     if (held >= SLEEP_HOLD_MS) {
+        switch (getMode()) {
+            case MODE_IDLE:
+                setMode(MODE_WAIT_SATS);   // start logging
+                break;
 
-      switch (getMode()) {
+            case MODE_LOGGING:
+            case MODE_WAIT_SATS:
+                setMode(MODE_SLEEP);       // stop logging
+                break;
 
-        case MODE_IDLE:
-          setMode(MODE_WAIT_SATS);   // start logging
-          break;
+            case MODE_WIFI_SOFT_AP:
+                setMode(MODE_IDLE);        // exit config mode
+                break;
 
-        case MODE_LOGGING:
-        case MODE_WAIT_SATS:
-          setMode(MODE_SLEEP);       // stop logging
-          break;
-
-        default:
-          break;
-      }
+            default:
+                break;
+        }
     }
-  }
+}
+
 
 
   prevActive = active;

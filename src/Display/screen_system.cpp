@@ -87,11 +87,9 @@ void draw_IDLE()
 
   // Static UI
   //display.drawBitmap(200, 3, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK);
-  drawCenteredText("ESP-GPS", Layout::ROW9(2), Fonts::Body12);
-
+  drawCenteredText("ESP-GPS",                   Layout::ROW9(2), Fonts::Body12);
   drawCenteredText("Short hold -> Start",       Layout::ROW9(4), Fonts::Body9);
   drawCenteredText("Long  hold -> Settings",    Layout::ROW9(5), Fonts::Body9);
-
   drawCenteredText("Use magnet to select mode", Layout::ROW9(7), Fonts::Body9);
 }
 
@@ -111,13 +109,12 @@ void draw_WIFI_SOFT_AP()
   // ESP32 SoftAP details
   static char wifiLine[48]; static char ipLine[32];
 
-  snprintf(wifiLine, sizeof(wifiLine), "WiFi: %s", wifi_ap_name());
-  snprintf(ipLine,   sizeof(ipLine),   "IP: %s", WiFi.softAPIP().toString().c_str());
+  snprintf(wifiLine, sizeof(wifiLine),        "WiFi: %s", wifi_ap_name());
+  snprintf(ipLine,   sizeof(ipLine),          "IP: %s", WiFi.softAPIP().toString().c_str());
 
-  drawCenteredText(wifiLine, Layout::ROW9(4), Fonts::Body9);
-  drawCenteredText(ipLine,   Layout::ROW9(5), Fonts::Body9);
-
-  drawCenteredText("Use phone to connect", Layout::ROW9(7), Fonts::Body9);
+  drawCenteredText(wifiLine,                  Layout::ROW9(4), Fonts::Body9);
+  drawCenteredText(ipLine,                    Layout::ROW9(5), Fonts::Body9);
+  drawCenteredText("Use phone to connect",    Layout::ROW9(7), Fonts::Body9);
 }
 
 
@@ -126,8 +123,13 @@ void draw_WIFI_SOFT_AP()
 // ============================================================================
 void draw_SLEEP()
 {
+  // --- Magnet affordance ---
+  if (magnet_active)
+       display.fillCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
+  else display.drawCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
+  
   constexpr int ROWS = 6, STEP = 15, START = 15;
-  const int L0 = ui_offset, V0 = ui_offset + 34;
+  const int L0 = ui_offset+20 , V0 = ui_offset + 34;
   const int L1 = ui_offset + 90, V1 = ui_offset + 146;
 
   const char* LBL_L[ROWS] = {"AV:","R1:","R2:","R3:","R4:","R5:"};
@@ -143,19 +145,22 @@ void draw_SLEEP()
     RTC_1h, RTC_mile, RTC_500m
   };
 
-  display.setFont(Fonts::Mono9);
-  for (int i = 0; i < ROWS; ++i) {
-    const int y = START + i * STEP;
-    display.setCursor(L0, y); display.print(LBL_L[i]);
-    display.setCursor(L1, y); display.print(LBL_R[i]);
-  }
+  //display.setFont(Fonts::Mono9);
+  //for (int i = 0; i < ROWS; ++i) {
+  //  const int y = START + i * STEP;
+  //  display.setCursor(L0, y); display.print(LBL_L[i]);
+  //  display.setCursor(L1, y); display.print(LBL_R[i]);
+ // }
 
-  display.setFont(Fonts::Body9);
-  for (int i = 0; i < ROWS; ++i) {
-    const int y = START + i * STEP;
-    display.setCursor(V0, y); display.print(VAL_L[i], 2);
-    display.setCursor(V1, y); display.print(VAL_R[i], 2);
-  }
+  //display.setFont(Fonts::Body9);
+  //for (int i = 0; i < ROWS; ++i) {
+  //  const int y = START + i * STEP;
+  //  display.setCursor(V0, y); display.print(VAL_L[i], 2);
+  //  display.setCursor(V1, y); display.print(VAL_R[i], 2);
+ // }
+
+  drawCenteredText("Short magnet to start",    Layout::ROW9(7), Fonts::Body9);
+
 }
 
 // ============================================================================
@@ -163,6 +168,10 @@ void draw_SLEEP()
 // ============================================================================
 void draw_WAIT_SATS()
 {
+
+  drawCenteredText("ESP-GPS",                    Layout::ROW9(2), Fonts::Body12);
+  drawCenteredText("Searching for Satellites",    Layout::ROW9(4), Fonts::Body9);
+
   static char buf[32];
   snprintf(buf, sizeof(buf), "Sat Fix %d of 5", ubxMessage.navPvt.numSV);
   drawCenteredText(buf, Layout::ROW9(7), Fonts::Body9);
