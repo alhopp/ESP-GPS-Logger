@@ -53,7 +53,7 @@ void draw_BOOT()
     static char voltBuf[16];
     snprintf(voltBuf, sizeof(voltBuf), "%.2f V", RTC_voltage_bat);
 
-    drawCenteredText("ESP-GPS SLEEPING", Layout::ROW9(3), Fonts::Body12);
+    drawCenteredText("SLEEP", Layout::ROW9(3), Fonts::Body12);
     drawCenteredText("Battery too low",  Layout::ROW9(5), Fonts::Body9 );
     
     return;
@@ -74,7 +74,7 @@ void draw_IDLE()
   // Logo
   display.drawBitmap(198, 6, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK )  ;
 
-  // Headi
+  // Heading
   drawCenteredText("ESP-GPS",             Layout::ROW9(3), Fonts::Body12);
   
   // ---- Instructions ----
@@ -87,37 +87,40 @@ void draw_IDLE()
 
 
 
-void draw_WAIT_SATS()
-{
-  static char satsBuf[32];
-  snprintf(satsBuf, sizeof(satsBuf), "Sat Fix %d of 5", ubxMessage.navPvt.numSV);
-  drawCenteredText(satsBuf, Layout::ROW9(7), Fonts::Body9 );
-
-}
-
-
-
 
 
 void draw_WIFI_SOFT_AP()
 {
   const bool staConnected = wifi_sta_connected();
 
-  drawSystemLayout(
-    "CONFIG MODE",
-    staConnected
-      ? "Internet connected"
-      : "Connect via phone",
+  // Logo
+  display.drawBitmap(198, 6, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK);
 
-    "WiFi",
-    staConnected
-      ? wifi_sta_ssid().c_str()
-      : wifi_ap_name(),
+  // Title
+  drawCenteredText("CONFIG", Layout::ROW9(3), Fonts::Body12);
 
-    "IP",
+
+  // Status
+  drawCenteredText(
+    staConnected ? "Internet connected" : "Connect via phone",
+    Layout::ROW9(4),
+    Fonts::Body9
+  );
+
+  // Wi-Fi name
+  drawCenteredText(
+    staConnected ? wifi_sta_ssid().c_str() : wifi_ap_name(),
+    Layout::ROW9(5),
+    Fonts::Mono9
+  );
+
+  // IP address
+  drawCenteredText(
     staConnected
       ? wifi_sta_ip().c_str()
-      : WiFi.softAPIP().toString().c_str()
+      : WiFi.softAPIP().toString().c_str(),
+    Layout::ROW9(6),
+    Fonts::Mono9
   );
 }
 
@@ -269,3 +272,16 @@ static void drawSystemLayout(
     display.print(val2);
   }
 }
+
+
+
+
+
+void draw_WAIT_SATS()
+{
+  static char satsBuf[32];
+  snprintf(satsBuf, sizeof(satsBuf), "Sat Fix %d of 5", ubxMessage.navPvt.numSV);
+  drawCenteredText(satsBuf, Layout::ROW9(7), Fonts::Body9 );
+
+}
+
