@@ -8,3 +8,15 @@ void magnet_init();
 // Poll the Hall sensor and interpret user intent
 // Must be called frequently from loop()
 void magnet_poll();
+
+// Esternal state
+#pragma once
+
+extern bool magnet_active;
+
+
+
+
+
+
+

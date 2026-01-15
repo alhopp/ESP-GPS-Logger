@@ -26,6 +26,11 @@
 #include "Display/E_paper.h"
 #include "Fonts/BitmapSurfbuddies.h"
 
+#include "magnet_input.h"
+#include "system_mode.h"
+
+#include "task_display.h"
+
 // Forward declarations 
 static void drawSystemLayout(const char* title, const char* subtitle, const char* key1,
   const char* val1, const char* key2, const char* val2);
@@ -33,6 +38,8 @@ static void drawSystemLayout(const char* title, const char* subtitle, const char
 static void drawCenteredText(const char* text, int y, const GFXfont* font);
 
 static void drawCenteredBitmap(const uint8_t* bmp, int w, int h, int y);
+
+
 
 // ============================================================================
 // UI STATE (avoid globals where possible; keep deterministic)
@@ -69,20 +76,45 @@ void draw_BOOT()
 // ============================================================================
 // MODE: IDLE  (post-wake / waiting for user intent)
 // ============================================================================
+
+constexpr int MAG_X = 30;
+constexpr int MAG_Y = 12;
+constexpr int MAG_R_DOT  = 4;
+constexpr int MAG_R_RING = 8;
+
+// Partial window MUST fully cover the ring
+constexpr int MAG_WIN_X = MAG_X - MAG_R_RING - 2;
+constexpr int MAG_WIN_Y = MAG_Y - MAG_R_RING - 2;
+constexpr int MAG_WIN_W = (MAG_R_RING * 2) + 4;
+constexpr int MAG_WIN_H = (MAG_R_RING * 2) + 4;
+
+// -----------------------------------------------------------------------------
+// Public UI hook: redraw magnet affordance
+// -----------------------------------------------------------------------------
+void screen_request_magnet_affordance()
+{
+  screen_request_partial(
+    MAG_WIN_X,
+    MAG_WIN_Y,
+    MAG_WIN_W,
+    MAG_WIN_H
+  );
+}
+
+
 void draw_IDLE()
 {
-  // Logo
-  display.drawBitmap(198, 6, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK )  ;
+  // --- Magnet affordance ---
+  display.fillCircle(MAG_X, MAG_Y, 
+    magnet_active ? 6 : MAG_R_DOT,GxEPD_BLACK
+  );
 
-  // Heading
-  drawCenteredText("ESP-GPS",             Layout::ROW9(3), Fonts::Body12);
-  
-  // ---- Instructions ----
-  display.setFont(Fonts::Body9);
-  drawCenteredText("Hold 2s \xE2\x86\x92 START",  Layout::ROW9(4), Fonts::Body9);
-  drawCenteredText("Hold 4s \xE2\x86\x92 CONFIG", Layout::ROW9(5), Fonts::Body9);
+  display.drawCircle(MAG_X, MAG_Y, MAG_R_RING, GxEPD_BLACK);
 
-
+  // --- Static UI ---
+  display.drawBitmap(198, 6, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK);
+  drawCenteredText("ESP-GPS", Layout::ROW9(3), Fonts::Body12);
+  drawCenteredText("Magnet - 1s:Start | 4s:Config", Layout::ROW9(7), Fonts::Body9);
 }
 
 

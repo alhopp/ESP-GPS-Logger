@@ -4,6 +4,9 @@
 #include "Definitions.h"
 #include "system_mode.h"
 #include "Globals.h"
+#include "task_display.h"   // <-- REQUIRED
+
+#include "Display/screen_system.h"
 
 // -----------------------------------------------------------------------------
 // Gesture thresholds
@@ -24,6 +27,11 @@ static bool     longHandled = false;
 static bool     waitingForRelease = false;
 
 // -----------------------------------------------------------------------------
+// External state (exported)
+// -----------------------------------------------------------------------------
+bool magnet_active = false;
+
+// -----------------------------------------------------------------------------
 // Init
 // -----------------------------------------------------------------------------
 void magnet_init()
@@ -32,7 +40,7 @@ void magnet_init()
   bootTime = millis();
 
   if (woke_from_sleep) {
-    waitingForRelease = true;   // force clean release
+    waitingForRelease = true;
     pressTime = 0;
     longHandled = false;
   }
@@ -44,6 +52,7 @@ void magnet_init()
 void magnet_poll()
 {
   const uint32_t now = millis();
+  static bool prev_magnet_active = false;
 
   // ---------------------------------------------------------------------------
   // After deep sleep wake: ignore until released once
@@ -53,9 +62,7 @@ void magnet_poll()
       waitingForRelease = false;
       woke_from_sleep = false;
       bootTime = now;
-    } else {
-      return;
-    }
+    } else return;
   }
 
   // ---------------------------------------------------------------------------
@@ -71,8 +78,8 @@ void magnet_poll()
   // ---------------------------------------------------------------------------
   // Stability filter
   // ---------------------------------------------------------------------------
-  static bool     active = false;
-  static bool     prevActive = false;   // ✅ RESTORED
+  static bool active = false;
+  static bool prevActive = false;
   static uint32_t stableSince = 0;
 
   if (rawActive != active) {
@@ -86,36 +93,42 @@ void magnet_poll()
   }
 
   // ---------------------------------------------------------------------------
+  // Export stable state
+  // ---------------------------------------------------------------------------
+  magnet_active = active;
+
+
+  // ---------------------------------------------------------------------------
+  // UI update on magnet state change (once per edge)
+  // ---------------------------------------------------------------------------
+  if (magnet_active != prev_magnet_active) {
+    screen_request_magnet_affordance();
+    prev_magnet_active = magnet_active;
+  }
+  // ---------------------------------------------------------------------------
   // Press edge
   // ---------------------------------------------------------------------------
   if (active && !prevActive) {
-    pressTime   = now;
+    pressTime = now;
     longHandled = false;
   }
 
   // ---------------------------------------------------------------------------
-  // Long hold → CONFIG (fires while still pressed)
+  // Long hold → CONFIG
   // ---------------------------------------------------------------------------
   if (active && !longHandled && (now - pressTime >= WIFI_HOLD_MS)) {
     longHandled = true;
-
-    if (getMode() == MODE_IDLE) {
-      setMode(MODE_WIFI_SOFT_AP);
-    }
+    if (getMode() == MODE_IDLE) setMode(MODE_WIFI_SOFT_AP);
   }
 
   // ---------------------------------------------------------------------------
   // Release → short press → START
   // ---------------------------------------------------------------------------
   if (!active && prevActive && !longHandled) {
-    const uint32_t held = now - pressTime;
-
-    if (held >= SLEEP_HOLD_MS) {
-      if (getMode() == MODE_IDLE) {
-        setMode(MODE_WAIT_SATS);
-      }
+    if (now - pressTime >= SLEEP_HOLD_MS) {
+      if (getMode() == MODE_IDLE) setMode(MODE_WAIT_SATS);
     }
   }
 
-  prevActive = active;   // ✅ CRITICAL
+  prevActive = active;
 }

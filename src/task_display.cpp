@@ -76,44 +76,56 @@ void taskTwo(void* parameter)
 
   for (;;)
   {
-    if (display_dirty || partial_dirty)
-    {
-      const bool doPartial = partial_dirty && !display_dirty;
-      const int px = partial_x, py = partial_y, pw = partial_w, ph = partial_h;
+    // Wait until someone asks for a redraw
+    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
 
-      display_dirty = false;
-      partial_dirty = false;
+    if (!display_dirty && !partial_dirty)
+      continue;
 
-      const SystemMode mode = getMode();
-      const DrawFn draw = getDrawFnForMode(mode);
+    const bool doPartial = partial_dirty && !display_dirty;
+    const int px = partial_x, py = partial_y, pw = partial_w, ph = partial_h;
 
-      if (doPartial || mode == MODE_BOOT || mode == MODE_WAIT_SATS) display.setPartialWindow(px, py, pw, ph);
-      else display.setFullWindow();
+    display_dirty  = false;
+    partial_dirty  = false;
 
-      display.firstPage();
-      do {
-        if (!doPartial) display.fillScreen(GxEPD_WHITE);
-        else display.fillRect(px, py, pw, ph, GxEPD_WHITE);
+    const SystemMode mode = getMode();
+    const DrawFn draw = getDrawFnForMode(mode);
 
-        if (draw) draw();
-
-        // ---- WDT safety: let IDLE0 run during slow EPD paging
-        esp_task_wdt_reset();
-        vTaskDelay(1);
-
-      } while (display.nextPage());
-
-      if (mode == MODE_SLEEP) {
-        LOG_TASK("Display", "final refresh complete → deep sleep");
-        delay(200);
-
-        // EXT1 wake (single pin active-low => ALL_LOW)
-        esp_sleep_enable_ext1_wakeup(1ULL << MAGNET_PIN, ESP_EXT1_WAKEUP_ALL_LOW);
-        esp_deep_sleep_start();
-      }
+    // -----------------------------------------------------------------------
+    // Refresh policy (intent-driven, not mode-driven)
+    // -----------------------------------------------------------------------
+    if (doPartial) {
+      display.setPartialWindow(px, py, pw, ph);
+    } else {
+      display.setFullWindow();
     }
 
-    // ---- ALWAYS block/yield here (prevents CPU0 starvation)
-    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
+    display.firstPage();
+    do {
+      if (doPartial)
+        display.fillRect(px, py, pw, ph, GxEPD_WHITE);
+      else
+        display.fillScreen(GxEPD_WHITE);
+
+      if (draw) draw();
+
+      esp_task_wdt_reset();
+      vTaskDelay(1);
+
+    } while (display.nextPage());
+
+    // -----------------------------------------------------------------------
+    // Deep sleep handling (unchanged)
+    // -----------------------------------------------------------------------
+    if (mode == MODE_SLEEP) {
+      LOG_TASK("Display", "final refresh complete → deep sleep");
+      delay(200);
+
+      esp_sleep_enable_ext1_wakeup(
+        1ULL << MAGNET_PIN,
+        ESP_EXT1_WAKEUP_ALL_LOW
+      );
+      esp_deep_sleep_start();
+    }
   }
 }

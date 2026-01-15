@@ -13,6 +13,8 @@
 // --- Core managers ------------------------------------------------------------
 #include "boot_manager.h"
 #include "Storage/storage_manager.h"
+#include "Display/screen_system.h"
+
 #include "config_manager.h"
 #include "gps_manager.h"
 #include "watchdog_manager.h"
@@ -64,8 +66,10 @@ void setup()
 void loop()
 {
   magnet_poll();
+
   watchdogLoop();
   systemModeLoop();
+  
   delay(10);
 }
 

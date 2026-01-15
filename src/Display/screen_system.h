@@ -38,4 +38,9 @@ void draw_WAIT_SATS();
 // Shutdown / sleep summary screen
 void draw_SLEEP();
 
+void screen_request_magnet_affordance();
+
+
+
+
 
