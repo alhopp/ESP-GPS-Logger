@@ -131,7 +131,7 @@ lastActive = active;
 
     LOG_SYS("MAG", "LONG HOLD fired after %lu ms", now - pressTime);
 
-    if (getMode() == MODE_SLEEP) {
+    if (getMode() == MODE_IDLE) {
       LOG_SYS("INTENT", "Sleep → Config");
       setMode(MODE_WIFI_SOFT_AP);
     }
@@ -149,12 +149,11 @@ lastActive = active;
 
     if (held >= SLEEP_HOLD_MS) {
 
-      if (getMode() == MODE_SLEEP) {
+      if (getMode() == MODE_IDLE) {
         LOG_SYS("INTENT", "Sleep → Start");
         setMode(MODE_WAIT_SATS);
       }
-      else if (getMode() == MODE_WAIT_SATS ||
-               getMode() == MODE_LOGGING) {
+      else if (getMode() == MODE_WAIT_SATS || getMode() == MODE_LOGGING) {
         LOG_SYS("INTENT", "Session → Sleep");
         setMode(MODE_SLEEP);
       }

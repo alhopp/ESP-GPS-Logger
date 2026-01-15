@@ -53,7 +53,8 @@ void setup()
   magnet_init();
   startTasks();
 
-  // No setMode() here
+  // IMPORTANT: leave BOOT mode
+  setMode(MODE_IDLE);
 }
 
 

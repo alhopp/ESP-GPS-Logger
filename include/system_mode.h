@@ -24,6 +24,8 @@
 // -----------------------------------------------------------------------------
 enum SystemMode {
   MODE_BOOT,
+  MODE_IDLE,      
+  
   MODE_WAIT_SATS,
 
   MODE_WIFI_SOFT_AP,    
