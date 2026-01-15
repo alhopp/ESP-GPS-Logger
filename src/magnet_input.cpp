@@ -124,9 +124,17 @@ void magnet_poll()
   // ---------------------------------------------------------------------------
   // Release → short press → START
   // ---------------------------------------------------------------------------
+  // Release → short press
   if (!active && prevActive && !longHandled) {
-    if (now - pressTime >= SLEEP_HOLD_MS) {
-      if (getMode() == MODE_IDLE) setMode(MODE_WAIT_SATS);
+    const uint32_t held = now - pressTime;
+
+    if (held >= SLEEP_HOLD_MS) {
+      if (getMode() == MODE_IDLE) {
+        setMode(MODE_WAIT_SATS);
+      }
+      else if (getMode() == MODE_WIFI_SOFT_AP) {
+        setMode(MODE_IDLE);   // ← EXIT CONFIG
+      }
     }
   }
 

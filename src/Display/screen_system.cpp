@@ -88,7 +88,10 @@ void draw_IDLE()
   // Static UI
   display.drawBitmap(200, 3, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK);
   drawCenteredText("ESP-GPS", Layout::ROW9(2), Fonts::Body12);
-  drawCenteredText("Magnet - 1s:Start | 4s:Config", Layout::ROW9(7), Fonts::Body9);
+
+  drawCenteredText("Short", Layout::ROW9(5), Fonts::Body9);
+  drawCenteredText("Short -> Start", Layout::ROW9(6), Fonts::Body9);
+  drawCenteredText("Long -> Config", Layout::ROW9(7), Fonts::Body9);
 }
 
 // ============================================================================
@@ -96,26 +99,27 @@ void draw_IDLE()
 // ============================================================================
 void draw_WIFI_SOFT_AP()
 {
-  const bool sta = wifi_sta_connected();
+  // --- Magnet affordance ---
+  if (magnet_active)
+       display.fillCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
+  else display.drawCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
 
   // Logo + title
   display.drawBitmap(200, 3, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK);
   drawCenteredText("CONFIG", Layout::ROW9(2), Fonts::Body12);
 
-  // -------------------------------------------------------------------------
-  // ESP32 Access Point details (THIS is what the phone connects to)
-  // -------------------------------------------------------------------------
+  // ESP32 SoftAP details
   static char wifiLine[48]; static char ipLine[32];
 
   snprintf(wifiLine, sizeof(wifiLine), "WiFi: %s", wifi_ap_name());
-  snprintf(ipLine,   sizeof(ipLine),   "IP: %s",   WiFi.softAPIP().toString().c_str());
+  snprintf(ipLine,   sizeof(ipLine),   "IP: %s", WiFi.softAPIP().toString().c_str());
 
   drawCenteredText(wifiLine, Layout::ROW9(4), Fonts::Body9);
   drawCenteredText(ipLine,   Layout::ROW9(5), Fonts::Body9);
 
-  // Instruction
-  drawCenteredText("Use Phone to connect", Layout::ROW9(7), Fonts::Body9);
+  drawCenteredText("Use phone to connect", Layout::ROW9(7), Fonts::Body9);
 }
+
 
 // ============================================================================
 // MODE: SLEEP (summary screen)
