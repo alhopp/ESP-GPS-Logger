@@ -39,13 +39,9 @@ void setup()
 {
   const BootResult br = initBoot();
   if (br != BOOT_OK) {
-    RTC_OFF_screen = 1;
 
     const char* reason = bootFailReason();
-    strncpy(RTC_Sleep_txt,
-            (reason && reason[0]) ? reason : "Boot failed",
-            sizeof(RTC_Sleep_txt) - 1);
-    RTC_Sleep_txt[sizeof(RTC_Sleep_txt) - 1] = '\0';
+   
 
     setMode(MODE_SLEEP);
     return;

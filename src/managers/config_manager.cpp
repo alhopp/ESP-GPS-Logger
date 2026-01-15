@@ -268,7 +268,7 @@ static void applyDerivedConfig()
   LOG_CONFIG("Apply", "Derived runtime values");
 
   RTC_minimum_voltage_bat = config.shutdown_voltage;
-  strcpy(RTC_Sleep_txt, config.Sleep_info);
+
 
   TimeZone_env(config.timezone);
 }

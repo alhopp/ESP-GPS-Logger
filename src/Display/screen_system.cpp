@@ -56,12 +56,6 @@ void draw_BOOT()
     drawCenteredText("ESP-GPS SLEEPING", Layout::ROW9(3), Fonts::Body12);
     drawCenteredText("Battery too low",  Layout::ROW9(5), Fonts::Body9 );
     
-    // RTC text
-    if (RTC_Sleep_txt[0]) {
-      display.setCursor(ui_offset, Layout::ROW9(7));
-      display.print(RTC_Sleep_txt);
-    }
-
     return;
   }
 
@@ -135,7 +129,7 @@ void draw_SLEEP()
   // -------------------------------------------------------------------------
   display.setFont(&SF_Distant_Galaxy9pt7b);
   display.setCursor(COL_LBL_L, 105);
-  display.print(RTC_Sleep_txt);
+
 
   // -------------------------------------------------------------------------
   // Table data (static, deterministic)
