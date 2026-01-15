@@ -122,21 +122,30 @@ void magnet_poll()
   }
 
   // ---------------------------------------------------------------------------
-  // Release → short press → START
+  // Release → short press action
   // ---------------------------------------------------------------------------
-  // Release → short press
   if (!active && prevActive && !longHandled) {
     const uint32_t held = now - pressTime;
 
     if (held >= SLEEP_HOLD_MS) {
-      if (getMode() == MODE_IDLE) {
-        setMode(MODE_WAIT_SATS);
-      }
-      else if (getMode() == MODE_WIFI_SOFT_AP) {
-        setMode(MODE_IDLE);   // ← EXIT CONFIG
+
+      switch (getMode()) {
+
+        case MODE_IDLE:
+          setMode(MODE_WAIT_SATS);   // start logging
+          break;
+
+        case MODE_LOGGING:
+        case MODE_WAIT_SATS:
+          setMode(MODE_SLEEP);       // stop logging
+          break;
+
+        default:
+          break;
       }
     }
   }
+
 
   prevActive = active;
 }
