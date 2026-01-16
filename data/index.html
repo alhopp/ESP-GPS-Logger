@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=5,user-scalable=yes">
 <title>ESP32 GPS</title>
+
 <link rel="stylesheet" href="/app.css">
+<link rel="stylesheet" href="/leaflet.css">
 </head>
 
 <body>
@@ -16,6 +18,7 @@
 <nav>
   <button class="a" onclick="tab('files',this)">Files</button>
   <button onclick="tab('settings',this)">Settings</button>
+  <button onclick="tab('map',this)">Map</button>
   <button onclick="tab('system',this)">System</button>
 </nav>
 
@@ -42,7 +45,7 @@
     <div class="toggle"><span>Distance</span><label><input type="checkbox" id="stat_distance"><div class="slider"></div></label></div>
   </div>
 
-   <!-- Wi-Fi -->
+  <!-- Wi-Fi -->
   <div class="card">
     <h3>Wi-Fi<button class="info-btn" data-info="wifi">ⓘ</button></h3>
     <label>SSID</label>
@@ -65,8 +68,13 @@
     <input id="Sleep_info">
   </div>
 
- 
+</section>
 
+<!-- ================= MAP ================= -->
+<section id="map">
+  <div class="card" style="padding:0">
+    <div id="mapView"></div>
+  </div>
 </section>
 
 <!-- ================= SYSTEM ================= -->
@@ -95,22 +103,23 @@
 
 </section>
 
-
+<!-- ================= INFO MODAL ================= -->
 <div class="modal" id="infoModal">
   <div class="modal-card">
     <h3 id="infoTitle"></h3>
     <p id="infoText"></p>
-
     <div class="modal-actions">
       <button class="modal-close" onclick="closeInfo()">Close</button>
     </div>
   </div>
 </div>
 
-
 <footer>
   <button id="saveBtn" disabled>Save</button>
 </footer>
+
+<script src="/leaflet.js"></script>
+<script src="/map.js"></script>
 
 <script src="/app.js"></script>
 

@@ -321,3 +321,24 @@ section#settings{
 }
 
 
+/* ================= Leaflet Map ================= */
+
+/* Map tab must not scroll */
+section#map{
+  padding:0;
+  overflow:hidden;
+}
+
+/* Map container MUST have height */
+/* Let the card fill the section */
+section#map .card{
+  flex:1 1 auto;
+  display:flex;
+}
+
+/* Actual Leaflet container */
+#mapView{
+  flex:1 1 auto;
+  width:100%;
+  height:100%;
+}

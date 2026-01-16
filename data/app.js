@@ -28,11 +28,18 @@ addEventListener("load",()=>{
 
 
 /* ---------------- Tabs ---------------- */
-function tab(id,b){
-  document.querySelectorAll("nav button,section").forEach(e=>e.classList.remove("a"));
-  b.classList.add("a");
-  const s=$(id); s.classList.add("a"); s.scrollTop = 0;
+function tab(id, btn){
+  document.querySelectorAll("nav button, section")
+    .forEach(e => e.classList.remove("a"));
+
+  btn.classList.add("a");
+  document.getElementById(id).classList.add("a");
+
+  if (id === "map" && window.MapView) {
+    MapView.init();
+  }
 }
+
 
 
 
