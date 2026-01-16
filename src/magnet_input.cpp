@@ -13,8 +13,8 @@
 // -----------------------------------------------------------------------------
 namespace {
 constexpr uint32_t HALL_STABLE_MS = 20;
-constexpr uint32_t SLEEP_HOLD_MS  = 1000;
-constexpr uint32_t WIFI_HOLD_MS   = 4000;
+constexpr uint32_t SLEEP_HOLD_MS  = 300;
+constexpr uint32_t WIFI_HOLD_MS   = 2000;
 constexpr uint32_t BOOT_IGNORE_MS = 1500;
 }
 

@@ -88,8 +88,8 @@ void draw_IDLE()
   // Static UI
   //display.drawBitmap(200, 3, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK);
   drawCenteredText("ESP-GPS",                   Layout::ROW9(2), Fonts::Body12);
-  drawCenteredText("Short hold -> Start",       Layout::ROW9(4), Fonts::Body9);
-  drawCenteredText("Long  hold -> Settings",    Layout::ROW9(5), Fonts::Body9);
+  drawCenteredText("Tap: Start",                Layout::ROW9(4), Fonts::Body9);
+  drawCenteredText("Hold: Settings",            Layout::ROW9(5), Fonts::Body9);
   drawCenteredText("Use magnet to select mode", Layout::ROW9(7), Fonts::Body9);
 }
 
