@@ -319,4 +319,54 @@ addEventListener("load",async()=>{
   await loadConfig(els);
 });
 
+// Close modal if clicking outside the modal card
+addEventListener("load", () => {
+  const modal = $("infoModal");
+
+  modal.addEventListener("click", (e) => {
+    if (!e.target.closest(".modal-card")) {
+      closeInfo();
+    }
+  });
+});
+
+// Show info modal when an info button is clicked
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".info-btn");
+  if (!btn) return;
+
+  const key = btn.dataset.info;
+  if (key) showInfoModal(key);
+});
+
+
+const infoTexts = {
+  performance: "Toggle performance screen types for session analysis. Each option logs additional calculated data.",
+  wifi: "Enter the SSID and optional password of the Wi-Fi network you'd like the device to connect to in config mode.",
+  logging: "Choose which formats of raw GNSS data to log. UBX and SBP are binary protocols from different chipsets.",
+  sleep: "This text will be displayed on the screen when the device is sleeping to help identify it."
+};
+
+function showInfoModal(key) {
+  const title = key.charAt(0).toUpperCase() + key.slice(1) + " Info";
+  const text = infoTexts[key] || "No information available.";
+
+  $("infoTitle").textContent = title;
+  $("infoText").textContent = text;
+  $("infoModal").classList.add("show");
+}
+
+function closeInfo() {
+  $("infoModal").classList.remove("show");
+}
+
+// Show info modal when ⓘ button clicked
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".info-btn");
+  if (btn) {
+    const key = btn.dataset.info;
+    if (key) showInfoModal(key);
+  }
+});
+
 

@@ -316,5 +316,8 @@ section#settings{
   scroll-padding-bottom:200px;
 }
 
+.modal.show {
+  display: flex; /* activates modal */
+}
 
 
