@@ -1,9 +1,5 @@
 /* global L */
 
-const IS_LOCAL =
-  location.hostname === "localhost" ||
-  location.hostname === "127.0.0.1";
-
 window.MapView = {
   map: null,
 
@@ -19,26 +15,17 @@ window.MapView = {
       inertia:false
     }).setView([-32.0,115.8],13);
 
-    // ---------------- Tile selection ----------------
-    if(IS_LOCAL){
-      // Online ESRI tiles (PC dev)
+    // Tile selection
+    if(window.IS_LOCAL){
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/" +
         "World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        {
-          maxZoom:19,
-          crossOrigin:true
-        }
+        { maxZoom:19, crossOrigin:true }
       ).addTo(this.map);
     }else{
-      // Offline tiles (ESP32 / SD / LittleFS)
       L.tileLayer(
         "/tiles/{z}/{x}/{y}.jpg",
-        {
-          minZoom:10,
-          maxZoom:18,
-          noWrap:true
-        }
+        { minZoom:10, maxZoom:18, noWrap:true }
       ).addTo(this.map);
     }
   },

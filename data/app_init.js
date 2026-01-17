@@ -4,6 +4,10 @@
 const $=i=>document.getElementById(i);
 let dirty=false;   // REQUIRED
 
+window.IS_LOCAL =
+  location.hostname === "localhost" ||
+  location.hostname === "127.0.0.1";
+  
 // -----------------------------------------------------------------------------
 // Tab switching
 // -----------------------------------------------------------------------------
@@ -11,10 +15,16 @@ window.tab=function(id,btn){
   document.querySelectorAll("nav button,section").forEach(e=>e.classList.remove("a"));
   btn.classList.add("a"); document.getElementById(id).classList.add("a");
 
-  if(id==="map"&&window.MapView){
-    MapView.init();
-    MapView.map&&setTimeout(()=>MapView.map.invalidateSize(),50);
-  }
+if(id==="map" && window.MapView){
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      MapView.init();
+      MapView.map && MapView.map.invalidateSize();
+    });
+  });
+}
+
+
 };
 
 // -----------------------------------------------------------------------------

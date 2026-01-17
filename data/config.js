@@ -6,11 +6,14 @@
  * - Delegates System rendering to SystemTab
  * ========================================================================== */
 
+
+
 const IS_LOCAL =
   location.hostname === "localhost" ||
   location.hostname === "127.0.0.1";
 
 const CONFIG_URL = IS_LOCAL ? "/config.json" : "/api/config";
+
 
 /* ---------------------------------------------------------------------------
  * UI helpers (safe setters)
