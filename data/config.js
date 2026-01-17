@@ -1,125 +1,130 @@
+/* ============================================================================
+ * Config (PC + ESP compatible)
+ * - Loads from config.json when local
+ * - Loads from /api/config on device
+ * - Owns Settings UI + info modal
+ * - Delegates System rendering to SystemTab
+ * ========================================================================== */
 
+const IS_LOCAL =
+  location.hostname === "localhost" ||
+  location.hostname === "127.0.0.1";
 
+const CONFIG_URL = IS_LOCAL ? "/config.json" : "/api/config";
 
-// -----------------------------------------------------------------------------
-// UI helpers (safe setters)
-// -----------------------------------------------------------------------------
-function setVal(el,v){ if(el){ el._loading=true; el.value=v??""; el._loading=false; } }
-function setChk(el,v){ if(el){ el._loading=true; el.checked=!!v; el._loading=false; } }
+/* ---------------------------------------------------------------------------
+ * UI helpers (safe setters)
+ * ------------------------------------------------------------------------- */
+function setVal(el,v){
+  if(!el) return;
+  el._loading=true; el.value=v??""; el._loading=false;
+}
+function setChk(el,v){
+  if(!el) return;
+  el._loading=true; el.checked=!!v; el._loading=false;
+}
 
-// -----------------------------------------------------------------------------
-// Config API – load
-// - Fetches full config blob from device
-// - Populates editable Settings UI only
-// - System rendering delegated elsewhere
-// -----------------------------------------------------------------------------
-// -----------------------------------------------------------------------------
-// Load full device configuration
-// - Populates all UI controls
-// - Populates read-only System fields
-// -----------------------------------------------------------------------------
-async function loadConfig(els){
+/* ---------------------------------------------------------------------------
+ * Load configuration
+ * - Never throws
+ * - Never blocks splash
+ * ------------------------------------------------------------------------- */
+window.loadConfig = async function loadConfig(els){
   try{
-    const r = await fetch("/api/config",{cache:"no-store"});
-    if(!r.ok) throw new Error("config api missing");
+    const r = await fetch(CONFIG_URL,{ cache:"no-store" });
+    if(!r.ok) throw new Error("config fetch failed");
 
     const c = await r.json();
 
-    // ---------------- UI ----------------
+    /* ---------- UI ---------- */
     setVal(els.Sleep_info, c.ui?.Sleep_info);
 
-    // ---------------- Logging ----------------
+    /* ---------- Logging ---------- */
     setChk(els.logTXT, c.logging?.logTXT);
     setChk(els.logUBX, c.logging?.logUBX);
     setChk(els.logSBP, c.logging?.logSBP);
 
-    // ---------------- Wi-Fi ----------------
+    /* ---------- Wi-Fi ---------- */
     setVal(els.ssid,     c.wifi?.ssid);
     setVal(els.password, c.wifi?.password);
 
-    // ---------------- Performance / Stats ----------------
+    /* ---------- Performance / Stats ---------- */
     setChk(els.stat_2s,       c.stats?.s2);
     setChk(els.stat_5x10,     c.stats?.s10);
     setChk(els.stat_alpha,    c.stats?.alpha);
     setChk(els.stat_nm,       c.stats?.nm);
     setChk(els.stat_hour,     c.stats?.h1);
-    setChk(els.stat_distance,c.stats?.distance);
+    setChk(els.stat_distance, c.stats?.distance);
 
-    // ---------------- System (handoff) ----------------
+    /* ---------- System (handoff) ---------- */
     window.SystemTab?.load(c.system);
 
   }catch(err){
-    // ✅ LOCAL / OFFLINE SAFE PATH
-    console.warn("Config API unavailable – using defaults");
+    console.warn("Config unavailable – using defaults", err);
 
+    /* Minimal safe defaults */
     setVal(els.Sleep_info,"");
     setChk(els.logTXT,false);
     setChk(els.logUBX,false);
     setChk(els.logSBP,false);
   }
 
-  // ---------------- State ----------------
   els.saveBtn && (els.saveBtn.disabled=true, dirty=false);
-}
+};
 
+/* ---------------------------------------------------------------------------
+ * Save configuration (device only)
+ * ------------------------------------------------------------------------- */
+window.saveConfig = async function saveConfig(els){
+  if(IS_LOCAL){
+    console.warn("saveConfig skipped (local mode)");
+    els.saveBtn && (els.saveBtn.disabled=true, dirty=false);
+    return;
+  }
 
-
-// -----------------------------------------------------------------------------
-// Save configuration
-// - Sends ONLY mutable fields
-// - System values are owned by firmware
-// -----------------------------------------------------------------------------
-async function saveConfig(els){
-  const p = {
-    ui:{
-      Sleep_info: els.Sleep_info?.value ?? ""
-    },
+  const payload={
+    ui:{ Sleep_info: els.Sleep_info?.value ?? "" },
 
     logging:{
-      logTXT: !!els.logTXT?.checked,
-      logUBX: !!els.logUBX?.checked,
-      logSBP: !!els.logSBP?.checked
+      logTXT:!!els.logTXT?.checked,
+      logUBX:!!els.logUBX?.checked,
+      logSBP:!!els.logSBP?.checked
     },
 
     wifi:{
-      ssid: els.ssid?.value ?? "",
-      ...(els.password?.value ? { password: els.password.value } : {})
+      ssid:els.ssid?.value ?? "",
+      ...(els.password?.value ? { password:els.password.value } : {})
     },
 
     stats:{
-      s2:       !!els.stat_2s?.checked,
-      s10:      !!els.stat_5x10?.checked,
-      alpha:    !!els.stat_alpha?.checked,
-      nm:       !!els.stat_nm?.checked,
-      h1:       !!els.stat_hour?.checked,
-      distance: !!els.stat_distance?.checked
+      s2:!!els.stat_2s?.checked,
+      s10:!!els.stat_5x10?.checked,
+      alpha:!!els.stat_alpha?.checked,
+      nm:!!els.stat_nm?.checked,
+      h1:!!els.stat_hour?.checked,
+      distance:!!els.stat_distance?.checked
     }
   };
 
   const r = await fetch("/api/config",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(p)
+    body:JSON.stringify(payload)
   });
 
   r.ok && (els.saveBtn.disabled=true, dirty=false);
-}
-
-
-// -----------------------------------------------------------------------------
-// Settings info modal (ⓘ buttons)
-// - Centralised help text for config UI
-// - Event delegation (no per-button listeners)
-// - Globals required for inline HTML hooks
-// -----------------------------------------------------------------------------
-const infoTexts={
-  performance:"Toggle performance screen types for session analysis. Each option logs additional calculated data.",
-  wifi:"Enter the SSID and optional password of the Wi-Fi network you'd like the device to connect to in config mode.",
-  logging:"Choose which formats of raw GNSS data to log. UBX and SBP are binary protocols from different chipsets.",
-  sleep:"This text is shown on the device screen while sleeping to help identify it."
 };
 
-// Show info modal for a given key
+/* ---------------------------------------------------------------------------
+ * Settings info modal (ⓘ buttons)
+ * ------------------------------------------------------------------------- */
+const infoTexts={
+  performance:"Toggle performance screen types for session analysis.",
+  wifi:"Configure Wi-Fi credentials used in config mode.",
+  logging:"Select raw GNSS formats to log (UBX / SBP).",
+  sleep:"Text shown on device screen while sleeping."
+};
+
 window.showInfoModal=function(key){
   const m=document.getElementById("infoModal"); if(!m) return;
   document.getElementById("infoTitle").textContent=
@@ -129,12 +134,10 @@ window.showInfoModal=function(key){
   m.classList.add("show");
 };
 
-// Close info modal
 window.closeInfo=function(){
   document.getElementById("infoModal")?.classList.remove("show");
 };
 
-// ⓘ click handler (scoped to Settings tab)
 document.addEventListener("click",e=>{
   const s=document.getElementById("settings");
   if(!s||!s.contains(e.target)) return;
@@ -142,12 +145,9 @@ document.addEventListener("click",e=>{
   b&&b.dataset.info&&window.showInfoModal(b.dataset.info);
 });
 
-// Click outside modal card closes it
 addEventListener("load",()=>{
   const m=document.getElementById("infoModal"); if(!m) return;
   m.addEventListener("click",e=>{
     !e.target.closest(".modal-card")&&window.closeInfo();
   });
 });
-
-

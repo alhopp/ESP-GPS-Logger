@@ -14,7 +14,7 @@ window.MapView = {
     }
 
     this.map = L.map("mapView",{
-      zoomControl:true,
+      zoomControl:false,
       attributionControl:false,
       inertia:false
     }).setView([-32.0,115.8],13);
