@@ -26,71 +26,59 @@ window.MapView = {
   L.tileLayer("",{attribution: "© ESP32 GPS",opacity: 0}).addTo(this.map);
 
 
-  L.circleMarker([-32.0,115.8],{
-    radius:8,
-    color:"#ff3b30",
-    weight:2,
-    fill:true,
-    fillColor:"#ff3b30",
-    fillOpacity:1
-  }).addTo(this.map);
 
+setTimeout(()=>{
+  this.map.setView([-32.0,115.8],13);
+  this.map.invalidateSize(true);
 
+  // 🔑 START SESSIONS ONLY AFTER MAP EXISTS
+  if(window.MapSessions && !window.MapSessions._started){
+    window.MapSessions._started = true;
+    console.log("[Map] starting MapSessions");
+    window.MapSessions.init();
+  }
 
+}, 150);
 
-  // 🔑 Delay view until container is visible
-  setTimeout(()=>{
-    this.map.setView([-32.0,115.8],13);
-    this.map.invalidateSize(true);
-  }, 150);
 
   console.log("[Map] init OK, size =", el.offsetWidth, el.offsetHeight);
 },
 
 
 loadGeoJSON(url){
+  console.log("[Map] loadGeoJSON called with:", url);
   if(!this.map) return;
 
+  // 🔒 cancel previous layer
   if(this.track){
     this.map.removeLayer(this.track);
     this.track = null;
   }
 
-  fetch(url,{ cache:"no-store" })
+  fetch(url,{cache:"no-store"})
     .then(r=>{
       if(!r.ok) throw new Error("GeoJSON fetch failed");
       return r.json();
     })
     .then(gj=>{
-      console.log("[Map] GeoJSON loaded", gj);
+      console.log("[Map] feature count", gj.features?.length);
 
       this.track = L.geoJSON(gj,{
         coordsToLatLng: c => L.latLng(c[1], c[0]),
-        style:{ color:"#ff3b30", weight:3 }
+        style:{ color:"#ff3b30", weight:4 }
       }).addTo(this.map);
 
-      // 🔑 iOS paint fix sequence
-      requestAnimationFrame(()=>{
-        this.map.invalidateSize(true);
-
-        const b = this.track.getBounds();
-        console.log("[Map] bounds", b);
-
-        if(b.isValid()){
-          this.map.fitBounds(b,{
-            padding:[20,20],
-            animate:false,
-            maxZoom:17
-          });
-        }
-      });
+      const b = this.track.getBounds();
+      if(b.isValid()){
+        this.map.fitBounds(b,{
+          padding:[30,30],
+          animate:false,
+          maxZoom:16
+        });
+      }
     })
-    .catch(e=>console.warn("GeoJSON load failed", e));
+    .catch(e=>console.warn("[Map] GeoJSON failed", e));
 },
-
-
-
-
 
 
 
@@ -202,6 +190,7 @@ window.MapSessions = {
   index: 0,
 
   async init(){
+     console.log("[MapSessions] init()");
     const r = await fetch("/api/files",{cache:"no-store"});
     const j = await r.json();
     if(!j.ok) return;
