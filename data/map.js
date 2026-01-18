@@ -16,14 +16,33 @@ window.MapView = {
 
   const el = document.getElementById("mapView");
 
-  this.map = L.map(el,{
-    zoomControl:false,
-    attributionControl:true,
-    inertia:false
-  });
+ this.map = L.map(el,{
+  zoomControl:false,
+  attributionControl:true,
+  inertia:false,
+  preferCanvas: true
+});
 
-  // Dummy transparent base layer (required for iOS rendering)
-  L.tileLayer("",{attribution: "© ESP32 GPS",opacity: 0}).addTo(this.map);
+this._r = L.canvas({ padding:0.5 });
+
+// Proper dummy base layer (no network, works on iOS)
+const blank = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
+L.gridLayer({
+  attribution:"© ESP32 GPS",
+  tileSize:256,
+  createTile:(coords, done)=>{
+    const img=document.createElement("img");
+    img.width=256; img.height=256;
+    img.alt="";
+    img.src=blank;
+    img.onload=()=>done(null,img);
+    img.onerror=()=>done(null,img);
+    return img;
+  }
+}).addTo(this.map);
+
+
 
 
 
@@ -64,9 +83,17 @@ loadGeoJSON(url){
       console.log("[Map] feature count", gj.features?.length);
 
       this.track = L.geoJSON(gj,{
+        renderer: L.canvas({ padding: 0.5 }),
         coordsToLatLng: c => L.latLng(c[1], c[0]),
-        style:{ color:"#ff3b30", weight:4 }
+        style:{
+          color:"#ff3b30",
+          weight:5,
+          opacity:1
+        }
       }).addTo(this.map);
+
+
+      this.track.bringToFront();
 
       const b = this.track.getBounds();
       if(b.isValid()){
@@ -75,6 +102,12 @@ loadGeoJSON(url){
           animate:false,
           maxZoom:16
         });
+
+        setTimeout(()=>{
+            this.map.invalidateSize(true);
+        }, 50);
+
+
       }
     })
     .catch(e=>console.warn("[Map] GeoJSON failed", e));
