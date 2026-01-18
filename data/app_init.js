@@ -1,12 +1,60 @@
 // -----------------------------------------------------------------------------
 // App shell
 // -----------------------------------------------------------------------------
-const $=i=>document.getElementById(i);
-let dirty=false;   // REQUIRED
+const $ = i => document.getElementById(i);
+let dirty = false;   // REQUIRED
 
+// -----------------------------------------------------------------------------
+// Environment detection (MUST come first)
+// -----------------------------------------------------------------------------
 window.IS_LOCAL =
   location.hostname === "localhost" ||
   location.hostname === "127.0.0.1";
+// -----------------------------------------------------------------------------
+// Local API shim (PC dev only)
+// -----------------------------------------------------------------------------
+if (window.IS_LOCAL) {
+  const _fetch = window.fetch;
+
+  window.fetch = async (url, opts) => {
+
+    // ---------------------------------------------------------
+    // Fake /api/files  → mirrors ESP response
+    // ---------------------------------------------------------
+    if (url === "/api/files") {
+      return new Response(JSON.stringify({
+        ok: true,
+        files: [
+          { name: "test_track1.geojson",  size: 1234 },
+          { name: "test_track2.geojson",  size: 1234 },
+          { name: "test_track3.geojson",  size: 1234 }
+          //{ name: "test_track4.geojson",  size: 1234 },
+         // { name: "test_track5.geojson",  size: 1234 },
+         // { name: "test_track6.geojson",  size: 1234 },
+         // { name: "test_track7.geojson",  size: 1234 },
+         // { name: "test_track8.geojson",  size: 1234 },
+         // { name: "test_track9.geojson",  size: 1234 },
+         // { name: "test_track10.geojson", size: 1234 }
+        ]
+      }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // ---------------------------------------------------------
+    // Fake /api/download → serve GeoJSON from /logs/
+    // ---------------------------------------------------------
+    if (url.startsWith("/api/download")) {
+      const p = new URLSearchParams(url.split("?")[1]);
+      const file = p.get("file");
+      return _fetch(`/logs/${file}`, opts);
+    }
+
+    return _fetch(url, opts);
+  };
+}
+
+
 
 
   function splashReady(){
@@ -15,24 +63,34 @@ window.IS_LOCAL =
   });
 }
 
-// -----------------------------------------------------------------------------
+/// -----------------------------------------------------------------------------
 // Tab switching
 // -----------------------------------------------------------------------------
-window.tab=function(id,btn){
-  document.querySelectorAll("nav button,section").forEach(e=>e.classList.remove("a"));
-  btn.classList.add("a"); document.getElementById(id).classList.add("a");
+window.tab = function(id, btn){
+  document.querySelectorAll("nav button,section")
+    .forEach(e => e.classList.remove("a"));
 
-if(id==="map" && window.MapView){
-  requestAnimationFrame(()=>{
+  btn.classList.add("a");
+  const section = document.getElementById(id);
+  section.classList.add("a");
+
+  if(id === "map" && window.MapView){
+    // 🔑 Wait for iOS layout + paint
     requestAnimationFrame(()=>{
-      MapView.init();
-      MapView.map && MapView.map.invalidateSize();
+      requestAnimationFrame(()=>{
+        MapView.init();
+
+        // 🔑 FORCE iOS to acknowledge size
+        setTimeout(()=>{
+          MapView.map && MapView.map.invalidateSize(true);
+        }, 100);
+      });
     });
-  });
-}
-
-
+  }
 };
+
+
+
 
 // -----------------------------------------------------------------------------
 // Dirty tracking

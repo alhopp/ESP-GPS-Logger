@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature",
+    "properties": { "name": "Test Track 1" },
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [115.7800, -32.0500],
+        [115.7850, -32.0480],
+        [115.7900, -32.0460]
+      ]
+    }
+  }]
+}
