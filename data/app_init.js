@@ -7,7 +7,7 @@ let dirty=false;   // REQUIRED
 window.IS_LOCAL =
   location.hostname === "localhost" ||
   location.hostname === "127.0.0.1";
-  
+
 // -----------------------------------------------------------------------------
 // Tab switching
 // -----------------------------------------------------------------------------
@@ -50,17 +50,30 @@ addEventListener("load",()=>{
 // App init
 // -----------------------------------------------------------------------------
 addEventListener("load",async()=>{
-  const els={
-    saveBtn:$("saveBtn"),
-    fileList:$("fileList"),
-    sdInfo:$("sdInfo"),
-    Sleep_info:$("Sleep_info"),
-    logTXT:$("logTXT"),
-    logUBX:$("logUBX"),
-    logSBP:$("logSBP"),
-    ssid:$("ssid"),
-    password:$("password")
-  };
+ const els={
+  saveBtn:$("saveBtn"),
+  fileList:$("fileList"),
+  sdInfo:$("sdInfo"),
+
+  // UI
+  Sleep_info:$("Sleep_info"),
+
+  // Logging
+  logUBX:$("logUBX"),
+  logSBP:$("logSBP"),
+
+  // Wi-Fi
+  ssid:$("ssid"),
+  password:$("password"),
+
+  // Performance / Stats
+  stat_2s:$("stat_2s"),
+  stat_5x10:$("stat_5x10"),
+  stat_alpha:$("stat_alpha"),
+  stat_nm:$("stat_nm"),
+  stat_hour:$("stat_hour"),
+  stat_distance:$("stat_distance")
+};
 
   els.saveBtn?.addEventListener("click",()=>saveConfig(els));
 
@@ -75,3 +88,4 @@ addEventListener("load",async()=>{
     setTimeout(()=>s.remove(),500);
   },2000);
 });
+

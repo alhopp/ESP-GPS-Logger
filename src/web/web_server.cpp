@@ -77,9 +77,10 @@ void webserver_start(WebServer &server)
     power["cal_bat"] = config.cal_bat;
 
     JsonObject logging = j.createNestedObject("logging");
-    logging["track_distance"]  = config.track_distance;
+    logging["logTXT"]          = config.track_distance;
     logging["logUBX"]          = config.logUBX;
     logging["logSBP"]          = config.logSBP;
+
 
     JsonObject ui = j.createNestedObject("ui");
     ui["bar_length"]           = config.bar_length;
@@ -113,10 +114,12 @@ void webserver_start(WebServer &server)
       wifi_set_credentials(ssid,pass);
     }
 
-    if(j["logging"]){
-      if(j["logging"]["logUBX"]!=nullptr) config.logUBX=j["logging"]["logUBX"];
-      if(j["logging"]["logSBP"]!=nullptr) config.logSBP=j["logging"]["logSBP"];
-    }
+   if(j["logging"]){
+      if(j["logging"]["logTXT"] != nullptr) config.track_distance = j["logging"]["logTXT"];
+      if(j["logging"]["logUBX"] != nullptr) config.logUBX = j["logging"]["logUBX"];
+      if(j["logging"]["logSBP"] != nullptr) config.logSBP = j["logging"]["logSBP"];
+}
+
 
     if (j["stats"]) {
       if (j["stats"]["s2"]        != nullptr) config.stat_2s        = j["stats"]["s2"];
@@ -201,3 +204,4 @@ void webserver_stop(){ webStarted=false; }
 bool   wifi_sta_connected(){ return WiFi.status()==WL_CONNECTED; }
 String wifi_sta_ssid()     { return wifi_sta_connected()?WiFi.SSID():""; }
 String wifi_sta_ip()       { return wifi_sta_connected()?WiFi.localIP().toString():""; }
+

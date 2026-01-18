@@ -124,7 +124,6 @@ static void setDefaultConfig()
   // -------- UI / behaviour --------
   config.bar_length          = 1852;
 
-
   // -------- System --------
   config.timezone            = 1.0f;
   config.timezone_DST        = 1;
@@ -134,17 +133,12 @@ static void setDefaultConfig()
   config.logSBP              = 1;
 
   //-------- Performance screens (on/off) --------------------------  
-
-  
   config.stat_alpha     = true;
   config.stat_nm        = true;
   config.stat_1h        = true;
-  
   config.stat_2s        = false;
   config.stat_10s       = false;
   config.stat_distance  = false;
-
-
 
   // -------- Other strings --------
   strlcpy(config.Sleep_info, "ESP32 GPS", sizeof(config.Sleep_info));
@@ -153,7 +147,6 @@ static void setDefaultConfig()
   strlcpy(config.ssid2,      "ESP32_GPS",  sizeof(config.ssid2));
   strlcpy(config.password2,  "",          sizeof(config.password2));
 }
-
 
 // -----------------------------------------------------------------------------
 // Load from file
