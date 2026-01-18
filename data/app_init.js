@@ -8,6 +8,13 @@ window.IS_LOCAL =
   location.hostname === "localhost" ||
   location.hostname === "127.0.0.1";
 
+
+  function splashReady(){
+  requestAnimationFrame(()=>{
+    document.getElementById("splash")?.classList.add("ready");
+  });
+}
+
 // -----------------------------------------------------------------------------
 // Tab switching
 // -----------------------------------------------------------------------------
@@ -49,43 +56,61 @@ addEventListener("load",()=>{
 // -----------------------------------------------------------------------------
 // App init
 // -----------------------------------------------------------------------------
-addEventListener("load",async()=>{
- const els={
-  saveBtn:$("saveBtn"),
-  fileList:$("fileList"),
-  sdInfo:$("sdInfo"),
+addEventListener("load", async ()=>{
 
-  // UI
-  Sleep_info:$("Sleep_info"),
+  const els={
+    saveBtn:$("saveBtn"),
+    fileList:$("fileList"),
+    sdInfo:$("sdInfo"),
 
-  // Logging
-  logUBX:$("logUBX"),
-  logSBP:$("logSBP"),
+    // UI
+    Sleep_info:$("Sleep_info"),
 
-  // Wi-Fi
-  ssid:$("ssid"),
-  password:$("password"),
+    // Logging
+    logUBX:$("logUBX"),
+    logSBP:$("logSBP"),
 
-  // Performance / Stats
-  stat_2s:$("stat_2s"),
-  stat_5x10:$("stat_5x10"),
-  stat_alpha:$("stat_alpha"),
-  stat_nm:$("stat_nm"),
-  stat_hour:$("stat_hour"),
-  stat_distance:$("stat_distance")
-};
+    // Wi-Fi
+    ssid:$("ssid"),
+    password:$("password"),
+
+    // Performance / Stats
+    stat_2s:$("stat_2s"),
+    stat_5x10:$("stat_5x10"),
+    stat_alpha:$("stat_alpha"),
+    stat_nm:$("stat_nm"),
+    stat_hour:$("stat_hour"),
+    stat_distance:$("stat_distance")
+  };
 
   els.saveBtn?.addEventListener("click",()=>saveConfig(els));
 
+  // ---------------------------------------------------------------------------
+  // Splash: fade logo in once decoded
+  // ---------------------------------------------------------------------------
+  const splash=$("splash");
+  const img=splash?.querySelector("img");
+
+  if(img?.decode){
+    img.decode().then(splashReady).catch(splashReady);
+  }else{
+    splashReady();
+  }
+
+  // ---------------------------------------------------------------------------
+  // App startup
+  // ---------------------------------------------------------------------------
   await loadFiles(els.fileList,els.sdInfo);
   enableSwipe($("files"),els.fileList,els.sdInfo);
 
-  await loadConfig(els);   // must delegate to SystemTab internally
+  await loadConfig(els);
 
+  // ---------------------------------------------------------------------------
+  // Splash: fade out + remove
+  // ---------------------------------------------------------------------------
   setTimeout(()=>{
-    const s=$("splash"); if(!s) return;
-    s.classList.add("hide");
-    setTimeout(()=>s.remove(),500);
+    if(!splash) return;
+    splash.classList.add("hide");
+    setTimeout(()=>splash.remove(),500);
   },2000);
 });
-
