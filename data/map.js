@@ -25,7 +25,7 @@ window.MapView={
     // -------------------------------------------------------------------------
     this.map.createPane("bg");
     const bg=this.map.getPane("bg");
-    bg.style.background="#dbe2ee";   // app theme background
+    bg.style.background="#dbdbee";   // app theme background
     bg.style.zIndex=200;
 
     // -------------------------------------------------------------------------
@@ -44,21 +44,33 @@ window.MapView={
     // Offline tiles (ESP32 / SD / LittleFS)
     // - Missing tiles silently fall back to background
     // -------------------------------------------------------------------------
-    const offline=L.tileLayer(
-      "/tiles/{z}/{x}/{y}.jpg",
-      {
-        minZoom:10,
-        maxZoom:18,
-        noWrap:true,
-        errorTileUrl:""    // no broken image icons
-      }
-    );
+    const offline = L.tileLayer("/tiles/{z}/{x}/{y}.jpg",{
+      minZoom:10,
+      maxZoom:18,
+      noWrap:true,
+
+      // Prevent retries + broken icons
+      errorTileUrl:"data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+
+      // Tile engine tuning (ESP32-friendly)
+      updateWhenIdle:true,
+      keepBuffer:0,
+      reuseTiles:true,
+
+      // Tile layer exists but visually gone
+      opacity:0.001
+    });
+
+
 
     offline.on("tileerror",()=>{
       console.warn("Offline tiles missing – background only");
     });
 
     offline.addTo(this.map);
+    this.map.getPane("overlayPane").style.zIndex=400;
+    this.map.getPane("tilePane").style.zIndex=300;
+
   },
 
   // ---------------------------------------------------------------------------

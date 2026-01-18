@@ -172,21 +172,45 @@ void webserver_start(WebServer &server)
     server.streamFile(f,"text/html"); f.close();
   });
 
-  // ---------------------------------------------------------------------------
-  // Browser noise suppression (clean logs)
-  // ---------------------------------------------------------------------------
-  server.on("/favicon.ico",                       HTTP_GET,[&]{ server.send(204); });
-  server.on("/apple-touch-icon.png",              HTTP_GET,[&]{ server.send(204); });
-  server.on("/apple-touch-icon-precomposed.png",  HTTP_GET,[&]{ server.send(204); });
-  server.on("/manifest.json",                     HTTP_GET,[&]{ server.send(204); });
-  server.on("/robots.txt",                        HTTP_GET,[&]{ server.send(204); });
-  server.on("/service-worker.js",                 HTTP_GET,[&]{ server.send(204); });
+// ---------------------------------------------------------------------------
+// Browser noise suppression (optional)
+// ---------------------------------------------------------------------------
+server.on("/favicon.ico", HTTP_GET, [&]{ server.send(204); });
+server.on("/apple-touch-icon.png", HTTP_GET, [&]{ server.send(204); });
+server.on("/apple-touch-icon-precomposed.png", HTTP_GET, [&]{ server.send(204); });
+server.on("/manifest.json", HTTP_GET, [&]{ server.send(204); });
+server.on("/robots.txt", HTTP_GET, [&]{ server.send(204); });
+server.on("/service-worker.js", HTTP_GET, [&]{ server.send(204); });
 
-  // ---------------------------------------------------------------------------
-  // Static assets (CSS / JS / images)
-  // ---------------------------------------------------------------------------
-  server.serveStatic("/",LittleFS,"/");
-  server.onNotFound([&]{ server.send(204); });
+
+// ---------------------------------------------------------------------------
+// onNotFound – MUST be before serveStatic
+// ---------------------------------------------------------------------------
+server.onNotFound([&]{
+  String uri = server.uri();
+
+  // ---- Offline tiles (silent) ----
+  if (uri.startsWith("/tiles/")) {
+    if (LittleFS.exists(uri)) {
+      File f = LittleFS.open(uri, "r");
+      server.streamFile(f, "image/jpeg");
+      f.close();
+    } else {
+      server.send(204);   // silent success
+    }
+    return;
+  }
+
+  // ---- Everything else ----
+  server.send(204);
+});
+
+
+// ---------------------------------------------------------------------------
+// Static assets – MUST be last
+// ---------------------------------------------------------------------------
+server.serveStatic("/", LittleFS, "/");
+
 
   server.begin();
   webStarted=true;
