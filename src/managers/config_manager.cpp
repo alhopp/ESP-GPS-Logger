@@ -142,10 +142,12 @@ static void setDefaultConfig()
 
   // -------- Other strings --------
   strlcpy(config.Sleep_info, "ESP32 GPS", sizeof(config.Sleep_info));
-  strlcpy(config.ssid,       "",          sizeof(config.ssid));
-  strlcpy(config.password,   "",          sizeof(config.password));
-  strlcpy(config.ssid2,      "ESP32_GPS",  sizeof(config.ssid2));
-  strlcpy(config.password2,  "",          sizeof(config.password2));
+  strlcpy(config.home_ssid,   "",          sizeof(config.home_ssid));
+  strlcpy(config.home_pass,   "",          sizeof(config.home_pass));
+
+  strlcpy(config.phone_ssid,  "ESP32_GPS",  sizeof(config.phone_ssid));
+  strlcpy(config.phone_pass,  "",           sizeof(config.phone_pass));
+
 }
 
 // -----------------------------------------------------------------------------
@@ -214,6 +216,12 @@ static void writeConfigToFile(File &file)
 
   // strings (only if non-empty)
   if(config.Sleep_info[0])    doc["Sleep_info"]=config.Sleep_info;
+
+   // Wi-Fi roles
+  if(config.home_ssid[0])   doc["home_ssid"]  = config.home_ssid;
+  if(config.home_pass[0])   doc["home_pass"]  = config.home_pass;
+  if(config.phone_ssid[0])  doc["phone_ssid"] = config.phone_ssid;
+  if(config.phone_pass[0])  doc["phone_pass"] = config.phone_pass;
 
   serializeJsonPretty(doc,file);
 }
@@ -337,7 +345,21 @@ static void dumpConfig()
   // -------- strings --------
   Serial.print("[CONFIG ] Sleep_info       = "); Serial.println(config.Sleep_info);
 
+  // -------- Wi-Fi --------
+  Serial.println("[CONFIG ] Wi-Fi");
+  Serial.print  ("[CONFIG ]   home_ssid      = ");
+  Serial.println(config.home_ssid[0] ? config.home_ssid : "(not set)");
 
+  Serial.print  ("[CONFIG ]   home_pass      = ");
+  Serial.println(config.home_pass[0] ? "***" : "(not set)");
+
+  Serial.print  ("[CONFIG ]   phone_ssid     = ");
+  Serial.println(config.phone_ssid[0] ? config.phone_ssid : "(not set)");
+
+  Serial.print  ("[CONFIG ]   phone_pass     = ");
+  Serial.println(config.phone_pass[0] ? "***" : "(not set)");
+
+  
   // ---------------------------------------------------------------------------
   // SystemInfo (static / runtime)
   // ---------------------------------------------------------------------------

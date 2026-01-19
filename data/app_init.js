@@ -129,8 +129,10 @@ addEventListener("load", async ()=>{
     logSBP:$("logSBP"),
 
     // Wi-Fi
-    ssid:$("ssid"),
-    password:$("password"),
+    home_ssid: $("home_ssid"),
+    home_pass: $("home_pass"),
+    phone_ssid: $("phone_ssid"),
+    phone_pass: $("phone_pass"),
 
     // Performance / Stats
     stat_2s:$("stat_2s"),

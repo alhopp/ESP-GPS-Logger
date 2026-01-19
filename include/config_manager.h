@@ -62,10 +62,10 @@ struct Config
   char  Sleep_info[32];
 
   // Wi-Fi credentials
-  char  ssid[32];
-  char  password[32];
-  char  ssid2[32];
-  char  password2[32];
+  char home_ssid[32]  = "";
+  char home_pass[64]  = "";
+  char phone_ssid[32] = "";
+  char phone_pass[64] = "";
 
   // System / diagnostics
   int     config_fail;

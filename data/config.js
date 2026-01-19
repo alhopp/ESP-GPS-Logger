@@ -48,8 +48,10 @@ window.loadConfig = async function loadConfig(els){
     setChk(els.logSBP, c.logging?.logSBP);
 
     /* ---------- Wi-Fi ---------- */
-    setVal(els.ssid,     c.wifi?.ssid);
-    setVal(els.password, c.wifi?.password);
+    setVal(els.home_ssid,  cfg.home_ssid);
+    setVal(els.home_pass,  cfg.home_pass);
+    setVal(els.phone_ssid, cfg.phone_ssid);
+    setVal(els.phone_pass, cfg.phone_pass);
 
     /* ---------- Performance / Stats ---------- */
     setChk(els.stat_2s,       c.stats?.s2);
