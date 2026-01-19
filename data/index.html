@@ -71,19 +71,59 @@
 </section>
 
 <!-- ================= MAP ================= -->
+<!-- ================= MAP ================= -->
 <section id="map">
-  <div class="card" style="padding:0">
+
+  <div class="card map-card" style="padding:0">
     <div id="mapView"></div>
   </div>
+
+  <!-- Session card = gesture surface + content stack -->
   <div id="sessionCard" class="session-card">
+
+    <!-- Grab handle (visual affordance only) -->
     <div class="session-grab"></div>
 
-    <div class="session-body">
-      <div class="session-title" id="sessionTitle">Latest Session</div>
-      <div class="session-meta" id="sessionMeta"></div>
+    <!-- ================= MAP INFO (default view) ================= -->
+    <div class="session-pane session-pane-map">
+      <div class="session-body">
+        <div class="session-title" id="sessionTitle">Latest Session</div>
+        <div class="session-meta"  id="sessionMeta"></div>
+      </div>
     </div>
+
+    <!-- ================= STATS (swipe up) ================= -->
+    <div class="session-pane session-pane-stats">
+
+      <div class="stats-header">Session Stats</div>
+
+      <div class="stats-grid">
+        <div class="stat">
+          <label>NM</label>
+          <span id="stat_nm">–</span>
+        </div>
+        <div class="stat">
+          <label>Alpha</label>
+          <span id="stat_alpha">–</span>
+        </div>
+        <div class="stat">
+          <label>1h</label>
+          <span id="stat_1h">–</span>
+        </div>
+        <div class="stat">
+          <label>Max</label>
+          <span id="stat_max">–</span>
+        </div>
+      </div>
+
+      <!-- placeholder for graphs later -->
+      <canvas id="statsGraph" height="140"></canvas>
+
+    </div>
+
   </div>
 </section>
+
 
 <!-- ================= SYSTEM ================= -->
 <section id="system">

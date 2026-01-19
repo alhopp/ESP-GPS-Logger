@@ -265,33 +265,67 @@ window.MapSessions = {
     }
   },
 
-  // -------------------------------------------------------------------------
-  // bindGestures()
-  //
-  // Horizontal swipe gesture:
-  // - swipe left  → older session
-  // - swipe right → newer session
-  //
-  // Threshold prevents accidental triggers.
-  // -------------------------------------------------------------------------
-  bindGestures(){
-    const card = $("sessionCard");
-    let x0=0, dx=0, active=false;
+  
+   bindGestures(){
+  const card = $("sessionCard");
+  let x0=0,y0=0,dx=0,dy=0,active=false,locked=null;
 
-    card.addEventListener("touchstart",e=>{
-      x0 = e.touches[0].clientX;
-      dx = 0;
-      active = true;
-    },{passive:true});
+  const THRESH = 40;
 
-    card.addEventListener("touchmove",e=>{
-      if(active) dx = e.touches[0].clientX - x0;
-    },{passive:true});
+  card.addEventListener("touchstart",e=>{
+    const t = e.touches[0];
+    x0 = t.clientX;
+    y0 = t.clientY;
+    dx = dy = 0;
+    locked = null;
+    active = true;
+  },{passive:true});
 
-    card.addEventListener("touchend",()=>{
-      active = false;
-      if(dx < -40) this.prev();
-      else if(dx > 40) this.next();
-    },{passive:true});
-  }
+  card.addEventListener("touchmove",e=>{
+    if(!active) return;
+
+    const t = e.touches[0];
+    dx = t.clientX - x0;
+    dy = t.clientY - y0;
+
+    // Decide intent once
+    if(!locked){
+      if(Math.abs(dx) > 12) locked = "x";
+      else if(Math.abs(dy) > 12) locked = "y";
+      else return;
+    }
+
+    // Block page scroll only for vertical gestures
+    if(locked === "y") e.preventDefault();
+  },{passive:false});   // ⚠️ MUST be false
+
+  card.addEventListener("touchend",()=>{
+    if(!active) return;
+    active = false;
+
+    if(locked === "y"){
+      if(dy < -THRESH) showStats();
+      else if(dy > THRESH) hideStats();
+      return;
+    }
+
+    if(locked === "x"){
+      if(dx < -THRESH) MapSessions.prev();
+      else if(dx > THRESH) MapSessions.next();
+    }
+  });
+}
+
 };
+
+
+function showStats(){
+  sessionCard.classList.add("stats");
+}
+
+function hideStats(){
+  sessionCard.classList.remove("stats");
+  MapView.map?.invalidateSize(true);
+}
+
+

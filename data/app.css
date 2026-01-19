@@ -28,6 +28,10 @@ input,select,textarea{user-select:text}
   }
 }
 
+html,body{height:100%;margin:0;}
+
+body{display:flex;flex-direction:column;}
+
 
 
 /* ---------------- Header / Nav ---------------- */
@@ -140,58 +144,57 @@ footer button:active{transform:scale(.97);}
   input,select{background:#0b1220;color:#e9eff7}
 }
 
+/* ================= MAP / SESSION CARD ================= */
 
+#map{position:relative;height:100svh;overflow:hidden}
+.map-card,#mapView{height:100%;width:100%}
 
-/* ================= MAP SESSION CARD ================= */
-
+/* ---- session card ---- */
 .session-card{
-  position:absolute;
-  left:12px;
-  right:12px;
-  bottom:12px;
-  background:var(--d);
-  border-radius:16px;
+  position:absolute;left:12px;right:12px;bottom:12px;
+  background:var(--d);border-radius:16px;
   box-shadow:0 14px 30px rgba(0,0,0,.25);
-  z-index:600;
-  touch-action:pan-y;
+  z-index:600;overflow:hidden;
+  touch-action:pan-x pan-y;
+  height:96px;max-height:40vh;
+  transition:height .25s ease;
 }
+.session-card.stats{height:60vh}
 
-.session-grab{
-  width:40px;
-  height:4px;
-  background:#cfd6e4;
-  border-radius:2px;
-  margin:10px auto 6px;
+/* ---- grab + body ---- */
+.session-grab{width:40px;height:4px;margin:10px auto 6px;background:#cfd6e4;border-radius:2px}
+.session-body{padding:12px 16px 16px}
+.session-title{font-size:16px;font-weight:800}
+.session-meta{margin-top:4px;font-size:13px;color:var(--f)}
+
+/* ---- sliding panes ---- */
+.session-pane{
+  position:absolute;inset:0;
+  transition:transform .25s ease;
+  will-change:transform;
 }
+.session-pane-map{transform:translateY(0)}
+.session-pane-stats{transform:translateY(100%);background:#fff}
 
-.session-body{
-  padding:12px 16px 16px;
+.session-card.stats .session-pane-map{transform:translateY(-100%)}
+.session-card.stats .session-pane-stats{transform:translateY(0)}
+
+/* ---- stats layout ---- */
+.stats-header{padding:14px 16px;font-weight:700}
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;padding:0 16px 16px;
 }
+.stat{padding:12px;border-radius:10px;background:#f4f7fb}
+.stat label{font-size:13px;color:#6b7a90}
+.stat span{display:block;font-size:22px;font-weight:700}
 
-.session-title{
-  font-size:16px;
-  font-weight:800;
-}
-
-.session-meta{
-  font-size:13px;
-  color:var(--f);
-  margin-top:4px;
-}
-
-.leaflet-control-container{
-  z-index:1200;
-  pointer-events:auto;
-}
-
+/* ---- leaflet / iOS fixes ---- */
+.leaflet-control-container{z-index:1200;pointer-events:auto}
 .leaflet-control-attribution{
-  margin-bottom:
-    calc(
-      env(safe-area-inset-bottom, 0px)
-      + 64px
-    );
+  margin-bottom:calc(env(safe-area-inset-bottom,0px) + 64px)
 }
-
-/* === iOS SAFARI FIX: Leaflet controls === */
-.leaflet-bottom{ bottom: calc(env(safe-area-inset-bottom,0px) + 50px) !important; }
-
+.leaflet-bottom{
+  bottom:calc(env(safe-area-inset-bottom,0px) + 50px)!important
+}
