@@ -64,23 +64,44 @@ window.MapView = {
         }
       ).addTo(this.map);
 
-    }else{
+       }else{
 
-      // ESP: transparent dummy tiles (offline-safe)
+      // ---------------------------------------------------------------
+      // ESP OFFLINE MODE
+      //
+      // Uses locally stored tiles:
+      //   /tiles/{z}/{x}/{y}.jpg
+      //
+      // Falls back to transparent tiles if missing
+      // ---------------------------------------------------------------
+
       const blank =
         "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
-      L.gridLayer({
-        attribution:"© ESP32 GPS",
-        tileSize:256,
-        createTile:(c,d)=>{
-          const i=document.createElement("img");
-          i.width=i.height=256;
-          i.src=blank;
-          i.onload = ()=>d(null,i);
-          i.onerror= ()=>d(null,i);
-          return i;
+      const OfflineTiles = L.TileLayer.extend({
+        getTileUrl(c){
+          return `/tiles/${c.z}/${c.x}/${c.y}.jpg`;
+        },
+        createTile(c, done){
+          const img = document.createElement("img");
+          img.width = img.height = 256;
+
+          img.onload  = ()=>done(null, img);
+          img.onerror = ()=>{
+            // Missing tile → transparent fallback
+            img.src = blank;
+            done(null, img);
+          };
+
+          img.src = this.getTileUrl(c);
+          return img;
         }
+      });
+
+      new OfflineTiles({
+        minZoom:14,
+        maxZoom:15,
+        attribution:"© ESP32 GPS (offline)"
       }).addTo(this.map);
     }
 
