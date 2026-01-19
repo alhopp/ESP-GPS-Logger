@@ -15,6 +15,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <LittleFS.h>
+#include <SD_MMC.h>
 
 #include "config_manager.h"
 #include "web/wifi_manager.h"
@@ -188,32 +189,26 @@ server.on("/service-worker.js", HTTP_GET, [&]{ server.send(204); });
 
 
 // ---------------------------------------------------------------------------
-// onNotFound – MUST be before serveStatic
+// Static tiles from SD card (FIRST)
+// ---------------------------------------------------------------------------
+server.serveStatic("/tiles", SD_MMC, "/tiles");
+
+// ---------------------------------------------------------------------------
+// Static assets from LittleFS
+// ---------------------------------------------------------------------------
+server.serveStatic("/", LittleFS, "/");
+
+// ---------------------------------------------------------------------------
+// onNotFound – MUST be LAST
 // ---------------------------------------------------------------------------
 server.onNotFound([&]{
-  String uri = server.uri();
-
-  // ---- Offline tiles (silent) ----
-  if (uri.startsWith("/tiles/")) {
-    if (LittleFS.exists(uri)) {
-      File f = LittleFS.open(uri, "r");
-      server.streamFile(f, "image/jpeg");
-      f.close();
-    } else {
-      server.send(204);   // silent success
-    }
-    return;
-  }
-
-  // ---- Everything else ----
-  server.send(204);
+  server.send(204);   
 });
 
 
-// ---------------------------------------------------------------------------
-// Static assets – MUST be last
-// ---------------------------------------------------------------------------
-server.serveStatic("/", LittleFS, "/");
+
+
+
 
 
   server.begin();

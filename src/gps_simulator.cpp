@@ -33,7 +33,7 @@ static uint32_t last_emit_ms=0, sim_ms=0, last_sat_step=0;
 static bool sim_initialised=false;
 static int  sat_count=0;
 
-static double lat=-32.014400, lon=115.850700;
+static double lat=-32.01372961, lon=115.8161796;
 static double heading_deg=0.0, speed_mps=STRAIGHT_KTS*KNOTS_TO_MPS;
 static double leg_distance=0.0;
 
