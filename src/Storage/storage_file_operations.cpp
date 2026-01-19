@@ -7,6 +7,8 @@
 #include <FS.h>
 
 #include "Storage/sbp.h"
+#include "Storage/geojson.h"
+
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"
 
@@ -29,7 +31,7 @@ static uint32_t last_sbp_iTOW=0;
 File ubxfile, sbpfile;
 
 // Filenames
-char filenameERR[128]="/", filenameUBX[128]="/", filenameSBP[128]="/";
+char filenameERR[128]="/", filenameUBX[128]="/", filenameSBP[128]="/", filenameGEO[128]="/";  
 
 // -----------------------------------------------------------------------------
 // Open logging files
@@ -50,10 +52,12 @@ void Open_files(void)
   snprintf(filenameERR,sizeof(filenameERR),"%s.txt",path);
   snprintf(filenameUBX,sizeof(filenameUBX),"%s.ubx",path);
   snprintf(filenameSBP,sizeof(filenameSBP),"%s.sbp",path);
+  snprintf(filenameGEO,sizeof(filenameGEO),"%s.geojson",path);
 
-  if(config.logUBX) ubxfile=SD_MMC.open(filenameUBX,FILE_APPEND);
+  if(config.logUBX)  ubxfile=SD_MMC.open(filenameUBX,FILE_APPEND);
   if(config.logSBP){ sbpfile=SD_MMC.open(filenameSBP,FILE_WRITE); if(sbpfile.size()==0) log_header_SBP(sbpfile); }
 
+  geojson_begin(filenameGEO);
 
   LOG_STORAGE("LOG","Session started %s",base);
 }
@@ -111,6 +115,10 @@ void Log_to_SD(void)
 // -----------------------------------------------------------------------------
 void Close_files(void)
 {
+
+  geojson_end();
+
   if(sbpfile){ sbpfile.flush(); sbpfile.close(); sbpfile=File(); LOG_STORAGE("SBP","Closed cleanly"); }
   if(ubxfile){ ubxfile.flush(); ubxfile.close(); ubxfile=File(); LOG_STORAGE("UBX","Closed cleanly"); }
+
 }

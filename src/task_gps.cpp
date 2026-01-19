@@ -12,6 +12,8 @@
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"
 
+#include "Storage/Geojson.h"
+
 #include "ESP_functions.h"
 #include "task_display.h"
 
@@ -50,6 +52,8 @@ void taskOne(void *parameter)
   static uint8_t  lastSV = 0;
   static uint32_t lastLogMs = 0;
   static uint32_t lastSpeedUpdateMs = 0;
+  static uint32_t lastGeoJSONms = 0;
+
 
   constexpr uint32_t LOG_INTERVAL_MS = 2000;
 
@@ -84,7 +88,29 @@ void taskOne(void *parameter)
     {
       // Core GPS state machine
       processGpsMessages(msg);
-      Log_to_SD();   // ← move logging HERE
+      Log_to_SD();   
+
+      // -----------------------------------------------------------------
+      // GeoJSON track logging (1 Hz max)
+      // -----------------------------------------------------------------
+      if (getMode() == MODE_LOGGING && GPS_Signal_OK)
+      {
+        const uint32_t now = millis();
+
+        // Write at most once per second
+        if (now - lastGeoJSONms >= 1000)
+        {
+          lastGeoJSONms = now;
+
+          geojson_add_point(
+            ubxMessage.navPvt.lat * 1e-7,
+            ubxMessage.navPvt.lon * 1e-7
+          );
+        }
+      }
+
+
+
       // ----------------------------------------------------------
       // Periodic debug logging
       // ----------------------------------------------------------

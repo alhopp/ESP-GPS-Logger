@@ -39,8 +39,11 @@ static bool isValidLogFile(const char* name)
   const char* ext = strrchr(name, '.');
   if (!ext) return false;
 
-  return !strcasecmp(ext, ".txt") || !strcasecmp(ext, ".sbp") || !strcasecmp(ext, ".ubx");}
-
+  return !strcasecmp(ext, ".txt")  ||
+         !strcasecmp(ext, ".sbp")  ||
+         !strcasecmp(ext, ".ubx")  ||
+         !strcasecmp(ext, ".geojson");
+}
 // -----------------------------------------------------------------------------
 // Endpoint registration
 // -----------------------------------------------------------------------------
@@ -94,8 +97,15 @@ void registerFileEndpoints(WebServer &server)
       return;
     }
 
-    const char* base = basenameOnly(server.arg("file").c_str());
-    if (!isValidLogFile(base)) {server.send(400);return; }
+    String file = server.arg("file");
+
+    // Strip cache-buster (?t=...)
+    int q = file.indexOf('?');
+    if (q >= 0) file = file.substring(0, q);
+
+    const char* base = basenameOnly(file.c_str());
+    if (!isValidLogFile(base)) { server.send(400); return; }
+
 
     char path[128];
     snprintf(path, sizeof(path), "/logs/%s", base);
@@ -109,7 +119,10 @@ void registerFileEndpoints(WebServer &server)
     }
 
     //   server.sendHeader("Cache-Control", "no-store");
-    server.streamFile(f, "application/octet-stream");
+    const char* mime = "application/octet-stream";
+    if (strstr(base, ".geojson")) mime = "application/geo+json";
+
+    server.streamFile(f, mime);
     f.close();
 
   });
