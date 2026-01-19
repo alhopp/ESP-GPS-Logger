@@ -92,10 +92,7 @@ void registerFileEndpoints(WebServer &server)
   // ---------------------------------------------------------------------------
   server.on("/api/download", HTTP_GET, [&] {
 
-    if (!sdOK || !server.hasArg("file")) {
-      server.send(400);
-      return;
-    }
+    if (!sdOK || !server.hasArg("file")) { server.send(400); return; }
 
     String file = server.arg("file");
 
@@ -106,25 +103,23 @@ void registerFileEndpoints(WebServer &server)
     const char* base = basenameOnly(file.c_str());
     if (!isValidLogFile(base)) { server.send(400); return; }
 
-
     char path[128];
     snprintf(path, sizeof(path), "/logs/%s", base);
 
-    if (!SD_MMC.exists(path)) {server.send(404); return;}
+    if (!SD_MMC.exists(path)) { server.send(404); return; }
 
     File f = SD_MMC.open(path, FILE_READ);
-    if (!f) {
-      server.send(500);
-      return;
-    }
+    if (!f) { server.send(500); return; }
 
-    //   server.sendHeader("Cache-Control", "no-store");
+    // ---- Force download (instead of inline open) ----
+    server.sendHeader("Content-Disposition", String("attachment; filename=\"") + base + "\"");
+    server.sendHeader("Cache-Control", "no-store");
+
     const char* mime = "application/octet-stream";
     if (strstr(base, ".geojson")) mime = "application/geo+json";
 
     server.streamFile(f, mime);
     f.close();
-
   });
 
   // ---------------------------------------------------------------------------
