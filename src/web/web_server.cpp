@@ -21,6 +21,10 @@
 #include "system_info.h"
 #include "Definitions.h"
 
+#include <esp_system.h>
+
+
+
 // -----------------------------------------------------------------------------
 // Server lifecycle guard
 // -----------------------------------------------------------------------------
@@ -118,7 +122,7 @@ void webserver_start(WebServer &server)
       if(j["logging"]["logTXT"] != nullptr) config.track_distance = j["logging"]["logTXT"];
       if(j["logging"]["logUBX"] != nullptr) config.logUBX = j["logging"]["logUBX"];
       if(j["logging"]["logSBP"] != nullptr) config.logSBP = j["logging"]["logSBP"];
-}
+    }
 
 
     if (j["stats"]) {

@@ -19,6 +19,7 @@
 #include "Definitions.h"
 
 #include "system_info.h"
+#include <esp_system.h>
 
 // -----------------------------------------------------------------------------
 // State / buffers
@@ -43,10 +44,24 @@ void Open_files(void)
   if(!SD_MMC.exists("/logs")) SD_MMC.mkdir("/logs");
   getLocalTime(&tmstruct);
 
+  uint64_t chipMac = 0;
+  esp_efuse_mac_get_default((uint8_t*)&chipMac);
+
+  // Extract last 3 bytes (NIC portion)
+  uint8_t mac3 = (chipMac >> 16) & 0xFF;
+  uint8_t mac4 = (chipMac >> 8)  & 0xFF;
+  uint8_t mac5 = (chipMac)       & 0xFF;
+
   char base[96], path[128];
-  snprintf(base,sizeof(base),"%s_%04d%02d%02d_%02d%02d_%02X%02X%02X",
-           config.UBXfile,tmstruct.tm_year+1900,tmstruct.tm_mon+1,tmstruct.tm_mday,
-           tmstruct.tm_hour,tmstruct.tm_min,mac[3],mac[4],mac[5]);
+  snprintf(base, sizeof(base),
+    "%02X%02X%02X_%04d%02d%02d_%02d%02d%02d",
+    mac3, mac4, mac5,
+    tmstruct.tm_year + 1900,
+    tmstruct.tm_mon  + 1,
+    tmstruct.tm_mday, tmstruct.tm_hour, tmstruct.tm_min, tmstruct.tm_sec
+  );
+
+
   snprintf(path,sizeof(path),"/logs/%s",base);
 
   snprintf(filenameERR,sizeof(filenameERR),"%s.txt",path);
