@@ -1,235 +1,226 @@
 // ============================================================================
 // MapView
-// ============================================================================
-console.log("[Map] leaflet L =", window.L);
+//
+// Responsibility:
+// - Owns the Leaflet map instance
+// - Manages exactly ONE visible track at a time
+
+// Running on PC / localhost (dev mode)
+
 
 
 window.MapView = {
-  map: null,
-  track: null,
+  map:null,       // Leaflet map instance
+  track:null,     // Currently loaded GeoJSON track layer
+  dot:null,       // Small dot marking last point of the track
+  _r:null,        // Shared Canvas renderer (faster than SVG / DOM)
 
- init(){
-  if(this.map){
-    this.map.invalidateSize(true);
-    return;
-  }
-
-  const el = document.getElementById("mapView");
-
- this.map = L.map(el,{
-  zoomControl:false,
-  attributionControl:true,
-  inertia:false,
-  preferCanvas: true
-});
-
-this._r = L.canvas({ padding:0.5 });
-
-// Proper dummy base layer (no network, works on iOS)
-const blank = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
-
-L.gridLayer({
-  attribution:"© ESP32 GPS",
-  tileSize:256,
-  createTile:(coords, done)=>{
-    const img=document.createElement("img");
-    img.width=256; img.height=256;
-    img.alt="";
-    img.src=blank;
-    img.onload=()=>done(null,img);
-    img.onerror=()=>done(null,img);
-    return img;
-  }
-}).addTo(this.map);
-
-
-
-
-
-setTimeout(()=>{
-  this.map.setView([-32.0,115.8],13);
-  this.map.invalidateSize(true);
-
-  // 🔑 START SESSIONS ONLY AFTER MAP EXISTS
-  if(window.MapSessions && !window.MapSessions._started){
-    window.MapSessions._started = true;
-    console.log("[Map] starting MapSessions");
-    window.MapSessions.init();
-  }
-
-}, 150);
-
-
-  console.log("[Map] init OK, size =", el.offsetWidth, el.offsetHeight);
-},
-
-
-loadGeoJSON(url){
-  console.log("[Map] loadGeoJSON called with:", url);
-  if(!this.map) return;
-
-  // 🔒 cancel previous layer
-  if(this.track){
-    this.map.removeLayer(this.track);
-    this.track = null;
-  }
-
-  fetch(url,{cache:"no-store"})
-    .then(r=>{
-      if(!r.ok) throw new Error("GeoJSON fetch failed");
-      return r.json();
-    })
-    .then(gj=>{
-      console.log("[Map] feature count", gj.features?.length);
-
-      this.track = L.geoJSON(gj,{
-        renderer: L.canvas({ padding: 0.5 }),
-        coordsToLatLng: c => L.latLng(c[1], c[0]),
-        style:{
-          color:"#ff3b30",
-          weight:5,
-          opacity:1
-        }
-      }).addTo(this.map);
-
-
-      this.track.bringToFront();
-
-      const b = this.track.getBounds();
-      if(b.isValid()){
-        this.map.fitBounds(b,{
-          padding:[30,30],
-          animate:false,
-          maxZoom:16
-        });
-
-        setTimeout(()=>{
-            this.map.invalidateSize(true);
-        }, 50);
-
-
-      }
-    })
-    .catch(e=>console.warn("[Map] GeoJSON failed", e));
-},
-
-
-
-  /* -------------------------------------------------------------------------
-  // Initialise map (idempotent)
   // -------------------------------------------------------------------------
+  // init()
+  // Creates the map ONCE.
+
   init(){
+    // Map already exists → just refresh layout
     if(this.map){
-      setTimeout(()=>this.map.invalidateSize(),0);
+      this.map.invalidateSize(true);
       return;
     }
 
-    this.map = L.map("mapView",{
-      zoomControl:false,
-      attributionControl:false,
-      inertia:false
-    }).setView([-32.0,115.8],13);
+    // DOM element that hosts the map
+    const el = document.getElementById("mapView");
 
-    // Solid background (never white)
-    this.map.createPane("bg");
-    const bg = this.map.getPane("bg");
-    bg.style.background = "#dbdbee";
-    bg.style.zIndex = 200;
+    // Create Leaflet map with ESP / mobile-friendly options
+    this.map = L.map(el,{
+      zoomControl:false,        // no +/- buttons
+      attributionControl:true,  // keep attribution text
+      inertia:false,            // predictable movement on touch
+      preferCanvas:true         // force Canvas over SVG
+    });
 
-    // Online tiles (PC dev)
-    if(window.IS_LOCAL){
+    // Create ONE canvas renderer reused by all vector layers
+    // This avoids multiple canvas contexts and improves performance
+    this._r = L.canvas({ padding:0.5 });
+
+    // -----------------------------------------------------------------------
+    // Base layer selection
+    //
+    // PC (IS_LOCAL):
+    //   - Online satellite imagery (Esri / SRI-style)
+    //   - Used for development, debugging, UX tuning
+    //
+    // ESP32:
+    //   - Dummy transparent tiles
+    //   - Prevents white flash + avoids network requests
+    // -----------------------------------------------------------------------
+    if(IS_LOCAL){
+
+      // PC DEV: Esri World Imagery (satellite)
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/" +
         "World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom:19, crossOrigin:true }
+        {
+          maxZoom:12,
+          attribution:"© Esri"
+        }
       ).addTo(this.map);
-      return;
+
+    }else{
+
+      // ESP: transparent dummy tiles (offline-safe)
+      const blank =
+        "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
+      L.gridLayer({
+        attribution:"© ESP32 GPS",
+        tileSize:256,
+        createTile:(c,d)=>{
+          const i=document.createElement("img");
+          i.width=i.height=256;
+          i.src=blank;
+          i.onload = ()=>d(null,i);
+          i.onerror= ()=>d(null,i);
+          return i;
+        }
+      }).addTo(this.map);
     }
 
-    // Offline tiles (ESP)
-    const offline = L.tileLayer("/tiles/{z}/{x}/{y}.jpg",{
-      minZoom:10,
-      maxZoom:18,
-      noWrap:true,
-      errorTileUrl:
-        "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
-      updateWhenIdle:true,
-      keepBuffer:0,
-      reuseTiles:true,
-      opacity:0.001
-    });
 
-    offline.addTo(this.map);
+        // -----------------------------------------------------------------------
+        // Initial view
+        //
+        // This is only a placeholder.
+        // Once a track loads, fitBounds() will override this.
+        // Timeout ensures DOM + CSS layout is stable.
+        // -----------------------------------------------------------------------
+        setTimeout(()=>{
+          this.map.setView([-32.0,115.8],13);
+          this.map.invalidateSize(true);
 
-    this.map.getPane("tilePane").style.zIndex = 300;
-    this.map.getPane("overlayPane").style.zIndex = 400;
+          // Start session browser only AFTER map exists
+          if(window.MapSessions && !window.MapSessions._started){
+            window.MapSessions._started = true;
+            console.log("[Map] starting MapSessions");
+            window.MapSessions.init();
+          }
+        },150);
+
+        console.log("[Map] init OK, size =", el.offsetWidth, el.offsetHeight);
+      },
+
+  // -------------------------------------------------------------------------
+  // loadGeoJSON(url)
+  //
+  // Loads a single GeoJSON file and renders:
+  // - the track polyline
+  //
+  // Only ONE track is ever active at a time.
+  // -------------------------------------------------------------------------
+  loadGeoJSON(url){
+    if(!this.map) return;
+
+    // Remove previously displayed layers
+    if(this.track){
+      this.map.removeLayer(this.track);
+      this.track = null;
+    }
+
+    // Fetch GeoJSON directly from ESP
+    fetch(url,{cache:"no-store"})
+      .then(r=>{
+        if(!r.ok) throw Error("GeoJSON fetch failed");
+        return r.json();
+      })
+      .then(gj=>{
+        console.log("[Map] feature count", gj.features?.length);
+
+        // ---------------------------------------------------------------
+        // Track polyline
+        //
+        // Important detail:
+        // - GPS GeoJSON coordinates are [lon, lat]
+        // - Leaflet expects [lat, lon]
+        // ---------------------------------------------------------------
+        this.track = L.geoJSON(gj,{
+          renderer:this._r,
+          coordsToLatLng:c=>L.latLng(c[1],c[0]),
+          style:{
+            color:"#ff3b30",
+            weight:5,
+            opacity:1
+          }
+        }).addTo(this.map);
+
+        // Ensure track renders above base layer
+        this.track.bringToFront();
+
+        // ---------------------------------------------------------------
+        // Fit map to track bounds
+        //
+        // - Padding prevents UI overlap
+        // - maxZoom avoids extreme zoom on short tracks
+        // ---------------------------------------------------------------
+        const b = this.track.getBounds();
+        if(b.isValid()){
+          this.map.fitBounds(b,{
+            padding:[30,30],
+            animate:false,
+            maxZoom:16
+          });
+
+          // iOS sometimes needs a second layout pass
+          setTimeout(()=>this.map.invalidateSize(true),50);
+        }
+     })
+      .catch(e=>console.warn("[Map] GeoJSON failed", e));
   },
 
-  */
-
-  /* -------------------------------------------------------------------------
-  // Load a GeoJSON track (single active session)
   // -------------------------------------------------------------------------
-
-
-
-  loadGeoJSON(url){
-  if(!this.map) return;
-
-  if(this.track){
-    this.map.removeLayer(this.track);
-    this.track = null;
-  }
-
-  fetch(url,{cache:"no-store"})
-    .then(r=>r.json())
-    .then(gj=>{
-      this.track = L.geoJSON(gj,{
-        // 🔑 GPS GeoJSON is [lon, lat]
-        coordsToLatLng: c => L.latLng(c[1], c[0]),
-        style:{ color:"#ff3b30", weight:3 }
-      }).addTo(this.map);
-
-      const b = this.track.getBounds();
-      if(b.isValid()){
-        this.map.fitBounds(b,{
-          padding:[20,20],
-          animate:false,
-          maxZoom:17   // prevents over-zoom on short tracks
-        });
-      }
-    })
-    .catch(e=>console.warn("GeoJSON load failed", e));
-},
-
-*/
-
+  // clear()
+  //
+  // Removes all dynamic map content.
+  // Used when switching sessions.
+  // -------------------------------------------------------------------------
   clear(){
     if(this.track){
       this.map.removeLayer(this.track);
       this.track = null;
     }
+    if(this.dot){
+      this.map.removeLayer(this.dot);
+      this.dot = null;
+    }
   }
 };
 
 
-
 // ============================================================================
-// MapSessions (session browser + swipe control)
+// MapSessions
+//
+// Responsibility:
+// - Fetch available GeoJSON session files from ESP
+// - Maintain a current index
+// - Allow swipe-based navigation between sessions
 // ============================================================================
 
 window.MapSessions = {
-  files: [],
-  index: 0,
+  files:[],          // list of GeoJSON files
+  index:0,           // currently selected file index
+  _started:false,    // guard to prevent double init
 
+  // -------------------------------------------------------------------------
+  // init()
+  //
+  // Fetches file list and prepares first session.
+  // -------------------------------------------------------------------------
   async init(){
-     console.log("[MapSessions] init()");
+    console.log("[MapSessions] init()");
     const r = await fetch("/api/files",{cache:"no-store"});
     const j = await r.json();
     if(!j.ok) return;
 
+    // Only keep GeoJSON sessions, newest first
     this.files = j.files
-      .filter(f => f.name.endsWith(".geojson"))
+      .filter(f=>f.name.endsWith(".geojson"))
       .sort((a,b)=>b.name.localeCompare(a.name));
 
     if(!this.files.length) return;
@@ -239,29 +230,34 @@ window.MapSessions = {
     this.bindGestures();
   },
 
+  // -------------------------------------------------------------------------
+  // loadCurrent()
+  //
+  // Loads the GeoJSON file at current index
+  // -------------------------------------------------------------------------
   loadCurrent(){
     const f = this.files[this.index];
     if(!f) return;
 
-    document.getElementById("sessionTitle").textContent =
-      `Session ${this.index+1} of ${this.files.length}`;
+   const total = this.files.length;
+    const logical = total - this.index;
 
-    document.getElementById("sessionMeta").textContent =
-      f.name.replace(".geojson","");
+    $("sessionTitle").textContent = `Session ${logical} of ${total}`;
+    $("sessionMeta").textContent = f.name.replace(".geojson","");
 
     MapView.clear();
-    MapView.loadGeoJSON(
-      `/api/download?file=${encodeURIComponent(f.name)}`
-    );
+    MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}` );
   },
 
+  // Move backward in time
   prev(){
-    if(this.index < this.files.length - 1){
+    if(this.index < this.files.length-1){
       this.index++;
       this.loadCurrent();
     }
   },
 
+  // Move forward in time
   next(){
     if(this.index > 0){
       this.index--;
@@ -269,22 +265,30 @@ window.MapSessions = {
     }
   },
 
+  // -------------------------------------------------------------------------
+  // bindGestures()
+  //
+  // Horizontal swipe gesture:
+  // - swipe left  → older session
+  // - swipe right → newer session
+  //
+  // Threshold prevents accidental triggers.
+  // -------------------------------------------------------------------------
   bindGestures(){
-    const card = document.getElementById("sessionCard");
-    let x0 = 0, dx = 0, active = false;
+    const card = $("sessionCard");
+    let x0=0, dx=0, active=false;
 
-    card.addEventListener("touchstart", e=>{
+    card.addEventListener("touchstart",e=>{
       x0 = e.touches[0].clientX;
       dx = 0;
       active = true;
     },{passive:true});
 
-    card.addEventListener("touchmove", e=>{
-      if(!active) return;
-      dx = e.touches[0].clientX - x0;
+    card.addEventListener("touchmove",e=>{
+      if(active) dx = e.touches[0].clientX - x0;
     },{passive:true});
 
-    card.addEventListener("touchend", ()=>{
+    card.addEventListener("touchend",()=>{
       active = false;
       if(dx < -40) this.prev();
       else if(dx > 40) this.next();
