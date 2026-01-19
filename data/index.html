@@ -17,11 +17,12 @@
 <header>ESP32 GPS</header>
 
 <nav>
-  <button class="a" onclick="tab('files',this)">Files</button>
+  <button class="a" onclick="tab('map',this)">Map</button>
+  <button onclick="tab('files',this)">Files</button>
   <button onclick="tab('settings',this)">Settings</button>
-  <button onclick="tab('map',this)">Map</button>
   <button onclick="tab('system',this)">System</button>
 </nav>
+
 
 <!-- ================= FILES ================= -->
 <section id="files" class="a">
@@ -72,8 +73,7 @@
 </section>
 
 <!-- ================= MAP ================= -->
-<!-- ================= MAP ================= -->
-<section id="map">
+<section id="map" class="a">
 
   <div class="card map-card" style="padding:0">
     <div id="mapView"></div>

@@ -163,6 +163,12 @@ addEventListener("load", async ()=>{
 
   await loadConfig(els);
 
+  // Activate default tab (Map) on first load
+  const mapBtn = document.querySelector("nav button");
+  if(mapBtn) tab("map", mapBtn);
+
+
+
   // ---------------------------------------------------------------------------
   // Splash: fade out + remove
   // ---------------------------------------------------------------------------
