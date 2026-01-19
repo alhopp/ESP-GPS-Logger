@@ -4,7 +4,6 @@
 // Responsibility:
 // - Owns the Leaflet map instance
 // - Manages exactly ONE visible track at a time
-
 // Running on PC / localhost (dev mode)
 
 
@@ -30,12 +29,15 @@ window.MapView = {
     const el = document.getElementById("mapView");
 
     // Create Leaflet map with ESP / mobile-friendly options
-    this.map = L.map(el,{
-      zoomControl:false,        // no +/- buttons
-      attributionControl:true,  // keep attribution text
-      inertia:false,            // predictable movement on touch
-      preferCanvas:true         // force Canvas over SVG
+      this.map = L.map(el,{
+      zoomControl:false,
+      attributionControl:true,
+      inertia:false,
+      preferCanvas:true,
+      minZoom:14,
+      maxZoom:15
     });
+
 
     // Create ONE canvas renderer reused by all vector layers
     // This avoids multiple canvas contexts and improves performance
@@ -59,7 +61,7 @@ window.MapView = {
         "https://server.arcgisonline.com/ArcGIS/rest/services/" +
         "World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
-          maxZoom:12,
+          maxZoom:15,
           attribution:"© Esri"
         }
       ).addTo(this.map);
@@ -114,7 +116,8 @@ window.MapView = {
         // Timeout ensures DOM + CSS layout is stable.
         // -----------------------------------------------------------------------
         setTimeout(()=>{
-          this.map.setView([-32.0,115.8],13);
+          this.map.setView([0,0],14);   // neutral placeholder
+
           this.map.invalidateSize(true);
 
           // Start session browser only AFTER map exists
@@ -127,6 +130,24 @@ window.MapView = {
 
         console.log("[Map] init OK, size =", el.offsetWidth, el.offsetHeight);
       },
+
+
+           zoomToLayer(layer){
+          if(!layer) return;
+
+          const b = layer.getBounds();
+          if(!b.isValid()) return;
+
+          this.map.fitBounds(b,{
+            padding:[30,30],
+            animate:false
+          });
+
+          // Clamp zoom AFTER fitBounds (critical)
+          const z = this.map.getZoom();
+          if(z > this.map.options.maxZoom) this.map.setZoom(this.map.options.maxZoom);
+          if(z < this.map.options.minZoom) this.map.setZoom(this.map.options.minZoom);
+        },
 
   // -------------------------------------------------------------------------
   // loadGeoJSON(url)
@@ -180,17 +201,10 @@ window.MapView = {
         // - Padding prevents UI overlap
         // - maxZoom avoids extreme zoom on short tracks
         // ---------------------------------------------------------------
-        const b = this.track.getBounds();
-        if(b.isValid()){
-          this.map.fitBounds(b,{
-            padding:[30,30],
-            animate:false,
-            maxZoom:16
-          });
+      this.zoomToLayer(this.track);
+      setTimeout(()=>this.map.invalidateSize(true),50);
 
-          // iOS sometimes needs a second layout pass
-          setTimeout(()=>this.map.invalidateSize(true),50);
-        }
+
      })
       .catch(e=>console.warn("[Map] GeoJSON failed", e));
   },
