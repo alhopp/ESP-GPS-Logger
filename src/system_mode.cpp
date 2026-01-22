@@ -26,6 +26,8 @@
 
 #include "system_mode.h"
 #include "web/wifi_manager.h"
+#include "web/web_server.h"
+
 #include "gps_manager.h"
 #include "Display/screen_system.h"
 
@@ -43,7 +45,6 @@
 // Single source of truth for system mode.
 // Volatile because it is read by multiple tasks.
 static volatile SystemMode currentMode = MODE_BOOT;
-
 
 // -----------------------------------------------------------------------------
 // PUBLIC API
@@ -63,7 +64,7 @@ const char* modeToString(SystemMode mode)
     case MODE_BOOT:          return "BOOT";
     case MODE_IDLE:          return "IDLE";
     case MODE_WAIT_SATS:     return "WAIT_SATS";
-    case MODE_WIFI_SOFT_AP:  return "WIFI_SOFT_AP";
+    case MODE_CONFIG:        return "CONFIG";
     case MODE_LOGGING:       return "LOGGING";
     case MODE_SLEEP:         return "SLEEP";
     default:                 return "?";
@@ -76,11 +77,12 @@ const char* modeToString(SystemMode mode)
 // -----------------------------------------------------------------------------
 void systemModeLoop()
 {
-  // Only CONFIG mode has a live event loop
-  if (getMode() == MODE_WIFI_SOFT_AP) {
-    wifi_loop();
+  if (getMode() == MODE_CONFIG) {
+    wifi_loop();        // Wi-Fi retries
+    webserver_loop();   // HTTP servicing
   }
 }
+
 
 
 // -----------------------------------------------------------------------------
@@ -101,44 +103,37 @@ void setMode(SystemMode newMode)
           modeToString(currentMode),
           modeToString(newMode));
 
-  // ---------------------------------------------------------------------------
-  // EXIT actions (based on OLD mode)
-  //
-  // IMPORTANT:
-  // - These actions complete BEFORE the state commit
-  // - They are allowed to assume the OLD mode is still active
-  // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // EXIT actions (based on OLD mode)
+    //
+    // IMPORTANT:
+    // - These actions complete BEFORE the state commit
+    // - They are allowed to assume the OLD mode is still active
+    // ---------------------------------------------------------------------------
   switch (currentMode) {
 
     case MODE_LOGGING:
-      // Signal all storage writers to stop immediately
       storage_shutting_down = true;
-
-      // Allow in-flight SD writes to drain safely
       vTaskDelay(pdMS_TO_TICKS(20));
-
-      // Close files first, then unmount storage
       Close_files();
       storage_off();
       break;
 
-    case MODE_WIFI_SOFT_AP:
-      // Configuration mode exit:
-      // stop SD activity, then shut down Wi-Fi
-      storage_shutting_down = true;
-      wifi_stop();
-      storage_off();
+    case MODE_CONFIG:
+      LOG_SYS("MODE", "EXIT CONFIG");
+
+      wifi_stop();          // stop STA + web
+      storage_off();        // unmount SD
       break;
 
     case MODE_SLEEP:
-      // Waking from sleep — hardware re-enable happens in ENTER
-      LOG_SYS("MODE", "EXIT SLEEP → power up");
+      LOG_SYS("MODE", "EXIT SLEEP");
       break;
 
     case MODE_BOOT:
     default:
       break;
-  }
+}
 
   // ---------------------------------------------------------------------------
   // STATE COMMIT
@@ -159,54 +154,53 @@ void setMode(SystemMode newMode)
   // ---------------------------------------------------------------------------
   switch (currentMode) {
 
-    case MODE_LOGGING:
-      LOG_SYS("MODE", "ENTER LOGGING → Wi-Fi OFF");
+  case MODE_LOGGING:
+    LOG_SYS("MODE", "ENTER LOGGING → Wi-Fi OFF");
 
-      storage_shutting_down = false;
+    storage_shutting_down = false;
 
-      wifi_stop();
-      gps_power_on();
+    wifi_stop();
+    gps_power_on();
 
-      // Storage must be mounted BEFORE any files are opened
-      if (!storage_on()) {
-        LOG_ERROR("SD", "storage_on failed → abort logging");
-        break;
-      }
-
-      Open_files();   // session files start here
+    if (!storage_on()) {
+      LOG_ERROR("SD", "storage_on failed → abort logging");
       break;
+    }
 
-    case MODE_WIFI_SOFT_AP:
+    Open_files();
+  break;
+  
+  case MODE_CONFIG:
       storage_shutting_down = false;
 
       Serial.begin(115200);
       vTaskDelay(pdMS_TO_TICKS(10));
 
-      LOG_SYS("MODE", "ENTER WIFI_SOFT_AP (CONFIG)");
+      LOG_SYS("MODE", "ENTER CONFIG");
 
       gps_power_off();
 
-      // SD is optional but preferred for file manager access
       if (!storage_on()) {
         LOG_ERROR("SD", "storage_on failed in CONFIG");
-        // System continues using LittleFS only
       }
 
-      wifi_start_ap();
-      break;
+      wifi_init();                
+      webserver_start();  
 
-    case MODE_SLEEP:
-      LOG_SYS("MODE", "ENTER SLEEP");
+  break;
 
-      wifi_stop();
-      gps_power_off();
 
-      // Final defensive unmount before deep sleep
-      storage_off();
-      break;
+  case MODE_SLEEP:
+    LOG_SYS("MODE", "ENTER SLEEP");
 
-    case MODE_BOOT:
-    default:
-      break;
-  }
+    wifi_stop();
+    gps_power_off();
+    storage_off();
+    break;
+
+  case MODE_BOOT:
+  default:
+    break;
+}
+
 }

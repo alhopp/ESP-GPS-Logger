@@ -118,7 +118,7 @@ void magnet_poll()
   // ---------------------------------------------------------------------------
   if (active && !longHandled && (now - pressTime >= WIFI_HOLD_MS)) {
     longHandled = true;
-    if (getMode() == MODE_IDLE) setMode(MODE_WIFI_SOFT_AP);
+    if (getMode() == MODE_IDLE) setMode(MODE_CONFIG);
   }
 
   // Release → short press action or config exit
@@ -136,7 +136,7 @@ if (!active && prevActive && !longHandled) {
                 setMode(MODE_SLEEP);       // stop logging
                 break;
 
-            case MODE_WIFI_SOFT_AP:
+            case MODE_CONFIG:
                 setMode(MODE_IDLE);        // exit config mode
                 break;
 

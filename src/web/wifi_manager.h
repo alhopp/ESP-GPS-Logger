@@ -1,52 +1,26 @@
 #pragma once
 
 #include <Arduino.h>
-#include <webserver.h>
-// -----------------------------------------------------------------------------
-// Wi-Fi lifecycle
-// -----------------------------------------------------------------------------
 
-// Decide initial Wi-Fi mode at boot (HOME or FIELD_CONFIG)
-void initWifi();
+// ============================================================================
+// Wi-Fi lifecycle (STA-only)
+// ============================================================================
 
-// Start Wi-Fi in STA (HOME) mode
-void wifi_start_sta();
+// Initialise Wi-Fi at boot (STA-only)
+void wifi_init();
 
-// Start Wi-Fi in AP (FIELD_CONFIG) mode
-void wifi_start_ap();
-
-// Stop all Wi-Fi activity
+// Stop Wi-Fi completely
 void wifi_stop();
 
-// Service Wi-Fi / web server loop
+// Service web / Wi-Fi loop
 void wifi_loop();
 
-// Factory reset Wi-Fi credentials
-void wifi_factory_reset();
+void webserver_start();
 
-// -----------------------------------------------------------------------------
-// Wi-Fi configuration
-// -----------------------------------------------------------------------------
+// ============================================================================
+// STA status helpers
+// ============================================================================
 
-// Update stored HOME Wi-Fi credentials
-// (persistence handled internally)
-void wifi_set_credentials(const String& ssid, const String& pass);
-
-// Return AP SSID (for display / QR / UI)
-const char* wifi_ap_name();
-
-bool   wifi_is_ap_mode();
-
-// -----------------------------------------------------------------------------
-// Saved Wi-Fi credentials access (for Web UI autofill)
-// -----------------------------------------------------------------------------
-
-bool   wifi_has_credentials();
-String wifi_get_saved_ssid();
-String wifi_get_saved_pass();
-
-
-// ---- STA status helpers (read-only) ----
 bool   wifi_sta_connected();
 String wifi_sta_ssid();
 String wifi_sta_ip();

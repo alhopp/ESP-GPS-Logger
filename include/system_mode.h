@@ -28,7 +28,7 @@ enum SystemMode {
   
   MODE_WAIT_SATS,
 
-  MODE_WIFI_SOFT_AP,    
+  MODE_CONFIG,    
 
   MODE_LOGGING,
   MODE_SLEEP,

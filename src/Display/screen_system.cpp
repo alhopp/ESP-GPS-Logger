@@ -109,8 +109,8 @@ void draw_WIFI_SOFT_AP()
   // ESP32 SoftAP details
   static char wifiLine[48]; static char ipLine[32];
 
-  snprintf(wifiLine, sizeof(wifiLine),        "WiFi: %s", wifi_ap_name());
-  snprintf(ipLine,   sizeof(ipLine),          "IP: %s", WiFi.softAPIP().toString().c_str());
+  //snprintf(wifiLine, sizeof(wifiLine),        "WiFi: %s", wifi_ap_name());
+  //snprintf(ipLine,   sizeof(ipLine),          "IP: %s", WiFi.softAPIP().toString().c_str());
 
   drawCenteredText(wifiLine,                  Layout::ROW9(4), Fonts::Body9);
   drawCenteredText(ipLine,                    Layout::ROW9(5), Fonts::Body9);

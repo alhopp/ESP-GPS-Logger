@@ -5,9 +5,9 @@
 // -----------------------------------------------------------------------------
 // Web server lifecycle
 // -----------------------------------------------------------------------------
-
 void webserver_start(WebServer &server);
 void webserver_stop();
+void webserver_loop();
 
 
 

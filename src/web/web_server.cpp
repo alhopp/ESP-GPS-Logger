@@ -1,11 +1,11 @@
 // ============================================================================
 // web_server.cpp
-// HTTP server wiring for ESP32 GPS Logger (CONFIG / SoftAP only)
+// HTTP server wiring for ESP32 GPS Logger (STA-only)
 //
 // - Serves SPA UI from LittleFS
-// - Exposes JSON APIs (config, Wi-Fi, system)
-// - Delegates SD/log file handling to web_files.cpp
-// - Guarded against double start; never runs in LOGGING mode
+// - Exposes JSON APIs (config, system, net status)
+// - Serves SD logs + offline tiles
+// - Requires Wi-Fi STA already connected
 // ============================================================================
 
 #include "web/web_server.h"
@@ -18,47 +18,47 @@
 #include <SD_MMC.h>
 
 #include "config_manager.h"
-#include "web/wifi_manager.h"
 #include "system_info.h"
 #include "Definitions.h"
 
 #include <esp_system.h>
 
-
-
 // -----------------------------------------------------------------------------
 // Server lifecycle guard
 // -----------------------------------------------------------------------------
-static bool webStarted=false;
+static WebServer server(80);   
+static bool webStarted = false;
 
 // -----------------------------------------------------------------------------
-// JSON send helper (consistent response formatting)
+// JSON send helper
 // -----------------------------------------------------------------------------
-static void sendJson(WebServer &s,JsonDocument &doc){
-  String out; serializeJson(doc,out);
-  s.send(200,"application/json",out);
+static void sendJson(WebServer &s, JsonDocument &doc)
+{
+  String out;
+  serializeJson(doc, out);
+  s.send(200, "application/json", out);
 }
 
 // -----------------------------------------------------------------------------
-// Start HTTP server (CONFIG / SoftAP mode only)
+// Start HTTP server (STA-only)
 // -----------------------------------------------------------------------------
-void webserver_start(WebServer &server)
+void webserver_start()
 {
-  if(webStarted) return;
+  if (webStarted) return;
 
   // ---------------------------------------------------------------------------
-  // GET /api/config → populate SPA on load
-  // - config      : persisted user config (LittleFS)
-  // - systemInfo  : compile-time / runtime system facts
+  // GET /api/config
   // ---------------------------------------------------------------------------
   server.on("/api/config", HTTP_GET, [&] {
-    DynamicJsonDocument j(3072);   // 👈 small safety margin
+    DynamicJsonDocument j(3072);
 
-    // ---------------- Wi-Fi ----------------
+    // ---- Wi-Fi (read-only) ----
     JsonObject wifi = j.createNestedObject("wifi");
-    wifi["ssid"] = wifi_get_saved_ssid();
+    wifi["connected"] = WiFi.status() == WL_CONNECTED;
+    wifi["ssid"]      = WiFi.SSID();
+    wifi["ip"]        = WiFi.localIP().toString();
 
-    // ---------------- System (static / runtime) ----------------
+    // ---- System info ----
     JsonObject system = j.createNestedObject("system");
     system["gnss_module"]      = systemInfo.gnss_module;
     system["gnss_mode"]        = systemInfo.gnss_mode;
@@ -71,96 +71,77 @@ void webserver_start(WebServer &server)
     system["speed_units"]      = systemInfo.speed_units;
     system["cal_speed"]        = systemInfo.cal_speed;
 
-    // ---------------- Config (user editable) ----------------
-    JsonObject configJ         = j.createNestedObject("config");
-    configJ["timezone"]        = config.timezone;
-    configJ["timezone_DST"]    = config.timezone_DST;
-
-    JsonObject gps = j.createNestedObject("gps");
+    // ---- User config ----
+    JsonObject configJ = j.createNestedObject("config");
+    configJ["timezone"]     = config.timezone;
+    configJ["timezone_DST"] = config.timezone_DST;
 
     JsonObject power = j.createNestedObject("power");
     power["cal_bat"] = config.cal_bat;
 
     JsonObject logging = j.createNestedObject("logging");
-    logging["logTXT"]          = config.track_distance;
-    logging["logUBX"]          = config.logUBX;
-    logging["logSBP"]          = config.logSBP;
-
+    logging["logTXT"] = config.track_distance;
+    logging["logUBX"] = config.logUBX;
+    logging["logSBP"] = config.logSBP;
 
     JsonObject ui = j.createNestedObject("ui");
-    ui["bar_length"]           = config.bar_length;
-    ui["Sleep_info"]           = config.Sleep_info;
+    ui["bar_length"] = config.bar_length;
+    ui["Sleep_info"] = config.Sleep_info;
 
-    // ---------------- Performance screens ----------------
     JsonObject stats = j.createNestedObject("stats");
-    stats["s2"]                = config.stat_2s;
-    stats["s10"]               = config.stat_10s;
-    stats["alpha"]             = config.stat_alpha;
-    stats["nm"]                = config.stat_nm;
-    stats["h1"]                = config.stat_1h;
-    stats["distance"]          = config.stat_distance;
+    stats["s2"]       = config.stat_2s;
+    stats["s10"]      = config.stat_10s;
+    stats["alpha"]    = config.stat_alpha;
+    stats["nm"]       = config.stat_nm;
+    stats["h1"]       = config.stat_1h;
+    stats["distance"] = config.stat_distance;
 
     sendJson(server, j);
   });
 
-
   // ---------------------------------------------------------------------------
-  // POST /api/config → partial config updates from UI
+  // POST /api/config
   // ---------------------------------------------------------------------------
-  server.on("/api/config",HTTP_POST,[&]{
+  server.on("/api/config", HTTP_POST, [&] {
     DynamicJsonDocument j(2048);
-    if(deserializeJson(j,server.arg("plain"))){
-      server.send(400,"text/plain","Bad JSON"); return;
+    if (deserializeJson(j, server.arg("plain"))) {
+      server.send(400, "text/plain", "Bad JSON");
+      return;
     }
 
-    if(j["wifi"]["ssid"]){
-      String ssid=j["wifi"]["ssid"].as<const char*>(), pass;
-      if(j["wifi"]["password"]) pass=j["wifi"]["password"].as<const char*>();
-      wifi_set_credentials(ssid,pass);
+    if (j["logging"]) {
+      if (j["logging"]["logTXT"] != nullptr) config.track_distance = j["logging"]["logTXT"];
+      if (j["logging"]["logUBX"] != nullptr) config.logUBX = j["logging"]["logUBX"];
+      if (j["logging"]["logSBP"] != nullptr) config.logSBP = j["logging"]["logSBP"];
     }
-
-   if(j["logging"]){
-      if(j["logging"]["logTXT"] != nullptr) config.track_distance = j["logging"]["logTXT"];
-      if(j["logging"]["logUBX"] != nullptr) config.logUBX = j["logging"]["logUBX"];
-      if(j["logging"]["logSBP"] != nullptr) config.logSBP = j["logging"]["logSBP"];
-    }
-
 
     if (j["stats"]) {
-      if (j["stats"]["s2"]        != nullptr) config.stat_2s        = j["stats"]["s2"];
-      if (j["stats"]["s10"]       != nullptr) config.stat_10s       = j["stats"]["s10"];
-      if (j["stats"]["alpha"]     != nullptr) config.stat_alpha     = j["stats"]["alpha"];
-      if (j["stats"]["nm"]        != nullptr) config.stat_nm        = j["stats"]["nm"];
-      if (j["stats"]["h1"]        != nullptr) config.stat_1h        = j["stats"]["h1"];
-      if (j["stats"]["distance"]  != nullptr) config.stat_distance  = j["stats"]["distance"];
+      if (j["stats"]["s2"] != nullptr)       config.stat_2s = j["stats"]["s2"];
+      if (j["stats"]["s10"] != nullptr)      config.stat_10s = j["stats"]["s10"];
+      if (j["stats"]["alpha"] != nullptr)    config.stat_alpha = j["stats"]["alpha"];
+      if (j["stats"]["nm"] != nullptr)       config.stat_nm = j["stats"]["nm"];
+      if (j["stats"]["h1"] != nullptr)       config.stat_1h = j["stats"]["h1"];
+      if (j["stats"]["distance"] != nullptr) config.stat_distance = j["stats"]["distance"];
     }
 
     if (j["ui"]["Sleep_info"] != nullptr)
-      strlcpy(config.Sleep_info,j["ui"]["Sleep_info"].as<const char*>(),sizeof(config.Sleep_info));
+      strlcpy(config.Sleep_info,
+              j["ui"]["Sleep_info"].as<const char*>(),
+              sizeof(config.Sleep_info));
 
     saveConfig();
-    server.send(200,"text/plain","OK");
+    server.send(200, "text/plain", "OK");
   });
 
   // ---------------------------------------------------------------------------
-  // GET /api/netstatus → lightweight Wi-Fi polling
+  // GET /api/netstatus
   // ---------------------------------------------------------------------------
-  server.on("/api/netstatus",HTTP_GET,[&]{
+  server.on("/api/netstatus", HTTP_GET, [&] {
     StaticJsonDocument<256> j;
-    j["sta"]=wifi_sta_connected();
-    if(wifi_sta_connected()){
-      j["ssid"]=wifi_sta_ssid();
-      j["ip"]  =wifi_sta_ip();
-    }
-    sendJson(server,j);
-  });
-
-  // ---------------------------------------------------------------------------
-  // POST /api/wifi/connect → trigger STA connection
-  // ---------------------------------------------------------------------------
-  server.on("/api/wifi/connect",HTTP_POST,[&]{
-    server.send(200,"text/plain","OK");
-    delay(50); wifi_start_sta();
+    j["connected"] = WiFi.status() == WL_CONNECTED;
+    j["ssid"]      = WiFi.SSID();
+    j["ip"]        = WiFi.localIP().toString();
+    sendJson(server, j);
   });
 
   // ---------------------------------------------------------------------------
@@ -169,62 +150,52 @@ void webserver_start(WebServer &server)
   registerFileEndpoints(server);
 
   // ---------------------------------------------------------------------------
-  // Root page (explicit index.html)
+  // Root UI
   // ---------------------------------------------------------------------------
-  server.on("/",HTTP_GET,[&]{
-    File f=LittleFS.open("/index.html","r");
-    if(!f){ server.send(404,"text/plain","index.html missing"); return; }
-    server.streamFile(f,"text/html"); f.close();
+  server.on("/", HTTP_GET, [&] {
+    File f = LittleFS.open("/index.html", "r");
+    if (!f) {
+      server.send(404, "text/plain", "index.html missing");
+      return;
+    }
+    server.streamFile(f, "text/html");
+    f.close();
   });
 
-// ---------------------------------------------------------------------------
-// Browser noise suppression (optional)
-// ---------------------------------------------------------------------------
-server.on("/favicon.ico", HTTP_GET, [&]{ server.send(204); });
-server.on("/apple-touch-icon.png", HTTP_GET, [&]{ server.send(204); });
-server.on("/apple-touch-icon-precomposed.png", HTTP_GET, [&]{ server.send(204); });
-server.on("/manifest.json", HTTP_GET, [&]{ server.send(204); });
-server.on("/robots.txt", HTTP_GET, [&]{ server.send(204); });
-server.on("/service-worker.js", HTTP_GET, [&]{ server.send(204); });
+  // ---------------------------------------------------------------------------
+  // Noise suppression
+  // ---------------------------------------------------------------------------
+  server.on("/favicon.ico", HTTP_GET, [&]{ server.send(204); });
+  server.on("/apple-touch-icon.png", HTTP_GET, [&]{ server.send(204); });
+  server.on("/apple-touch-icon-precomposed.png", HTTP_GET, [&]{ server.send(204); });
 
+  // ---------------------------------------------------------------------------
+  // Static assets (LittleFS)
+  // ---------------------------------------------------------------------------
+  server.serveStatic("/", LittleFS, "/");
 
-// ---------------------------------------------------------------------------
-// Static tiles from SD card (FIRST)
-// ---------------------------------------------------------------------------
-server.serveStatic("/tiles", SD_MMC, "/tiles");
-
-// ---------------------------------------------------------------------------
-// Static assets from LittleFS
-// ---------------------------------------------------------------------------
-server.serveStatic("/", LittleFS, "/");
-
-// ---------------------------------------------------------------------------
-// onNotFound – MUST be LAST
-// ---------------------------------------------------------------------------
-server.onNotFound([&]{
-  server.send(204);   
-});
-
-
-
-
-
-
+  // ---------------------------------------------------------------------------
+  // Not found
+  // ---------------------------------------------------------------------------
+  server.onNotFound([&] {
+    server.send(204);
+  });
 
   server.begin();
-  webStarted=true;
-  LOG_WIFI("Web","started");
+  webStarted = true;
+  LOG_WIFI("Web", "started (STA-only)");
 }
 
 // -----------------------------------------------------------------------------
-// Stop server (leaving CONFIG mode)
+// Stop server
 // -----------------------------------------------------------------------------
-void webserver_stop(){ webStarted=false; }
+void webserver_stop()
+{
+  webStarted = false;
+}
 
-// -----------------------------------------------------------------------------
-// Wi-Fi STA helpers (used by APIs)
-// -----------------------------------------------------------------------------
-bool   wifi_sta_connected(){ return WiFi.status()==WL_CONNECTED; }
-String wifi_sta_ssid()     { return wifi_sta_connected()?WiFi.SSID():""; }
-String wifi_sta_ip()       { return wifi_sta_connected()?WiFi.localIP().toString():""; }
+void webserver_loop()
+{
+  server.handleClient();
+}
 

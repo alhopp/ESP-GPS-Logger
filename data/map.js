@@ -1,259 +1,119 @@
 // ============================================================================
 // MapView
-//
-// Responsibility:
-// - Owns the Leaflet map instance
-// - Manages exactly ONE visible track at a time
-// Running on PC / localhost (dev mode)
-
-
+// - ESP-hosted Leaflet map (STA mode)
+// - Displays exactly ONE session track at a time
+// ============================================================================
 
 window.MapView = {
-  map:null,       // Leaflet map instance
-  track:null,     // Currently loaded GeoJSON track layer
-  dot:null,       // Small dot marking last point of the track
-  _r:null,        // Shared Canvas renderer (faster than SVG / DOM)
+  map:null, track:null, dot:null, _r:null,
 
   // -------------------------------------------------------------------------
-  // init()
-  // Creates the map ONCE.
-
+  // init() — create map once
+  // -------------------------------------------------------------------------
   init(){
-    // Map already exists → just refresh layout
-    if(this.map){
-      this.map.invalidateSize(true);
-      return;
-    }
+    if(this.map){ this.map.invalidateSize(true); return; }
 
-    // DOM element that hosts the map
-    const el = document.getElementById("mapView");
+    const el = $("mapView");
 
-    // Create Leaflet map with ESP / mobile-friendly options
-      this.map = L.map(el,{
+    this.map = L.map(el,{
       zoomControl:false,
       attributionControl:true,
       inertia:false,
       preferCanvas:true,
-      minZoom:14,
-      maxZoom:15
+      minZoom:14,maxZoom:16
     });
 
+    // Shared canvas renderer (single context)
+    this._r = L.canvas({padding:0.5});
 
-    // Create ONE canvas renderer reused by all vector layers
-    // This avoids multiple canvas contexts and improves performance
-    this._r = L.canvas({ padding:0.5 });
+    // Base imagery (STA internet)
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/" +
+      "World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {maxZoom:16,attribution:"© Esri"}
+    ).addTo(this.map);
 
-    // -----------------------------------------------------------------------
-    // Base layer selection
-    //
-    // PC (IS_LOCAL):
-    //   - Online satellite imagery (Esri / SRI-style)
-    //   - Used for development, debugging, UX tuning
-    //
-    // ESP32:
-    //   - Dummy transparent tiles
-    //   - Prevents white flash + avoids network requests
-    // -----------------------------------------------------------------------
-    if(IS_LOCAL){
+    // Placeholder view (overridden when session loads)
+    setTimeout(()=>{
+      this.map.setView([0,0],14);
+      this.map.invalidateSize(true);
 
-      // PC DEV: Esri World Imagery (satellite)
-      L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/" +
-        "World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        {
-          maxZoom:15,
-          attribution:"© Esri"
-        }
-      ).addTo(this.map);
-
-       }else{
-
-      // ---------------------------------------------------------------
-      // ESP OFFLINE MODE
-      //
-      // Uses locally stored tiles:
-      //   /tiles/{z}/{x}/{y}.jpg
-      //
-      // Falls back to transparent tiles if missing
-      // ---------------------------------------------------------------
-
-      const blank =
-        "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
-
-      const OfflineTiles = L.TileLayer.extend({
-        getTileUrl(c){
-          return `/tiles/${c.z}/${c.x}/${c.y}.jpg`;
-        },
-        createTile(c, done){
-          const img = document.createElement("img");
-          img.width = img.height = 256;
-
-          img.onload  = ()=>done(null, img);
-          img.onerror = ()=>{
-            // Missing tile → transparent fallback
-            img.src = blank;
-            done(null, img);
-          };
-
-          img.src = this.getTileUrl(c);
-          return img;
-        }
-      });
-
-      new OfflineTiles({
-        minZoom:14,
-        maxZoom:15,
-        attribution:"© ESP32 GPS (offline)"
-      }).addTo(this.map);
-    }
-
-
-        // -----------------------------------------------------------------------
-        // Initial view
-        //
-        // This is only a placeholder.
-        // Once a track loads, fitBounds() will override this.
-        // Timeout ensures DOM + CSS layout is stable.
-        // -----------------------------------------------------------------------
-        setTimeout(()=>{
-          this.map.setView([0,0],14);   // neutral placeholder
-
-          this.map.invalidateSize(true);
-
-          // Start session browser only AFTER map exists
-          if(window.MapSessions && !window.MapSessions._started){
-            window.MapSessions._started = true;
-            console.log("[Map] starting MapSessions");
-            window.MapSessions.init();
-          }
-        },150);
-
-        console.log("[Map] init OK, size =", el.offsetWidth, el.offsetHeight);
-      },
-
-
-           zoomToLayer(layer){
-          if(!layer) return;
-
-          const b = layer.getBounds();
-          if(!b.isValid()) return;
-
-          this.map.fitBounds(b,{
-            padding:[30,30],
-            animate:false
-          });
-
-          // Clamp zoom AFTER fitBounds (critical)
-          const z = this.map.getZoom();
-          if(z > this.map.options.maxZoom) this.map.setZoom(this.map.options.maxZoom);
-          if(z < this.map.options.minZoom) this.map.setZoom(this.map.options.minZoom);
-        },
+      if(window.MapSessions && !MapSessions._started){
+        MapSessions._started = true;
+        MapSessions.init();
+      }
+    },150);
+  },
 
   // -------------------------------------------------------------------------
-  // loadGeoJSON(url)
-  //
-  // Loads a single GeoJSON file and renders:
-  // - the track polyline
-  //
-  // Only ONE track is ever active at a time.
+  // zoomToLayer() — fit bounds + clamp zoom
+  // -------------------------------------------------------------------------
+  zoomToLayer(layer){
+    if(!layer) return;
+    const b = layer.getBounds();
+    if(!b.isValid()) return;
+
+    this.map.fitBounds(b,{padding:[30,30],animate:false});
+
+    const z = this.map.getZoom();
+    if(z > this.map.options.maxZoom) this.map.setZoom(this.map.options.maxZoom);
+    if(z < this.map.options.minZoom) this.map.setZoom(this.map.options.minZoom);
+  },
+
+  // -------------------------------------------------------------------------
+  // loadGeoJSON() — load one ESP-served track
   // -------------------------------------------------------------------------
   loadGeoJSON(url){
     if(!this.map) return;
 
-    // Remove previously displayed layers
     if(this.track){
       this.map.removeLayer(this.track);
       this.track = null;
     }
 
-    // Fetch GeoJSON directly from ESP
     fetch(url,{cache:"no-store"})
-      .then(r=>{
-        if(!r.ok) throw Error("GeoJSON fetch failed");
-        return r.json();
-      })
+      .then(r=>{ if(!r.ok) throw Error("GeoJSON fetch failed"); return r.json(); })
       .then(gj=>{
-        console.log("[Map] feature count", gj.features?.length);
-
-        // ---------------------------------------------------------------
-        // Track polyline
-        //
-        // Important detail:
-        // - GPS GeoJSON coordinates are [lon, lat]
-        // - Leaflet expects [lat, lon]
-        // ---------------------------------------------------------------
         this.track = L.geoJSON(gj,{
           renderer:this._r,
-          coordsToLatLng:c=>L.latLng(c[1],c[0]),
-          style:{
-            color:"#ff3b30",
-            weight:5,
-            opacity:1
-          }
+          coordsToLatLng:c=>L.latLng(c[1],c[0]), // [lon,lat] → [lat,lon]
+          style:{color:"#ff3b30",weight:5,opacity:1}
         }).addTo(this.map);
 
-        // Ensure track renders above base layer
         this.track.bringToFront();
-
-        // ---------------------------------------------------------------
-        // Fit map to track bounds
-        //
-        // - Padding prevents UI overlap
-        // - maxZoom avoids extreme zoom on short tracks
-        // ---------------------------------------------------------------
-      this.zoomToLayer(this.track);
-      setTimeout(()=>this.map.invalidateSize(true),50);
-
-
-     })
-      .catch(e=>console.warn("[Map] GeoJSON failed", e));
+        this.zoomToLayer(this.track);
+        setTimeout(()=>this.map.invalidateSize(true),50);
+      })
+      .catch(e=>console.warn("[Map] GeoJSON failed",e));
   },
 
   // -------------------------------------------------------------------------
-  // clear()
-  //
-  // Removes all dynamic map content.
-  // Used when switching sessions.
+  // clear() — remove dynamic layers
   // -------------------------------------------------------------------------
   clear(){
-    if(this.track){
-      this.map.removeLayer(this.track);
-      this.track = null;
-    }
-    if(this.dot){
-      this.map.removeLayer(this.dot);
-      this.dot = null;
-    }
+    if(this.track){ this.map.removeLayer(this.track); this.track=null; }
+    if(this.dot){ this.map.removeLayer(this.dot); this.dot=null; }
   }
 };
 
 
 // ============================================================================
 // MapSessions
-//
-// Responsibility:
-// - Fetch available GeoJSON session files from ESP
-// - Maintain a current index
-// - Allow swipe-based navigation between sessions
+// - Fetch available GeoJSON sessions from ESP
+// - Maintain index
+// - Swipe navigation
 // ============================================================================
 
 window.MapSessions = {
-  files:[],          // list of GeoJSON files
-  index:0,           // currently selected file index
-  _started:false,    // guard to prevent double init
+  files:[], index:0, _started:false,
 
   // -------------------------------------------------------------------------
-  // init()
-  //
-  // Fetches file list and prepares first session.
-  // -------------------------------------------------------------------------
   async init(){
-    console.log("[MapSessions] init()");
     const r = await fetch("/api/files",{cache:"no-store"});
     const j = await r.json();
     if(!j.ok) return;
 
-    // Only keep GeoJSON sessions, newest first
+    // GeoJSON only, newest first
     this.files = j.files
       .filter(f=>f.name.endsWith(".geojson"))
       .sort((a,b)=>b.name.localeCompare(a.name));
@@ -266,93 +126,77 @@ window.MapSessions = {
   },
 
   // -------------------------------------------------------------------------
-  // loadCurrent()
-  //
-  // Loads the GeoJSON file at current index
-  // -------------------------------------------------------------------------
   loadCurrent(){
     const f = this.files[this.index];
     if(!f) return;
 
-   const total = this.files.length;
+    const total = this.files.length;
     const logical = total - this.index;
 
     $("sessionTitle").textContent = `Session ${logical} of ${total}`;
     $("sessionMeta").textContent = f.name.replace(".geojson","");
 
     MapView.clear();
-    MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}` );
+    MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}`);
   },
 
-  // Move backward in time
-  prev(){
-    if(this.index < this.files.length-1){
-      this.index++;
-      this.loadCurrent();
-    }
-  },
+  prev(){ if(this.index < this.files.length-1){ this.index++; this.loadCurrent(); } },
+  next(){ if(this.index > 0){ this.index--; this.loadCurrent(); } },
 
-  // Move forward in time
-  next(){
-    if(this.index > 0){
-      this.index--;
-      this.loadCurrent();
-    }
-  },
+  // -------------------------------------------------------------------------
+  // bindGestures()
+  // - Horizontal swipe → session change
+  // - Vertical swipe → stats panel
+  // -------------------------------------------------------------------------
+  bindGestures(){
+    const card = $("sessionCard");
+    let x0=0,y0=0,dx=0,dy=0,active=false,locked=null;
+    const THRESH = 40;
 
-  
-   bindGestures(){
-  const card = $("sessionCard");
-  let x0=0,y0=0,dx=0,dy=0,active=false,locked=null;
+    card.addEventListener("touchstart",e=>{
+      const t = e.touches[0];
+      x0=t.clientX; y0=t.clientY;
+      dx=dy=0; locked=null; active=true;
+    },{passive:true});
 
-  const THRESH = 40;
+    card.addEventListener("touchmove",e=>{
+      if(!active) return;
 
-  card.addEventListener("touchstart",e=>{
-    const t = e.touches[0];
-    x0 = t.clientX;
-    y0 = t.clientY;
-    dx = dy = 0;
-    locked = null;
-    active = true;
-  },{passive:true});
+      const t = e.touches[0];
+      dx=t.clientX-x0;
+      dy=t.clientY-y0;
 
-  card.addEventListener("touchmove",e=>{
-    if(!active) return;
+      if(!locked){
+        if(Math.abs(dx)>12) locked="x";
+        else if(Math.abs(dy)>12) locked="y";
+        else return;
+      }
 
-    const t = e.touches[0];
-    dx = t.clientX - x0;
-    dy = t.clientY - y0;
+      if(locked==="y") e.preventDefault();
+    },{passive:false}); // must be false
 
-    // Decide intent once
-    if(!locked){
-      if(Math.abs(dx) > 12) locked = "x";
-      else if(Math.abs(dy) > 12) locked = "y";
-      else return;
-    }
+    card.addEventListener("touchend",()=>{
+      if(!active) return;
+      active=false;
 
-    // Block page scroll only for vertical gestures
-    if(locked === "y") e.preventDefault();
-  },{passive:false});   // ⚠️ MUST be false
+      if(locked==="y"){
+        if(dy < -THRESH) showStats();
+        else if(dy > THRESH) hideStats();
+        return;
+      }
 
-  card.addEventListener("touchend",()=>{
-    if(!active) return;
-    active = false;
-
-    if(locked === "y"){
-      if(dy < -THRESH) showStats();
-      else if(dy > THRESH) hideStats();
-      return;
-    }
-
-    if(locked === "x"){
-      if(dx < -THRESH) MapSessions.prev();
-      else if(dx > THRESH) MapSessions.next();
-    }
-  });
-}
-
+      if(locked==="x"){
+        if(dx < -THRESH) this.prev();
+        else if(dx > THRESH) this.next();
+      }
+    });
+  }
 };
 
+
+// ============================================================================
+// Stats helpers
+// ============================================================================
 
 function showStats(){
   sessionCard.classList.add("stats");
@@ -362,5 +206,3 @@ function hideStats(){
   sessionCard.classList.remove("stats");
   MapView.map?.invalidateSize(true);
 }
-
-
