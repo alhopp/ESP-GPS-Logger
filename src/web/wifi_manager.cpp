@@ -12,6 +12,7 @@
 #include <ESPmDNS.h>
 
 #include "config_manager.h"
+#include "task_display.h"
 
 // ============================================================================
 // DEV MODE OVERRIDE
@@ -23,7 +24,6 @@
 static const char *DEV_SSID = "Als_iPhone";
 static const char *DEV_PASS = "alan1234";
 #endif
-
 
 // ---------------------------------------------------------------------------
 // State
@@ -43,7 +43,7 @@ static int           staAttempts    = 0;
 #define STA_MAX_ATTEMPTS       5
 
 // ---------------------------------------------------------------------------
-// Screen status (polled by display task)
+// UI state
 // ---------------------------------------------------------------------------
 
 static WifiUiState wifiUiState = WIFI_UI_OFF;
@@ -52,6 +52,16 @@ WifiUiState wifi_get_ui_state()
 {
   return wifiUiState;
 }
+
+static void wifi_set_ui_state(WifiUiState s)
+{
+  if (wifiUiState == s) return;   // no-op if unchanged
+  wifiUiState = s;
+
+  // CONFIG screen content area only
+  screen_request_partial(0, 0, 250, 122);
+}
+
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -76,7 +86,6 @@ static bool have_phone_wifi()
 #endif
 }
 
-
 // ---------------------------------------------------------------------------
 // STA
 // ---------------------------------------------------------------------------
@@ -92,7 +101,7 @@ static void start_sta()
   const char *pass = config.phone_pass;
 #endif
 
-  wifiUiState = WIFI_UI_TRYING;
+  wifi_set_ui_state(WIFI_UI_TRYING);
   Serial.printf("[WIFI] STA connect: %s\n", ssid);
 
   WiFi.disconnect(true, true);
@@ -114,15 +123,18 @@ static void start_sta()
     Serial.printf("[WIFI] Connected IP=%s\n",
       WiFi.localIP().toString().c_str());
 
-    wifiUiState = WIFI_UI_OFF;
-    MDNS.begin("gps");
+    wifi_set_ui_state(WIFI_UI_OFF);
+
+    if (MDNS.begin("gps"))
+      MDNS.addService("http", "tcp", 80);
+
     webserver_start();
   } else {
     Serial.println("[WIFI] STA not connected");
-    wifiUiState = WIFI_UI_FAILED;
+    wifi_set_ui_state(WIFI_UI_FAILED);
+
   }
 }
-
 
 // ---------------------------------------------------------------------------
 // AP
@@ -143,8 +155,8 @@ static void start_ap()
   Serial.printf("[WIFI] AP IP=%s\n",
     WiFi.softAPIP().toString().c_str());
 
-  wifiUiState = WIFI_UI_AP;
-  apActive    = true;
+  apActive = true;
+  wifi_set_ui_state(WIFI_UI_AP);
 
   webserver_start();
 }
@@ -181,7 +193,7 @@ void wifi_stop()
 
   wifiStarted = false;
   apActive    = false;
-  wifiUiState = WIFI_UI_OFF;
+  wifi_set_ui_state(WIFI_UI_OFF);
 
   Serial.println("[WIFI] Wi-Fi stopped");
 }
@@ -189,23 +201,20 @@ void wifi_stop()
 void wifi_loop()
 {
   if (!wifiStarted) return;
-
   if (apActive) return;
   if (wifi_sta_connected()) return;
 
-  // Failed too many times → AP fallback
   if (staAttempts >= STA_MAX_ATTEMPTS) {
-  #ifdef DEV_FORCE_WIFI
+#ifdef DEV_FORCE_WIFI
     Serial.println("[WIFI] DEV MODE: staying in STA retry loop");
-    staAttempts = 0;   // keep retrying forever
+    staAttempts = 0;
     return;
-  #else
+#else
     Serial.println("[WIFI] STA failed → AP fallback");
     start_ap();
     return;
-  #endif
-}
-
+#endif
+  }
 
   if (millis() - lastStaAttempt > STA_RETRY_INTERVAL_MS) {
     Serial.printf("[WIFI] STA retry %d/%d\n",
@@ -227,6 +236,5 @@ bool wifi_net_active()
 
 bool wifi_show_ap_page()
 {
-  // Only true when AP is active
   return apActive;
 }

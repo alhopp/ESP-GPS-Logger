@@ -93,28 +93,50 @@ void draw_IDLE()
   drawCenteredText("Use magnet to select mode", Layout::ROW9(7), Fonts::Body9);
 }
 
-// ============================================================================
-// MODE: WIFI CONFIG (SoftAP)
-// ============================================================================
-void draw_WIFI_SOFT_AP()
+void draw_WIFI_CONFIG()
 {
-  // --- Magnet affordance ---
+  // Magnet affordance
   if (magnet_active)
        display.fillCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
   else display.drawCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
 
-  // title
   drawCenteredText("CONFIG", Layout::ROW9(2), Fonts::Body12);
 
-  // ESP32 SoftAP details
-  static char wifiLine[48]; static char ipLine[32];
+  switch (wifi_get_ui_state())
+  {
+    case WIFI_UI_TRYING:
+      drawCenteredText("Connecting to hotspot", Layout::ROW9(4), Fonts::Body9);
+      drawCenteredText("Open: gps.local",       Layout::ROW9(6), Fonts::Body9);
+      break;
 
-  //snprintf(wifiLine, sizeof(wifiLine),        "WiFi: %s", wifi_ap_name());
-  //snprintf(ipLine,   sizeof(ipLine),          "IP: %s", WiFi.softAPIP().toString().c_str());
+    case WIFI_UI_FAILED:
+      drawCenteredText("Wi-Fi connection failed", Layout::ROW9(4), Fonts::Body9);
+      drawCenteredText("Retrying…",               Layout::ROW9(6), Fonts::Body9);
+      break;
 
-  drawCenteredText(wifiLine,                  Layout::ROW9(4), Fonts::Body9);
-  drawCenteredText(ipLine,                    Layout::ROW9(5), Fonts::Body9);
-  drawCenteredText("Use phone to connect",    Layout::ROW9(7), Fonts::Body9);
+    case WIFI_UI_AP:
+      // If you are keeping this state internally, make it neutral
+      drawCenteredText("Wi-Fi setup required", Layout::ROW9(4), Fonts::Body9);
+      drawCenteredText("Open: gps.local",      Layout::ROW9(6), Fonts::Body9);
+      break;
+
+    case WIFI_UI_OFF:
+    default:
+      if (WiFi.status() == WL_CONNECTED) {
+        static char ipLine[32];
+        snprintf(ipLine, sizeof(ipLine),
+                 "Open: %s", WiFi.localIP().toString().c_str());
+
+        drawCenteredText("Wi-Fi connected", Layout::ROW9(4), Fonts::Body9);
+        drawCenteredText(ipLine,            Layout::ROW9(6), Fonts::Body9);
+        drawCenteredText("or gps.local",    Layout::ROW9(7), Fonts::Body9);
+      } else {
+        drawCenteredText("Wi-Fi idle",      Layout::ROW9(4), Fonts::Body9);
+        drawCenteredText("Open: gps.local", Layout::ROW9(6), Fonts::Body9);
+      }
+      break;
+     
+  }
 }
 
 

@@ -30,7 +30,7 @@ void draw_BOOT();
 void draw_IDLE();
 
 // Configuration / Wi-Fi SoftAP screen
-void draw_WIFI_SOFT_AP();
+void draw_WIFI_CONFIG();
 
 // Waiting-for-GPS-fix screen
 void draw_WAIT_SATS();
