@@ -2,74 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GPS Setup</title>
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no">
+<title>Wi-Fi Setup</title>
+
+<link rel="stylesheet" href="/app.css">
 
 <style>
-  body{
-    margin:0;
-    font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
-    background:#f4f7fb;
-  }
-
-  header{
-    padding:18px;text-align:center;color:#fff;background:linear-gradient(180deg,#0b2a4a,#061d33);
-    font-weight:800; font-size:22px;
-  }
-
-  .wrap{
-    max-width:380px;
-    margin:24px auto;
-    padding:20px;
-  }
-
-  .card{
-    background:#fff;border-radius:16px;padding:24px 20px 22px; box-shadow:0 10px 22px rgba(15,30,55,.08);
-    text-align:center;
-  }
-
-  .logo{display:block; margin:0 auto 18px; width:220px;  max-width:80%;}
-  h2{margin:0 0 16px;font-size:18px;color:#1e88e5;}
-
-  label{
-    display:block;
-    text-align:left;
-    font-size:14px;
-    color:#5b6b82;
-    margin-top:12px;
-  }
-
-  input{
-    width:100%;
-    margin-top:6px;
-    padding:14px;
-    font-size:16px;
-    border-radius:10px;
-    border:1px solid #dbe2ee;
-    box-sizing:border-box;
-  }
-
-  .hint{
-    margin-top:14px;
-    font-size:13px;
-    color:#5b6b82;
-  }
-
-  footer{
-    margin-top:24px;
-    padding:0 20px 20px;
-  }
-
-  button{
-    width:100%;
-    padding:16px;
-    font-size:18px;
-    font-weight:800;
-    border:0;
-    border-radius:14px;
-    background:linear-gradient(180deg,#1e88e5,#156fcb);
-    color:#fff;
-  }
+/* AP-only overrides */
+nav,#splash{display:none}
+header{position:static}
+section{margin-top:0;height:auto;overflow:hidden}
+.logo{display:block;margin:0 auto 18px;width:240px;max-width:85%}
+footer{position:sticky}
+html,body{touch-action:manipulation}
+#status{margin-top:12px;font-size:14px;color:var(--f);text-align:center}
 </style>
 </head>
 
@@ -77,7 +24,7 @@
 
 <header>Wi-Fi Setup</header>
 
-<div class="wrap">
+<section class="a">
   <div class="card">
     <img src="/ESP32_logo.jpg" class="logo" alt="GPS">
 
@@ -85,37 +32,39 @@
     <input id="ssid" placeholder="e.g. iPhone Hotspot">
 
     <label for="pass">Password</label>
-    <input id="pass" type="password" placeholder="Hotspot password">
+   <input id="pass" type="password" placeholder="Hotspot password"  autocomplete="off"
+       autocorrect="off" autocapitalize="none" spellcheck="false">
 
     <div class="hint">
       Turn on your phone hotspot before saving.
     </div>
+
+    <div id="status"></div>
   </div>
-</div>
+</section>
 
 <footer>
-  <button onclick="save()">Save & Reboot</button>
+  <button id="saveBtn" onclick="save()">Save &amp; Reboot</button>
 </footer>
 
 <script>
-const ssidEl=document.getElementById("ssid");
-const passEl=document.getElementById("pass");
+const ssidEl = document.getElementById("ssid");
+const passEl = document.getElementById("pass");
+const statusEl = document.getElementById("status");
+const btn = document.getElementById("saveBtn");
 
 async function save(){
-  const ssid=ssidEl.value.trim();
-  const pass=passEl.value;
+  const ssid = ssidEl.value.trim();
+  const pass = passEl.value;
+  if(!ssid) return alert("SSID required");
 
-  if(!ssid){
-    alert("SSID required");
-    return;
-  }
+  btn.disabled = true;
+  statusEl.textContent = "Saving Wi-Fi settings… rebooting device";
 
   await fetch("/api/config",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({
-      wifi:{ phone_ssid:ssid, phone_pass:pass }
-    })
+    body:JSON.stringify({ wifi:{ phone_ssid:ssid, phone_pass:pass } })
   });
 
   await fetch("/api/reboot",{method:"POST"});

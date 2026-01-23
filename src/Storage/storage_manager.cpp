@@ -35,6 +35,7 @@ static fs::FS& activeFS();
 static bool quickIOTest(fs::FS& fs,const char* path);
 static void logLittleFSStats(), logSDStats();
 
+
 // -----------------------------------------------------------------------------
 // Public API
 // -----------------------------------------------------------------------------
@@ -58,7 +59,16 @@ void initStorage()
   LOG_STORAGE("Init","done");
 }
 
-bool storage_on(){ return sdOK ? mountSD_MMC() : false; }
+bool storage_on()
+{
+  if (!sdOK) return false;
+  if (!mountSD_MMC()) return false;
+  
+  return true;
+}
+
+
+
 void storage_off(){ unmountSD_MMC(); }
 
 // -----------------------------------------------------------------------------
@@ -119,3 +129,4 @@ static void logLittleFSStats()
     (unsigned)(LittleFS.usedBytes()/1024),
     (unsigned)((LittleFS.totalBytes()-LittleFS.usedBytes())/1024));
 }
+
