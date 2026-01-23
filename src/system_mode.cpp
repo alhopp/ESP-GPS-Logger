@@ -80,12 +80,11 @@ void systemModeLoop()
   if (getMode() == MODE_CONFIG) {
 
     wifi_loop();
+    if (wifi_net_active()) {webserver_loop();}
 
-    if (wifi_sta_connected()) {
-      webserver_loop();
-    }
   }
 }
+
 
 
 
@@ -188,11 +187,13 @@ void setMode(SystemMode newMode)
 
       wifi_init();
 
-      if (wifi_sta_connected()) {
+      if (wifi_net_active()) {
+        LOG_SYS("MODE", "CONFIG online (network active)");
         webserver_start();
       } else {
-        LOG_SYS("MODE", "CONFIG offline (no Wi-Fi)");
+        LOG_SYS("MODE", "CONFIG offline (no network)");
       }
+
 
   break;
 

@@ -1,33 +1,35 @@
 #pragma once
 
-#include <Arduino.h>
+// -----------------------------------------------------------------------------
+// Wi-Fi UI state (used by display)
+// -----------------------------------------------------------------------------
 
-// ============================================================================
-// Wi-Fi lifecycle
-// ============================================================================
+enum WifiUiState {
+  WIFI_UI_OFF,
+  WIFI_UI_TRYING,
+  WIFI_UI_FAILED,
+  WIFI_UI_AP
+};
 
-// Initialise Wi-Fi at boot
-// - First boot / no creds → AP mode
-// - Otherwise STA with fallback to AP
+// -----------------------------------------------------------------------------
+// Lifecycle
+// -----------------------------------------------------------------------------
+
 void wifi_init();
-
-// Stop Wi-Fi completely (STA or AP)
 void wifi_stop();
-
-// Service Wi-Fi state machine (called from loop)
 void wifi_loop();
 
-// Exit AP setup mode (called from web UI)
-void wifi_exit_ap();
+// -----------------------------------------------------------------------------
+// UI
+// -----------------------------------------------------------------------------
 
-// ============================================================================
-// Status helpers
-// ============================================================================
+WifiUiState wifi_get_ui_state();
 
-// STA status
-bool   wifi_sta_connected();
-String wifi_sta_ssid();
-String wifi_sta_ip();
+// -----------------------------------------------------------------------------
+// Network availability (STA or AP)
+// -----------------------------------------------------------------------------
 
-// AP status
-bool   wifi_ap_active();
+bool wifi_net_active();
+
+// True if AP provisioning page should be shown
+bool wifi_show_ap_page();

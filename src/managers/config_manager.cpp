@@ -142,11 +142,12 @@ static void setDefaultConfig()
 
   // -------- Other strings --------
   strlcpy(config.Sleep_info, "ESP32 GPS", sizeof(config.Sleep_info));
+
   strlcpy(config.home_ssid,   "",          sizeof(config.home_ssid));
   strlcpy(config.home_pass,   "",          sizeof(config.home_pass));
 
-  strlcpy(config.phone_ssid,  "ESP32_GPS",  sizeof(config.phone_ssid));
-  strlcpy(config.phone_pass,  "",           sizeof(config.phone_pass));
+  strlcpy(config.phone_ssid,  "",          sizeof(config.phone_ssid));
+  strlcpy(config.phone_pass,  "",          sizeof(config.phone_pass));
 
 }
 

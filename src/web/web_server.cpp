@@ -10,6 +10,7 @@
 
 #include "web/web_server.h"
 #include "web/web_files.h"
+#include "web/wifi_manager.h"
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -102,36 +103,49 @@ void webserver_start()
   // ---------------------------------------------------------------------------
   // POST /api/config
   // ---------------------------------------------------------------------------
-  server.on("/api/config", HTTP_POST, [&] {
-    DynamicJsonDocument j(2048);
-    if (deserializeJson(j, server.arg("plain"))) {
-      server.send(400, "text/plain", "Bad JSON");
-      return;
-    }
+server.on("/api/config", HTTP_POST, [&] {
+  DynamicJsonDocument j(2048);
+  if (deserializeJson(j, server.arg("plain"))) {
+    server.send(400, "text/plain", "Bad JSON");
+    return;
+  }
 
-    if (j["logging"]) {
-      if (j["logging"]["logTXT"] != nullptr) config.track_distance = j["logging"]["logTXT"];
-      if (j["logging"]["logUBX"] != nullptr) config.logUBX = j["logging"]["logUBX"];
-      if (j["logging"]["logSBP"] != nullptr) config.logSBP = j["logging"]["logSBP"];
-    }
+  // ---- Wi-Fi (phone hotspot) ----
+  if (j["wifi"]) {
+    const char *s;
+    if ((s = j["wifi"]["phone_ssid"]) != nullptr)
+      strlcpy(config.phone_ssid, s, sizeof(config.phone_ssid));
+    if ((s = j["wifi"]["phone_pass"]) != nullptr)
+      strlcpy(config.phone_pass, s, sizeof(config.phone_pass));
+  }
 
-    if (j["stats"]) {
-      if (j["stats"]["s2"] != nullptr)       config.stat_2s = j["stats"]["s2"];
-      if (j["stats"]["s10"] != nullptr)      config.stat_10s = j["stats"]["s10"];
-      if (j["stats"]["alpha"] != nullptr)    config.stat_alpha = j["stats"]["alpha"];
-      if (j["stats"]["nm"] != nullptr)       config.stat_nm = j["stats"]["nm"];
-      if (j["stats"]["h1"] != nullptr)       config.stat_1h = j["stats"]["h1"];
-      if (j["stats"]["distance"] != nullptr) config.stat_distance = j["stats"]["distance"];
-    }
+  // ---- Logging ----
+  if (j["logging"]) {
+    if (j["logging"]["logTXT"] != nullptr) config.track_distance = j["logging"]["logTXT"];
+    if (j["logging"]["logUBX"] != nullptr) config.logUBX = j["logging"]["logUBX"];
+    if (j["logging"]["logSBP"] != nullptr) config.logSBP = j["logging"]["logSBP"];
+  }
 
-    if (j["ui"]["Sleep_info"] != nullptr)
-      strlcpy(config.Sleep_info,
-              j["ui"]["Sleep_info"].as<const char*>(),
-              sizeof(config.Sleep_info));
+  // ---- Stats ----
+  if (j["stats"]) {
+    if (j["stats"]["s2"] != nullptr)       config.stat_2s = j["stats"]["s2"];
+    if (j["stats"]["s10"] != nullptr)      config.stat_10s = j["stats"]["s10"];
+    if (j["stats"]["alpha"] != nullptr)    config.stat_alpha = j["stats"]["alpha"];
+    if (j["stats"]["nm"] != nullptr)       config.stat_nm = j["stats"]["nm"];
+    if (j["stats"]["h1"] != nullptr)       config.stat_1h = j["stats"]["h1"];
+    if (j["stats"]["distance"] != nullptr) config.stat_distance = j["stats"]["distance"];
+  }
 
-    saveConfig();
-    server.send(200, "text/plain", "OK");
-  });
+  // ---- UI ----
+  if (j["ui"]["Sleep_info"] != nullptr)
+    strlcpy(config.Sleep_info,
+            j["ui"]["Sleep_info"].as<const char*>(),
+            sizeof(config.Sleep_info));
+
+  saveConfig();
+  server.send(200, "text/plain", "OK");
+});
+
 
   // ---------------------------------------------------------------------------
   // GET /api/netstatus
@@ -153,13 +167,22 @@ void webserver_start()
   // Root UI
   // ---------------------------------------------------------------------------
   server.on("/", HTTP_GET, [&] {
-    File f = LittleFS.open("/index.html", "r");
+    const char *page =
+      wifi_show_ap_page() ? "/ap.html" : "/index.html";
+
+    File f = LittleFS.open(page, "r");
     if (!f) {
-      server.send(404, "text/plain", "index.html missing");
+      server.send(404, "text/plain", "UI missing");
       return;
     }
     server.streamFile(f, "text/html");
     f.close();
+  });
+
+  server.on("/api/reboot", HTTP_POST, [&] {
+  server.send(200,"text/plain","OK");
+  delay(200);
+  ESP.restart();
   });
 
   // ---------------------------------------------------------------------------
@@ -183,7 +206,7 @@ void webserver_start()
 
   server.begin();
   webStarted = true;
-  LOG_WIFI("Web", "started (STA-only)");
+  LOG_WIFI("Web", "started (network active)");
 }
 
 // -----------------------------------------------------------------------------

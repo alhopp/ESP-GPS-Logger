@@ -1,9 +1,8 @@
 // ============================================================================
-// Wi-Fi Manager (STA-only, PHONE hotspot only)
-// - Uses phone_ssid / phone_pass from config
-// - No AP mode
-// - No home Wi-Fi
-// - Simple retry logic
+// Wi-Fi Manager (STA + AP provisioning)
+// - Primary: Phone hotspot (STA)
+// - Fallback: AP provisioning
+// - Web server only runs when network stack is UP
 // ============================================================================
 
 #include "web/web_server.h"
@@ -19,6 +18,7 @@
 // ---------------------------------------------------------------------------
 
 static bool wifiStarted = false;
+static bool apActive    = false;
 
 // ---------------------------------------------------------------------------
 // STA retry control
@@ -27,24 +27,46 @@ static bool wifiStarted = false;
 static unsigned long lastStaAttempt = 0;
 static int           staAttempts    = 0;
 
-#define STA_RETRY_INTERVAL_MS  5000   // 5 s
-#define STA_MAX_ATTEMPTS       10
+#define STA_RETRY_INTERVAL_MS  5000
+#define STA_MAX_ATTEMPTS       5
+
+// ---------------------------------------------------------------------------
+// Screen status (polled by display task)
+// ---------------------------------------------------------------------------
+
+static WifiUiState wifiUiState = WIFI_UI_OFF;
+
+WifiUiState wifi_get_ui_state()
+{
+  return wifiUiState;
+}
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+static bool wifi_sta_connected()
+{
+  return WiFi.status() == WL_CONNECTED;
+}
+
+static bool wifi_ap_active()
+{
+  return apActive;
+}
 
 static bool have_phone_wifi()
 {
   return config.phone_ssid[0];
 }
 
+// ---------------------------------------------------------------------------
+// STA
+// ---------------------------------------------------------------------------
+
 static void start_sta()
 {
-  if (!have_phone_wifi()) {
-    Serial.println("[WIFI] Phone hotspot SSID not set → Wi-Fi disabled");
-    return;
-  }
+  wifiUiState = WIFI_UI_TRYING;
 
   Serial.printf("[WIFI] STA connect (phone): %s\n", config.phone_ssid);
 
@@ -65,16 +87,46 @@ static void start_sta()
     delay(100);
   }
 
-  if (WiFi.status() == WL_CONNECTED) {
+  if (wifi_sta_connected()) {
     Serial.printf("[WIFI] Connected IP=%s\n",
       WiFi.localIP().toString().c_str());
+
+    wifiUiState = WIFI_UI_OFF;
 
     if (MDNS.begin("gps")) {
       MDNS.addService("http", "tcp", 80);
     }
+
+    webserver_start();
   } else {
     Serial.println("[WIFI] STA not connected");
+    wifiUiState = WIFI_UI_FAILED;
   }
+}
+
+// ---------------------------------------------------------------------------
+// AP
+// ---------------------------------------------------------------------------
+
+static void start_ap()
+{
+  if (apActive) return;
+
+  Serial.println("[WIFI] Starting AP provisioning mode");
+
+  WiFi.disconnect(true, true);
+  delay(100);
+
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("GPS-Setup");
+
+  Serial.printf("[WIFI] AP IP=%s\n",
+    WiFi.softAPIP().toString().c_str());
+
+  wifiUiState = WIFI_UI_AP;
+  apActive    = true;
+
+  webserver_start();
 }
 
 // ---------------------------------------------------------------------------
@@ -85,24 +137,32 @@ void wifi_init()
 {
   staAttempts    = 0;
   lastStaAttempt = millis();
+  wifiStarted    = true;
+  apActive       = false;
 
   if (!have_phone_wifi()) {
-    Serial.println("[WIFI] No phone Wi-Fi configured → Wi-Fi OFF");
+    Serial.println("[WIFI] No phone Wi-Fi → AP immediately");
+    start_ap();
     return;
   }
 
   start_sta();
-  wifiStarted = true;
 }
 
 void wifi_stop()
 {
   if (!wifiStarted) return;
 
+  webserver_stop();
+
   WiFi.disconnect(true);
+  WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
 
   wifiStarted = false;
+  apActive    = false;
+  wifiUiState = WIFI_UI_OFF;
+
   Serial.println("[WIFI] Wi-Fi stopped");
 }
 
@@ -110,13 +170,15 @@ void wifi_loop()
 {
   if (!wifiStarted) return;
 
-  // Already connected → nothing to do
-  if (WiFi.status() == WL_CONNECTED) return;
+  if (apActive) return;
+  if (wifi_sta_connected()) return;
 
-  // Give up quietly after max retries
-  if (staAttempts >= STA_MAX_ATTEMPTS) return;
+  if (staAttempts >= STA_MAX_ATTEMPTS) {
+    Serial.println("[WIFI] STA failed → AP fallback");
+    start_ap();
+    return;
+  }
 
-  // Retry STA connection
   if (millis() - lastStaAttempt > STA_RETRY_INTERVAL_MS) {
     Serial.printf("[WIFI] STA retry %d/%d\n",
       staAttempts + 1,
@@ -127,20 +189,16 @@ void wifi_loop()
 }
 
 // ---------------------------------------------------------------------------
-// STA helpers
+// Public status abstraction
 // ---------------------------------------------------------------------------
 
-bool wifi_sta_connected()
+bool wifi_net_active()
 {
-  return WiFi.status() == WL_CONNECTED;
+  return wifi_sta_connected() || wifi_ap_active();
 }
 
-String wifi_sta_ssid()
+bool wifi_show_ap_page()
 {
-  return WiFi.isConnected() ? WiFi.SSID() : String();
-}
-
-String wifi_sta_ip()
-{
-  return WiFi.isConnected() ? WiFi.localIP().toString() : String();
+  // Only true when AP is active
+  return apActive;
 }
