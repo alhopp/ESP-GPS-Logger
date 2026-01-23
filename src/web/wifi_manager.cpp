@@ -123,7 +123,7 @@ static void start_sta()
     Serial.printf("[WIFI] Connected IP=%s\n",
       WiFi.localIP().toString().c_str());
 
-    wifi_set_ui_state(WIFI_UI_OFF);
+    wifi_set_ui_state(WIFI_UI_CONNECTED);  
 
     if (MDNS.begin("gps"))
       MDNS.addService("http", "tcp", 80);

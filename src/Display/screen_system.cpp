@@ -120,24 +120,22 @@ void draw_WIFI_CONFIG()
       drawCenteredText("Open: gps.local",      Layout::ROW9(6), Fonts::Body9);
       break;
 
+   case WIFI_UI_CONNECTED:
+      drawCenteredText("Wi-Fi connected", Layout::ROW9(4), Fonts::Body9);
+      drawCenteredText("Open: gps.local", Layout::ROW9(6), Fonts::Body9);
+      break;
+
     case WIFI_UI_OFF:
     default:
-      if (WiFi.status() == WL_CONNECTED) {
-        static char ipLine[32];
-        snprintf(ipLine, sizeof(ipLine),
-                 "Open: %s", WiFi.localIP().toString().c_str());
-
-        drawCenteredText("Wi-Fi connected", Layout::ROW9(4), Fonts::Body9);
-        drawCenteredText(ipLine,            Layout::ROW9(6), Fonts::Body9);
-        drawCenteredText("or gps.local",    Layout::ROW9(7), Fonts::Body9);
-      } else {
-        drawCenteredText("Wi-Fi idle",      Layout::ROW9(4), Fonts::Body9);
-        drawCenteredText("Open: gps.local", Layout::ROW9(6), Fonts::Body9);
-      }
+      drawCenteredText("Wi-Fi idle", Layout::ROW9(4), Fonts::Body9);
+      drawCenteredText("Open: gps.local", Layout::ROW9(6), Fonts::Body9);
       break;
-     
+
+
+
+      
+    }
   }
-}
 
 
 // ============================================================================

@@ -5,10 +5,11 @@
 // -----------------------------------------------------------------------------
 
 enum WifiUiState {
-  WIFI_UI_OFF,
   WIFI_UI_TRYING,
   WIFI_UI_FAILED,
-  WIFI_UI_AP
+  WIFI_UI_AP,
+  WIFI_UI_CONNECTED,  
+  WIFI_UI_OFF
 };
 
 // -----------------------------------------------------------------------------
