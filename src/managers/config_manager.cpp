@@ -182,7 +182,11 @@ static bool loadConfigFromFile(File &file)
   const char* s;
   if((s=doc["Sleep_info"])     && s[0]) strlcpy(config.Sleep_info,s,sizeof(config.Sleep_info));
 
-
+  // WiFi Details
+  if((s=doc["home_ssid"])  && s[0]) strlcpy(config.home_ssid, s, sizeof(config.home_ssid));
+  if((s=doc["home_pass"])  && s[0]) strlcpy(config.home_pass, s, sizeof(config.home_pass));
+  if((s=doc["phone_ssid"]) && s[0]) strlcpy(config.phone_ssid,s, sizeof(config.phone_ssid));
+  if((s=doc["phone_pass"]) && s[0]) strlcpy(config.phone_pass,s, sizeof(config.phone_pass));
   return true;
 }
 

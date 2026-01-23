@@ -78,10 +78,15 @@ const char* modeToString(SystemMode mode)
 void systemModeLoop()
 {
   if (getMode() == MODE_CONFIG) {
-    wifi_loop();        // Wi-Fi retries
-    webserver_loop();   // HTTP servicing
+
+    wifi_loop();
+
+    if (wifi_sta_connected()) {
+      webserver_loop();
+    }
   }
 }
+
 
 
 
@@ -103,13 +108,13 @@ void setMode(SystemMode newMode)
           modeToString(currentMode),
           modeToString(newMode));
 
-    // ---------------------------------------------------------------------------
-    // EXIT actions (based on OLD mode)
-    //
-    // IMPORTANT:
-    // - These actions complete BEFORE the state commit
-    // - They are allowed to assume the OLD mode is still active
-    // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // EXIT actions (based on OLD mode)
+  //
+  // IMPORTANT:
+  // - These actions complete BEFORE the state commit
+  // - They are allowed to assume the OLD mode is still active
+  // ---------------------------------------------------------------------------
   switch (currentMode) {
 
     case MODE_LOGGING:
@@ -173,9 +178,6 @@ void setMode(SystemMode newMode)
   case MODE_CONFIG:
       storage_shutting_down = false;
 
-      Serial.begin(115200);
-      vTaskDelay(pdMS_TO_TICKS(10));
-
       LOG_SYS("MODE", "ENTER CONFIG");
 
       gps_power_off();
@@ -184,8 +186,13 @@ void setMode(SystemMode newMode)
         LOG_ERROR("SD", "storage_on failed in CONFIG");
       }
 
-      wifi_init();                
-      webserver_start();  
+      wifi_init();
+
+      if (wifi_sta_connected()) {
+        webserver_start();
+      } else {
+        LOG_SYS("MODE", "CONFIG offline (no Wi-Fi)");
+      }
 
   break;
 

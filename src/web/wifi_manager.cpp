@@ -1,29 +1,24 @@
 // ============================================================================
-// Wi-Fi Manager (STA-only, hard-coded creds)
+// Wi-Fi Manager (STA-only, PHONE hotspot only)
+// - Uses phone_ssid / phone_pass from config
+// - No AP mode
+// - No home Wi-Fi
+// - Simple retry logic
 // ============================================================================
 
+#include "web/web_server.h"
 #include "web/wifi_manager.h"
 
 #include <WiFi.h>
 #include <ESPmDNS.h>
 
-#include "web/web_server.h"
+#include "config_manager.h"
 
-// ---------------------------------------------------------------------------
-// HARD-CODED STA CREDENTIALS (temporary)
-// ---------------------------------------------------------------------------
-
-//#define WIFI_STA_SSID "Optus_262611"
-//#define WIFI_STA_PASS "lyres42527mj"
-
-#define WIFI_STA_SSID "Als_iPhone"
-#define WIFI_STA_PASS "alan1234"
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 
 static bool wifiStarted = false;
-
 
 // ---------------------------------------------------------------------------
 // STA retry control
@@ -32,26 +27,37 @@ static bool wifiStarted = false;
 static unsigned long lastStaAttempt = 0;
 static int           staAttempts    = 0;
 
-#define STA_RETRY_INTERVAL_MS  5000   // retry every 15s
-#define STA_MAX_ATTEMPTS       10       // then give up quietly
-
+#define STA_RETRY_INTERVAL_MS  5000   // 5 s
+#define STA_MAX_ATTEMPTS       10
 
 // ---------------------------------------------------------------------------
-// Public API
+// Internal helpers
 // ---------------------------------------------------------------------------
 
-void wifi_init()
+static bool have_phone_wifi()
 {
-  Serial.printf("[WIFI] STA connect: %s\n", WIFI_STA_SSID);
+  return config.phone_ssid[0];
+}
+
+static void start_sta()
+{
+  if (!have_phone_wifi()) {
+    Serial.println("[WIFI] Phone hotspot SSID not set → Wi-Fi disabled");
+    return;
+  }
+
+  Serial.printf("[WIFI] STA connect (phone): %s\n", config.phone_ssid);
+
+  WiFi.disconnect(true, true);
+  delay(100);
 
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(true);
   WiFi.setAutoReconnect(false);
 
-  staAttempts    = 0;
-  lastStaAttempt = millis();
+  WiFi.begin(config.phone_ssid, config.phone_pass);
 
-  WiFi.begin(WIFI_STA_SSID, WIFI_STA_PASS);
+  lastStaAttempt = millis();
   staAttempts++;
 
   unsigned long t0 = millis();
@@ -67,24 +73,37 @@ void wifi_init()
       MDNS.addService("http", "tcp", 80);
     }
   } else {
-    Serial.println("[WIFI] STA not connected (will retry)");
+    Serial.println("[WIFI] STA not connected");
   }
-
-  wifiStarted = true;
 }
 
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
+void wifi_init()
+{
+  staAttempts    = 0;
+  lastStaAttempt = millis();
+
+  if (!have_phone_wifi()) {
+    Serial.println("[WIFI] No phone Wi-Fi configured → Wi-Fi OFF");
+    return;
+  }
+
+  start_sta();
+  wifiStarted = true;
+}
 
 void wifi_stop()
 {
   if (!wifiStarted) return;
 
-  webserver_stop();
-
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
 
   wifiStarted = false;
+  Serial.println("[WIFI] Wi-Fi stopped");
 }
 
 void wifi_loop()
@@ -94,25 +113,18 @@ void wifi_loop()
   // Already connected → nothing to do
   if (WiFi.status() == WL_CONNECTED) return;
 
-  // Give up after max retries
+  // Give up quietly after max retries
   if (staAttempts >= STA_MAX_ATTEMPTS) return;
 
   // Retry STA connection
   if (millis() - lastStaAttempt > STA_RETRY_INTERVAL_MS) {
-    lastStaAttempt = millis();
-    staAttempts++;
+    Serial.printf("[WIFI] STA retry %d/%d\n",
+      staAttempts + 1,
+      STA_MAX_ATTEMPTS);
 
-    Serial.printf(
-      "[WIFI] STA retry %d/%d\n",
-      staAttempts,
-      STA_MAX_ATTEMPTS
-    );
-
-    WiFi.disconnect(false);
-    WiFi.begin(WIFI_STA_SSID, WIFI_STA_PASS);
+    start_sta();
   }
 }
-
 
 // ---------------------------------------------------------------------------
 // STA helpers

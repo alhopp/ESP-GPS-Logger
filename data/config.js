@@ -1,36 +1,20 @@
 /* ============================================================================
- * Config (PC + ESP compatible)
- * - Loads from config.json when local
- * - Loads from /api/config on device
+ * Config (ESP32 / STA-only)
+ * - Loads from /api/config
  * - Owns Settings UI + info modal
  * - Delegates System rendering to SystemTab
  * ========================================================================== */
 
-
-
-const IS_LOCAL =
-  location.hostname === "localhost" ||
-  location.hostname === "127.0.0.1";
-
-const CONFIG_URL = IS_LOCAL ? "/config.json" : "/api/config";
-
+const CONFIG_URL = "/api/config";
 
 /* ---------------------------------------------------------------------------
- * UI helpers (safe setters)
+ * UI helpers
  * ------------------------------------------------------------------------- */
-function setVal(el,v){
-  if(!el) return;
-  el._loading=true; el.value=v??""; el._loading=false;
-}
-function setChk(el,v){
-  if(!el) return;
-  el._loading=true; el.checked=!!v; el._loading=false;
-}
+function setVal(el,v){ if(el){ el._loading=true; el.value=v??""; el._loading=false; } }
+function setChk(el,v){ if(el){ el._loading=true; el.checked=!!v; el._loading=false; } }
 
 /* ---------------------------------------------------------------------------
  * Load configuration
- * - Never throws
- * - Never blocks splash
  * ------------------------------------------------------------------------- */
 window.loadConfig = async function loadConfig(els){
   try{
@@ -47,12 +31,6 @@ window.loadConfig = async function loadConfig(els){
     setChk(els.logUBX, c.logging?.logUBX);
     setChk(els.logSBP, c.logging?.logSBP);
 
-    /* ---------- Wi-Fi ---------- */
-    setVal(els.home_ssid,  cfg.home_ssid);
-    setVal(els.home_pass,  cfg.home_pass);
-    setVal(els.phone_ssid, cfg.phone_ssid);
-    setVal(els.phone_pass, cfg.phone_pass);
-
     /* ---------- Performance / Stats ---------- */
     setChk(els.stat_2s,       c.stats?.s2);
     setChk(els.stat_5x10,     c.stats?.s10);
@@ -61,46 +39,28 @@ window.loadConfig = async function loadConfig(els){
     setChk(els.stat_hour,     c.stats?.h1);
     setChk(els.stat_distance, c.stats?.distance);
 
-    /* ---------- System (handoff) ---------- */
-    window.SystemTab?.load(c.system);
+    /* ---------- System ---------- */
+    if(c.system) window.SystemTab?.load(c.system);
+    else console.warn("No system object in /api/config");
 
   }catch(err){
-    console.warn("Config unavailable – using defaults", err);
-
-    /* Minimal safe defaults */
-    setVal(els.Sleep_info,"");
-    setChk(els.logTXT,false);
-    setChk(els.logUBX,false);
-    setChk(els.logSBP,false);
+    console.error("Config load failed", err);
   }
 
   els.saveBtn && (els.saveBtn.disabled=true, dirty=false);
 };
 
 /* ---------------------------------------------------------------------------
- * Save configuration (device only)
+ * Save configuration
  * ------------------------------------------------------------------------- */
 window.saveConfig = async function saveConfig(els){
-  if(IS_LOCAL){
-    console.warn("saveConfig skipped (local mode)");
-    els.saveBtn && (els.saveBtn.disabled=true, dirty=false);
-    return;
-  }
-
   const payload={
     ui:{ Sleep_info: els.Sleep_info?.value ?? "" },
-
     logging:{
       logTXT:!!els.logTXT?.checked,
       logUBX:!!els.logUBX?.checked,
       logSBP:!!els.logSBP?.checked
     },
-
-    wifi:{
-      ssid:els.ssid?.value ?? "",
-      ...(els.password?.value ? { password:els.password.value } : {})
-    },
-
     stats:{
       s2:!!els.stat_2s?.checked,
       s10:!!els.stat_5x10?.checked,
@@ -111,21 +71,22 @@ window.saveConfig = async function saveConfig(els){
     }
   };
 
-  const r = await fetch("/api/config",{
+  const r = await fetch(CONFIG_URL,{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body:JSON.stringify(payload)
   });
 
-  r.ok && (els.saveBtn.disabled=true, dirty=false);
+  r.ok
+    ? (els.saveBtn.disabled=true, dirty=false)
+    : console.warn("Config save failed");
 };
 
 /* ---------------------------------------------------------------------------
- * Settings info modal (ⓘ buttons)
+ * Settings info modal
  * ------------------------------------------------------------------------- */
 const infoTexts={
   performance:"Toggle performance screen types for session analysis.",
-  wifi:"Configure Wi-Fi credentials used in config mode.",
   logging:"Select raw GNSS formats to log (UBX / SBP).",
   sleep:"Text shown on device screen while sleeping."
 };
@@ -151,8 +112,8 @@ document.addEventListener("click",e=>{
 });
 
 addEventListener("load",()=>{
-  const m=document.getElementById("infoModal"); if(!m) return;
-  m.addEventListener("click",e=>{
+  const m=document.getElementById("infoModal");
+  m&&m.addEventListener("click",e=>{
     !e.target.closest(".modal-card")&&window.closeInfo();
   });
 });
