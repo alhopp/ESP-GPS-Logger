@@ -27,9 +27,16 @@ window.loadConfig = async function loadConfig(els){
     setVal(els.Sleep_info, c.ui?.Sleep_info);
 
     /* ---------- Logging ---------- */
-    setChk(els.logTXT, c.logging?.logTXT);
+    //setChk(els.logTXT, c.logging?.logTXT);
     setChk(els.logUBX, c.logging?.logUBX);
     setChk(els.logSBP, c.logging?.logSBP);
+
+    /* ---------- Wi-Fi ---------- */
+    if (c.wifi) {
+      setVal(els.phone_ssid, c.wifi.phone_ssid);
+      setVal(els.phone_pass, c.wifi.phone_pass_set ? "********" : "");
+    }
+
 
     /* ---------- Performance / Stats ---------- */
     setChk(els.stat_2s,       c.stats?.s2);

@@ -53,11 +53,17 @@ void webserver_start()
   server.on("/api/config", HTTP_GET, [&] {
     DynamicJsonDocument j(3072);
 
-    // ---- Wi-Fi (read-only) ----
+    // ---- Wi-Fi (config + runtime) ----
     JsonObject wifi = j.createNestedObject("wifi");
+
+    // runtime
     wifi["connected"] = WiFi.status() == WL_CONNECTED;
-    wifi["ssid"]      = WiFi.SSID();
-    wifi["ip"]        = WiFi.localIP().toString();
+    wifi["ssid"]      = WiFi.isConnected() ? WiFi.SSID() : "";
+    wifi["ip"]        = WiFi.isConnected() ? WiFi.localIP().toString() : "";
+
+    // configured (phone hotspot)
+    wifi["phone_ssid"]     = config.phone_ssid;
+    wifi["phone_pass_set"] = config.phone_pass[0] ? true : false;
 
     // ---- System info ----
     JsonObject system = j.createNestedObject("system");
@@ -81,7 +87,7 @@ void webserver_start()
     power["cal_bat"] = config.cal_bat;
 
     JsonObject logging = j.createNestedObject("logging");
-    logging["logTXT"] = config.track_distance;
+    //logging["logTXT"] = config.track_distance;
     logging["logUBX"] = config.logUBX;
     logging["logSBP"] = config.logSBP;
 
@@ -96,6 +102,9 @@ void webserver_start()
     stats["nm"]       = config.stat_nm;
     stats["h1"]       = config.stat_1h;
     stats["distance"] = config.stat_distance;
+    
+
+
 
     sendJson(server, j);
   });
