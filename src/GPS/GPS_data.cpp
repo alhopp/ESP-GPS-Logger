@@ -7,7 +7,7 @@
 #include "Core/Globals.h"
 
 
-#include "system_info.h"
+#include "core/system_info.h"
 
 
 uint16_t _gSpeed[BUFFER_SIZE]; 

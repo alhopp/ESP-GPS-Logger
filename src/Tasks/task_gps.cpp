@@ -1,15 +1,15 @@
 #include <Arduino.h>
 #include "Core/Globals.h"
-#include "task_gps.h"
+#include "tasks/task_gps.h"
 #include "MANAGERS/config_manager.h"
-#include "system_mode.h"
+#include "core/system_mode.h"
 #include "Ublox/ublox.h"
 #include "Display/E_paper.h"
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"
 #include "Storage/Geojson.h"
-#include "task_display.h"
-#include "gps_simulator.h"
+#include "tasks/task_display.h"
+#include "GPS/gps_simulator.h"
 
 // -----------------------------------------------------------------------------
 // GPS task state

@@ -12,7 +12,7 @@
 // - Other code may ONLY signal redraw intent
 // ============================================================================
 
-#include "task_display.h"
+#include "tasks/task_display.h"
 
 #include <Arduino.h>
 
@@ -24,11 +24,11 @@
 #include "Layout.h"
 #include "Core/Globals.h"
 
-#include "system_mode.h"
+#include "core/system_mode.h"
 
 #include "Display/E_paper.h"
 #include "Display/screen_draw.h"
-#include "Display/screen_system.h"
+#include "Display/Screens/screen_system.h"
 
 // ============================================================================
 // Redraw signalling state

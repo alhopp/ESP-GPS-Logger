@@ -12,7 +12,7 @@
 #include <ESPmDNS.h>
 
 #include "MANAGERS/config_manager.h"
-#include "task_display.h"
+#include "tasks/task_display.h"
 
 // ============================================================================
 // DEV MODE OVERRIDE

@@ -27,7 +27,7 @@
 
 #include "GPS/GPS_data.h"
 
-#include "system_info.h"
+#include "core/system_info.h"
 
 int SD_MMC_read_speed;   // Speed of reading from SD/MMC
 int SD_MMC_write_speed;  // Speed of writing to SD/MMC

@@ -11,7 +11,7 @@
 // - Exactly 5 Hz logging (200 ms), normal timestamps
 // -----------------------------------------------------------------------------
 
-#include "gps_simulator.h"
+#include "GPS/gps_simulator.h"
 #include "Ublox/Ublox.h"
 
 #include <Arduino.h>

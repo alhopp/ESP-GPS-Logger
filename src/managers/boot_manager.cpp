@@ -23,7 +23,7 @@
 #include "boot_manager.h"
 
 #include "Display/E_paper.h"
-#include "task_display.h"
+#include "tasks/task_display.h"
 
 #include "Core/rtc_state.h"
 #include "Core/Globals.h"

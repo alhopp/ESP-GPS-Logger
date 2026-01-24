@@ -10,7 +10,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
-#include "Display/screen_system.h"
+#include "Display/Screens/screen_system.h"
 #include "Display/E_paper.h"
 
 #include "Layout.h"
@@ -21,9 +21,9 @@
 #include "web/wifi_manager.h"
 #include "Core/rtc_state.h"
 
-#include "magnet_input.h"
-#include "system_mode.h"
-#include "task_display.h"
+#include "core/magnet_input.h"
+#include "core/system_mode.h"
+#include "tasks/task_display.h"
 
 #include "Ublox/ublox.h"
 

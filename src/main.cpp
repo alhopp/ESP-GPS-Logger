@@ -13,7 +13,7 @@
 // --- Core managers ------------------------------------------------------------
 
 #include "Storage/storage_manager.h"
-#include "Display/screen_system.h"
+#include "Display/Screens/screen_system.h"
 
 #include "MANAGERS/boot_manager.h"
 #include "MANAGERS/config_manager.h"
@@ -22,12 +22,12 @@
 
 #include "GPS/gps_manager.h"
 // --- Tasks -------------------------------------------------------------------
-#include "task_gps.h"
-#include "task_display.h"
+#include "tasks/task_gps.h"
+#include "tasks/task_display.h"
 
 // --- System / input -----------------------------------------------------------
-#include "system_mode.h"
-#include "magnet_input.h"
+#include "core/system_mode.h"
+#include "core/magnet_input.h"
 #include "Core/Definitions.h"
 
 #include "Core/Globals.h"

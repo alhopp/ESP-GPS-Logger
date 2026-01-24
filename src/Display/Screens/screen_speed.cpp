@@ -17,7 +17,7 @@
 // -----------------------------------------------------------------------------
 // Display + UI dependencies
 // -----------------------------------------------------------------------------
-#include "Display/screen_speed.h"
+#include "Display/Screens/screen_speed.h"
 #include "Display/E_paper.h"       // Physical e-paper display instance
 #include "Fonts.h"                 // Font definitions
 #include "Core/Globals.h"               // Global runtime values

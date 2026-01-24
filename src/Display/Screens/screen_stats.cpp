@@ -11,7 +11,7 @@
 // - No side effects: DO NOT toggle Wi-Fi/GPS, DO NOT change mode.
 // ============================================================================
 
-#include "Display/screen_stats.h"
+#include "Display/Screens/screen_stats.h"
 #include "Display/E_paper.h"
 #include "Layout.h"
 #include "MANAGERS/config_manager.h"

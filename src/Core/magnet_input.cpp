@@ -1,12 +1,12 @@
 #include <Arduino.h>
 
-#include "magnet_input.h"
+#include "core/magnet_input.h"
 #include "Core/Definitions.h"
-#include "system_mode.h"
+#include "core/system_mode.h"
 #include "Core/Globals.h"
-#include "task_display.h"   // <-- REQUIRED
+#include "tasks/task_display.h"   // <-- REQUIRED
 
-#include "Display/screen_system.h"
+#include "Display/Screens/screen_system.h"
 
 // -----------------------------------------------------------------------------
 // Gesture thresholds

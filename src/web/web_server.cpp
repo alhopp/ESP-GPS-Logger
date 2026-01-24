@@ -19,7 +19,7 @@
 #include <SD_MMC.h>
 
 #include "MANAGERS/config_manager.h"
-#include "system_info.h"
+#include "core/system_info.h"
 #include "Core/Definitions.h"
 
 #include <esp_system.h>

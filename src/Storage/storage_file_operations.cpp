@@ -13,12 +13,12 @@
 #include "Storage/storage_session_log.h"
 
 #include "MANAGERS/config_manager.h"
-#include "system_mode.h"
+#include "core/system_mode.h"
 #include "Ublox/Ublox.h"
 #include "Core/Globals.h"
 #include "Core/Definitions.h"
 
-#include "system_info.h"
+#include "core/system_info.h"
 #include <esp_system.h>
 
 // -----------------------------------------------------------------------------

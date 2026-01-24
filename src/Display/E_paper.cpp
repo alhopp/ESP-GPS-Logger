@@ -17,11 +17,11 @@
 
 #include <LittleFS.h>
 #include "Storage/storage_manager.h"
-#include "system_info.h"
+#include "core/system_info.h"
 #include "Layout.h"
-#include "Display/screen_system.h"
+#include "Display/Screens/screen_system.h"
 #include "MANAGERS/config_manager.h"
-#include "task_display.h"
+#include "tasks/task_display.h"
 
 // ============================================================================
 // Display instance (OWNED HERE)

@@ -15,9 +15,9 @@
 // -----------------------------------------------------------------------------
 
 #include "Display/screen_draw.h"
-#include "Display/screen_speed.h"
-#include "Display/screen_system.h"
-#include "system_mode.h"
+#include "Display/Screens/screen_speed.h"
+#include "Display/Screens/screen_system.h"
+#include "core/system_mode.h"
 
 // -----------------------------------------------------------------------------
 // MODE → DRAW FUNCTION (authoritative)

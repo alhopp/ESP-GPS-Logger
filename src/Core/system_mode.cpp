@@ -24,16 +24,16 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include "system_mode.h"
+#include "core/system_mode.h"
 #include "web/wifi_manager.h"
 #include "web/web_server.h"
 
 #include "GPS/gps_manager.h"
-#include "Display/screen_system.h"
+#include "Display/Screens/screen_system.h"
 
 #include "Core/Definitions.h"
 #include "esp_sleep.h"
-#include "task_display.h"
+#include "tasks/task_display.h"
 
 #include "Storage/storage_manager.h"
 #include "Storage/storage_file_operations.h"

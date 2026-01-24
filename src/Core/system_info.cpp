@@ -1,6 +1,6 @@
-#include "system_info.h"
+#include "core/system_info.h"
 
-#include "system_info.h"
+#include "core/system_info.h"
 
 const SystemInfo systemInfo = {
   "u-blox NEO-M10",                // gnss_module

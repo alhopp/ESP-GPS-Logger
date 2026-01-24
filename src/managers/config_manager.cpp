@@ -17,7 +17,7 @@
 #include "Core/rtc_state.h"
 #include "Core/Globals.h"
 
-#include "system_info.h"
+#include "core/system_info.h"
 
 // -----------------------------------------------------------------------------
 // Config location (LittleFS only)
