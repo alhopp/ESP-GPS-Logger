@@ -18,7 +18,7 @@
 // DEV MODE OVERRIDE
 // ============================================================================
 // Uncomment during development to force STA and disable AP
-#define DEV_FORCE_WIFI
+//#define DEV_FORCE_WIFI
 
 #ifdef DEV_FORCE_WIFI
 static const char *DEV_SSID = "Als_iPhone";
