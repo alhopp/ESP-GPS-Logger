@@ -115,10 +115,6 @@ void Log_to_SD(void)
     ubxfile.write((const uint8_t*)&ubxMessage.navDOP,sizeof(ubxMessage.navDOP));
   }
 
-#if defined(GPY_H)
-  if(config.logGPY&&gpyfile) log_GPY(gpyfile);
-#endif
-
   if(config.logSBP&&sbpfile&&getMode()==MODE_LOGGING){
     uint32_t itow=ubxMessage.navPvt.iTOW;
     if(itow!=last_sbp_iTOW){ last_sbp_iTOW=itow; log_SBP(sbpfile); }

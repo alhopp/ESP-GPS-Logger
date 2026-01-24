@@ -4,6 +4,9 @@
 #include "Core/Definitions.h"  
 
 
+static int wdt_task0_miss_count = 0;
+
+
 void watchdogInit() {
   Serial.println("Configuring WDT...");
   esp_task_wdt_init(WDT_TIMEOUT, true);

@@ -14,6 +14,10 @@ void magnet_poll();
 
 extern bool magnet_active;
 
+constexpr uint8_t MAGNET_PIN = 39;
+
+
+
 
 
 

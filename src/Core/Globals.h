@@ -73,7 +73,7 @@ extern float analog_mean;
 // ============================================================================
 extern int wdt_task0;
 extern int wdt_task1;
-extern int max_count_wdt_task0;
+
 
 // ============================================================================
 // SHUTDOWN / SESSION CONTROL

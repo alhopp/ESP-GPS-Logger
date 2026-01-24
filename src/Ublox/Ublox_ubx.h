@@ -2,6 +2,19 @@
 
 #include <Arduino.h>
 
+// GPS (UART2)
+constexpr uint8_t GPS_UART_RX_PIN = 32;   // u-blox TX
+constexpr uint8_t GPS_UART_TX_PIN = 33;   // u-blox RX
+
+// u-blox power / control pins (GPIO numbers only — no ESP-IDF types here)
+constexpr uint8_t UBLOX_POWER1     = 25;
+constexpr uint8_t UBLOX_POWER2     = 26;
+constexpr uint8_t UBLOX_POWER3     = 27;
+
+constexpr uint8_t UBLOX_RTC_GPIO1  = 25;
+constexpr uint8_t UBLOX_RTC_GPIO2  = 26;
+constexpr uint8_t UBLOX_GPIO3      = 27;
+
 // ============================================================================
 // RAW UBX BLOBS
 //
@@ -148,3 +161,4 @@ constexpr uint8_t uid[]      PROGMEM = {0xB5,0x62,0x27,0x03,0x00,0x00,0x2A,0xA5}
 }
 
 } // namespace ubx
+

@@ -28,7 +28,7 @@ void log_SBP(File &file)
   uint32_t sdop=ubxMessage.navPvt.sAcc/10;     if(sdop>255) sdop=255;
   uint32_t vsdop=ubxMessage.navPvt.vAcc/10;    if(vsdop>255) vsdop=255;
 
-  sbp_frame.UtcSec=ubxMessage.navPvt.iTOW;
+  sbp_frame.UtcSec = ubxMessage.navPvt.sec * 1000 + (ubxMessage.navPvt.nano + 500000) / 1000000;
 
   sbp_frame.date_time_UTC_packed=(((year-2000)*12+month)<<22) | (day<<17) | (hour<<12) | (min<<6)|sec;
 

@@ -30,6 +30,8 @@
 #include "Display/screen_draw.h"
 #include "Display/Screens/screen_system.h"
 
+#include "Core/magnet_input.h"
+
 // ============================================================================
 // Redraw signalling state
 // ============================================================================

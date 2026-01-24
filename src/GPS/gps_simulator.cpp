@@ -169,6 +169,7 @@ int gps_simulator_step()
 
   sim_ms += SIM_RATE_MS;
   ubxMessage.navPvt.iTOW = sim_ms;
+  ubxMessage.navPvt.nano = (sim_ms % 1000) * 1000000UL;
 
   // Satellites
   if(sat_count < 10 && (now-last_sat_ms) >= 1500){ sat_count++; last_sat_ms=now; }
