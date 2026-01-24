@@ -4,74 +4,66 @@
 // ============================================================================
 // Core/Definitions.h
 //
-// Compile-time configuration, hardware wiring, thresholds, and logging macros.
-// No runtime state or logic should live here.
+// Compile-time system configuration only.
+// - No runtime state
+// - No hardware drivers
+// - No protocol-specific wiring
 // ============================================================================
 
+// ---------------------------------------------------------------------------
+// Build flags
+// ---------------------------------------------------------------------------
 #define GPS_SIMULATOR
 
+// ---------------------------------------------------------------------------
+// Timing / run detection
+// ---------------------------------------------------------------------------
+constexpr int TIME_DELAY_NEW_RUN = 10;
 
-constexpr int TIME_DELAY_NEW_RUN     = 10;
-
+// ---------------------------------------------------------------------------
+// SD / storage (board-level, minimal)
+// ---------------------------------------------------------------------------
 constexpr uint8_t SDMMC_DAT0_PIN = 2;   // MUST be pulled HIGH when no card present
 
-// ============================================================================
-// Battery & voltage calibration
-// ============================================================================
-
+// ---------------------------------------------------------------------------
+// Battery / voltage calibration
+// ---------------------------------------------------------------------------
 constexpr float CALIBRATION_BAT_V      = 1.7f;
-
 constexpr float VOLTAGE_100            = 4.15f;
 constexpr float VOLTAGE_0              = 3.4f;
-
 constexpr int   VOLTAGE_LOW            = 25;
-
 constexpr float MINIMUM_VOLTAGE        = 0.0f;
 constexpr float MINIMUM_VOLTAGE_CHANGE = 0.1f;
-
 constexpr int   TOLERANCE              = 100;
 
-
-// ============================================================================
-// Sleep / watchdog / timing
-// ============================================================================
-constexpr int WDT_TIMEOUT         = 120;
+// ---------------------------------------------------------------------------
+// Watchdog / sleep
+// ---------------------------------------------------------------------------
+constexpr int WDT_TIMEOUT         = 120;   // seconds
 constexpr int MAX_COUNT_WDT_TASK0 = 10;
 
-
-// ============================================================================
-// GPS quality thresholds
-// ============================================================================
-
+// ---------------------------------------------------------------------------
+// GPS quality thresholds (policy, not protocol)
+// ---------------------------------------------------------------------------
 constexpr int MIN_numSV_FIRST_FIX    = 5;
 constexpr int MAX_Sacc_FIRST_FIX     = 2;
 
 constexpr int MIN_numSV_GPS_SPEED_OK = 4;
 constexpr int MAX_Sacc_GPS_SPEED_OK  = 1;
-constexpr int MAX_GPS_SPEED_OK       = 40;    // m/s
+constexpr int MAX_GPS_SPEED_OK       = 40;   // m/s
 
+// ---------------------------------------------------------------------------
+// Calibration / unit helpers
+// ---------------------------------------------------------------------------
+constexpr int   STARTVALUE_HIGHEST_READ = 1800;
+constexpr int   NO_M10_GPS              = 0;
+constexpr float MMPS_TO_KNOTS           = 0.00194384f;
 
-// ============================================================================
-// EEPROM / calibration constants
-// ============================================================================
-
-constexpr int   STARTVALUE_HIGHEST_READ    = 1800;
-constexpr int   NO_M10_GPS                 = 0;
-constexpr float MMPS_TO_KNOTS              = 0.00194384f;
-
-// ============================================================================
-// Hardware pins (misc)
-// ============================================================================
-
-
-
-
-
-// ============================================================================
+// ---------------------------------------------------------------------------
 // Logging
-// ============================================================================
+// ---------------------------------------------------------------------------
 
-// Widths (tune once, applies everywhere)
+// Column widths
 constexpr int LOG_TAG_W  = 7;
 constexpr int LOG_ITEM_W = 12;
 
