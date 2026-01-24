@@ -31,7 +31,7 @@
 #include "GPS/gps_manager.h"
 #include "Display/screen_system.h"
 
-#include "Definitions.h"
+#include "Core/Definitions.h"
 #include "esp_sleep.h"
 #include "task_display.h"
 

@@ -12,8 +12,8 @@
 
 #include "Ublox/ublox.h"
 #include "GPS/GPS_data.h"
-#include "Definitions.h"
-#include "Globals.h"
+#include "Core/Definitions.h"
+#include "Core/Globals.h"
 
 #include <LittleFS.h>
 #include "Storage/storage_manager.h"

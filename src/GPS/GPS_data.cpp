@@ -1,10 +1,10 @@
 
 #include "GPS/GPS_data.h"
 #include "Ublox/ublox.h"
-#include "Definitions.h"
+#include "Core/Definitions.h"
 #include "MANAGERS/config_manager.h"
 #include "GPS/gps_manager.h"
-#include "Globals.h"
+#include "Core/Globals.h"
 
 
 #include "system_info.h"

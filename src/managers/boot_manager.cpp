@@ -25,9 +25,9 @@
 #include "Display/E_paper.h"
 #include "task_display.h"
 
-#include "rtc_state.h"
-#include "Globals.h"
-#include "Definitions.h"
+#include "Core/rtc_state.h"
+#include "Core/Globals.h"
+#include "Core/Definitions.h"
 
 
 constexpr uint8_t PIN_BAT    = 35;

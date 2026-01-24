@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "Globals.h"
+#include "Core/Globals.h"
 #include "task_gps.h"
 #include "MANAGERS/config_manager.h"
 #include "system_mode.h"

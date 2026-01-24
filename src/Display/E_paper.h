@@ -5,7 +5,7 @@
 #include <GxEPD2_BW.h>
 #include <epd/GxEPD2_213_B74.h>
 
-#include "rtc_state.h"
+#include "Core/rtc_state.h"
 
 #include "GPS/GPS_data.h"
 

@@ -20,7 +20,7 @@
 
 #include "MANAGERS/config_manager.h"
 #include "system_info.h"
-#include "Definitions.h"
+#include "Core/Definitions.h"
 
 #include <esp_system.h>
 

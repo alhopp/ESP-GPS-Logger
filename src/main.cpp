@@ -28,9 +28,9 @@
 // --- System / input -----------------------------------------------------------
 #include "system_mode.h"
 #include "magnet_input.h"
-#include "Definitions.h"
+#include "Core/Definitions.h"
 
-#include "Globals.h"
+#include "Core/Globals.h"
 
 // --- Forward declarations -----------------------------------------------------
 static void startTasks();

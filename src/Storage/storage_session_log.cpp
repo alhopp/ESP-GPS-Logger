@@ -14,13 +14,13 @@
 #include <FS.h>
 #include <LittleFS.h>
 
-#include "Definitions.h"
+#include "Core/Definitions.h"
 
 #include "Storage/sbp.h"
 #include "MANAGERS/config_manager.h"
 
-#include "rtc_state.h"
-#include "Globals.h"  
+#include "Core/rtc_state.h"
+#include "Core/Globals.h"  
 
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"

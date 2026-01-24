@@ -20,7 +20,7 @@
 #include "Display/screen_speed.h"
 #include "Display/E_paper.h"       // Physical e-paper display instance
 #include "Fonts.h"                 // Font definitions
-#include "Globals.h"               // Global runtime values
+#include "Core/Globals.h"               // Global runtime values
 
 // -----------------------------------------------------------------------------
 // Local UI state Layout constants

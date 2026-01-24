@@ -15,8 +15,8 @@
 #include "MANAGERS/config_manager.h"
 #include "system_mode.h"
 #include "Ublox/Ublox.h"
-#include "Globals.h"
-#include "Definitions.h"
+#include "Core/Globals.h"
+#include "Core/Definitions.h"
 
 #include "system_info.h"
 #include <esp_system.h>

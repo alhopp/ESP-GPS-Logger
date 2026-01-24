@@ -10,8 +10,8 @@
 // -----------------------------------------------------------------------------
 
 #include <Arduino.h>
-#include "Globals.h"
-#include "Definitions.h"
+#include "Core/Globals.h"
+#include "Core/Definitions.h"
 
 // ============================================================================
 // SYSTEM / NETWORK STATE

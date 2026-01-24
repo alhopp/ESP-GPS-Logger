@@ -1,7 +1,7 @@
 #include "watchdog_manager.h"
 #include <Arduino.h>
 #include <esp_task_wdt.h>
-#include "Definitions.h"  
+#include "Core/Definitions.h"  
 
 
 void watchdogInit() {

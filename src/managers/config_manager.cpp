@@ -12,10 +12,10 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 
-#include "Definitions.h"
+#include "Core/Definitions.h"
 #include "MANAGERS/config_manager.h"
-#include "rtc_state.h"
-#include "Globals.h"
+#include "Core/rtc_state.h"
+#include "Core/Globals.h"
 
 #include "system_info.h"
 

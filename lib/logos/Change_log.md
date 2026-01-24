@@ -45,7 +45,7 @@ main.cpp> Ublox initialization moved after Wifi connections closed.
 * Partial code for OTA autoupload, dev status yet.
 M9 15Hz support
 * Added support to PlatformIO and partially for ESP-IDF (CMakefile.txt), thats why Rtos.ino moved to main.cpp. Wrapper module: https://github.com/aivoprykk/ESP-GPS-Wrapper
-* Filename Rtos.h -> Definitions.h
+* Filename Rtos.h -> Core/Definitions.h
 * Added ESP_functions.h with general functions
 * Bugfix Short_push for speed_field choice
 * Added field 9 : Run-AVG, Alfa, NM, 1 hour
@@ -57,7 +57,7 @@ M9 15Hz support
 *   for higher accuracy, change of datatypes to double
 *   All speeds are now in mm/s (format double)
 *   Added STATS3 screen with M100/M500, config.Stat_screens 6
-*   Added Definitions.h for general #define
+*   Added Core/Definitions.h for general #define
 *   Bugfix in new_run_detection, speed m/s -> mm/s
 *   Start logging if speed>MIN_SPEED_START_LOGGING, now 2m/s
 *   Added log files in oao format

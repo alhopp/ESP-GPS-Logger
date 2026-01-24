@@ -15,7 +15,7 @@
 #include "Display/E_paper.h"
 #include "Layout.h"
 #include "MANAGERS/config_manager.h"
-#include "Globals.h"
+#include "Core/Globals.h"
 #include "Fonts.h"
 
 static int ui_offset = 0;

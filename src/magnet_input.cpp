@@ -1,9 +1,9 @@
 #include <Arduino.h>
 
 #include "magnet_input.h"
-#include "Definitions.h"
+#include "Core/Definitions.h"
 #include "system_mode.h"
-#include "Globals.h"
+#include "Core/Globals.h"
 #include "task_display.h"   // <-- REQUIRED
 
 #include "Display/screen_system.h"

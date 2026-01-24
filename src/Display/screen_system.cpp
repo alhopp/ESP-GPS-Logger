@@ -19,7 +19,7 @@
 
 #include "Storage/storage_manager.h"
 #include "web/wifi_manager.h"
-#include "rtc_state.h"
+#include "Core/rtc_state.h"
 
 #include "magnet_input.h"
 #include "system_mode.h"

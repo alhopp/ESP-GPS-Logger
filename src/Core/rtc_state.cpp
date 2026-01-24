@@ -1,5 +1,5 @@
-#include "rtc_state.h"
-#include "Definitions.h"
+#include "Core/rtc_state.h"
+#include "Core/Definitions.h"
 
 // ============================================================================
 // RTC persistent values (storage)

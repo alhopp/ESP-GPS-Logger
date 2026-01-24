@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 // ============================================================================
-// Definitions.h
+// Core/Definitions.h
 //
 // Compile-time configuration, hardware wiring, thresholds, and logging macros.
 // No runtime state or logic should live here.

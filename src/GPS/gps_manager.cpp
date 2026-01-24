@@ -15,10 +15,10 @@
 #include <driver/rtc_io.h>
 #include <driver/gpio.h>
 
-#include "Definitions.h"
-#include "rtc_state.h"     // RTC_gps_* + RTC time fields
+#include "Core/Definitions.h"
+#include "Core/rtc_state.h"     // RTC_gps_* + RTC time fields
 #include "Ublox/ublox.h"         // ubx::poll::mon_ver definition
-#include "Globals.h"
+#include "Core/Globals.h"
 
 tm tmstruct{};
 int Time_Set_OK = 0;

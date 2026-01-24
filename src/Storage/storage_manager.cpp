@@ -13,7 +13,7 @@
 #include <LittleFS.h>
 
 #include "MANAGERS/config_manager.h"
-#include "Definitions.h"
+#include "Core/Definitions.h"
 
 // -----------------------------------------------------------------------------
 // Globals (extern)

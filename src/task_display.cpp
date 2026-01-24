@@ -20,9 +20,9 @@
 #include "esp_task_wdt.h"
 
 #include "Fonts.h"
-#include "Definitions.h"
+#include "Core/Definitions.h"
 #include "Layout.h"
-#include "Globals.h"
+#include "Core/Globals.h"
 
 #include "system_mode.h"
 
