@@ -18,7 +18,7 @@
 #define T5_E_PAPER               // Compile without display functions
 #define GPIO12_ACTIF             // GPIO12 used as wake-up pin (normal GPIO disabled)
 
-#define GPS_SIMULATOR
+//#define GPS_SIMULATOR
 
 
 // ============================================================================

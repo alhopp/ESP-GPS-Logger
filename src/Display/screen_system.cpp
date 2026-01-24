@@ -165,19 +165,19 @@ void draw_SLEEP()
     RTC_1h, RTC_mile, RTC_500m
   };
 
-  //display.setFont(Fonts::Mono9);
-  //for (int i = 0; i < ROWS; ++i) {
-  //  const int y = START + i * STEP;
-  //  display.setCursor(L0, y); display.print(LBL_L[i]);
-  //  display.setCursor(L1, y); display.print(LBL_R[i]);
- // }
+  display.setFont(Fonts::Mono9);
+  for (int i = 0; i < ROWS; ++i) {
+    const int y = START + i * STEP;
+    display.setCursor(L0, y); display.print(LBL_L[i]);
+    display.setCursor(L1, y); display.print(LBL_R[i]);
+  }
 
-  //display.setFont(Fonts::Body9);
-  //for (int i = 0; i < ROWS; ++i) {
-  //  const int y = START + i * STEP;
-  //  display.setCursor(V0, y); display.print(VAL_L[i], 2);
-  //  display.setCursor(V1, y); display.print(VAL_R[i], 2);
- // }
+  display.setFont(Fonts::Body9);
+  for (int i = 0; i < ROWS; ++i) {
+    const int y = START + i * STEP;
+    display.setCursor(V0, y); display.print(VAL_L[i], 2);
+    display.setCursor(V1, y); display.print(VAL_R[i], 2);
+  }
 
   drawCenteredText("Short magnet to start",    Layout::ROW9(7), Fonts::Body9);
 
