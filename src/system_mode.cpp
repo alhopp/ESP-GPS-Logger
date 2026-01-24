@@ -28,7 +28,7 @@
 #include "web/wifi_manager.h"
 #include "web/web_server.h"
 
-#include "gps_manager.h"
+#include "GPS/gps_manager.h"
 #include "Display/screen_system.h"
 
 #include "Definitions.h"

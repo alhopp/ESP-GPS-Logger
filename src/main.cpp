@@ -11,14 +11,16 @@
 #include <Arduino.h>
 
 // --- Core managers ------------------------------------------------------------
-#include "boot_manager.h"
+
 #include "Storage/storage_manager.h"
 #include "Display/screen_system.h"
 
-#include "config_manager.h"
-#include "gps_manager.h"
-#include "watchdog_manager.h"
+#include "MANAGERS/boot_manager.h"
+#include "MANAGERS/config_manager.h"
+#include "MANAGERS/watchdog_manager.h"
 
+
+#include "GPS/gps_manager.h"
 // --- Tasks -------------------------------------------------------------------
 #include "task_gps.h"
 #include "task_display.h"

@@ -18,7 +18,7 @@
 #include <LittleFS.h>
 #include <SD_MMC.h>
 
-#include "config_manager.h"
+#include "MANAGERS/config_manager.h"
 #include "system_info.h"
 #include "Definitions.h"
 

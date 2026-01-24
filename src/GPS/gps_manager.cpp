@@ -8,7 +8,7 @@
 // - RTC time injection (UBX-CFG-TIMEUTC)
 // ============================================================================
 
-#include "gps_manager.h"
+#include "GPS/gps_manager.h"
 
 #include <Arduino.h>
 #include <HardwareSerial.h>

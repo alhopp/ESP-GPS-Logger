@@ -12,7 +12,7 @@
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"
 
-#include "config_manager.h"
+#include "MANAGERS/config_manager.h"
 #include "system_mode.h"
 #include "Ublox/Ublox.h"
 #include "Globals.h"

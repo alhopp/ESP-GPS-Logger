@@ -2,8 +2,8 @@
 #include "GPS/GPS_data.h"
 #include "Ublox/ublox.h"
 #include "Definitions.h"
-#include "config_manager.h"
-#include "gps_manager.h"
+#include "MANAGERS/config_manager.h"
+#include "GPS/gps_manager.h"
 #include "Globals.h"
 
 

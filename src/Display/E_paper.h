@@ -6,7 +6,6 @@
 #include <epd/GxEPD2_213_B74.h>
 
 #include "rtc_state.h"
-#include "Ublox/Ublox.h"
 
 #include "GPS/GPS_data.h"
 

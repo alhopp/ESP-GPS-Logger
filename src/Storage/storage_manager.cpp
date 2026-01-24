@@ -12,7 +12,7 @@
 #include <SD_MMC.h>
 #include <LittleFS.h>
 
-#include "config_manager.h"
+#include "MANAGERS/config_manager.h"
 #include "Definitions.h"
 
 // -----------------------------------------------------------------------------

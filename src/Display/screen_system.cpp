@@ -15,7 +15,6 @@
 
 #include "Layout.h"
 #include "Fonts.h"
-#include "logos.h"
 #include "Fonts/BitmapSurfbuddies.h"
 
 #include "Storage/storage_manager.h"
@@ -25,6 +24,9 @@
 #include "magnet_input.h"
 #include "system_mode.h"
 #include "task_display.h"
+
+#include "Ublox/ublox.h"
+
 
 // -----------------------------------------------------------------------------
 // Local helpers

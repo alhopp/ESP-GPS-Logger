@@ -17,7 +17,7 @@
 #include "Definitions.h"
 
 #include "Storage/sbp.h"
-#include "config_manager.h"
+#include "MANAGERS/config_manager.h"
 
 #include "rtc_state.h"
 #include "Globals.h"  

@@ -1,14 +1,13 @@
 #include <Arduino.h>
 #include "Globals.h"
 #include "task_gps.h"
-#include "config_manager.h"
+#include "MANAGERS/config_manager.h"
 #include "system_mode.h"
 #include "Ublox/ublox.h"
 #include "Display/E_paper.h"
 #include "Storage/storage_manager.h"
 #include "Storage/storage_session_log.h"
 #include "Storage/Geojson.h"
-#include "ESP_functions.h"
 #include "task_display.h"
 #include "gps_simulator.h"
 

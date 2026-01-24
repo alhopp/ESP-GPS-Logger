@@ -14,7 +14,7 @@
 #include "Display/screen_stats.h"
 #include "Display/E_paper.h"
 #include "Layout.h"
-#include "config_manager.h"
+#include "MANAGERS/config_manager.h"
 #include "Globals.h"
 #include "Fonts.h"
 
