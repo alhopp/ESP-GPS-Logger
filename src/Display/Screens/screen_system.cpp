@@ -1,11 +1,11 @@
-// -----------------------------------------------------------------------------
+// ============================================================================
 // screen_system.cpp
 //
-// Display-layer rendering only.
-// - draw_*() functions paint pixels/text ONLY
+// Display-layer rendering ONLY.
+// - draw_*() functions paint pixels/text only
 // - No display.display(), no paging, no clearing
 // - Display task owns refresh policy
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -29,18 +29,11 @@
 #include "Ublox/ublox.h"
 
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 // Local helpers
-// -----------------------------------------------------------------------------
+// ============================================================================
 static void drawCenteredText(const char* text, int y, const GFXfont* font);
-static void drawSystemLayout(const char* title, const char* subtitle,
-                             const char* key1 = nullptr, const char* val1 = nullptr,
-                             const char* key2 = nullptr, const char* val2 = nullptr);
 
-// -----------------------------------------------------------------------------
-// UI state
-// -----------------------------------------------------------------------------
-static int ui_offset = 0;
 
 // ============================================================================
 // MODE: BOOT
@@ -58,13 +51,13 @@ void draw_BOOT()
   drawCenteredText("Initialising system", Layout::ROW9(5), Fonts::Body9);
 }
 
+
 // ============================================================================
-// MODE: IDLE  (magnet affordance)
+// MODE: IDLE / CONFIG (magnet affordance)
 // ============================================================================
 
 // Magnet affordance geometry (UI-owned)
-constexpr int MAG_X = 30, MAG_Y = 12; constexpr int MAG_R = 8;
-
+constexpr int MAG_X = 30, MAG_Y = 12, MAG_R = 8;
 
 // Partial window tightly covering affordance
 constexpr int MAG_WIN_X = MAG_X - MAG_R - 2;
@@ -73,40 +66,39 @@ constexpr int MAG_WIN_W = MAG_R * 2 + 4;
 constexpr int MAG_WIN_H = MAG_R * 2 + 4;
 
 
-// Public UI hook (called by input layer on state change)
+// UI hook (called by input layer on state change)
 void screen_request_magnet_affordance()
 {
   screen_request_partial(MAG_WIN_X, MAG_WIN_Y, MAG_WIN_W, MAG_WIN_H);
 }
 
+
+// Draw magnet indicator (shared)
+static inline void drawMagnet()
+{
+  if (magnet_active) display.fillCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
+  else               display.drawCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
+}
+
+
 void draw_IDLE()
 {
-  // Magnet state indicator:
-  //   ◯ no magnet
-  //   ● magnet present
-  if (magnet_active) 
-       display.fillCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
-  else display.drawCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
+  drawMagnet();
 
-  // Static UI
-  //display.drawBitmap(200, 3, ESP_GPS_logo, 48, 48, GxEPD_WHITE, GxEPD_BLACK);
   drawCenteredText("ESP-GPS",                   Layout::ROW9(2), Fonts::Body12);
   drawCenteredText("Tap: Start",                Layout::ROW9(4), Fonts::Body9);
   drawCenteredText("Hold: Settings",            Layout::ROW9(5), Fonts::Body9);
   drawCenteredText("Use magnet to select mode", Layout::ROW9(7), Fonts::Body9);
 }
 
+
 void draw_WIFI_CONFIG()
 {
-  // Magnet affordance
-  if (magnet_active)
-       display.fillCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
-  else display.drawCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
-
+  drawMagnet();
   drawCenteredText("CONFIG", Layout::ROW9(2), Fonts::Body12);
 
-  switch (wifi_get_ui_state())
-  {
+  switch (wifi_get_ui_state()) {
+
     case WIFI_UI_TRYING:
       drawCenteredText("Connecting to hotspot", Layout::ROW9(4), Fonts::Body9);
       drawCenteredText("Open: gps.local",       Layout::ROW9(6), Fonts::Body9);
@@ -118,12 +110,11 @@ void draw_WIFI_CONFIG()
       break;
 
     case WIFI_UI_AP:
-      // If you are keeping this state internally, make it neutral
       drawCenteredText("Wi-Fi setup required", Layout::ROW9(4), Fonts::Body9);
       drawCenteredText("Open: gps.local",      Layout::ROW9(6), Fonts::Body9);
       break;
 
-   case WIFI_UI_CONNECTED:
+    case WIFI_UI_CONNECTED:
       drawCenteredText("Wi-Fi connected", Layout::ROW9(4), Fonts::Body9);
       drawCenteredText("Open: gps.local", Layout::ROW9(6), Fonts::Body9);
       break;
@@ -132,49 +123,80 @@ void draw_WIFI_CONFIG()
     default:
       drawCenteredText("Wi-Fi idle", Layout::ROW9(4), Fonts::Body9);
       drawCenteredText("Open: gps.local", Layout::ROW9(6), Fonts::Body9);
-      break;      
-    }
+      break;
   }
+}
 
 
-
-
-
+// ============================================================================
+// MODE: SLEEP (summary stats)
+// ============================================================================
 void draw_SLEEP()
 {
-  constexpr int ROWS      = 6;
-  constexpr int ROW_START = 18;
-  constexpr int ROW_STEP  = 20;
+  constexpr int ROWS = 6;
+  constexpr int ROW_START = 18, ROW_STEP = 20;
+  constexpr int COL_LABEL = 1;
+  constexpr int COL_VALUE_RIGHT = 130;   // right-aligned anchor
 
-  constexpr int COL_LABEL = 10;
-  constexpr int COL_VALUE_RIGHT = 135;   // right-aligned to screen edge
+  const char* LABELS[ROWS] = { "02:", "10:", "1H:", "AL:", "NM:", "DI:" };
 
-  const char* LABELS[ROWS] = {
-    "02:", "10:", "1H:", "AL:", "NM:", "DI:"
-  };
-
+  // Test values (replace with RTC values later)
   const float VALUES[ROWS] = {
-    39.87f,
-    36.80f,
-    23.45f,
-    19.00f,
-    31.46f,
-   127.02f
+    39.87f, 36.80f, 23.45f, 19.00f, 31.46f, 127.02f
   };
 
-  // Labels
+  // Labels (mono)
   display.setFont(Fonts::Mono12);
   for (int i = 0; i < ROWS; ++i) {
-    const int y = ROW_START + i * ROW_STEP;
-    display.setCursor(COL_LABEL, y);
+    display.setCursor(COL_LABEL, ROW_START + i * ROW_STEP);
     display.print(LABELS[i]);
   }
 
-  // Numbers
+  // Values (fixed-width renderer)
   for (int i = 0; i < ROWS; ++i) {
-    const int y = ROW_START + i * ROW_STEP;
-    drawFixedNumber(COL_VALUE_RIGHT, y, VALUES[i]);
+    drawFixedNumber(COL_VALUE_RIGHT,
+                    ROW_START + i * ROW_STEP,
+                    VALUES[i]);
   }
+
+  // -----------------------------------------------------------------------------
+  // Vertical divider
+  // -----------------------------------------------------------------------------
+  constexpr int DIV_X = 138;
+  display.drawFastVLine(DIV_X, 8, 110, GxEPD_BLACK);
+  // -----------------------------------------------------------------------------
+  // Right-hand system info
+  // -----------------------------------------------------------------------------
+  constexpr int INFO_X_L = 145;   // label column
+  constexpr int INFO_Y   =  70;
+  constexpr int INFO_STEP = 18;
+
+  // Values
+  display.setFont(Fonts::Body9);
+
+  display.setCursor(INFO_X_L, INFO_Y + 0 * INFO_STEP);
+  display.print("Al Hopping");         
+
+  display.setCursor(INFO_X_L, INFO_Y + 1 * INFO_STEP);
+  display.print("0424190151");              
+
+  display.setCursor(INFO_X_L, INFO_Y + 2 * INFO_STEP + 10);
+  display.print("  Batt: 36%");
+
+  // -----------------------------------------------------------------------------
+  // ESP logo (top-right)
+  // -----------------------------------------------------------------------------
+  display.drawBitmap(
+    display.width() - 48 - 4,
+    4,
+    ESP_GPS_logo,
+    48, 48,
+    GxEPD_WHITE,
+    GxEPD_BLACK
+  );
+
+
+
 }
 
 
@@ -183,14 +205,14 @@ void draw_SLEEP()
 // ============================================================================
 void draw_WAIT_SATS()
 {
+  drawCenteredText("ESP-GPS",                 Layout::ROW9(2), Fonts::Body12);
+  drawCenteredText("Searching for Satellites",Layout::ROW9(4), Fonts::Body9);
 
-  drawCenteredText("ESP-GPS",                    Layout::ROW9(2), Fonts::Body12);
-  drawCenteredText("Searching for Satellites",    Layout::ROW9(4), Fonts::Body9);
-
-  static char buf[32];
+  char buf[32];
   snprintf(buf, sizeof(buf), "Sat Fix %d of 5", ubxMessage.navPvt.numSV);
   drawCenteredText(buf, Layout::ROW9(7), Fonts::Body9);
 }
+
 
 // ============================================================================
 // Helpers
