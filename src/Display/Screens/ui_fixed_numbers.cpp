@@ -37,7 +37,7 @@ static void initDigitCells()
 
   // Decimal point from Mono font (optically tighter)
   if('.' >= mono->first && '.' <= mono->last){
-    DOT_W = mono->glyph['.' - mono->first].xAdvance - 4;
+    DOT_W = mono->glyph['.' - mono->first].xAdvance - 8;
     if(DOT_W < 4) DOT_W = 4; // safety clamp
   }
 

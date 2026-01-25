@@ -136,14 +136,25 @@ void draw_SLEEP()
   constexpr int ROWS = 6;
   constexpr int ROW_START = 18, ROW_STEP = 20;
   constexpr int COL_LABEL = 1;
-  constexpr int COL_VALUE_RIGHT = 130;   // right-aligned anchor
+  constexpr int COL_VALUE_RIGHT = 120;   // right-aligned anchor
 
   const char* LABELS[ROWS] = { "02:", "10:", "1H:", "AL:", "NM:", "DI:" };
 
   // Test values (replace with RTC values later)
   const float VALUES[ROWS] = {
-    39.87f, 36.80f, 23.45f, 19.00f, 31.46f, 127.02f
+    39.87f, 36.80f, 23.45f, 19.00f, 31.46f, 327.02f
   };
+
+/* Real values (RTC snapshot)
+const float VALUES[ROWS] = {
+  RTC_max_2s,     // 02:
+  RTC_avg_10s,    // 10:
+  RTC_1h,         // 1H:
+  RTC_alp,        // AL:
+  RTC_mile,       // NM:
+  RTC_distance    // DI:
+};
+*/
 
   // Labels (mono)
   display.setFont(Fonts::Mono12);
@@ -162,14 +173,14 @@ void draw_SLEEP()
   // -----------------------------------------------------------------------------
   // Vertical divider
   // -----------------------------------------------------------------------------
-  constexpr int DIV_X = 138;
-  display.drawFastVLine(DIV_X, 8, 110, GxEPD_BLACK);
+  constexpr int DIV_X = 133;
+  display.drawFastVLine(DIV_X,2, 118, GxEPD_BLACK);
   // -----------------------------------------------------------------------------
   // Right-hand system info
   // -----------------------------------------------------------------------------
   constexpr int INFO_X_L = 145;   // label column
-  constexpr int INFO_Y   =  70;
-  constexpr int INFO_STEP = 18;
+  constexpr int INFO_Y   =  75;
+  constexpr int INFO_STEP = 20;
 
   // Values
   display.setFont(Fonts::Body9);
@@ -179,9 +190,10 @@ void draw_SLEEP()
 
   display.setCursor(INFO_X_L, INFO_Y + 1 * INFO_STEP);
   display.print("0424190151");              
-
-  display.setCursor(INFO_X_L, INFO_Y + 2 * INFO_STEP + 10);
-  display.print("  Batt: 36%");
+ 
+  display.setFont(Fonts::Mono9);
+  display.setCursor(INFO_X_L, INFO_Y + 2 * INFO_STEP);
+  display.print("Batt:36%");
 
   // -----------------------------------------------------------------------------
   // ESP logo (top-right)
