@@ -1,6 +1,9 @@
 #include "Core/rtc_state.h"
 #include "Core/Definitions.h"
 
+#include "GPS/GPS_data.h"
+
+
 // ============================================================================
 // RTC persistent values (storage)
 // ============================================================================
@@ -76,5 +79,26 @@ RTC_DATA_ATTR int   RTC_highest_read          = STARTVALUE_HIGHEST_READ;
 
 RTC_DATA_ATTR bool    RTC_gps_valid       = false;
 RTC_DATA_ATTR uint8_t RTC_gps_baud_index  = 0;   // index into baud table
+
+
+void rtc_snapshot_stats() {
+
+  // Speeds (mm/s → knots)
+  RTC_max_2s = S2.s_max_speed * MMPS_TO_KNOTS;
+
+  RTC_R1_10s = S10.avg_speed[9] * MMPS_TO_KNOTS;
+  RTC_R2_10s = S10.avg_speed[8] * MMPS_TO_KNOTS;
+  RTC_R3_10s = S10.avg_speed[7] * MMPS_TO_KNOTS;
+  RTC_R4_10s = S10.avg_speed[6] * MMPS_TO_KNOTS;
+  RTC_R5_10s = S10.avg_speed[5] * MMPS_TO_KNOTS;
+
+  RTC_alp  = A500.alfa_speed_max * MMPS_TO_KNOTS;
+  RTC_500m = M500.m_max_speed    * MMPS_TO_KNOTS;
+  RTC_1h   = S3600.avg_5runs     * MMPS_TO_KNOTS;
+
+  // Distances
+  RTC_distance = total_distance / 1000.0f;   // meters
+  RTC_mile     = total_distance / 1852000.0f; // nautical miles
+}
 
 

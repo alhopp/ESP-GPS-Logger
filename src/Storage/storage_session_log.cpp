@@ -48,7 +48,7 @@ void Session_info(GPS_data G) {
   strcat(message, tekst);
   sprintf(tekst, "Total time: %lu s\n", (millis() - start_logging_millis) / 1000);  // Total time in seconds
   strcat(message, tekst);
-  sprintf(tekst, "Total distance: %d m\n", (int)G.total_distance / 1000);  // Convert meters to kilometers
+  sprintf(tekst, "Total distance: %d m\n", (int)total_distance / 1000);  // Convert meters to kilometers
   strcat(message, tekst);
   sprintf(tekst, "Sample rate: %d Hz\n", systemInfo.sample_rate);  // Log sample rate
   strcat(message, tekst);

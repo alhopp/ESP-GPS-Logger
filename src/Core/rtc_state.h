@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 
+void rtc_snapshot_stats();
 
 // --------------------------------------------------------------------------
 // Distance & speed (SI units)

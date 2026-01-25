@@ -38,6 +38,7 @@
 #include "Storage/storage_manager.h"
 #include "Storage/storage_file_operations.h"
 
+#include "Core/rtc_state.h"
 
 // -----------------------------------------------------------------------------
 // INTERNAL STATE
@@ -200,6 +201,9 @@ void setMode(SystemMode newMode)
 
   case MODE_SLEEP:
     LOG_SYS("MODE", "ENTER SLEEP");
+
+    // Freeze stats for sleep screen (RTC-backed)
+    rtc_snapshot_stats();
 
     wifi_stop();
     gps_power_off();

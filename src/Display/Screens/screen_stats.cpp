@@ -128,7 +128,7 @@ namespace {
     const float rightVal[ROWS] = {
       cal(S2.display_speed[9]),
       cal(S10.s_max_speed),
-      static_cast<float>(Ublox.total_distance) * 1e-6f,
+      static_cast<float>(total_distance) * 1e-6f,
       cal(A500.avg_speed[9]),
       cal(M500.display_speed[9]),
       cal(M1852.display_speed[9])
@@ -311,7 +311,7 @@ void draw_STATS(uint8_t page)
 
       Stats_4lines(
         "Dist: ", "1852m: ", toggle ? "3600s: " : "1800s: ", "Alfa: ",
-        Ublox.total_distance / 1000,
+        total_distance / 1000,
         cal(M1852.display_speed[9]),
         cal(toggle ? S3600.display_max_speed : S1800.display_max_speed),
         cal(A500.avg_speed[9])

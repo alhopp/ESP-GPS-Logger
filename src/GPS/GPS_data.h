@@ -31,11 +31,13 @@ extern float alfa_exit;
 // - Buffer indexing and sample timing are handled internally
 // - Higher-level calculations are performed by GPS_speed, GPS_time, etc.
 // -----------------------------------------------------------------------------
+
+extern float total_distance;   // Total distance since power-on (mm)
+
 class GPS_data {
   public:
     GPS_data();  // Constructor
 
-    float total_distance;   // Total distance since power-on (mm)
     float run_distance;     // Distance within the current run (mm)
     float alfa_distance;    // Distance used for alfa-speed calculations (mm)
     float delta_dist;       // Last incremental distance update (mm)

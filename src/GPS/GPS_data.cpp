@@ -19,6 +19,7 @@ int index_GPS=-1;//bij eerste doorgang op 0 beginnen !!
 int index_sec=-1;//bij eerste doorgang op 0 beginnen !!
 int alfa_counter;
 
+float total_distance = 0.0f;
 // -----------------------------------------------------------------------------
 // GPS_data::push_data
 //
@@ -635,3 +636,4 @@ double afstandPunten(double lambda1, double phi1, double lambda2, double phi2) {
     double afstand = sqrt(dx * dx + dy * dy);
     return afstand;
 }
+

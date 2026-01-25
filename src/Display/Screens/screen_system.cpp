@@ -131,59 +131,126 @@ void draw_WIFI_CONFIG()
     default:
       drawCenteredText("Wi-Fi idle", Layout::ROW9(4), Fonts::Body9);
       drawCenteredText("Open: gps.local", Layout::ROW9(6), Fonts::Body9);
-      break;
-
-
-
-      
+      break;      
     }
   }
 
 
-// ============================================================================
-// MODE: SLEEP (summary screen)
-// ============================================================================
+  // -----------------------------------------------------------------------------
+// Fixed-width digit layout (computed once)
+// -----------------------------------------------------------------------------
+static int DIGIT_W = 0;   // widest digit in Body font
+static int DOT_W   = 0;   // decimal point width (Mono)
+static bool DIGITS_INIT = false;
+
+
+#include "Fonts.h"
+
+static uint8_t digitW[10];
+static uint8_t digitCellW = 0;
+static uint8_t dotW = 0;
+static bool digitsReady = false;
+
+
+void initDigitCells()
+{
+  const GFXfont* body = Fonts::Body12;
+  const GFXfont* mono = Fonts::Mono12;
+
+  // Measure widest digit in Body font
+  DIGIT_W = 0;
+  for (char c = '0'; c <= '9'; ++c) {
+    if (c < body->first || c > body->last) continue;
+    const GFXglyph& g = body->glyph[c - body->first];
+    DIGIT_W = max(DIGIT_W, (int)g.xAdvance);
+  }
+
+  // Measure decimal point using Mono font (looks better)
+  if ('.' >= mono->first && '.' <= mono->last) {
+    const GFXglyph& g = mono->glyph['.' - mono->first];
+    DOT_W = g.xAdvance - 2 ;
+  }
+
+  DIGITS_INIT = true;
+}
+
+void drawFixedNumber(
+  int xRight,        // RIGHT edge of number block
+  int yBaseline,     // baseline Y
+  float value        // value to print
+)
+{
+  if (!DIGITS_INIT) initDigitCells();
+
+  // Format fixed 000.00
+  char buf[8];
+  dtostrf(value, 6, 2, buf);   // "123.45"
+
+  const int len = strlen(buf);
+
+  int x = xRight;
+
+  // Render right → left
+  for (int i = len - 1; i >= 0; --i) {
+
+    char c = buf[i];
+
+    const bool isDot = (c == '.');
+    const int cellW  = isDot ? DOT_W : DIGIT_W;
+    const GFXfont* font = isDot ? Fonts::Mono12 : Fonts::Body12;
+
+    x -= cellW;
+
+    display.setFont(font);
+
+    if (c < font->first || c > font->last) continue;
+    const GFXglyph& g = font->glyph[c - font->first];
+
+    // Center glyph inside its fixed cell
+    const int gx = x + (cellW - g.xAdvance) / 2;
+    const int gy = yBaseline;
+
+    display.setCursor(gx, gy);
+    display.write(c);
+  }
+}
 void draw_SLEEP()
 {
-  // --- Magnet affordance ---
-  if (magnet_active)
-       display.fillCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
-  else display.drawCircle(MAG_X, MAG_Y, MAG_R, GxEPD_BLACK);
-  
-  constexpr int ROWS = 6, STEP = 15, START = 15;
-  const int L0 = ui_offset+20 , V0 = ui_offset + 34;
-  const int L1 = ui_offset + 90, V1 = ui_offset + 146;
+  constexpr int ROWS      = 6;
+  constexpr int ROW_START = 18;
+  constexpr int ROW_STEP  = 20;
 
-  const char* LBL_L[ROWS] = {"AV:","R1:","R2:","R3:","R4:","R5:"};
-  const char* LBL_R[ROWS] = {"2sec:","Dist:","Alph:","1h:","NM:","500m:"};
+  constexpr int COL_LABEL = 10;
+  constexpr int COL_VALUE_RIGHT = 145;   // right-aligned to screen edge
 
-  const float VAL_L[ROWS] = {
-    RTC_avg_10s, RTC_R1_10s, RTC_R2_10s,
-    RTC_R3_10s,  RTC_R4_10s, RTC_R5_10s
+  const char* LABELS[ROWS] = {
+    "02:", "10:", "1H:", "AL:", "NM:", "DI:"
   };
 
-  const float VAL_R[ROWS] = {
-    RTC_max_2s, RTC_distance, RTC_alp,
-    RTC_1h, RTC_mile, RTC_500m
+  const float VALUES[ROWS] = {
+    39.87f,
+    36.80f,
+    23.45f,
+    19.00f,
+    31.46f,
+   127.02f
   };
 
-  display.setFont(Fonts::Mono9);
+  // Labels
+  display.setFont(Fonts::Mono12);
   for (int i = 0; i < ROWS; ++i) {
-    const int y = START + i * STEP;
-    display.setCursor(L0, y); display.print(LBL_L[i]);
-    display.setCursor(L1, y); display.print(LBL_R[i]);
+    const int y = ROW_START + i * ROW_STEP;
+    display.setCursor(COL_LABEL, y);
+    display.print(LABELS[i]);
   }
 
-  display.setFont(Fonts::Body9);
+  // Numbers
   for (int i = 0; i < ROWS; ++i) {
-    const int y = START + i * STEP;
-    display.setCursor(V0, y); display.print(VAL_L[i], 2);
-    display.setCursor(V1, y); display.print(VAL_R[i], 2);
+    const int y = ROW_START + i * ROW_STEP;
+    drawFixedNumber(COL_VALUE_RIGHT, y, VALUES[i]);
   }
-
-  drawCenteredText("Short magnet to start",    Layout::ROW9(7), Fonts::Body9);
-
 }
+
 
 // ============================================================================
 // MODE: WAIT FOR SATS
