@@ -11,6 +11,7 @@
 #include <WiFi.h>
 
 #include "Display/Screens/screen_system.h"
+#include "Display/Screens/ui_fixed_numbers.h"
 #include "Display/E_paper.h"
 
 #include "Layout.h"
@@ -136,84 +137,9 @@ void draw_WIFI_CONFIG()
   }
 
 
-  // -----------------------------------------------------------------------------
-// Fixed-width digit layout (computed once)
-// -----------------------------------------------------------------------------
-static int DIGIT_W = 0;   // widest digit in Body font
-static int DOT_W   = 0;   // decimal point width (Mono)
-static bool DIGITS_INIT = false;
 
 
-#include "Fonts.h"
 
-static uint8_t digitW[10];
-static uint8_t digitCellW = 0;
-static uint8_t dotW = 0;
-static bool digitsReady = false;
-
-
-void initDigitCells()
-{
-  const GFXfont* body = Fonts::Body12;
-  const GFXfont* mono = Fonts::Mono12;
-
-  // Measure widest digit in Body font
-  DIGIT_W = 0;
-  for (char c = '0'; c <= '9'; ++c) {
-    if (c < body->first || c > body->last) continue;
-    const GFXglyph& g = body->glyph[c - body->first];
-    DIGIT_W = max(DIGIT_W, (int)g.xAdvance);
-  }
-
-  // Measure decimal point using Mono font (looks better)
-  if ('.' >= mono->first && '.' <= mono->last) {
-    const GFXglyph& g = mono->glyph['.' - mono->first];
-    DOT_W = g.xAdvance - 2 ;
-  }
-
-  DIGITS_INIT = true;
-}
-
-void drawFixedNumber(
-  int xRight,        // RIGHT edge of number block
-  int yBaseline,     // baseline Y
-  float value        // value to print
-)
-{
-  if (!DIGITS_INIT) initDigitCells();
-
-  // Format fixed 000.00
-  char buf[8];
-  dtostrf(value, 6, 2, buf);   // "123.45"
-
-  const int len = strlen(buf);
-
-  int x = xRight;
-
-  // Render right → left
-  for (int i = len - 1; i >= 0; --i) {
-
-    char c = buf[i];
-
-    const bool isDot = (c == '.');
-    const int cellW  = isDot ? DOT_W : DIGIT_W;
-    const GFXfont* font = isDot ? Fonts::Mono12 : Fonts::Body12;
-
-    x -= cellW;
-
-    display.setFont(font);
-
-    if (c < font->first || c > font->last) continue;
-    const GFXglyph& g = font->glyph[c - font->first];
-
-    // Center glyph inside its fixed cell
-    const int gx = x + (cellW - g.xAdvance) / 2;
-    const int gy = yBaseline;
-
-    display.setCursor(gx, gy);
-    display.write(c);
-  }
-}
 void draw_SLEEP()
 {
   constexpr int ROWS      = 6;
@@ -221,7 +147,7 @@ void draw_SLEEP()
   constexpr int ROW_STEP  = 20;
 
   constexpr int COL_LABEL = 10;
-  constexpr int COL_VALUE_RIGHT = 145;   // right-aligned to screen edge
+  constexpr int COL_VALUE_RIGHT = 135;   // right-aligned to screen edge
 
   const char* LABELS[ROWS] = {
     "02:", "10:", "1H:", "AL:", "NM:", "DI:"
