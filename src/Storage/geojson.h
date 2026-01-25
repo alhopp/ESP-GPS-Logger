@@ -20,3 +20,15 @@
 void geojson_begin(const char* filename);
 void geojson_add_point(double lat, double lon);
 void geojson_end();
+
+struct GeoJSONStats {
+  float nm;
+  float alpha;
+  float h1;
+  float max;
+  float avg10;
+  float distance;
+};
+
+void geojson_set_stats(const GeoJSONStats& s);
+

@@ -74,9 +74,16 @@ window.MapView = {
     fetch(url,{cache:"no-store"})
       .then(r=>{ if(!r.ok) throw Error("GeoJSON fetch failed"); return r.json(); })
       .then(gj=>{
+        const feature = gj.features?.[0];
+        const stats   = feature?.properties?.stats;
+
+        // Update stats panel
+        updateStatsUI(stats);
+
+        // Draw geometry
         this.track = L.geoJSON(gj,{
           renderer:this._r,
-          coordsToLatLng:c=>L.latLng(c[1],c[0]), // [lon,lat] → [lat,lon]
+          coordsToLatLng:c=>L.latLng(c[1],c[0]),
           style:{color:"#ff3b30",weight:5,opacity:1}
         }).addTo(this.map);
 
@@ -84,6 +91,7 @@ window.MapView = {
         this.zoomToLayer(this.track);
         setTimeout(()=>this.map.invalidateSize(true),50);
       })
+
       .catch(e=>console.warn("[Map] GeoJSON failed",e));
   },
 
@@ -206,3 +214,16 @@ function hideStats(){
   sessionCard.classList.remove("stats");
   MapView.map?.invalidateSize(true);
 }
+
+function updateStatsUI(stats){
+  const fmt = (v, d=1) =>
+    (typeof v === "number" && isFinite(v)) ? v.toFixed(d) : "–";
+
+  $("stat_nm").textContent       = fmt(stats?.nm, 2);
+  $("stat_alpha").textContent    = fmt(stats?.alpha, 1);
+  $("stat_1h").textContent       = fmt(stats?.h1, 1);
+  $("stat_max").textContent      = fmt(stats?.max, 1);
+  $("stat_10s").textContent      = fmt(stats?.avg10, 1);
+  $("stat_distance").textContent = fmt(stats?.distance, 2);
+}
+

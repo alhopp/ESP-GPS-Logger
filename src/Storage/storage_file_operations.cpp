@@ -18,7 +18,10 @@
 #include "Core/Globals.h"
 #include "Core/Definitions.h"
 
-#include "core/system_info.h"
+#include "Core/system_info.h"
+#include "Core/rtc_state.h"
+
+
 #include <esp_system.h>
 
 // -----------------------------------------------------------------------------
@@ -126,6 +129,17 @@ void Log_to_SD(void)
 // -----------------------------------------------------------------------------
 void Close_files(void)
 {
+ // ---- Final session stats (RTC snapshot) ----
+  GeoJSONStats s {
+    .nm       = RTC_mile,
+    .alpha    = RTC_alp,
+    .h1       = RTC_1h,
+    .max      = RTC_max_2s,
+    .avg10    = RTC_avg_10s,
+    .distance = RTC_distance
+  };
+
+  geojson_set_stats(s);
 
   geojson_end();
 

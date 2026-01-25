@@ -24,16 +24,33 @@ html,body{touch-action:manipulation}
 
 <header>Wi-Fi Setup</header>
 
+<header>Setup</header>
+
 <section class="a">
   <div class="card">
     <img src="/ESP32_logo.jpg" class="logo" alt="GPS">
 
     <label for="ssid">Phone hotspot SSID</label>
-    <input id="ssid" placeholder="e.g. iPhone Hotspot">
+    <input id="ssid"
+           placeholder="e.g. iPhone Hotspot"
+           autocomplete="off"
+           autocorrect="off"
+           autocapitalize="off"
+           spellcheck="false">
 
     <label for="pass">Password</label>
-   <input id="pass" type="password" placeholder="Hotspot password"  autocomplete="off"
-       autocorrect="off" autocapitalize="none" spellcheck="false">
+
+    <!-- Dummy field to kill password manager heuristics -->
+    <input type="password" style="display:none">
+
+    <!-- Real password field -->
+    <input id="pass"
+           type="password"
+           placeholder="Hotspot password"
+           autocomplete="new-password"
+           autocorrect="off"
+           autocapitalize="off"
+           spellcheck="false">
 
     <div class="hint">
       Turn on your phone hotspot before saving.
@@ -42,6 +59,7 @@ html,body{touch-action:manipulation}
     <div id="status"></div>
   </div>
 </section>
+
 
 <footer>
   <button id="saveBtn" onclick="save()">Save &amp; Reboot</button>

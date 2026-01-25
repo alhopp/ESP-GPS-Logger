@@ -142,11 +142,11 @@ void draw_SLEEP()
   const char* LABELS[ROWS] = { "02:", "10:", "1H:", "AL:", "NM:", "DI:" };
 
   // Test values (replace with RTC values later)
-  const float VALUES[ROWS] = {
-    39.87f, 36.80f, 23.45f, 19.00f, 31.46f, 327.02f
-  };
+  //const float VALUES[ROWS] = {
+  //  39.87f, 36.80f, 23.45f, 19.00f, 31.46f, 327.02f
+  //};
 
-/* Real values (RTC snapshot)
+// Real values (RTC snapshot)
 const float VALUES[ROWS] = {
   RTC_max_2s,     // 02:
   RTC_avg_10s,    // 10:
@@ -155,7 +155,7 @@ const float VALUES[ROWS] = {
   RTC_mile,       // NM:
   RTC_distance    // DI:
 };
-*/
+
 
   // Labels (mono)
   display.setFont(Fonts::Mono12);
