@@ -23,8 +23,9 @@ window.loadConfig = async function loadConfig(els){
 
     const c = await r.json();
 
-    /* ---------- UI ---------- */
-    setVal(els.Sleep_info, c.ui?.Sleep_info);
+    setVal(els.Sleep_info1, c.ui?.Sleep_info1);
+    setVal(els.Sleep_info2, c.ui?.Sleep_info2);
+
 
     /* ---------- Logging ---------- */
     //setChk(els.logTXT, c.logging?.logTXT);
@@ -61,8 +62,11 @@ window.loadConfig = async function loadConfig(els){
  * Save configuration
  * ------------------------------------------------------------------------- */
 window.saveConfig = async function saveConfig(els){
-  const payload={
-    ui:{ Sleep_info: els.Sleep_info?.value ?? "" },
+const payload={
+    ui:{
+      Sleep_info1: els.Sleep_info1?.value ?? "",
+      Sleep_info2: els.Sleep_info2?.value ?? ""
+      },
     logging:{
       logTXT:!!els.logTXT?.checked,
       logUBX:!!els.logUBX?.checked,

@@ -28,6 +28,7 @@
 
 #include "Ublox/ublox.h"
 
+#include "MANAGERS/config_manager.h"
 
 // ============================================================================
 // Local helpers
@@ -184,16 +185,15 @@ const float VALUES[ROWS] = {
 
   // Values
   display.setFont(Fonts::Body9);
-
   display.setCursor(INFO_X_L, INFO_Y + 0 * INFO_STEP);
-  display.print("Al Hopping");         
+  display.print(config.Sleep_info1);
 
   display.setCursor(INFO_X_L, INFO_Y + 1 * INFO_STEP);
-  display.print("0424190151");              
+  display.print(config.Sleep_info2);         
  
   display.setFont(Fonts::Mono9);
   display.setCursor(INFO_X_L, INFO_Y + 2 * INFO_STEP);
-  display.print("Batt:36%");
+  display.print("Batt:XX%");
 
   // -----------------------------------------------------------------------------
   // ESP logo (top-right)

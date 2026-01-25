@@ -1,7 +1,5 @@
 #include "core/system_info.h"
 
-#include "core/system_info.h"
-
 const SystemInfo systemInfo = {
   "u-blox NEO-M10",                // gnss_module
   "GPS + GLONASS + GALILEO",       // gnss_mode

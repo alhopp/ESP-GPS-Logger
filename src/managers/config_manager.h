@@ -59,7 +59,8 @@ struct Config
 
   // Identification / filenames
   char  UBXfile[32];
-  char  Sleep_info[32];
+  char  Sleep_info1[32];
+  char  Sleep_info2[32];
 
   // Wi-Fi credentials
   char home_ssid[32]  = "";

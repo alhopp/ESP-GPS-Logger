@@ -12,7 +12,6 @@
 // ---------------------------------------------------------------------------
 // Distance & speed (SI units)
 // ---------------------------------------------------------------------------
-
 RTC_DATA_ATTR float RTC_distance      = 0.0f;
 RTC_DATA_ATTR float RTC_avg_10s       = 0.0f;
 RTC_DATA_ATTR float RTC_max_2s        = 0.0f;
@@ -24,7 +23,6 @@ RTC_DATA_ATTR float RTC_alp           = 0.0f;
 // ---------------------------------------------------------------------------
 // Distance & speed (knots)
 // ---------------------------------------------------------------------------
-
 RTC_DATA_ATTR float RTC_avg_10s_knots  = 0.0f;
 RTC_DATA_ATTR float RTC_max_2s_knots   = 0.0f;
 RTC_DATA_ATTR float RTC_alp_knots      = 0.0f;
@@ -34,7 +32,6 @@ RTC_DATA_ATTR float RTC_mile_knots     = 0.0f;
 // ---------------------------------------------------------------------------
 // Records (10s rankings)
 // ---------------------------------------------------------------------------
-
 RTC_DATA_ATTR float RTC_R1_10s         = 0.0f;
 RTC_DATA_ATTR float RTC_R2_10s         = 0.0f;
 RTC_DATA_ATTR float RTC_R3_10s         = 0.0f;
@@ -44,7 +41,6 @@ RTC_DATA_ATTR float RTC_R5_10s         = 0.0f;
 // ---------------------------------------------------------------------------
 // Date / time (RTC clock snapshot)
 // ---------------------------------------------------------------------------
-
 RTC_DATA_ATTR short RTC_year           = 0;
 RTC_DATA_ATTR short RTC_month          = 0;
 RTC_DATA_ATTR short RTC_day            = 0;
@@ -54,19 +50,16 @@ RTC_DATA_ATTR short RTC_min            = 0;
 // ---------------------------------------------------------------------------
 // Counters / state
 // ---------------------------------------------------------------------------
-
 RTC_DATA_ATTR int   RTC_counter        = 0;
 
 // ---------------------------------------------------------------------------
 // Calibration
 // ---------------------------------------------------------------------------
-
 RTC_DATA_ATTR float RTC_calibration_bat = 1.75f;
 
 // ---------------------------------------------------------------------------
 // Battery state
 // ---------------------------------------------------------------------------
-
 RTC_DATA_ATTR float RTC_voltage_bat          = 3.6f;
 RTC_DATA_ATTR float RTC_old_voltage_bat      = 3.6f;
 RTC_DATA_ATTR float RTC_minimum_voltage_bat  = MINIMUM_VOLTAGE;

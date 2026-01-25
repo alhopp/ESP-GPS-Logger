@@ -93,7 +93,10 @@ void webserver_start()
 
     JsonObject ui = j.createNestedObject("ui");
     ui["bar_length"] = config.bar_length;
-    ui["Sleep_info"] = config.Sleep_info;
+    ui["Sleep_info1"] = config.Sleep_info1;
+    ui["Sleep_info2"] = config.Sleep_info2;
+
+
 
     JsonObject stats = j.createNestedObject("stats");
     stats["s2"]       = config.stat_2s;
@@ -137,19 +140,22 @@ server.on("/api/config", HTTP_POST, [&] {
 
   // ---- Stats ----
   if (j["stats"]) {
-    if (j["stats"]["s2"] != nullptr)       config.stat_2s = j["stats"]["s2"];
-    if (j["stats"]["s10"] != nullptr)      config.stat_10s = j["stats"]["s10"];
-    if (j["stats"]["alpha"] != nullptr)    config.stat_alpha = j["stats"]["alpha"];
-    if (j["stats"]["nm"] != nullptr)       config.stat_nm = j["stats"]["nm"];
-    if (j["stats"]["h1"] != nullptr)       config.stat_1h = j["stats"]["h1"];
+    if (j["stats"]["s2"]       != nullptr)       config.stat_2s = j["stats"]["s2"];
+    if (j["stats"]["s10"]      != nullptr)      config.stat_10s = j["stats"]["s10"];
+    if (j["stats"]["alpha"]    != nullptr)    config.stat_alpha = j["stats"]["alpha"];
+    if (j["stats"]["nm"]       != nullptr)       config.stat_nm = j["stats"]["nm"];
+    if (j["stats"]["h1"]       != nullptr)       config.stat_1h = j["stats"]["h1"];
     if (j["stats"]["distance"] != nullptr) config.stat_distance = j["stats"]["distance"];
   }
 
-  // ---- UI ----
-  if (j["ui"]["Sleep_info"] != nullptr)
-    strlcpy(config.Sleep_info,
-            j["ui"]["Sleep_info"].as<const char*>(),
-            sizeof(config.Sleep_info));
+// ---- UI / Sleep screen text ----
+if (j["ui"]) {
+  const char* s;
+  if ((s = j["ui"]["Sleep_info1"]) != nullptr) strlcpy(config.Sleep_info1, s, sizeof(config.Sleep_info1));
+  if ((s = j["ui"]["Sleep_info2"]) != nullptr) strlcpy(config.Sleep_info2, s, sizeof(config.Sleep_info2));
+}
+
+
 
   saveConfig();
   server.send(200, "text/plain", "OK");

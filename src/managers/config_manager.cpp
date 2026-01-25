@@ -31,7 +31,6 @@ static void setDefaultConfig();
 static bool loadConfigFromFile(File &file);
 static void writeConfigToFile(File &file);
 static void validateConfig();
-static void sanitizeScreenString(char *dst,size_t dstSize,const char *src);
 static void applyDerivedConfig();
 static void dumpConfig();
 
@@ -141,13 +140,14 @@ static void setDefaultConfig()
   config.stat_distance  = false;
 
   // -------- Other strings --------
-  strlcpy(config.Sleep_info, "ESP32 GPS", sizeof(config.Sleep_info));
+  strlcpy(config.Sleep_info1, "",  sizeof(config.Sleep_info1));
+  strlcpy(config.Sleep_info2, "",  sizeof(config.Sleep_info2));
 
-  strlcpy(config.home_ssid,   "",          sizeof(config.home_ssid));
-  strlcpy(config.home_pass,   "",          sizeof(config.home_pass));
+  strlcpy(config.home_ssid,   "",  sizeof(config.home_ssid));
+  strlcpy(config.home_pass,   "",  sizeof(config.home_pass));
 
-  strlcpy(config.phone_ssid,  "",          sizeof(config.phone_ssid));
-  strlcpy(config.phone_pass,  "",          sizeof(config.phone_pass));
+  strlcpy(config.phone_ssid,  "",  sizeof(config.phone_ssid));
+  strlcpy(config.phone_pass,  "",  sizeof(config.phone_pass));
 
 }
 
@@ -181,8 +181,13 @@ static bool loadConfigFromFile(File &file)
 
   // strings (only if non-empty)
   const char* s;
-  if((s=doc["Sleep_info"])     && s[0]) strlcpy(config.Sleep_info,s,sizeof(config.Sleep_info));
 
+  if (doc.containsKey("Sleep_info1"))
+   strlcpy(config.Sleep_info1, doc["Sleep_info1"] | "", sizeof(config.Sleep_info1));
+  if (doc.containsKey("Sleep_info2"))
+   strlcpy(config.Sleep_info2, doc["Sleep_info2"] | "", sizeof(config.Sleep_info2));
+ 
+ 
   // WiFi Details
   if((s=doc["home_ssid"])  && s[0]) strlcpy(config.home_ssid, s, sizeof(config.home_ssid));
   if((s=doc["home_pass"])  && s[0]) strlcpy(config.home_pass, s, sizeof(config.home_pass));
@@ -220,7 +225,9 @@ static void writeConfigToFile(File &file)
   doc["stat_distance"]  = config.stat_distance;
 
   // strings (only if non-empty)
-  if(config.Sleep_info[0])    doc["Sleep_info"]=config.Sleep_info;
+  doc["Sleep_info1"] = config.Sleep_info1;
+  doc["Sleep_info2"] = config.Sleep_info2;
+ 
 
    // Wi-Fi roles
   if(config.home_ssid[0])   doc["home_ssid"]  = config.home_ssid;
@@ -231,20 +238,7 @@ static void writeConfigToFile(File &file)
   serializeJsonPretty(doc,file);
 }
 
-// -----------------------------------------------------------------------------
-// Sanitize screen strings (digits only)
-// -----------------------------------------------------------------------------
-static void sanitizeScreenString(char *dst,size_t dstSize,const char *src)
-{
-  if(!dst||dstSize<2) return;
-  size_t w=0;
-  for(size_t r=0;src&&src[r];++r)
-    if(src[r]>='0'&&src[r]<='9'){
-      if(w<dstSize-1) dst[w++]=src[r];
-      else break;
-    }
-  dst[w]='\0';
-}
+
 
 // -----------------------------------------------------------------------------
 // Validate / heal critical fields
@@ -348,8 +342,9 @@ static void dumpConfig()
   Serial.print("[CONFIG ]   distance       = "); Serial.println(config.stat_distance);
 
   // -------- strings --------
-  Serial.print("[CONFIG ] Sleep_info       = "); Serial.println(config.Sleep_info);
-
+  Serial.print("[CONFIG ] Sleep_info1      = "); Serial.println(config.Sleep_info1);
+  Serial.print("[CONFIG ] Sleep_info2      = "); Serial.println(config.Sleep_info2);
+ 
   // -------- Wi-Fi --------
   Serial.println("[CONFIG ] Wi-Fi");
   Serial.print  ("[CONFIG ]   home_ssid      = ");

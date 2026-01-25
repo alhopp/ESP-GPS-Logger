@@ -122,8 +122,9 @@ addEventListener("load", async ()=>{
     sdInfo:$("sdInfo"),
 
     // UI
-    Sleep_info:$("Sleep_info"),
-
+    Sleep_info1:$("Sleep_info1"),
+    Sleep_info2:$("Sleep_info2"),
+   
     // Logging
     logUBX:$("logUBX"),
     logSBP:$("logSBP"),
