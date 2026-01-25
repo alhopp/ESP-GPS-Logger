@@ -18,7 +18,7 @@
 // DEV MODE OVERRIDE
 // ============================================================================
 // Uncomment during development to force STA and disable AP
-//#define DEV_FORCE_WIFI
+#define DEV_FORCE_WIFI
 
 #ifdef DEV_FORCE_WIFI
 static const char *DEV_SSID = "Als_iPhone";
@@ -39,8 +39,8 @@ static bool apActive    = false;
 static unsigned long lastStaAttempt = 0;
 static int           staAttempts    = 0;
 
-#define STA_RETRY_INTERVAL_MS  5000
-#define STA_MAX_ATTEMPTS       5
+#define STA_RETRY_INTERVAL_MS  3000
+#define STA_MAX_ATTEMPTS       10
 
 // ---------------------------------------------------------------------------
 // UI state

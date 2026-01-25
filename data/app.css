@@ -119,3 +119,35 @@ footer button:active{transform:scale(.97)}
 
 /* Stats tiles remain readable */
 .stat{  background:rgba(244,247,251,.85);}
+
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-auto-rows:auto;
+  gap:12px;
+}
+
+.stats-3x1{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:1fr;
+  gap:12px;
+}
+
+.stat{
+  border-radius:12px;
+  padding:12px;
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.stat label{
+  font-size:13px;
+  color:var(--f);
+}
+.stat span{
+  font-size:22px;
+  font-weight:800;
+}
+

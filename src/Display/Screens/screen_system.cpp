@@ -153,7 +153,7 @@ const float VALUES[ROWS] = {
   RTC_1h,         // 1H:
   RTC_alp,        // AL:
   RTC_mile,       // NM:
-  RTC_distance    // DI:
+  RTC_distance * 1e-6f
 };
 
 

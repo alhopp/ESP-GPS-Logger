@@ -20,17 +20,20 @@ window.MapView = {
       attributionControl:true,
       inertia:false,
       preferCanvas:true,
-      minZoom:14,maxZoom:16
+      minZoom:5,maxZoom:22
     });
 
     // Shared canvas renderer (single context)
     this._r = L.canvas({padding:0.5});
 
-    // Base imagery (STA internet)
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/" +
       "World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      {maxZoom:16,attribution:"© Esri"}
+      {
+        maxNativeZoom: 18,   // real Esri tiles
+        maxZoom: 22,         // allow overzoom (scaled tiles)
+        attribution: "© Esri"
+      }
     ).addTo(this.map);
 
     // Placeholder view (overridden when session loads)
@@ -134,6 +137,34 @@ window.MapSessions = {
   },
 
   // -------------------------------------------------------------------------
+  // reload() — re-scan GeoJSON sessions after delete
+  // -------------------------------------------------------------------------
+  async reload(){
+    const r = await fetch("/api/files",{cache:"no-store"});
+    const j = await r.json();
+    if(!j.ok) return;
+
+    // GeoJSON only, newest first
+    this.files = j.files
+      .filter(f=>f.name.endsWith(".geojson"))
+      .sort((a,b)=>b.name.localeCompare(a.name));
+
+    if(!this.files.length){
+      MapView.clear();
+      $("sessionTitle").textContent = "No sessions";
+      $("sessionMeta").textContent  = "";
+      return;
+    }
+
+    // Clamp index if current file was deleted
+    if(this.index >= this.files.length)
+      this.index = this.files.length - 1;
+
+    this.loadCurrent();
+  },
+
+
+  // -------------------------------------------------------------------------
   loadCurrent(){
     const f = this.files[this.index];
     if(!f) return;
@@ -216,14 +247,22 @@ function hideStats(){
 }
 
 function updateStatsUI(stats){
-  const fmt = (v, d=1) =>
-    (typeof v === "number" && isFinite(v)) ? v.toFixed(d) : "–";
+  if(!stats){
+    $("map_stat_2s").textContent       = "–";
+    $("map_stat_10s").textContent      = "–";
+    $("map_stat_1h").textContent       = "–";
+    $("map_stat_alpha").textContent    = "–";
+    $("map_stat_nm").textContent       = "–";
+    $("map_stat_distance").textContent = "–";
+    return;
+  }
 
-  $("stat_nm").textContent       = fmt(stats?.nm, 2);
-  $("stat_alpha").textContent    = fmt(stats?.alpha, 1);
-  $("stat_1h").textContent       = fmt(stats?.h1, 1);
-  $("stat_max").textContent      = fmt(stats?.max, 1);
-  $("stat_10s").textContent      = fmt(stats?.avg10, 1);
-  $("stat_distance").textContent = fmt(stats?.distance, 2);
+  $("map_stat_2s").textContent       = stats.max?.toFixed(1) ?? "–";
+  $("map_stat_10s").textContent      = stats.avg10?.toFixed(1) ?? "–";
+  $("map_stat_1h").textContent       = stats.h1?.toFixed(1) ?? "–";
+  $("map_stat_alpha").textContent    = stats.alpha?.toFixed(1) ?? "–";
+  $("map_stat_nm").textContent       = stats.nm?.toFixed(2) ?? "–";
+  $("map_stat_distance").textContent = stats.distance?.toFixed(2) ?? "–";
 }
+
 

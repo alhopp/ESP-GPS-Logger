@@ -76,7 +76,14 @@ function enableSwipe(container, fileList, sdInfo){
 
       r.remove();
       sdInfo && (sdInfo.textContent = `${fileList.children.length} files`);
+
+      // 🔁 refresh map sessions if map already running
+      if(window.MapSessions?._started){
+        MapSessions.reload();
+      }
+
       return;
+
     }
 
     row = e.target.closest(".file-swipe");

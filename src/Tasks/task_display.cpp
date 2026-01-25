@@ -117,10 +117,23 @@ void taskTwo(void* parameter)
     } while (display.nextPage());
 
     // -----------------------------------------------------------------------
-    // Deep sleep handling (unchanged)
+    // Deep sleep handling (FORCE full refresh)
     // -----------------------------------------------------------------------
-    if (mode == MODE_SLEEP) {
-      LOG_TASK("Display", "final refresh complete → deep sleep");
+    if(mode == MODE_SLEEP){
+      LOG_TASK("Display","forcing final FULL refresh before deep sleep");
+
+       // HARD reset any lingering partial-window state
+      display.setPartialWindow(0, 0, display.width(), display.height());
+      display.setFullWindow();
+      
+      display.firstPage();
+      do{
+        display.fillScreen(GxEPD_WHITE);
+        if(draw) draw();
+        esp_task_wdt_reset();
+        vTaskDelay(1);
+      }while(display.nextPage());
+
       delay(200);
 
       esp_sleep_enable_ext1_wakeup(
@@ -129,5 +142,6 @@ void taskTwo(void* parameter)
       );
       esp_deep_sleep_start();
     }
+
   }
 }
