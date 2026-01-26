@@ -1,18 +1,39 @@
 /* =============================================================================
-   MAP + SESSION CARD (ONLY HERE — remove duplicates from app.css)
+   MAP + SESSION CARD
+   (DEFINED ONLY HERE — no duplicates in app.css)
    ============================================================================= */
 
-section#map{margin-top:112px;padding:0;height:calc(100vh - 112px);overflow:hidden}
+/* ---------------------------------------------------------------------------
+   MAP LAYOUT
+--------------------------------------------------------------------------- */
+
+section#map{
+  margin-top:112px;
+  padding:0;
+  height:calc(100vh - 112px);
+  overflow:hidden;
+}
 section#map.a{display:flex;flex-direction:column}
-section#map .card{flex:1;display:flex;padding:0;margin:0;border:0;border-radius:0}
+section#map .card{
+  flex:1;
+  display:flex;
+  padding:0;
+  margin:0;
+  border:0;
+  border-radius:0;
+}
 section#map.a~footer{display:none}
 
 #map{position:relative;height:100svh;overflow:hidden}
 .map-card,#mapView{width:100%;height:100%}
 
-/* ---- session card ---- */
+/* ---------------------------------------------------------------------------
+   SESSION CARD
+--------------------------------------------------------------------------- */
+
 .session-card{
-  position:absolute;left:12px;right:12px;bottom:12px;
+  position:absolute;
+  left:12px;right:12px;bottom:12px;
   background:rgba(255,255,255,.72);
   -webkit-backdrop-filter:saturate(160%) blur(6px);
   backdrop-filter:saturate(160%) blur(6px);
@@ -20,53 +41,84 @@ section#map.a~footer{display:none}
   box-shadow:0 14px 30px rgba(0,0,0,.25);
   z-index:600;
   overflow:hidden;
-  height:150px;max-height:40vh;
-  transition:height .25s ease;
+
+  /* collapsed height (shows first stats row comfortably) */
+  height:176px;
+
+  /* smooth close */
+  transition:height .18s ease-out;
 }
-.session-card.stats{height:60vh;overflow:hidden} /* keep hidden; scroll lives inside grid */
 
-/* grab */
-.session-grab{width:40px;height:4px;margin:10px auto 6px;background:#cfd6e4;border-radius:2px}
+/* expanded (stats + graphs) */
+.session-card.stats{
+  height:70vh;                 /* graph-friendly */
+  transition:height .28s cubic-bezier(.2,.8,.2,1);
+}
 
-/* panes slide */
-.session-pane{position:absolute;inset:0;transition:transform .25s ease;will-change:transform}
+/* grab handle */
+.session-grab{
+  width:44px;
+  height:5px;
+  margin:8px auto 4px;
+  background:#c0c9da;
+  border-radius:3px;
+}
+
+/* ---------------------------------------------------------------------------
+   SLIDING PANES
+--------------------------------------------------------------------------- */
+
+.session-pane{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  transition:transform .22s ease;
+  will-change:transform;
+  padding-top:66px; /* grab + header */
+}
+
+/* map pane (default) */
 .session-pane-map{transform:translateY(0)}
-.session-pane-stats{transform:translateY(100%);display:flex;flex-direction:column}
+
+/* stats pane (hidden by default) */
+.session-pane-stats{transform:translateY(100%)}
+
+/* swap panes */
 .session-card.stats .session-pane-map{transform:translateY(-100%)}
 .session-card.stats .session-pane-stats{transform:translateY(0)}
 
-/* map summary + preview row */
-.session-body{padding:12px 16px 8px}
-.session-title{font-size:16px;font-weight:800}
-.session-meta{margin-top:4px;font-size:13px;color:var(--f)}
+/* ---------------------------------------------------------------------------
+   SESSION HEADER
+--------------------------------------------------------------------------- */
 
-/* preview row (screen 1) — requires tiny HTML insert */
-.stats-preview{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:12px;
-  padding:0 16px 12px;
+.session-body{
+  padding:2px 16px 4px;
+  margin-bottom:2px;
+}
+.session-title{font-size:16px;font-weight:800}
+.session-meta{
+  margin-top:0px;
+  line-height:1.2;   
+  font-size:13px;
+  color:var(--f);
 }
 
-/* expanded header */
-.stats-header{padding:14px 16px;font-weight:700}
+/* ---------------------------------------------------------------------------
+   STATS GRID (single source of truth)
+--------------------------------------------------------------------------- */
 
-/* full stats grid (screen 2) */
 .stats-grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:12px;
-  padding:0 16px 12px;
+  padding:12px 16px 16px;
 
-  /* fit two rows + allow scroll if needed (prevents row-2 cutoff) */
+  /* grid scrolls if graphs push content */
   flex:0 0 auto;
-  max-height:calc(2 * 76px + 12px); /* 2 tiles + gap (tuned) */
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
 }
-
-/* let the graph take remaining space (no overlap / cutoff) */
-#statsGraph{flex:1 1 auto;width:100%;height:auto;min-height:140px}
 
 /* stat tiles */
 .stat{
@@ -81,14 +133,45 @@ section#map.a~footer{display:none}
 .stat label{font-size:13px;color:var(--f)}
 .stat span{font-size:22px;font-weight:800}
 
-/* top fade when expanded */
+/* ---------------------------------------------------------------------------
+   GRAPH AREA
+--------------------------------------------------------------------------- */
+
+#statsGraph{
+  flex:1 1 auto;
+  width:100%;
+  min-height:140px;
+}
+
+/* ---------------------------------------------------------------------------
+   VISUAL POLISH
+--------------------------------------------------------------------------- */
+
+/* subtle top fade when expanded */
 .session-card.stats::before{
-  content:"";position:absolute;top:0;left:0;right:0;height:24px;
-  background:linear-gradient(to bottom,rgba(255,255,255,.6),transparent);
+  content:"";
+  position:absolute;
+  top:0;left:0;right:0;
+  height:24px;
+  background:linear-gradient(
+    to bottom,
+    rgba(255,255,255,.6),
+    transparent
+  );
   pointer-events:none;
 }
 
-/* leaflet safe-area */
-.leaflet-control-container{z-index:1200;pointer-events:auto}
-.leaflet-control-attribution{margin-bottom:calc(env(safe-area-inset-bottom,0px) + 64px)}
-.leaflet-bottom{bottom:calc(env(safe-area-inset-bottom,0px) + 50px)!important}
+/* ---------------------------------------------------------------------------
+   LEAFLET / SAFE AREAS
+--------------------------------------------------------------------------- */
+
+.leaflet-control-container{
+  z-index:1200;
+  pointer-events:auto;
+}
+.leaflet-control-attribution{
+  margin-bottom:calc(env(safe-area-inset-bottom,0px) + 64px);
+}
+.leaflet-bottom{
+  bottom:calc(env(safe-area-inset-bottom,0px) + 50px)!important;
+}

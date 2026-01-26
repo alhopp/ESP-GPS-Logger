@@ -17,10 +17,11 @@ window.MapView = {
 
     this.map = L.map(el,{
       zoomControl:false,
-      attributionControl:true,
+      attributionControl:false,
       inertia:false,
       preferCanvas:true,
-      minZoom:5,maxZoom:22
+      minZoom:5,
+      maxZoom:22
     });
 
     // Shared canvas renderer (single context)
@@ -75,12 +76,15 @@ window.MapView = {
     }
 
     fetch(url,{cache:"no-store"})
-      .then(r=>{ if(!r.ok) throw Error("GeoJSON fetch failed"); return r.json(); })
+      .then(r=>{
+        if(!r.ok) throw Error("GeoJSON fetch failed");
+        return r.json();
+      })
       .then(gj=>{
         const feature = gj.features?.[0];
         const stats   = feature?.properties?.stats;
 
-        // Update stats UI (preview + full)
+        // Update stats panel
         updateStatsUI(stats);
 
         // Draw geometry
@@ -123,7 +127,6 @@ window.MapSessions = {
     const j = await r.json();
     if(!j.ok) return;
 
-    // GeoJSON only, newest first
     this.files = j.files
       .filter(f=>f.name.endsWith(".geojson"))
       .sort((a,b)=>b.name.localeCompare(a.name));
@@ -135,8 +138,6 @@ window.MapSessions = {
     this.bindGestures();
   },
 
-  // -------------------------------------------------------------------------
-  // reload() — re-scan GeoJSON sessions after delete
   // -------------------------------------------------------------------------
   async reload(){
     const r = await fetch("/api/files",{cache:"no-store"});
@@ -165,7 +166,7 @@ window.MapSessions = {
     const f = this.files[this.index];
     if(!f) return;
 
-    const total = this.files.length;
+    const total   = this.files.length;
     const logical = total - this.index;
 
     $("sessionTitle").textContent = `Session ${logical} of ${total}`;
@@ -234,18 +235,18 @@ window.MapSessions = {
 // ============================================================================
 
 function showStats(){
-  sessionCard.classList.add("stats");
+  $("sessionCard").classList.add("stats");
 }
 
 function hideStats(){
-  sessionCard.classList.remove("stats");
+  $("sessionCard").classList.remove("stats");
   MapView.map?.invalidateSize(true);
 }
 
+
 // ---------------------------------------------------------------------------
 // updateStatsUI()
-// - Updates BOTH preview stats (screen 1)
-// - And full stats grid (screen 2)
+// - Updates single stats grid (no preview duplication)
 // ---------------------------------------------------------------------------
 function updateStatsUI(stats){
   const set = (id,v)=>{
@@ -255,22 +256,16 @@ function updateStatsUI(stats){
 
   if(!stats){
     [
-      "map_stat_2s","map_stat_10s","map_stat_1h",
-      "map_stat_alpha","map_stat_nm","map_stat_distance",
-      "map_stat_2s_p","map_stat_10s_p","map_stat_1h_p"
+      "map_stat_2s","map_stat_10s","map_stat_alpha",
+      "map_stat_nm","map_stat_1h","map_stat_distance"
     ].forEach(id=>set(id,"–"));
     return;
   }
 
-  const v2s  = stats.max?.toFixed(1)   ?? "–";
-  const v10s = stats.avg10?.toFixed(1) ?? "–";
-  const v1h  = stats.h1?.toFixed(1)    ?? "–";
-
-  set("map_stat_2s",v2s);   set("map_stat_2s_p",v2s);
-  set("map_stat_10s",v10s); set("map_stat_10s_p",v10s);
-  set("map_stat_1h",v1h);   set("map_stat_1h_p",v1h);
-
-  set("map_stat_alpha",   stats.alpha?.toFixed(1)    ?? "–");
-  set("map_stat_nm",      stats.nm?.toFixed(2)       ?? "–");
-  set("map_stat_distance",stats.distance?.toFixed(2) ?? "–");
+  set("map_stat_2s",       stats.max?.toFixed(1)      ?? "–");
+  set("map_stat_10s",      stats.avg10?.toFixed(1)    ?? "–");
+  set("map_stat_alpha",    stats.alpha?.toFixed(1)    ?? "–");
+  set("map_stat_nm",       stats.nm?.toFixed(2)       ?? "–");
+  set("map_stat_1h",       stats.h1?.toFixed(1)       ?? "–");
+  set("map_stat_distance", stats.distance?.toFixed(2) ?? "–");
 }
