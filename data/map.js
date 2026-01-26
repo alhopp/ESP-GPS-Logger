@@ -30,9 +30,9 @@ window.MapView = {
       "https://server.arcgisonline.com/ArcGIS/rest/services/" +
       "World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
-        maxNativeZoom: 18,   // real Esri tiles
-        maxZoom: 22,         // allow overzoom (scaled tiles)
-        attribution: "© Esri"
+        maxNativeZoom:18,
+        maxZoom:22,
+        attribution:"© Esri"
       }
     ).addTo(this.map);
 
@@ -80,7 +80,7 @@ window.MapView = {
         const feature = gj.features?.[0];
         const stats   = feature?.properties?.stats;
 
-        // Update stats panel
+        // Update stats UI (preview + full)
         updateStatsUI(stats);
 
         // Draw geometry
@@ -94,7 +94,6 @@ window.MapView = {
         this.zoomToLayer(this.track);
         setTimeout(()=>this.map.invalidateSize(true),50);
       })
-
       .catch(e=>console.warn("[Map] GeoJSON failed",e));
   },
 
@@ -144,7 +143,6 @@ window.MapSessions = {
     const j = await r.json();
     if(!j.ok) return;
 
-    // GeoJSON only, newest first
     this.files = j.files
       .filter(f=>f.name.endsWith(".geojson"))
       .sort((a,b)=>b.name.localeCompare(a.name));
@@ -156,13 +154,11 @@ window.MapSessions = {
       return;
     }
 
-    // Clamp index if current file was deleted
     if(this.index >= this.files.length)
       this.index = this.files.length - 1;
 
     this.loadCurrent();
   },
-
 
   // -------------------------------------------------------------------------
   loadCurrent(){
@@ -173,7 +169,7 @@ window.MapSessions = {
     const logical = total - this.index;
 
     $("sessionTitle").textContent = `Session ${logical} of ${total}`;
-    $("sessionMeta").textContent = f.name.replace(".geojson","");
+    $("sessionMeta").textContent  = f.name.replace(".geojson","");
 
     MapView.clear();
     MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}`);
@@ -212,7 +208,7 @@ window.MapSessions = {
       }
 
       if(locked==="y") e.preventDefault();
-    },{passive:false}); // must be false
+    },{passive:false});
 
     card.addEventListener("touchend",()=>{
       if(!active) return;
@@ -246,23 +242,35 @@ function hideStats(){
   MapView.map?.invalidateSize(true);
 }
 
+// ---------------------------------------------------------------------------
+// updateStatsUI()
+// - Updates BOTH preview stats (screen 1)
+// - And full stats grid (screen 2)
+// ---------------------------------------------------------------------------
 function updateStatsUI(stats){
+  const set = (id,v)=>{
+    const el = $(id);
+    if(el) el.textContent = v;
+  };
+
   if(!stats){
-    $("map_stat_2s").textContent       = "–";
-    $("map_stat_10s").textContent      = "–";
-    $("map_stat_1h").textContent       = "–";
-    $("map_stat_alpha").textContent    = "–";
-    $("map_stat_nm").textContent       = "–";
-    $("map_stat_distance").textContent = "–";
+    [
+      "map_stat_2s","map_stat_10s","map_stat_1h",
+      "map_stat_alpha","map_stat_nm","map_stat_distance",
+      "map_stat_2s_p","map_stat_10s_p","map_stat_1h_p"
+    ].forEach(id=>set(id,"–"));
     return;
   }
 
-  $("map_stat_2s").textContent       = stats.max?.toFixed(1) ?? "–";
-  $("map_stat_10s").textContent      = stats.avg10?.toFixed(1) ?? "–";
-  $("map_stat_1h").textContent       = stats.h1?.toFixed(1) ?? "–";
-  $("map_stat_alpha").textContent    = stats.alpha?.toFixed(1) ?? "–";
-  $("map_stat_nm").textContent       = stats.nm?.toFixed(2) ?? "–";
-  $("map_stat_distance").textContent = stats.distance?.toFixed(2) ?? "–";
+  const v2s  = stats.max?.toFixed(1)   ?? "–";
+  const v10s = stats.avg10?.toFixed(1) ?? "–";
+  const v1h  = stats.h1?.toFixed(1)    ?? "–";
+
+  set("map_stat_2s",v2s);   set("map_stat_2s_p",v2s);
+  set("map_stat_10s",v10s); set("map_stat_10s_p",v10s);
+  set("map_stat_1h",v1h);   set("map_stat_1h_p",v1h);
+
+  set("map_stat_alpha",   stats.alpha?.toFixed(1)    ?? "–");
+  set("map_stat_nm",      stats.nm?.toFixed(2)       ?? "–");
+  set("map_stat_distance",stats.distance?.toFixed(2) ?? "–");
 }
-
-

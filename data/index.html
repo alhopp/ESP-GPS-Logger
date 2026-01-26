@@ -23,7 +23,6 @@
   <button onclick="tab('system',this)">System</button>
 </nav>
 
-
 <!-- ================= FILES ================= -->
 <section id="files" class="a">
   <div class="card">
@@ -36,7 +35,6 @@
 <!-- ================= SETTINGS ================= -->
 <section id="settings">
 
-  <!-- Performance Screens -->
   <div class="card">
     <h3>Performance Screens<button class="info-btn" data-info="performance">ⓘ</button></h3>
     <div class="toggle"><span>2 seconds</span><label><input type="checkbox" id="stat_2s"><div class="slider"></div></label></div>
@@ -47,10 +45,8 @@
     <div class="toggle"><span>Distance</span><label><input type="checkbox" id="stat_distance"><div class="slider"></div></label></div>
   </div>
 
-  <!-- Wi-Fi -->
   <div class="card">
     <h3>Wi-Fi</h3>
-
     <label>Home Wi-Fi</label>
     <input id="home_ssid" placeholder="SSID">
     <input id="home_pass" type="password" placeholder="Password">
@@ -60,15 +56,12 @@
     <input id="phone_pass" type="password" placeholder="Password">
   </div>
 
-
-  <!-- File Logging -->
   <div class="card">
     <h3>File Logging<button class="info-btn" data-info="logging">ⓘ</button></h3>
     <div class="toggle"><span>Raw GNSS (SBP)</span><label><input type="checkbox" id="logSBP"><div class="slider"></div></label></div>
     <div class="toggle"><span>Raw GNSS (UBX)</span><label><input type="checkbox" id="logUBX"><div class="slider"></div></label></div>
   </div>
 
-  <!-- Sleep Screen -->
   <div class="card">
     <h3>Sleep Screen Text<button class="info-btn" data-info="sleep">ⓘ</button></h3>
     <label>Name</label>
@@ -86,61 +79,45 @@
     <div id="mapView"></div>
   </div>
 
-  <!-- Session card = gesture surface + content stack -->
   <div id="sessionCard" class="session-card">
 
-    <!-- Grab handle (visual affordance only) -->
     <div class="session-grab"></div>
 
-    <!-- ================= MAP INFO (default view) ================= -->
+    <!-- ================= MAP INFO + PREVIEW STATS ================= -->
     <div class="session-pane session-pane-map">
       <div class="session-body">
         <div class="session-title" id="sessionTitle">Latest Session</div>
-        <div class="session-meta"  id="sessionMeta"></div>
+        <div class="session-meta" id="sessionMeta"></div>
+      </div>
+
+      <!-- preview stats (screen 1) -->
+      <div class="stats-preview">
+        <div class="stat"><label>2s</label><span id="map_stat_2s_p">–</span></div>
+        <div class="stat"><label>10s</label><span id="map_stat_10s_p">–</span></div>
+        <div class="stat"><label>1h</label><span id="map_stat_1h_p">–</span></div>
       </div>
     </div>
 
-    <!-- ================= STATS (swipe up) ================= -->
+    <!-- ================= FULL STATS (swipe up) ================= -->
     <div class="session-pane session-pane-stats">
 
       <div class="stats-header">Session Stats</div>
+
       <div class="stats-grid">
+        <div class="stat"><label>2s</label><span id="map_stat_2s">–</span></div>
+        <div class="stat"><label>10s</label><span id="map_stat_10s">–</span></div>
+        <div class="stat"><label>1h</label><span id="map_stat_1h">–</span></div>
+        <div class="stat"><label>Alpha</label><span id="map_stat_alpha">–</span></div>
+        <div class="stat"><label>NM</label><span id="map_stat_nm">–</span></div>
+        <div class="stat"><label>Dist</label><span id="map_stat_distance">–</span></div>
+      </div>
 
-      <div class="stat">
-        <label>2s</label>
-        <span id="map_stat_2s">–</span>
-      </div>
-      <div class="stat">
-        <label>10s</label>
-       <span id="map_stat_10s">–</span>
-      </div>
-      <div class="stat">
-        <label>1h</label>
-      <span id="map_stat_1h">–</span>
-      </div>
-      <div class="stat">
-        <label>Alpha</label>
-       <span id="map_stat_alpha">–</span>
-      </div>
-      <div class="stat">
-        <label>NM</label>
-        <span id="map_stat_nm">–</span>
-      </div>
-      <div class="stat">
-        <label>Dist</label>
-        <span id="map_stat_distance">–</span>
-      </div>
-    </div>
-
-
-      <!-- placeholder for graphs later -->
       <canvas id="statsGraph" height="140"></canvas>
 
     </div>
 
   </div>
 </section>
-
 
 <!-- ================= SYSTEM ================= -->
 <section id="system">
@@ -183,13 +160,12 @@
   <button id="saveBtn" disabled>Save</button>
 </footer>
 
-<script src="/leaflet.js"></script>  
+<script src="/leaflet.js"></script>
 <script src="/files.js"></script>
 <script src="/config.js"></script>
 <script src="/system.js"></script>
 <script src="/map.js"></script>
 <script src="/app_init.js"></script>
-
 
 </body>
 </html>
