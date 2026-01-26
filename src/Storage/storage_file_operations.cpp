@@ -130,14 +130,16 @@ void Log_to_SD(void)
 void Close_files(void)
 {
  // ---- Final session stats (RTC snapshot) ----
-  GeoJSONStats s {
-    .nm       = RTC_mile,
-    .alpha    = RTC_alp,
-    .h1       = RTC_1h,
-    .max      = RTC_max_2s,
-    .avg10    = RTC_avg_10s,
-    .distance = RTC_distance
-  };
+GeoJSONStats s {
+  RTC_max_2s_knots,
+  RTC_avg_10s_knots,
+  RTC_1h_knots,
+  RTC_alp_knots,
+  RTC_mile_knots,
+  RTC_distance
+};
+
+
 
   geojson_set_stats(s);
 

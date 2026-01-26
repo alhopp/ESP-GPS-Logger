@@ -11,6 +11,39 @@
 #include "tasks/task_display.h"
 #include "GPS/gps_simulator.h"
 
+
+static void debugPrintStats()
+{
+  static uint32_t lastPrint = 0;
+  if (millis() - lastPrint < 1000) return; // 1 Hz
+  lastPrint = millis();
+
+  Serial.println(F("---- PERF STATS ----"));
+
+  Serial.print(F("2s   (kn): "));
+  Serial.println(S2.s_max_speed * MMPS_TO_KNOTS, 2);
+
+  Serial.print(F("10s  (kn): "));
+  Serial.println(S10.s_max_speed * MMPS_TO_KNOTS, 2);
+
+  Serial.print(F("1h   (kn): "));
+  Serial.println(S3600.s_max_speed * MMPS_TO_KNOTS, 2);
+
+  Serial.print(F("NM   (kn): "));
+  Serial.println(M1852.m_max_speed * MMPS_TO_KNOTS, 2);
+
+  Serial.print(F("Alpha(kn): "));
+  Serial.println(A500.alfa_speed_max * MMPS_TO_KNOTS, 2);
+
+  Serial.print(F("Dist (m): "));
+  Serial.println(total_distance * 0.001f, 1);
+
+  Serial.print(F("Run  (m): "));
+  Serial.println(Ublox.run_distance * 0.001f, 1);
+
+  Serial.println();
+}
+
 // -----------------------------------------------------------------------------
 // GPS task state
 // -----------------------------------------------------------------------------
@@ -212,8 +245,12 @@ static void processGpsMessages(uint8_t msgType)
 
       M_500.Update_Track();
 
-      if(S2.avg_s>4000)
+      if(S2.avg_s>4000){
         S10_previous_run=S10.s_max_speed;
+      }
+
+        debugPrintStats();
+
     }
     return;
   }

@@ -56,7 +56,8 @@ void Session_info(GPS_data G) {
   strcat(message, tekst);
   sprintf(tekst, "Speed calibration: %f \n", systemInfo.cal_speed);  // Log speed calibration factor
   strcat(message, tekst);
-  sprintf(tekst, "Lipo calibration: %.3f \n", RTC_calibration_bat);  // Log battery calibration factor
+sprintf(tekst, "Lipo calibration: %.3f \n", config.cal_bat);
+ // Log battery calibration factor
   strcat(message, tekst);
   sprintf(tekst, "Timezone: %f h\n", config.timezone);  // Log timezone
   strcat(message, tekst);

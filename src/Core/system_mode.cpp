@@ -118,6 +118,7 @@ void setMode(SystemMode newMode)
   switch (currentMode) {
 
     case MODE_LOGGING:
+      rtc_snapshot_stats();
       storage_shutting_down = true;
       vTaskDelay(pdMS_TO_TICKS(20));
       Close_files();
@@ -201,9 +202,6 @@ void setMode(SystemMode newMode)
 
   case MODE_SLEEP:
     LOG_SYS("MODE", "ENTER SLEEP");
-
-    // Freeze stats for sleep screen (RTC-backed)
-    rtc_snapshot_stats();
 
     wifi_stop();
     gps_power_off();

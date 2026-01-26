@@ -1,31 +1,24 @@
 #pragma once
-
 #include <Arduino.h>
 
 void rtc_snapshot_stats();
 
-// --------------------------------------------------------------------------
-// Distance & speed (SI units)
+// ---------------------------------------------------------------------------
+// Distance (meters)
 // ---------------------------------------------------------------------------
 extern RTC_DATA_ATTR float RTC_distance;
-extern RTC_DATA_ATTR float RTC_avg_10s;
-extern RTC_DATA_ATTR float RTC_max_2s;
-extern RTC_DATA_ATTR float RTC_500m;
-extern RTC_DATA_ATTR float RTC_1h;
-extern RTC_DATA_ATTR float RTC_mile;
-extern RTC_DATA_ATTR float RTC_alp;
 
 // ---------------------------------------------------------------------------
-// Distance & speed (knots)
+// Speeds (knots)
 // ---------------------------------------------------------------------------
-extern RTC_DATA_ATTR float RTC_avg_10s_knots;
 extern RTC_DATA_ATTR float RTC_max_2s_knots;
-extern RTC_DATA_ATTR float RTC_alp_knots;
+extern RTC_DATA_ATTR float RTC_avg_10s_knots;
 extern RTC_DATA_ATTR float RTC_1h_knots;
+extern RTC_DATA_ATTR float RTC_alp_knots;
 extern RTC_DATA_ATTR float RTC_mile_knots;
 
 // ---------------------------------------------------------------------------
-// Records (10s rankings)
+// Records (10s rankings, knots)
 // ---------------------------------------------------------------------------
 extern RTC_DATA_ATTR float RTC_R1_10s;
 extern RTC_DATA_ATTR float RTC_R2_10s;
@@ -48,24 +41,15 @@ extern RTC_DATA_ATTR short RTC_min;
 extern RTC_DATA_ATTR int RTC_counter;
 
 // ---------------------------------------------------------------------------
-// Calibration
-// ---------------------------------------------------------------------------
-extern RTC_DATA_ATTR float RTC_calibration_bat;
-
-// ---------------------------------------------------------------------------
-// Battery state
+// Battery
 // ---------------------------------------------------------------------------
 extern RTC_DATA_ATTR float RTC_voltage_bat;
 extern RTC_DATA_ATTR float RTC_old_voltage_bat;
 extern RTC_DATA_ATTR float RTC_minimum_voltage_bat;
-
 extern RTC_DATA_ATTR int   RTC_highest_read;
 
 // ---------------------------------------------------------------------------
-// GPS state (RTC cached)
+// GPS state
 // ---------------------------------------------------------------------------
 extern RTC_DATA_ATTR bool    RTC_gps_valid;
 extern RTC_DATA_ATTR uint8_t RTC_gps_baud_index;
-
-
-
