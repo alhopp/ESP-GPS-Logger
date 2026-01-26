@@ -43,7 +43,7 @@ section#map.a~footer{display:none}
   overflow:hidden;
 
   /* collapsed height (shows first stats row comfortably) */
-  height:176px;
+  height:170px;
 
   /* smooth close */
   transition:height .18s ease-out;
