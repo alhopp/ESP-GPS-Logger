@@ -29,6 +29,7 @@
 #include "web/web_server.h"
 
 #include "GPS/gps_manager.h"
+#include "GPS/gps_data.h"
 #include "Display/Screens/screen_system.h"
 
 #include "Core/Definitions.h"
@@ -172,7 +173,8 @@ void setMode(SystemMode newMode)
       LOG_ERROR("SD", "storage_on failed → abort logging");
       break;
     }
-
+    
+    reset_session_stats(); 
     Open_files();
   break;
   

@@ -18,6 +18,9 @@ constexpr int    NAV_SAT_BUFFER  = 10;     // Rolling NAV-SAT statistics window
 
 extern float alfa_exit;
 
+
+void reset_session_stats(); 
+
 // -----------------------------------------------------------------------------
 // GPS_data
 //

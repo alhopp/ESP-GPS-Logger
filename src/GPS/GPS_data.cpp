@@ -637,3 +637,71 @@ double afstandPunten(double lambda1, double phi1, double lambda2, double phi2) {
     return afstand;
 }
 
+
+// ============================================================================
+// Session reset
+// Called ONCE when a new logging session starts
+// Clears ALL state that must not leak between sessions
+// ============================================================================
+
+void reset_session_stats()
+{
+  // ------------------------------------------------------------
+  // Distance accumulators
+  // ------------------------------------------------------------
+  total_distance        = 0.0f;
+  Ublox.run_distance    = 0.0f;
+  Ublox.alfa_distance   = 0.0f;
+
+  // ------------------------------------------------------------
+  // GPS circular buffers
+  // ------------------------------------------------------------
+  index_GPS = 0;
+  index_sec = 0;
+
+  memset(_gSpeed,   0, sizeof(_gSpeed));
+  memset(_secSpeed, 0, sizeof(_secSpeed));
+  memset(_lat,      0, sizeof(_lat));
+  memset(_long,     0, sizeof(_long));
+
+  // ------------------------------------------------------------
+  // Run / jibe counters
+  // ------------------------------------------------------------
+  alfa_counter = 0;
+  run_count    = 0;
+
+  // ------------------------------------------------------------
+  // Time-window stats
+  // ------------------------------------------------------------
+  S2.Reset_stats();
+  S10.Reset_stats();
+  S1800.Reset_stats();
+  S3600.Reset_stats();
+
+  // ------------------------------------------------------------
+  // Distance-window stats
+  // ------------------------------------------------------------
+  M100.m_max_speed  = 0;
+  M250.m_max_speed  = 0;
+  M500.m_max_speed  = 0;
+  M1852.m_max_speed = 0;
+
+  memset(M100.avg_speed,  0, sizeof(M100.avg_speed));
+  memset(M250.avg_speed,  0, sizeof(M250.avg_speed));
+  memset(M500.avg_speed,  0, sizeof(M500.avg_speed));
+  memset(M1852.avg_speed, 0, sizeof(M1852.avg_speed));
+
+  // ------------------------------------------------------------
+  // Alpha stats
+  // ------------------------------------------------------------
+  A250.Reset_stats();
+  A500.Reset_stats();
+
+  // ------------------------------------------------------------
+  // Safety
+  // ------------------------------------------------------------
+  nav_pvt_message = 0;
+
+  Serial.println(F("[SESSION] All stats reset"));
+}
+

@@ -24,13 +24,13 @@ static void debugPrintStats()
   Serial.println(S2.s_max_speed * MMPS_TO_KNOTS, 2);
 
   Serial.print(F("10s  (kn): "));
-  Serial.println(S10.s_max_speed * MMPS_TO_KNOTS, 2);
+  Serial.println(S10.avg_5runs * MMPS_TO_KNOTS, 2);
 
   Serial.print(F("1h   (kn): "));
   Serial.println(S3600.s_max_speed * MMPS_TO_KNOTS, 2);
 
   Serial.print(F("NM   (kn): "));
-  Serial.println(M1852.m_max_speed * MMPS_TO_KNOTS, 2);
+  Serial.println(M1852.m_speed * MMPS_TO_KNOTS, 2);
 
   Serial.print(F("Alpha(kn): "));
   Serial.println(A500.alfa_speed_max * MMPS_TO_KNOTS, 2);

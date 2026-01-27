@@ -80,11 +80,11 @@ void rtc_snapshot_stats()
   // -------------------------------------------------------------------------
   // Speeds (mm/s → knots)
   // -------------------------------------------------------------------------
-  RTC_max_2s_knots  = S2.s_max_speed      * MMPS_TO_KNOTS;
-  RTC_avg_10s_knots = S10.s_max_speed     * MMPS_TO_KNOTS;
+  RTC_max_2s_knots  = S2.s_max_speed * MMPS_TO_KNOTS;
+  RTC_avg_10s_knots = S10.avg_5runs  * MMPS_TO_KNOTS;
 
   // NM = speed over 1852 m window (NOT distance)
-  RTC_mile_knots   = M1852.m_max_speed    * MMPS_TO_KNOTS;
+  RTC_mile_knots   = M1852.m_speed        * MMPS_TO_KNOTS;
   RTC_alp_knots    = A500.alfa_speed_max  * MMPS_TO_KNOTS;
   RTC_1h_knots     = S3600.avg_5runs      * MMPS_TO_KNOTS;
 

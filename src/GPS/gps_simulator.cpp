@@ -47,7 +47,7 @@ static constexpr double STRAIGHT_MAX_KTS = 40.0;
 static constexpr double TURN_TARGET_KTS  = 15.0;
 
 static constexpr double SPEED_RAMP_MPS2  = 0.8;
-static constexpr double TURN_RADIUS_M    = 25.0;
+static constexpr double TURN_RADIUS_M    = 20.0;
 
 static constexpr double HEADING_WANDER_MAX = 5.0;
 static constexpr double LATERAL_SLOP_MAX   = 6.0;
