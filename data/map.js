@@ -262,10 +262,10 @@ function updateStatsUI(stats){
     return;
   }
 
-  set("map_stat_2s",       stats.max?.toFixed(1)      ?? "–");
-  set("map_stat_10s",      stats.avg10?.toFixed(1)    ?? "–");
-  set("map_stat_alpha",    stats.alpha?.toFixed(1)    ?? "–");
-  set("map_stat_nm",       stats.nm?.toFixed(2)       ?? "–");
-  set("map_stat_1h",       stats.h1?.toFixed(1)       ?? "–");
-  set("map_stat_distance", stats.distance?.toFixed(2) ?? "–");
+  set("map_stat_2s",       stats.max?.toFixed(3)      ?? "–");
+  set("map_stat_10s",      stats.avg10?.toFixed(3)    ?? "–");
+  set("map_stat_alpha",    stats.alpha?.toFixed(3)    ?? "–");
+  set("map_stat_nm",       stats.nm?.toFixed(3)       ?? "–");
+  set("map_stat_1h",       stats.h1?.toFixed(3)       ?? "–");
+  set("map_stat_distance", stats.distance?.toFixed(3) ?? "–");
 }
