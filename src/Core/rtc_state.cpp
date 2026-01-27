@@ -103,5 +103,5 @@ void rtc_snapshot_stats()
   // -------------------------------------------------------------------------
 
   // ----- distance (meters) -----
-  RTC_distance      = total_distance / 1000.0f; // total_distance is mm → meters
+  RTC_distance      = total_distance / 1000.0f;  // mm → meters
 }
