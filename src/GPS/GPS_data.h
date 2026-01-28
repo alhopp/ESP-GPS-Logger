@@ -156,9 +156,6 @@ void sort_run_results(double a[],
                    int samples[],
                    int size);
 
-// Detect the start of a new run based on heading evolution and short-term speed
-int New_run_detection(float actual_heading,
-                      float S2_speed);
 
 
 
@@ -287,29 +284,6 @@ private:
  *   (see GPS_speed for distance windows).
  * --------------------------------------------------------------------------- */
 
-
-
-// -----------------------------------------------------------------------------
-// Alpha indicator helper
-//
-// Computes the perpendicular distance of the current position relative to
-// the alpha reference line defined by two GPS_speed windows (typically 250 m
-// and 100 m before the jibe).
-//
-// Used to determine whether the current position still lies within the
-// allowed alpha corridor (e.g. ≤ 50 m).
-//
-// Parameters:
-// - M250 : GPS_speed instance for 250 m window
-// - M100 : GPS_speed instance for 100 m window
-// - actual_heading : current course heading (degrees)
-//
-// Returns:
-// - Signed perpendicular distance in meters
-// -----------------------------------------------------------------------------
-float Alfa_indicator(GPS_speed M250,
-                     GPS_speed M100,
-                     float actual_heading);
 
 
 

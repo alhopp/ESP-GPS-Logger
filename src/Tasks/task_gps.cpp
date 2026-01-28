@@ -12,7 +12,7 @@
 
 #include "GPS/gps_simulator.h"
 #include "GPS/gps_alpha.h"
-
+#include "GPS/gps_track.h"
 
 // -----------------------------------------------------------------------------
 // Session state (MUST be above usage)

@@ -1,6 +1,8 @@
 #include "GPS/gps_alpha.h"
 #include "GPS/gps_speed.h"
 #include "GPS/GPS_data.h"
+#include "GPS/gps_geometry.h"
+
 
 #include "Core/Globals.h"
 #include "core/system_info.h"
@@ -84,3 +86,36 @@ float Alfa_speed::Update_Alfa(GPS_speed M){
 void Alfa_speed::Reset_stats(void){
   for(int i = 0; i < 10; i++) avg_speed[i] = 0;
 }
+
+
+
+/*hier wordt de actuele "alfa afstand" berekend aan de hand van 2 punten voor de gijp : P1 = 250m en P2 = 100m voor de gijp
+*Deze punten bepalen een imaginaire lijn, de loodrechte afstand tot de actuele positie moet kleiner zijn dan 50 m/s
+*als het punt P1 gepasseerd wordt
+*/
+double delta_heading;
+double ref_heading;
+float Alfa_indicator(GPS_speed M250,GPS_speed M100,float actual_heading){
+  static float P1_lat,P1_long,P2_lat,P2_long;
+  float P_lat,P_long, P_lat_heading,P_long_heading;
+  //,lambda_T,lambda_N,lambda,
+  float alfa_afstand;
+  static int old_alfa_counter;
+  if(alfa_counter!=old_alfa_counter){
+    Ublox.alfa_distance=0;//afstand afgelegd sinds jibe detectie      10*100.000/10.000=100 samples ?
+    P1_lat=_lat[M250.m_index%BUFFER_ALFA];//dit is het punt op -250 m van de actuele positie
+    P1_long=_long[M250.m_index%BUFFER_ALFA];
+    P2_lat=_lat[M100.m_index%BUFFER_ALFA];//dit is het punt op -100 m van de actuele positie (snelheid extrapolatie van -250m)
+    P2_long=_long[M100.m_index%BUFFER_ALFA]; 
+    }
+  old_alfa_counter=alfa_counter;  
+  P_lat=_lat[index_GPS%BUFFER_ALFA];//actuele positie lat
+  P_long=_long[index_GPS%BUFFER_ALFA];//actuele positie long
+  P_lat_heading= _lat[(index_GPS-2*systemInfo.sample_rate)%BUFFER_ALFA];//-2s  positie lat         //cos(ubxMessage.navPvt.heading*PI/180.0f/100000.0f)*111120+P_lat;//was eerst sin,extra punt berekenen heading, berekenen met afstand/lengte graad !!
+  P_long_heading=_long[(index_GPS-2*systemInfo.sample_rate)%BUFFER_ALFA];//-2s  positie long//sin(ubxMessage.navPvt.heading*PI/180.0f/100000.0f)*111120*cos(DEG2RAD*P_lat)+P_long;//berekenen met afstand/lengte graad!!
+  alfa_exit= Dis_point_line(P1_long,P1_lat,P_long,P_lat,P_long_heading,P_lat_heading);//
+  alfa_afstand=Dis_point_line(P_long,P_lat,P1_long,P1_lat,P2_long,P2_lat);
+  return alfa_afstand;  //actuele loodrechte afstand tov de lijn P2-P1, mag max 50m zijn voor een geldige alfa !!
+}
+
+

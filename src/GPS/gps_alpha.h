@@ -77,3 +77,31 @@ private:
 extern Alfa_speed A250;
 extern Alfa_speed A500;
 extern Alfa_speed a500;
+
+
+
+
+// -----------------------------------------------------------------------------
+// Alpha indicator helper
+//
+// Computes the perpendicular distance of the current position relative to
+// the alpha reference line defined by two GPS_speed windows (typically 250 m
+// and 100 m before the jibe).
+//
+// Used to determine whether the current position still lies within the
+// allowed alpha corridor (e.g. ≤ 50 m).
+//
+// Parameters:
+// - M250 : GPS_speed instance for 250 m window
+// - M100 : GPS_speed instance for 100 m window
+// - actual_heading : current course heading (degrees)
+//
+// Returns:
+// - Signed perpendicular distance in meters
+// -----------------------------------------------------------------------------
+float Alfa_indicator(GPS_speed M250,
+                     GPS_speed M100,
+                     float actual_heading);
+
+
+                     
