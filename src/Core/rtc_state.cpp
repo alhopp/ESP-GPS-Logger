@@ -4,11 +4,6 @@
 #include "GPS/GPS_data.h"
 
 
-// ============================================================================
-// RTC persistent values (storage)
-// ============================================================================
-
-
 // ---------------------------------------------------------------------------
 // Distance & speed (SI units)
 // ---------------------------------------------------------------------------
@@ -84,10 +79,12 @@ void rtc_snapshot_stats()
   RTC_avg_10s_knots = S10.avg_5runs  * MMPS_TO_KNOTS;
 
   // NM = speed over 1852 m window (NOT distance)
-  RTC_mile_knots   = M1852.m_speed        * MMPS_TO_KNOTS;
-  RTC_alp_knots    = A500.alfa_speed_max  * MMPS_TO_KNOTS;
+  RTC_mile_knots   = M1852.avg_speed[9] * MMPS_TO_KNOTS;
+  RTC_alp_knots    = A500.avg_speed[9] * MMPS_TO_KNOTS;
   RTC_1h_knots     = S3600.s_max_speed * MMPS_TO_KNOTS;
 
+  Serial.print(F("Alpha(kn):   "));
+  Serial.println(A500.avg_speed[9] * MMPS_TO_KNOTS, 3);
 
   // -------------------------------------------------------------------------
   // Ranked 10s speeds (knots)

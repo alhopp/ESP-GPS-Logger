@@ -32,7 +32,7 @@ struct UBXMessage;
 
 class GPS_speed;
 class Alfa_speed;
-class GPS_time;
+
 class GPS_Track;
 
 // ==========================

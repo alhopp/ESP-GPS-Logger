@@ -46,10 +46,11 @@ Serial.println();
   Serial.println(S3600.s_max_speed * MMPS_TO_KNOTS, 3);
 
   Serial.print(F("NM   (kn):   "));
-  Serial.println(M1852.m_speed * MMPS_TO_KNOTS, 3);
+  Serial.println( M1852.avg_speed[9] * MMPS_TO_KNOTS, 3);
 
+ 
   Serial.print(F("Alpha(kn):   "));
-  Serial.println(A500.alfa_speed_max * MMPS_TO_KNOTS, 3);
+  Serial.println(A500.avg_speed[9] * MMPS_TO_KNOTS, 3);
 
   Serial.print(F("Dist (km):   "));
   Serial.println(total_distance * 0.001f, 3);
