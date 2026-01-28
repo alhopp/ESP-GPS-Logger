@@ -33,7 +33,7 @@ struct UBXMessage;
 class GPS_speed;
 
 
-class GPS_Track;
+
 
 // ==========================
 // E-paper pin mapping

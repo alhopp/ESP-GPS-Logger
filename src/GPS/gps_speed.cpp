@@ -1,5 +1,8 @@
 #include "GPS/gps_speed.h"
-#include "GPS/GPS_data.h"        // _gSpeed[], index_GPS, nav_pvt_message
+#include "GPS/GPS_data.h"        
+#include "GPS/gps_utils.h"        
+
+// _gSpeed[], index_GPS, nav_pvt_message
 #include "core/system_info.h"    // systemInfo.sample_rate
 #include "Ublox/ublox.h"         // Ublox globals (SBP / NAV context)
 #include "Core/Globals.h"        // tmstruct, getLocalTime()

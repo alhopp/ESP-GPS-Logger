@@ -77,7 +77,7 @@ private:
 extern Alfa_speed A250;
 extern Alfa_speed A500;
 extern Alfa_speed a500;
-
+extern float alfa_exit;
 
 
 
@@ -104,4 +104,3 @@ float Alfa_indicator(GPS_speed M250,
                      float actual_heading);
 
 
-                     

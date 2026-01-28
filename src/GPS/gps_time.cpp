@@ -1,5 +1,6 @@
 #include "GPS/gps_time.h"
 #include "GPS/GPS_data.h"
+#include "GPS/gps_utils.h"        
 
 #include "Ublox/ublox.h"
 #include "Core/Globals.h"

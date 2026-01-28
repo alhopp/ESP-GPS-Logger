@@ -2,7 +2,7 @@
 #include "GPS/gps_speed.h"
 #include "GPS/GPS_data.h"
 #include "GPS/gps_geometry.h"
-
+#include "GPS/gps_utils.h"
 
 #include "Core/Globals.h"
 #include "core/system_info.h"
@@ -11,6 +11,8 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+
+float    alfa_exit;                 // Debug: signed distance to alpha line
 
 // -----------------------------------------------------------------------------
 // Alfa_speed

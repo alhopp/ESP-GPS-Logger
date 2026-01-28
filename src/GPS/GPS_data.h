@@ -28,9 +28,9 @@ extern uint16_t _secSpeed[BUFFER_SIZE];
 extern int index_GPS;
 extern int index_sec;
 
-extern float alfa_exit;
 
-void sort_display(double a[], int size);
+
+
 
 void reset_session_stats(); 
 
@@ -117,46 +117,6 @@ class GPS_SAT_info {
                        uint8_t count);
 };
 
-// -----------------------------------------------------------------------------
-// Run sorting and detection helpers
-//
-// Responsibilities:
-// - Sort run result arrays by speed while keeping all associated metadata aligned
-// - Detect the start of a new run based on heading changes and speed thresholds
-//
-// Notes:
-// - Sorting is performed in-place on fixed-size arrays
-// - All parallel arrays (time, distance, CNO, run index, etc.) are kept in sync
-// - New_run_detection() implements heuristic-based run detection using:
-//     - Heading change
-//     - Speed thresholds
-//     - Temporal stability
-// -----------------------------------------------------------------------------
-
-// Sort run results by speed (descending), keeping timing and satellite data aligned
-void sort_run(double a[],
-              uint8_t hour[],
-              uint8_t minute[],
-              uint8_t seconde[],
-              uint8_t mean_cno[],
-              uint8_t max_cno[],
-              uint8_t min_cno[],
-              uint8_t nrSats[],
-              int runs[],
-              int size);
-
-// Sort alfa run results by speed, keeping distance and sample metadata aligned
-void sort_run_results(double a[],
-                   int dis[],
-                   int message[],
-                   uint8_t hour[],
-                   uint8_t minute[],
-                   uint8_t seconde[],
-                   int runs[],
-                   int samples[],
-                   int size);
-
-
 
 
 /* -----------------------------------------------------------------------------
@@ -181,79 +141,6 @@ void sort_run_results(double a[],
  * - Control run detection
  * --------------------------------------------------------------------------- */
 
-/* -----------------------------------------------------------------------------
- * GPS_Track
- *
- * Calculates average speed over a fixed track defined by two virtual lines:
- * a start line and an end line (e.g. a 500 m course).
- *
- * - The track is defined by two pairs of GPS coordinates:
- *     * Line 1: start line (lon1/lat1 → lon2/lat2)
- *     * Line 2: end line   (lon3/lat3 → lon4/lat4)
- * - When the start line is crossed, a run begins.
- * - When the end line is crossed, the run ends and speed is calculated.
- *
- * Speed calculation:
- * - Distance is either the theoretical track distance or the measured GPS
- *   distance between crossing points.
- * - Time is derived from UBX iTOW timestamps.
- *
- * Notes:
- * - Uses global GPS state (NAV-PVT data and circular buffers).
- * - Does NOT manage run detection globally (only start/end line crossings).
- * - Intended for fixed-distance course measurements (e.g. 500 m speed run).
- * --------------------------------------------------------------------------- */
-class GPS_Track {
-public:
-    GPS_Track(void);
-
-    // Define the track geometry using two lines and a theoretical distance (meters)
-    void Set_course(double lon_1, double lat_1,
-                    double lon_2, double lat_2,
-                    double lon_3, double lat_3,
-                    double lon_4, double lat_4,
-                    int distance);
-
-    // Update track state; returns distance to end line (sign indicates side)
-    float Update_Track(void);
-
-    // Track geometry
-    double lon1, lat1, lon2, lat2;
-    double lon3, lat3, lon4, lat4;
-
-    // Start / end positions
-    double Start_lon, Start_lat;
-    double End_lon, End_lat;
-
-    float  set_distance;              // Configured track distance (meters)
-    int    Start_iTOW_ms;              // UBX time at start line crossing
-    int    End_iTOW_ms;                // UBX time at end line crossing
-    int    Track_time_ms;              // Duration of the run (ms)
-    float  Track_speed;                // Calculated average speed
-    float  distance_startline;         // Signed distance to start line
-    float  distance_endline;           // Signed distance to end line
-    float  track_distance;             // Measured GPS distance
-    int    theoretical_track_distance; // Nominal track length
-    float  distance_p1p3;
-    float  distance_p2p4;
-
-    // Result buffers (top runs)
-    double  avg_speed[10];
-    double  display_speed[10];
-    int     m_Distance[10];
-    uint8_t time_hour[10];
-    uint8_t time_min[10];
-    uint8_t time_sec[10];
-
-    // Padding / legacy placeholders (can be removed later)
-    uint8_t dummy[10];
-    int     dummy_int[10];
-
-private:
-    float Old_distance_start;  // Previous signed distance to start line
-    float Old_distance_end;    // Previous signed distance to end line
-    bool  Run_started;         // Run-in-progress flag
-};
 
 /* -----------------------------------------------------------------------------
  * GPS_time
@@ -295,7 +182,7 @@ extern GPS_time S10;
 extern GPS_time s10;
 extern GPS_time S1800;
 extern GPS_time S3600;
-extern GPS_Track M_500;
+
 
 // --- GPS core buffers ---
 extern float    _lat[];
