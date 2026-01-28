@@ -84,7 +84,7 @@ double GPS_speed::Update_distance(int actual_run)
 
   // Run boundary → archive previous run result
   if (actual_run != old_run && this_run[0] == old_run) {
-    sort_run_alfa(avg_speed, m_Distance, message_nr,
+    sort_run_results(avg_speed, m_Distance, message_nr,
                   time_hour, time_min, time_sec,
                   this_run, nr_samples, 10);
     avg_speed[0] = 0;

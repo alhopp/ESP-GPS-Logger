@@ -61,7 +61,7 @@ float Alfa_speed::Update_Alfa(GPS_speed M){
 
   // End-of-run → sort + reset
   if(run_count != old_run_count){
-    sort_run_alfa(avg_speed, real_distance, message_nr,
+    sort_run_results(avg_speed, real_distance, message_nr,
                   time_hour, time_min, time_sec,
                   alfa_distance, this_run, 10);
 
