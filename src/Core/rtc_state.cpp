@@ -81,11 +81,8 @@ void rtc_snapshot_stats()
 
   // NM = speed over 1852 m window (NOT distance)
   RTC_mile_knots   = M1852.avg_speed[9] * MMPS_TO_KNOTS;
-  RTC_alp_knots    = A500.avg_speed[9] * MMPS_TO_KNOTS;
+  RTC_alp_knots    = A500.avg_speed[0] * MMPS_TO_KNOTS;
   RTC_1h_knots     = S3600.s_max_speed * MMPS_TO_KNOTS;
-
-  Serial.print(F("Alpha(kn):   "));
-  Serial.println(A500.avg_speed[9] * MMPS_TO_KNOTS, 3);
 
   // -------------------------------------------------------------------------
   // Ranked 10s speeds (knots)

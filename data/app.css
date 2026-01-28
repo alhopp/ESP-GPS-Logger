@@ -52,6 +52,12 @@ input,select{width:100%;margin-top:4px;padding:12px;font-size:17px;border:1px so
 .file-size{font-size:13px;color:var(--f)}
 section#files.a~footer{display:none}
 
+/* Files: no press-scale (prevents jump) */
+#files .card:active{
+  transform:none;
+  box-shadow:var(--sh); /* optional: keep original shadow */
+}
+
 /* ================= SETTINGS ================= */
 
 .toggle{display:flex;justify-content:space-between;align-items:center;margin-top:12px;cursor:pointer;touch-action:manipulation}

@@ -57,7 +57,8 @@ constexpr int MAX_GPS_SPEED_OK       = 40;   // m/s
 // ---------------------------------------------------------------------------
 constexpr int   STARTVALUE_HIGHEST_READ = 1800;
 constexpr int   NO_M10_GPS              = 0;
-constexpr float MMPS_TO_KNOTS           = 0.00194384f;
+constexpr double MMPS_TO_KNOTS = 0.0019438444924406;
+
 
 // ---------------------------------------------------------------------------
 // Logging

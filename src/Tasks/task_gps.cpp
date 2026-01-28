@@ -22,38 +22,88 @@ static bool session_active = false;
 static void debugPrintStats()
 {
   static uint32_t lastPrint = 0;
-  if (millis() - lastPrint < 1000) return;
+  if(millis() - lastPrint < 1000) return;
   lastPrint = millis();
 
   Serial.println(F("---- PERF STATS ----"));
 
+  // ---------------- 2s (top 5 only, rolling) ----------------
   Serial.print(F("2s   (kn):   "));
-  Serial.println(S2.avg_speed[9] * MMPS_TO_KNOTS, 3);
+  bool first = true;
+  int n = 0;
+  for(int i = 9; i >= 0 && n < 5; i--){
+    if(S2.avg_speed[i] > 0){
+      if(!first) Serial.print(F(" | "));
+      Serial.print((double)S2.avg_speed[i] * MMPS_TO_KNOTS, 3);
 
-  Serial.print(F("10s avg(kn): "));
-  Serial.println(S10.avg_5runs * MMPS_TO_KNOTS, 3);
-Serial.print(F("10s runs :   "));
-bool first = true;
-for (int i = 5; i < 10; i++) {
-  if (S10.avg_speed[i] > 0) {
-    if (!first) Serial.print(F(" | "));
-    Serial.print(S10.avg_speed[i] * MMPS_TO_KNOTS, 3);
-    first = false;
+      first = false;
+      n++;
+    }
   }
-}
-Serial.println();
-
   Serial.println();
 
+// ---------------- 10s (TOP 5 values + FIXED-SLOT average) ----------------
+Serial.print(F("10s  (kn):   "));
+
+float top[5] = {0,0,0,0,0};
+
+// insert v into top[0..4] if it belongs there (descending)
+for(int i=0;i<10;i++){
+  float v = S10.avg_speed[i];
+  if(v <= top[4]) continue;
+  int j = 4;
+  while(j > 0 && v > top[j-1]){ top[j] = top[j-1]; j--; }
+  top[j] = v;
+}
+
+// print exactly 5 slots (explicit zeros)
+for(int k=0;k<5;k++){
+  if(k) Serial.print(F(" | "));
+  Serial.print(top[k] * MMPS_TO_KNOTS, 3);
+}
+
+// fixed-slot average (divide by 5, includes zeros)
+float sum10 = top[0]+top[1]+top[2]+top[3]+top[4];
+Serial.print(F("   avg="));
+Serial.print((sum10 / 5.0f) * MMPS_TO_KNOTS, 3);
+Serial.println();
+
+Serial.println();
+
+
+  // ---------------- 1h ----------------
   Serial.print(F("1h   (kn):   "));
   Serial.println(S3600.s_max_speed * MMPS_TO_KNOTS, 3);
 
+  // ---------------- NM (top 5 only, rolling) ----------------
   Serial.print(F("NM   (kn):   "));
-  Serial.println( M1852.avg_speed[9] * MMPS_TO_KNOTS, 3);
+  first = true;
+  n = 0;
+  for(int i = 9; i >= 0 && n < 5; i--){
+    if(M1852.avg_speed[i] > 0){
+      if(!first) Serial.print(F(" | "));
+      Serial.print(M1852.avg_speed[i] * MMPS_TO_KNOTS, 3);
+      first = false;
+      n++;
+    }
+  }
+  Serial.println();
 
- 
+  // ---------------- Alpha (top 5 only, sorted best→worst) ----------------
   Serial.print(F("Alpha(kn):   "));
-  Serial.println(A500.avg_speed[9] * MMPS_TO_KNOTS, 3);
+  first = true;
+  n = 0;
+  for(int i = 0; i < 10 && n < 5; i++){
+    if(A500.avg_speed[i] > 0){
+      if(!first) Serial.print(F(" | "));
+      Serial.print(A500.avg_speed[i] * MMPS_TO_KNOTS, 3);
+      first = false;
+      n++;
+    }
+  }
+  Serial.println();
+
+  Serial.println();
 
   Serial.print(F("Dist (km):   "));
   Serial.println(total_distance * 0.001f, 3);
@@ -61,8 +111,13 @@ Serial.println();
   Serial.print(F("Run  (km):   "));
   Serial.println(Ublox.run_distance * 0.001f, 3);
 
+  Serial.print(F("Run #:        "));
+  Serial.println(run_count);
+
   Serial.println();
 }
+
+
 
 // -----------------------------------------------------------------------------
 // GPS task state
