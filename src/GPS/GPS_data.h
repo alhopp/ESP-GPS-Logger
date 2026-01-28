@@ -287,86 +287,6 @@ private:
  *   (see GPS_speed for distance windows).
  * --------------------------------------------------------------------------- */
 
-/* -----------------------------------------------------------------------------
- * Alfa_speed
- *
- * Calculates “alpha speed” using a circular geometry constraint.
- *
- * Alpha speed is defined as the average speed over a fixed distance
- * (typically 250 m or 500 m), where the straight-line distance between
- * the start and end points must remain within a given radius
- * (normally 50 m).
- *
- * Operation:
- * - Uses an existing GPS_speed instance (e.g. 250 m or 500 m) to
- *   determine the distance-based speed window.
- * - Computes the straight-line distance between the current position
- *   and the position at the start of the distance window.
- * - If the straight-line distance is smaller than the configured
- *   alpha circle radius, the run is considered a valid alpha.
- *
- * Features:
- * - Tracks maximum alpha speed per run.
- * - Stores top-10 alpha results for display and logging.
- * - Captures timestamp, distance, and message index at peak alpha speed.
- * - Resets statistics automatically when a new run is detected.
- *
- * Notes:
- * - Update_Alfa() must be called on every GPS sample.
- * - Relies on global GPS buffers (_lat, _long, index_GPS).
- * - Run detection is external (based on run_count).
- * - Uses squared distances to avoid unnecessary sqrt calculations.
- * --------------------------------------------------------------------------- */
-class Alfa_speed {
-public:
-    // Constructor: alpha radius in meters (typically 50 m)
-    Alfa_speed(int alfa_radius);
-
-    // Update alpha speed using a distance-based GPS_speed window
-    float Update_Alfa(GPS_speed M);
-
-    // Reset all stored alpha statistics
-    void Reset_stats(void);
-
-    // Squared straight-line distance between start and end points
-    double straight_dist_square;
-
-    // Current alpha speed
-    double alfa_speed;
-
-    // Maximum alpha speed in the current run
-    double alfa_speed_max;
-
-    // Live maximum shown on the display
-    float display_max_speed;
-
-    // Squared alpha circle radius (meters²)
-    double alfa_circle_square;
-
-    // Sorted top-10 alpha speeds
-    double avg_speed[10];
-
-    // Straight-line distances associated with each result
-    int real_distance[10];
-
-    // Timestamp of alpha peak
-    uint8_t time_hour[10];
-    uint8_t time_min[10];
-    uint8_t time_sec[10];
-
-    // Run index and UBX message number
-    int this_run[10];
-    int message_nr[10];
-
-    // Distance accumulated inside alpha window
-    int alfa_distance[10];
-
-private:
-    int alfa_count;       // Alpha event counter (per jibe)
-    int old_run_count;    // Run change detection
-};
-
-
 // -----------------------------------------------------------------------------
 // Geometry helper: signed distance from a point to a line
 //
@@ -436,10 +356,13 @@ extern GPS_time S10;
 extern GPS_time s10;
 extern GPS_time S1800;
 extern GPS_time S3600;
-
-extern Alfa_speed A250;
-extern Alfa_speed A500;
-extern Alfa_speed a500;
-
 extern GPS_Track M_500;
+
+// --- GPS core buffers ---
+extern float    _lat[];
+extern float    _long[];
+extern int      index_GPS;
+extern int      alfa_counter;
+
+
 

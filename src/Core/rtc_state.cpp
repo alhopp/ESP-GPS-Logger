@@ -3,7 +3,7 @@
 
 #include "GPS/GPS_data.h"
 #include "GPS/gps_speed.h"
-
+#include "GPS/gps_alpha.h"
 
 // ---------------------------------------------------------------------------
 // Distance & speed (SI units)

@@ -1,0 +1,79 @@
+#pragma once
+#include <stdint.h>
+
+class GPS_speed;
+
+// ============================================================================
+// Alfa_speed
+//
+// Calculates “ALFA speed” using a circular geometry constraint.
+//
+// Definition:
+// - Average speed over a fixed distance window (e.g. 250 m / 500 m)
+// - Straight-line distance between entry and exit must stay within a
+//   circular radius (typically 50 m)
+//
+// How it works:
+// - Uses an existing GPS_speed instance for distance-based speed
+// - Computes straight-line distance between current point and window start
+// - If distance² < alfa_radius² → valid ALFA
+//
+// Features:
+// - Tracks max ALFA speed per run
+// - Stores top-10 ALFA results (sorted)
+// - Captures timestamp, run index, UBX message index
+// - Auto-resets on run change (external run detection)
+//
+// Notes:
+// - Update_Alfa() must be called every GPS sample
+// - Uses global GPS buffers (_lat, _long, index_GPS)
+// - Uses squared distances to avoid sqrt()
+// ============================================================================
+class Alfa_speed {
+public:
+  // Constructor: alfa radius in meters (e.g. 50 m)
+  Alfa_speed(int alfa_radius);
+
+  // Update ALFA calculation using distance-based speed window
+  float Update_Alfa(GPS_speed M);
+
+  // Reset all stored ALFA statistics
+  void Reset_stats(void);
+
+  // -------------------------------------------------------------------------
+  // Live state
+  // -------------------------------------------------------------------------
+  double straight_dist_square;   // Straight-line distance² (m²)
+  double alfa_speed;             // Current ALFA speed
+  double alfa_speed_max;         // Max ALFA speed in current run
+  float  display_max_speed;      // Live display value
+
+  // -------------------------------------------------------------------------
+  // Configuration
+  // -------------------------------------------------------------------------
+  double alfa_circle_square;     // ALFA radius² (m²)
+
+  // -------------------------------------------------------------------------
+  // Stored results (top-10)
+  // -------------------------------------------------------------------------
+  double  avg_speed[10];         // Sorted ALFA speeds
+  int     real_distance[10];     // Straight-line distance² per entry
+
+  uint8_t time_hour[10];
+  uint8_t time_min[10];
+  uint8_t time_sec[10];
+
+  int this_run[10];              // Run index per entry
+  int message_nr[10];            // UBX NAV-PVT message index
+  int alfa_distance[10];         // Distance accumulated inside window
+
+private:
+  int old_run_count;             // Detects run transitions
+};
+
+// ---------------------------------------------------------------------------
+// Global ALFA windows (unchanged API)
+// ---------------------------------------------------------------------------
+extern Alfa_speed A250;
+extern Alfa_speed A500;
+extern Alfa_speed a500;

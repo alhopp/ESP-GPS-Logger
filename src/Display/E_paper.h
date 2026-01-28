@@ -31,7 +31,7 @@ int device_boot_log(int rows, int ws);
 struct UBXMessage;
 
 class GPS_speed;
-class Alfa_speed;
+
 
 class GPS_Track;
 

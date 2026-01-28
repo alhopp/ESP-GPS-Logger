@@ -17,6 +17,7 @@
 #include "MANAGERS/config_manager.h"
 #include "Core/Globals.h"
 #include "Fonts.h"
+#include "GPS/gps_alpha.h"
 
 static int ui_offset = 0;
 

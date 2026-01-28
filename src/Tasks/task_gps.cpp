@@ -9,7 +9,10 @@
 #include "Storage/storage_session_log.h"
 #include "Storage/Geojson.h"
 #include "tasks/task_display.h"
+
 #include "GPS/gps_simulator.h"
+#include "GPS/gps_alpha.h"
+
 
 // -----------------------------------------------------------------------------
 // Session state (MUST be above usage)

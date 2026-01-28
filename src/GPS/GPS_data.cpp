@@ -10,6 +10,7 @@
 #include "GPS/GPS_data.h"
 #include "GPS/gps_manager.h"
 #include "GPS/gps_speed.h"
+#include "GPS/gps_alpha.h"
 
 
 
@@ -273,60 +274,6 @@ float GPS_Track::Update_Track(void){
 }
 
 
-
-
-Alfa_speed::Alfa_speed(int alfa_radius){
-    alfa_circle_square=alfa_radius*alfa_radius;//to avoid sqrt calculation !!
-}
-
-
-/*
- * Opgelet, hier moet de afgelegde afstand kleiner zijn dan 500 m! daarom extra variable in GPS_speed voorzien, m_speed_alfa !!!
- */
-float Alfa_speed::Update_Alfa(GPS_speed M){
-  //nu de absolute afstfloat Alfa_speed::Alfa_update(GPS_speed M)and berekenen tussen het beginpunt en het eindpunt van de 250m afstand, indien < 50m is dit een alfa !!!
-  //opgelet, dit wordt berekend in meter, daarom alfa_circle ook in m !!
-  //was (M.m_index-1), moet (M.m_index+1)
-  straight_dist_square= (pow((_lat[index_GPS%BUFFER_ALFA]-_lat[(M.m_index+1)%BUFFER_ALFA]),2)+pow(cos(DEG2RAD*_lat[index_GPS%BUFFER_ALFA])*(_long[index_GPS%BUFFER_ALFA]-_long[(M.m_index+1)%BUFFER_ALFA]),2))*111195*111195;//was 111120
-  if(straight_dist_square<alfa_circle_square){
-    alfa_speed=M.m_speed_alfa;
-    if(M.m_sample>=BUFFER_ALFA) alfa_speed=0;//overflow vermijden bij lage snelheden
-    if(alfa_speed>alfa_speed_max){
-          alfa_speed_max=alfa_speed;
-          real_distance[0]=(int)straight_dist_square;
-          getLocalTime(&tmstruct, 0);
-          time_hour[0]=tmstruct.tm_hour;
-          time_min[0]=tmstruct.tm_min;
-          time_sec[0]=tmstruct.tm_sec;
-          this_run[0]=alfa_counter;//was alfa_count
-          avg_speed[0]=alfa_speed_max; 
-          message_nr[0]=nav_pvt_message;
-          alfa_distance[0]=M.m_distance_alfa/systemInfo.sample_rate;
-          }
-    }
-  //if((alfa_speed_max>0.0f)&&(straight_dist_square>(alfa_circle_square*1.4))){//alfa max gaat pas op 0 indien 500 m na de gijp, rechte afstand na de gijp
-  if(run_count!=old_run_count){ 
-      sort_run_alfa(avg_speed,real_distance,message_nr,time_hour,time_min,time_sec,alfa_distance,this_run,10);
-      char tekst[20]="";char message[255]=""; 
-      strcat(message, " alfa_speed "); 
-      dtostrf(M.m_set_distance, 3, 0, tekst);
-      strcat(message, "m "); 
-      dtostrf(alfa_speed_max*MMPS_TO_KNOTS, 2, 2, tekst);
-      strcat(message,tekst); 
-      strcat(message,"\n");    
-
-      alfa_speed=0;alfa_speed_max=0;
-      }
-  old_run_count=run_count;    
-  if(alfa_speed_max>avg_speed[9]) display_max_speed=alfa_speed_max;//update on the fly, dat klopt hier niet !!!
-  else display_max_speed=avg_speed[9];           
-  return alfa_speed_max; 
-}
-void Alfa_speed::Reset_stats(void){
-  for (int i=0;i<10;i++){
-    avg_speed[i]=0;
-  }
-}
 
 
 

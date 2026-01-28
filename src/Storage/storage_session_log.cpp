@@ -26,6 +26,8 @@
 #include "Storage/storage_session_log.h"
 
 #include "GPS/GPS_data.h"
+#include "GPS/gps_alpha.h"
+#include "GPS/gps_speed.h"
 
 
 

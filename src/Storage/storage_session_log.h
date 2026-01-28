@@ -5,6 +5,8 @@
 #include "GPS/GPS_data.h"
 #include "GPS/gps_speed.h"
 
+class Alfa_speed;
+class GPS_speed;
 
 void Session_info(GPS_data G);
 void Session_results_M(GPS_speed M);

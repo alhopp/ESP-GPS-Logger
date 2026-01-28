@@ -22,6 +22,7 @@
 
 #include "GPS/gps_time.h"
 #include "GPS/gps_speed.h"
+#include "GPS/gps_alpha.h"
 
 
 tm tmstruct{};
