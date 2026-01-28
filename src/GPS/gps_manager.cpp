@@ -21,6 +21,7 @@
 #include "Core/Globals.h"
 
 #include "GPS/gps_time.h"
+#include "GPS/gps_speed.h"
 
 
 tm tmstruct{};

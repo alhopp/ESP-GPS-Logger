@@ -2,6 +2,7 @@
 #include "Core/Definitions.h"
 
 #include "GPS/GPS_data.h"
+#include "GPS/gps_speed.h"
 
 
 // ---------------------------------------------------------------------------
