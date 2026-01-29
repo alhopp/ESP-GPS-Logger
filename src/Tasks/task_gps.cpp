@@ -171,6 +171,7 @@ void taskOne(void *parameter)
         }
       }
 
+    /*
       if (millis() - lastLogMs >= LOG_INTERVAL_MS) {
         lastLogMs = millis();
         LOG_GPS("PVT","fix=%u sv=%u lat=%.6f lon=%.6f spd=%.2f",
@@ -181,6 +182,7 @@ void taskOne(void *parameter)
           ubxMessage.navPvt.gSpeed * 0.001f
         );
       }
+    */
 
       if (getMode() == MODE_WAIT_SATS) {
         uint8_t sv = ubxMessage.navPvt.numSV;

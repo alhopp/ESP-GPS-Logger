@@ -222,8 +222,8 @@ window.MapSessions = {
       }
 
       if(locked==="x"){
-        if(dx < -THRESH) this.prev();
-        else if(dx > THRESH) this.next();
+        if(dx < -THRESH) this.next();
+        else if(dx > THRESH) this.prev();
       }
     });
   }
