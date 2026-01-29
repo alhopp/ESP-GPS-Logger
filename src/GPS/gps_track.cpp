@@ -12,46 +12,48 @@
 #include "GPS/gps_geometry.h"
 
 // -----------------------------------------------------------------------------
+// IMPORTANT: index_GPS is the absolute NAV-PVT sample counter (monotonic)
+// -----------------------------------------------------------------------------
+extern int index_GPS;
+
+// -----------------------------------------------------------------------------
+// NEW: boundary markers for Alpha logic
+//
+// alpha_gybe_index:
+//   - set the instant we detect the jibe (alfa_counter++)
+//   - this is the most "SBP-like" boundary for Alpha closure across runs
+//
+// alpha_run_start_index (optional):
+//   - set when TIME_DELAY_NEW_RUN expires (run_counter++)
+//   - use this if you want boundary aligned with your run_counter semantics
+// -----------------------------------------------------------------------------
+volatile int alpha_gybe_index      = -1;
+volatile int alpha_run_start_index = -1;
+
+// -----------------------------------------------------------------------------
 // Global track instance (500 m speed course)
 // -----------------------------------------------------------------------------
 GPS_Track M_500;
 
 /* =============================================================================
  * GPS_Track
- *
- * Fixed-distance track timing (e.g. 500 m speed run).
- *
- * - Two virtual lines define the course (start + end)
- * - Crossing start line arms the run
- * - Crossing end line closes the run and computes speed
- * - Time comes from UBX iTOW, distance is theoretical
- *
- * Uses:
- * - Global NAV-PVT state
- * - Geometry helpers (point–line distance)
  * =============================================================================
  */
 
 GPS_Track::GPS_Track(){}
 
-// -----------------------------------------------------------------------------
-// Set_course
-// Orders start/end lines consistently and stores geometry.
-// -----------------------------------------------------------------------------
 void GPS_Track::Set_course(double lon_1,double lat_1,double lon_2,double lat_2,
                            double lon_3,double lat_3,double lon_4,double lat_4,
                            int distance)
 {
     const double ml=(lat_1+lat_3)/2, mn=(lon_1+lon_3)/2;
 
-    // Start line orientation
     if(Dis_point_line(mn,ml,lon_1,lat_1,lon_2,lat_2)>0){
         lon1=lon_1; lat1=lat_1; lon2=lon_2; lat2=lat_2;
     }else{
         lon1=lon_2; lat1=lat_2; lon2=lon_1; lat2=lat_1;
     }
 
-    // End line orientation
     if(Dis_point_line(mn,ml,lon_3,lat_3,lon_4,lat_4)<0){
         lon3=lon_3; lat3=lat_3; lon4=lon_4; lat4=lat_4;
     }else{
@@ -63,13 +65,8 @@ void GPS_Track::Set_course(double lon_1,double lat_1,double lon_2,double lat_2,
     distance_p2p4 = afstandPunten(lon2,lat2,lon4,lat4);
 }
 
-// -----------------------------------------------------------------------------
-// Update_Track
-// Detects line crossings and finalises a timed run.
-// -----------------------------------------------------------------------------
 float GPS_Track::Update_Track()
 {
-    // Start line
     distance_startline = Dis_point_line(
         ubxMessage.navPvt.lon/1e7, ubxMessage.navPvt.lat/1e7,
         lon1,lat1,lon2,lat2);
@@ -83,7 +80,6 @@ float GPS_Track::Update_Track()
     }
     Old_distance_start = distance_startline;
 
-    // End line
     distance_endline = Dis_point_line(
         ubxMessage.navPvt.lon/1e7, ubxMessage.navPvt.lat/1e7,
         lon3,lat3,lon4,lat4);
@@ -113,11 +109,8 @@ float GPS_Track::Update_Track()
 
 // ============================================================================
 // New_run_detection
-//
-// Detects new runs using:
-// - Standstill → speed-up
-// - Large heading change (jibe)
 // ============================================================================
+
 int New_run_detection(float actual_heading, float S2_speed)
 {
     #define SPEED_DETECTION_MIN       4000
@@ -132,7 +125,6 @@ int New_run_detection(float actual_heading, float S2_speed)
     static bool velocity_0=false, velocity_5=false;
     static bool straight_course;
 
-    // Heading unwrap
     if((actual_heading-old_heading)>300)  delta_heading-=360;
     if((actual_heading-old_heading)<-300) delta_heading+=360;
     old_heading=actual_heading;
@@ -140,13 +132,11 @@ int New_run_detection(float actual_heading, float S2_speed)
 
     heading_SD=heading;
 
-    // Mean heading (low-pass)
     Mean_heading =
         Mean_heading*(MEAN_HEADING_TIME*systemInfo.sample_rate-1) /
         (MEAN_HEADING_TIME*systemInfo.sample_rate)
         + heading/(MEAN_HEADING_TIME*systemInfo.sample_rate);
 
-    // Standstill detection
     if(S2_speed>SPEED_DETECTION_MIN) velocity_5=true;
     if(S2_speed<STANDSTILL_DETECTION_MAX && velocity_5) velocity_0=true;
 
@@ -155,19 +145,32 @@ int New_run_detection(float actual_heading, float S2_speed)
         delay_counter=(TIME_DELAY_NEW_RUN-1)*systemInfo.sample_rate;
     }
 
-    // Jibe detection
     if(abs(Mean_heading-heading)<STRAIGHT_COURSE_MAX_DEV && S2_speed>SPEED_DETECTION_MIN)
         straight_course=true;
 
+    // -------------------------------------------------------------------------
+    // JIBE DETECTED:
+    // This is the "boundary" Alpha must straddle (previous run -> next run).
+    // Record the sample index NOW.
+    // -------------------------------------------------------------------------
     if(abs(Mean_heading-heading)>JIBE_COURSE_DEVIATION_MIN && straight_course){
         straight_course=false;
         delay_counter=0;
-        alfa_counter++;      // notify alpha logic
+
+        alfa_counter++;               // notify alpha logic (existing)
+        alpha_gybe_index = index_GPS; // NEW: boundary index at moment of jibe
     }
 
     delay_counter++;
-    if(delay_counter==TIME_DELAY_NEW_RUN*systemInfo.sample_rate)
+
+    // -------------------------------------------------------------------------
+    // NEW RUN STARTS (delayed boundary):
+    // Optional but useful for debugging and for "run_count boundary" semantics.
+    // -------------------------------------------------------------------------
+    if(delay_counter==TIME_DELAY_NEW_RUN*systemInfo.sample_rate){
         run_counter++;
+        alpha_run_start_index = index_GPS; // NEW: boundary index when run flips
+    }
 
     return run_counter;
 }

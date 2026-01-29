@@ -148,11 +148,11 @@ void draw_SLEEP()
 
 // Real values (RTC snapshot)
 const float VALUES[ROWS] = {
-  RTC_max_2s_knots,   // 02: best 2s (kn)
-  RTC_avg_10s_knots,  // 10: avg 10s (kn)
-  RTC_1h_knots,       // 1H: average 1h (kn)
-  RTC_alp_knots,      // AL: alpha (kn)
-  RTC_mile_knots,     // NM: avg speed over 1 nautical mile (kn)
+  RTC_max_2s_knots,       // 02: best 2s (kn)
+  RTC_avg_10s_knots,      // 10: avg 10s (kn)
+  RTC_1h_knots,           // 1H: average 1h (kn)
+  RTC_alp_knots,          // AL: alpha (kn)
+  RTC_mile_knots,         // NM: avg speed over 1 nautical mile (kn)
   RTC_distance / 1000.0f  // DI: km travelled (from meters)
 };
 

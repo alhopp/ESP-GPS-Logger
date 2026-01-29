@@ -157,7 +157,12 @@ void gps_simulator_init(){
   static bool seeded=false;
   if(!seeded){ srand(esp_random()); seeded=true; }
 
-  const int i=rand_int(0,NUM_TRACKS-1);
+// USE MELVILL FOR TESTING ALPHA CALC
+  static constexpr int DEMO_TRACK_INDEX = 0;  // Melville
+  const int i = DEMO_TRACK_INDEX;
+  //const int i=rand_int(0,NUM_TRACKS-1);
+
+
   START_LAT=DEMO_TRACKS[i].a; START_LON=DEMO_TRACKS[i].b;
   END_LAT  =DEMO_TRACKS[i].c; END_LON  =DEMO_TRACKS[i].d;
 
