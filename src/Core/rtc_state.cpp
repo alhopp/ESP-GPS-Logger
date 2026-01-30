@@ -71,30 +71,30 @@ RTC_DATA_ATTR uint8_t RTC_gps_baud_index  = 0;   // index into baud table
 
 void rtc_snapshot_stats()
 {
-  // -------------------------------------------------------------------------
-  // Speeds (mm/s → knots)  [convert in double for precision]
-  // -------------------------------------------------------------------------
-  RTC_max_2s_knots  = (double)S2.avg_speed[9]    * MMPS_TO_KNOTS;
-  RTC_avg_10s_knots = (double)S10.avg_5runs      * MMPS_TO_KNOTS;
 
-  // NM = speed over 1852 m window (NOT distance)
-  RTC_mile_knots    = (double)M1852.avg_speed[9] * MMPS_TO_KNOTS;
-  RTC_alp_knots     = (double)A500.avg_speed[0]  * MMPS_TO_KNOTS;
-  RTC_1h_knots      = (double)S3600.s_max_speed  * MMPS_TO_KNOTS;
+  RTC_max_2s_knots  = (double)S2.avg_speed[9]    * CMPS_TO_KNOTS;
+  RTC_avg_10s_knots = (double)S10.avg_5runs      * CMPS_TO_KNOTS;
+
+  // NM = speed over 1852 m window (speed, not distance)
+  RTC_mile_knots    = (double)M1852.avg_speed[9] * CMPS_TO_KNOTS;
+  RTC_alp_knots     = (double)A500.avg_speed[0]  * CMPS_TO_KNOTS;
+  RTC_1h_knots      = (double)S3600.s_max_speed  * CMPS_TO_KNOTS;
+
 
   // -------------------------------------------------------------------------
   // Ranked 10s speeds (knots)
   // -------------------------------------------------------------------------
-  RTC_R1_10s        = (double)S10.avg_speed[9]   * MMPS_TO_KNOTS;
-  RTC_R2_10s        = (double)S10.avg_speed[8]   * MMPS_TO_KNOTS;
-  RTC_R3_10s        = (double)S10.avg_speed[7]   * MMPS_TO_KNOTS;
-  RTC_R4_10s        = (double)S10.avg_speed[6]   * MMPS_TO_KNOTS;
-  RTC_R5_10s        = (double)S10.avg_speed[5]   * MMPS_TO_KNOTS;
+  RTC_R1_10s = (double)S10.avg_speed[9] * CMPS_TO_KNOTS;
+  RTC_R2_10s = (double)S10.avg_speed[8] * CMPS_TO_KNOTS;
+  RTC_R3_10s = (double)S10.avg_speed[7] * CMPS_TO_KNOTS;
+  RTC_R4_10s = (double)S10.avg_speed[6] * CMPS_TO_KNOTS;
+  RTC_R5_10s = (double)S10.avg_speed[5] * CMPS_TO_KNOTS;
+
 
   // -------------------------------------------------------------------------
   // Distances (travelled)
-  // total_distance is mm
+  // total_distance is cm
   // -------------------------------------------------------------------------
-  RTC_distance = total_distance / 1000.0f;  // mm → meters
+RTC_distance = total_distance * 0.00001f;   // cm → km
 
 }

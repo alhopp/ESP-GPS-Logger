@@ -24,6 +24,8 @@ constexpr int    NAV_SAT_BUFFER  = 10;     // Rolling NAV-SAT statistics window
 // -----------------------------------------------------------------------------
 extern uint16_t _gSpeed[BUFFER_SIZE];
 extern uint16_t _secSpeed[BUFFER_SIZE];
+extern uint16_t _sogCms[BUFFER_SIZE];   // SBP-parity SOG per sample (cm/s, integer trunc)
+
 
 extern int index_GPS;
 extern int index_sec;
@@ -48,7 +50,7 @@ void reset_session_stats();
 // - Higher-level calculations are performed by GPS_speed, GPS_time, etc.
 // -----------------------------------------------------------------------------
 
-extern float total_distance;   // Total distance since power-on (mm)
+extern float total_distance;   // session disatnce cm
 
 class GPS_data {
   public:

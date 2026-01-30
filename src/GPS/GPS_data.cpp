@@ -46,7 +46,10 @@
 // ============================================================================
 
 uint16_t _gSpeed[BUFFER_SIZE];      // Doppler speed per sample (mm/s)
-uint16_t _secSpeed[BUFFER_SIZE];    // 1-second averaged speed (mm/s)
+uint16_t _secSpeed[BUFFER_SIZE];    // 1-second averaged speed (cm/s)
+uint16_t _sogCms[BUFFER_SIZE];      // SBP-parity speed per sample (cm/s)
+
+
 
 float    _lat[BUFFER_ALFA];         // Latitude buffer (deg)
 float    _long[BUFFER_ALFA];        // Longitude buffer (deg)
@@ -55,7 +58,7 @@ int      index_GPS = -1;            // NAV-PVT sample index
 int      index_sec = -1;            // 1-second buffer index
 
 int      alfa_counter;              // Jibe counter (shared run/alpha state)
-float    total_distance = 0.0f;     // Session distance (mm)
+float    total_distance = 0.0f;     // Session distance (cm)
 
 // ============================================================================
 // GPS_data
@@ -75,28 +78,94 @@ void GPS_data::push_data(float latitude,float longitude,uint32_t gSpeed)
 
     // --- raw circular buffers ---
     _gSpeed[index_GPS % BUFFER_SIZE] = gSpeed;
+    _sogCms[index_GPS % BUFFER_SIZE] = (uint16_t)(gSpeed / 10); // cm/s (SBP parity) 
     _lat   [index_GPS % BUFFER_ALFA] = latitude;
     _long  [index_GPS % BUFFER_ALFA] = longitude;
+
+
+// -----------------------------------------------------------------------------
+// DEBUG: Global raw speed dump (SBP parity, skip first 2 samples)
+// -----------------------------------------------------------------------------
+static bool dumped = false;
+static uint32_t base_itow = 0;
+
+if (!dumped && index_GPS >= 12)   // need at least 12 to show 2..11
+{
+  dumped = true;
+
+  const uint32_t sample_period_ms = 1000 / systemInfo.sample_rate;
+
+  // iTOW corresponding to sample 0
+  base_itow = ubxMessage.navPvt.iTOW - index_GPS * sample_period_ms;
+
+  Serial.println("\n====== GLOBAL RAW SPEED DUMP (SBP PARITY) ======");
+  Serial.printf("Total samples so far: %d\n", index_GPS + 1);
+  Serial.println(" samp |   iTOW(ms) |   time (UTC) | cm/s |  knots");
+  Serial.println("------------------------------------------------------");
+
+  Serial.println("Samples 2..11 (SBP-aligned):");
+
+  for (int s = 2; s < 12; s++)
+  {
+    uint32_t itow = base_itow + s * sample_period_ms;
+
+    uint32_t ms   = itow % 1000;
+    uint32_t sec  = (itow / 1000) % 60;
+    uint32_t min  = (itow / 60000) % 60;
+    uint32_t hour = (itow / 3600000) % 24;
+
+    // Raw Doppler (mm/s)
+    uint16_t mmps = _gSpeed[s % BUFFER_SIZE];
+
+    // SBP-equivalent speed (cm/s, integer truncation)
+    uint16_t cmps = mmps / 10;
+
+    // SBP knots conversion
+    double kn = (double)cmps * 0.01943844449;
+
+    Serial.printf(
+      " %4d | %9lu | %02lu:%02lu:%02lu.%03lu | %4u | %7.3f\n",
+      s, itow, hour, min, sec, ms, cmps, kn
+    );
+  }
+
+  Serial.println("======================================================\n");
+}
+
 
     // --- distance accumulation (quality-gated) ---
     if(ubxMessage.navPvt.numSV >= FILTER_MIN_SATS &&
        (ubxMessage.navPvt.sAcc * 0.001f) < FILTER_MAX_sACC)
     {
-        const uint32_t d = gSpeed / systemInfo.sample_rate; // mm per sample
-        total_distance += d;
-        run_distance   += d;
-        alfa_distance  += d;
+        // --- distance accumulation (quality-gated, SBP style, cm) ---
+        if (ubxMessage.navPvt.numSV >= FILTER_MIN_SATS &&
+            (ubxMessage.navPvt.sAcc * 0.001f) < FILTER_MAX_sACC)
+        {
+            // gSpeed is mm/s → cm/s (SBP parity)
+            float cmps = (float)gSpeed * 0.1f;
+
+            // cm per sample
+            float d_cm = cmps / systemInfo.sample_rate;
+
+            total_distance += d_cm;   // cm
+            run_distance   += d_cm;   // cm
+            alfa_distance  += d_cm;   // cm
+        }
+
+
+
     }
 
     // --- build 1-second averaged speed buffer ---
-    static uint32_t acc = 0;
-    acc += gSpeed;
+    static uint32_t acc_cm = 0;
+    acc_cm += _sogCms[index_GPS % BUFFER_SIZE];
 
     if((index_GPS % systemInfo.sample_rate) == 0){
         index_sec++;
-        _secSpeed[index_sec % BUFFER_SIZE] = acc / systemInfo.sample_rate;
-        acc = 0;
+        _secSpeed[index_sec % BUFFER_SIZE] = acc_cm / systemInfo.sample_rate; // cm/s
+        acc_cm = 0;
     }
+
 }
 
 // ============================================================================

@@ -48,11 +48,24 @@ float GPS_time::Update_speed(int actual_run)
   // ---------------------------------------------------------------------------
   if(time_window*systemInfo.sample_rate < BUFFER_SIZE){
 
-    avg_s_sum += _gSpeed[index_GPS % BUFFER_SIZE];
-    if(index_GPS >= time_window*systemInfo.sample_rate)
-      avg_s_sum -= _gSpeed[(index_GPS - time_window*systemInfo.sample_rate) % BUFFER_SIZE];
+     // SBP parity: work in cm/s (integer)
+    uint16_t cmps_now = _gSpeed[index_GPS % BUFFER_SIZE] / 10;
 
-    avg_s = (double)avg_s_sum / time_window / systemInfo.sample_rate;
+    avg_s_sum += cmps_now;
+
+    if(index_GPS >= time_window * systemInfo.sample_rate){
+      uint16_t cmps_old =
+        _gSpeed[(index_GPS - time_window * systemInfo.sample_rate) % BUFFER_SIZE] / 10;
+      avg_s_sum -= cmps_old;
+    }
+
+    // Integer average exactly like SBP
+    uint32_t samples = time_window * systemInfo.sample_rate;
+    uint16_t avg_cmps = avg_s_sum / samples;
+
+    // Convert once
+    avg_s = (double)avg_cmps; // STORE cm/s internally
+
 
     // New max detected
     if(s_max_speed < avg_s){
@@ -82,7 +95,7 @@ float GPS_time::Update_speed(int actual_run)
       sort_run(avg_speed,time_hour,time_min,time_sec,
                Mean_cno,Max_cno,Min_cno,Mean_numSat,this_run,10);
 
-      if(s_max_speed>5000) speed_run_counter++;
+      if(s_max_speed>500) speed_run_counter++;
       speed_run[actual_run%NR_OF_BAR]=avg_speed[0];
 
       avg_speed[0]=0; s_max_speed=0;

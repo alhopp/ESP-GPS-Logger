@@ -35,7 +35,7 @@ void log_SBP(File &file)
   sbp_frame.Lat=ubxMessage.navPvt.lat;
   sbp_frame.Lon=ubxMessage.navPvt.lon;
   sbp_frame.AltCM=ubxMessage.navPvt.hMSL/10;
-  sbp_frame.Sog=ubxMessage.navPvt.gSpeed/10;
+  sbp_frame.Sog=ubxMessage.navPvt.gSpeed/10;          // stored in cm/sec in sbp file
   sbp_frame.Cog=ubxMessage.navPvt.heading/1000;
 
   sbp_frame.SVIDCnt=ubxMessage.navPvt.numSV;

@@ -153,7 +153,7 @@ const float VALUES[ROWS] = {
   RTC_1h_knots,           // 1H: average 1h (kn)
   RTC_alp_knots,          // AL: alpha (kn)
   RTC_mile_knots,         // NM: avg speed over 1 nautical mile (kn)
-  RTC_distance / 1000.0f  // DI: km travelled (from meters)
+  RTC_distance            // DI: km travelled
 };
 
 

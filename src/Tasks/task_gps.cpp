@@ -36,7 +36,7 @@ static void debugPrintStats()
   for(int i=9;i>=0 && n<5;i--){
     if(S2.avg_speed[i] > 0){
       if(!first) Serial.print(F(" | "));
-      Serial.print((double)S2.avg_speed[i] * MMPS_TO_KNOTS, 3);
+      Serial.print((double)S2.avg_speed[i] * CMPS_TO_KNOTS, 3);
       first = false; n++;
     }
   }
@@ -48,7 +48,8 @@ static void debugPrintStats()
   for(int i=9;i>=0 && n<5;i--){
     if(S10.avg_speed[i] > 0){
       if(!first) Serial.print(F(" | "));
-      Serial.print((double)S10.avg_speed[i] * MMPS_TO_KNOTS, 3);
+      Serial.print((double)S10.avg_speed[i] * CMPS_TO_KNOTS, 3);
+
       first = false; n++;
     }
   }
@@ -56,7 +57,8 @@ static void debugPrintStats()
 
   // ---------------- 1h (scalar) ----------------
   Serial.print(F("1h   (kn):   "));
-  Serial.println((double)S3600.s_max_speed * MMPS_TO_KNOTS, 3);
+  Serial.println((double)S3600.s_max_speed * CMPS_TO_KNOTS, 3);
+
 
   // ---------------- NM (Top 5, rolling; worst→best) ----------------
   Serial.print(F("NM   (kn):   "));
@@ -64,7 +66,7 @@ static void debugPrintStats()
   for(int i=9;i>=0 && n<5;i--){
     if(M1852.avg_speed[i] > 0){
       if(!first) Serial.print(F(" | "));
-      Serial.print((double)M1852.avg_speed[i] * MMPS_TO_KNOTS, 3);
+      Serial.print((double)M1852.avg_speed[i] * CMPS_TO_KNOTS, 3);
       first = false; n++;
     }
   }
@@ -76,7 +78,8 @@ static void debugPrintStats()
   for(int i=0;i<10 && n<5;i++){
     if(A500.avg_speed[i] > 0){
       if(!first) Serial.print(F(" | "));
-      Serial.print((double)A500.avg_speed[i] * MMPS_TO_KNOTS, 3);
+      Serial.print((double)A500.avg_speed[i] * CMPS_TO_KNOTS, 3);
+
       first = false; n++;
     }
   }
@@ -84,10 +87,11 @@ static void debugPrintStats()
 
   // ---------------- Distances ----------------
   Serial.print(F("Dist (km):   "));
-  Serial.println(total_distance * 0.001f, 3);
+  Serial.println(total_distance, 3); 
+
 
   Serial.print(F("Run  (km):   "));
-  Serial.println(Ublox.run_distance * 0.001f, 3);
+  Serial.println(Ublox.run_distance, 3);
 
   Serial.print(F("Run #:        "));
   Serial.println(run_count);

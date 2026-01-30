@@ -61,6 +61,8 @@ double GPS_speed::Update_distance(int actual_run)
   if (index_GPS - m_index)
     m_speed_alfa = (double)m_distance_alfa / (index_GPS - m_index);
 
+    
+
   // Invalid until full distance reached
   if (m_distance < m_Set_Distance || m_sample >= BUFFER_SIZE) m_speed = 0;
   if (m_speed == 0) m_speed_alfa = 0;
@@ -97,3 +99,6 @@ double GPS_speed::Update_distance(int actual_run)
   old_run = actual_run;
   return m_max_speed;
 }
+
+
+
