@@ -1,6 +1,6 @@
 #include "GPS/gps_time.h"
 #include "GPS/GPS_data.h"
-#include "GPS/gps_utils.h"        
+#include "GPS/gps_utils.h"
 
 #include "Ublox/ublox.h"
 #include "Core/Globals.h"
@@ -10,139 +10,121 @@
 
 // ============================================================================
 // GPS_time
-// Time-window based speed statistics (2s / 10s / 30m / 1h etc)
+// SBP-aligned speed statistics
 //
-// - Consumes raw Doppler samples from GPS_data (_gSpeed / _secSpeed)
-// - Computes rolling average speed over a fixed time window
-// - Tracks session-best, per-run best, and ranked top-10 values
+// Internal storage : cm/s
+// Display / ranking : knots (float)
+// Averaging         : FLOAT knots (SBP-exact)
+//
+// 2s  = 2 * sample_rate samples
+// 10s = 10 * sample_rate samples
 // ============================================================================
 
-// -----------------------------------------------------------------------------
-// Constructor
-// -----------------------------------------------------------------------------
-GPS_time::GPS_time(int tijdvenster)
-: time_window(tijdvenster)
-{
+// ----------------------------------------------------------------------------
+GPS_time::GPS_time(int tijdvenster) : time_window(tijdvenster){
   Reset_stats();
 }
 
-// -----------------------------------------------------------------------------
-// Reset all rolling / ranked state (called on new session)
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 void GPS_time::Reset_stats(){
-  for(int i=0;i<10;i++){ avg_speed[i]=0; display_speed[i]=0; }
-  avg_5runs=0;
+  for(int i=0;i<10;i++){
+    avg_speed[i]=0;
+    display_speed[i]=0;
+  }
+  avg_5runs     = 0;
+  avg_s_sum     = 0;
+  s_max_speed   = 0;
 }
 
-// -----------------------------------------------------------------------------
-// Update_speed
-// Called on every GPS sample
-//
-// actual_run : monotonically increasing run counter
-// returns    : current max speed for this time window (mm/s)
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// Debug helper — prints EXACT contributing samples
+// ----------------------------------------------------------------------------
+static void dump_window(const char *label, uint32_t samples){
+  Serial.printf("\n=== NEW BEST %s WINDOW (SBP) ===\n", label);
+  Serial.printf("index_GPS = %d\n", index_GPS);
+  Serial.printf("samples   = %lu\n", samples);
+
+  float sum_kn = 0.0f;
+
+  for(uint32_t i=0;i<samples;i++){
+    int idx = (index_GPS - samples + 1 + i) % BUFFER_SIZE;
+    if(idx < 0) idx += BUFFER_SIZE;
+
+    uint16_t cmps = _sogCms[idx];
+    float kn = cmps * CMPS_TO_KNOTS;
+    sum_kn += kn;
+
+    Serial.printf(
+      "  [%3lu] sogCms[%d] = %4u cm/s (%.3f kn)\n",
+      i, idx, cmps, kn
+    );
+  }
+
+  Serial.printf("AVG = %.3f kn\n", sum_kn / samples);
+  Serial.println("========================================\n");
+}
+
+// ----------------------------------------------------------------------------
 float GPS_time::Update_speed(int actual_run)
 {
-  // ---------------------------------------------------------------------------
-  // FAST PATH: window fits inside raw gSpeed buffer (high-rate calculation)
-  // ---------------------------------------------------------------------------
-  if(time_window*systemInfo.sample_rate < BUFFER_SIZE){
-
-     // SBP parity: work in cm/s (integer)
-    uint16_t cmps_now = _gSpeed[index_GPS % BUFFER_SIZE] / 10;
-
-    avg_s_sum += cmps_now;
-
-    if(index_GPS >= time_window * systemInfo.sample_rate){
-      uint16_t cmps_old =
-        _gSpeed[(index_GPS - time_window * systemInfo.sample_rate) % BUFFER_SIZE] / 10;
-      avg_s_sum -= cmps_old;
-    }
-
-    // Integer average exactly like SBP
-    uint32_t samples = time_window * systemInfo.sample_rate;
-    uint16_t avg_cmps = avg_s_sum / samples;
-
-    // Convert once
-    avg_s = (double)avg_cmps; // STORE cm/s internally
-
-
-    // New max detected
-    if(s_max_speed < avg_s){
-      s_max_speed = avg_s;
-      speed_run[actual_run % NR_OF_BAR] = avg_s;
-
-      getLocalTime(&tmstruct,0);
-      time_hour[0]=tmstruct.tm_hour; time_min[0]=tmstruct.tm_min; time_sec[0]=tmstruct.tm_sec;
-      this_run[0]=actual_run;
-      avg_speed[0]=s_max_speed;
-
-      Mean_cno[0]=Ublox_Sat.sat_info.Mean_mean_cno;
-      Max_cno [0]=Ublox_Sat.sat_info.Mean_max_cno;
-      Min_cno [0]=Ublox_Sat.sat_info.Mean_min_cno;
-      Mean_numSat[0]=Ublox_Sat.sat_info.Mean_numSV;
-
-      for(int i=0;i<10;i++) display_speed[i]=avg_speed[i];
-      sort_display(display_speed,10);
-      display_max_speed = display_speed[9];
-
-      avg_5runs=0; for(int i=5;i<10;i++) avg_5runs+=display_speed[i];
-      avg_5runs/=5;
-    }
-
-    // Run ended → archive best result
-    if(actual_run!=old_run && this_run[0]==old_run){
-      sort_run(avg_speed,time_hour,time_min,time_sec,
-               Mean_cno,Max_cno,Min_cno,Mean_numSat,this_run,10);
-
-      if(s_max_speed>500) speed_run_counter++;
-      speed_run[actual_run%NR_OF_BAR]=avg_speed[0];
-
-      avg_speed[0]=0; s_max_speed=0;
-      avg_5runs=0; for(int i=5;i<10;i++) avg_5runs+=avg_speed[i];
-      avg_5runs/=5;
-    }
-
-    if(actual_run!=reset_display_last_run && avg_s>3000){
-      reset_display_last_run=actual_run; display_last_run=0;
-    } else if(display_last_run<s_max_speed) display_last_run=s_max_speed;
-
-    old_run=actual_run;
+  // --------------------------------------------------------------------------
+  // FAST PATH — 2s / 10s (SBP-style)
+  // --------------------------------------------------------------------------
+  if(time_window * systemInfo.sample_rate >= BUFFER_SIZE)
     return s_max_speed;
+
+  const uint32_t samples = time_window * systemInfo.sample_rate;
+
+  // window not yet full
+  if(index_GPS < (int)samples - 1)
+    return s_max_speed;
+
+  // --------------------------------------------------------------------------
+  // SBP-EXACT averaging: average FLOAT knots
+  // --------------------------------------------------------------------------
+  float sum_kn = 0.0f;
+
+  for(uint32_t i=0;i<samples;i++){
+    int idx = (index_GPS - samples + 1 + i) % BUFFER_SIZE;
+    if(idx < 0) idx += BUFFER_SIZE;
+
+    sum_kn += _sogCms[idx] * CMPS_TO_KNOTS;
   }
 
-  // ---------------------------------------------------------------------------
-  // SLOW PATH: second-averaged buffer (used for long windows e.g. 30m / 1h)
-  // ---------------------------------------------------------------------------
-  if(index_GPS % systemInfo.sample_rate == 0){
+  float avg_kn = sum_kn / samples;
 
-    avg_s_sum += _secSpeed[index_sec % BUFFER_SIZE];
-    if(index_sec >= time_window)
-      avg_s_sum -= _secSpeed[(index_sec - time_window) % BUFFER_SIZE];
+  // --------------------------------------------------------------------------
+  // NEW MAX DETECTED
+  // --------------------------------------------------------------------------
+  if(avg_kn > s_max_speed){
 
-    avg_s = (double)avg_s_sum / time_window;
+    if(time_window == 2)
+      dump_window("2s", samples);
+    else if(time_window == 10)
+      dump_window("10s", samples);
 
-    if(s_max_speed < avg_s){
-      s_max_speed = avg_s;
-      getLocalTime(&tmstruct,0);
-      time_hour[0]=tmstruct.tm_hour; time_min[0]=tmstruct.tm_min; time_sec[0]=tmstruct.tm_sec;
-      this_run[0]=actual_run;
-      avg_speed[0]=s_max_speed;
-    }
+    s_max_speed   = avg_kn;
+    avg_speed[0]  = s_max_speed;
 
-    display_max_speed = (s_max_speed>avg_speed[9]) ? s_max_speed : avg_speed[9];
+    // immediate session-best promotion
+    if(avg_speed[9] < s_max_speed)
+      avg_speed[9] = s_max_speed;
 
-    if(actual_run!=old_run && this_run[0]==old_run){
-      sort_run(avg_speed,time_hour,time_min,time_sec,
-               Mean_cno,Max_cno,Min_cno,Mean_numSat,this_run,10);
-      avg_speed[0]=0; s_max_speed=0;
-      avg_5runs=0; for(int i=5;i<10;i++) avg_5runs+=avg_speed[i];
-      avg_5runs/=5;
-    }
+    speed_run[actual_run % NR_OF_BAR] = s_max_speed;
 
-    old_run=actual_run;
-    return s_max_speed;
+    getLocalTime(&tmstruct,0);
+    time_hour[0]=tmstruct.tm_hour;
+    time_min [0]=tmstruct.tm_min;
+    time_sec [0]=tmstruct.tm_sec;
+    this_run[0]=actual_run;
+
+    for(int i=0;i<10;i++)
+      display_speed[i]=avg_speed[i];
+
+    sort_display(display_speed,10);
+    display_max_speed = display_speed[9];
   }
 
-  return s_max_speed; // safety
+  old_run = actual_run;
+  return s_max_speed;
 }

@@ -19,87 +19,7 @@
 // -----------------------------------------------------------------------------
 static bool session_active = false;
 
-static void debugPrintStats()
-{
-  static uint32_t lastPrint = 0;
-  if(millis() - lastPrint < 1000) return;
-  lastPrint = millis();
-
-  Serial.println(F("---- PERF STATS ----"));
-
-  bool first;
-  int  n;
-
-  // ---------------- 2s (Top 5, rolling; worst→best) ----------------
-  Serial.print(F("2s   (kn):   "));
-  first = true; n = 0;
-  for(int i=9;i>=0 && n<5;i--){
-    if(S2.avg_speed[i] > 0){
-      if(!first) Serial.print(F(" | "));
-      Serial.print((double)S2.avg_speed[i] * CMPS_TO_KNOTS, 3);
-      first = false; n++;
-    }
-  }
-  Serial.println();
-
-  // ---------------- 10s (Top 5, rolling; worst→best) ----------------
-  Serial.print(F("10s  (kn):   "));
-  first = true; n = 0;
-  for(int i=9;i>=0 && n<5;i--){
-    if(S10.avg_speed[i] > 0){
-      if(!first) Serial.print(F(" | "));
-      Serial.print((double)S10.avg_speed[i] * CMPS_TO_KNOTS, 3);
-
-      first = false; n++;
-    }
-  }
-  Serial.println();
-
-  // ---------------- 1h (scalar) ----------------
-  Serial.print(F("1h   (kn):   "));
-  Serial.println((double)S3600.s_max_speed * CMPS_TO_KNOTS, 3);
-
-
-  // ---------------- NM (Top 5, rolling; worst→best) ----------------
-  Serial.print(F("NM   (kn):   "));
-  first = true; n = 0;
-  for(int i=9;i>=0 && n<5;i--){
-    if(M1852.avg_speed[i] > 0){
-      if(!first) Serial.print(F(" | "));
-      Serial.print((double)M1852.avg_speed[i] * CMPS_TO_KNOTS, 3);
-      first = false; n++;
-    }
-  }
-  Serial.println();
-
-  // ---------------- Alpha (Top 5; best→worst) ----------------
-  Serial.print(F("Alpha(kn):   "));
-  first = true; n = 0;
-  for(int i=0;i<10 && n<5;i++){
-    if(A500.avg_speed[i] > 0){
-      if(!first) Serial.print(F(" | "));
-      Serial.print((double)A500.avg_speed[i] * CMPS_TO_KNOTS, 3);
-
-      first = false; n++;
-    }
-  }
-  Serial.println();
-
-  // ---------------- Distances ----------------
-  Serial.print(F("Dist (km):   "));
-  Serial.println(total_distance * 0.00001f, 3); 
-
-
-
-  Serial.print(F("Run  (km):   "));
-  Serial.println(Ublox.run_distance* 0.00001f, 3);
-
-  Serial.print(F("Run #:        "));
-  Serial.println(run_count);
-
-  Serial.println();
-}
-
+  
 // -----------------------------------------------------------------------------
 // GPS task state
 // -----------------------------------------------------------------------------
@@ -282,5 +202,4 @@ if (GPS_Signal_OK && !Time_Set_OK && !session_active) {
 
   M_500.Update_Track();
 
-  debugPrintStats();
 }
