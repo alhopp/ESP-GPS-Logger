@@ -87,11 +87,12 @@ static void debugPrintStats()
 
   // ---------------- Distances ----------------
   Serial.print(F("Dist (km):   "));
-  Serial.println(total_distance, 3); 
+  Serial.println(total_distance * 0.00001f, 3); 
+
 
 
   Serial.print(F("Run  (km):   "));
-  Serial.println(Ublox.run_distance, 3);
+  Serial.println(Ublox.run_distance* 0.00001f, 3);
 
   Serial.print(F("Run #:        "));
   Serial.println(run_count);
