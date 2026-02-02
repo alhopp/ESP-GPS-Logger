@@ -1,3 +1,19 @@
+// ============================================================================
+// gps_run.cpp
+//
+// Run + jibe detection (LEGACY Alpha model)
+//
+// RESPONSIBILITY:
+// - Detect jibes based on heading change
+// - Increment alfa_counter on jibe
+// - Detect new runs with delay logic
+//
+// NOTE:
+// - NO Alpha calculation here
+// - NO closure / distance logic here
+// - NO alpha_gybe_index
+// ============================================================================
+
 #include "GPS/gps_run.h"
 
 #include <math.h>
@@ -5,35 +21,39 @@
 #include "Core/Definitions.h"
 #include "core/system_info.h"
 #include "Core/Globals.h"
-#include "Core/rtc_state.h"
-
-#include "GPS/GPS_data.h"
-#include "GPS/gps_geometry.h"
 
 // -----------------------------------------------------------------------------
-// Absolute GPS sample index
+// External GPS state
 // -----------------------------------------------------------------------------
 extern int index_GPS;
-
-// Shared position buffers
-extern float _lat[BUFFER_ALFA];
-extern float _long[BUFFER_ALFA];
-
-// -----------------------------------------------------------------------------
-// Global run / alpha markers (DEFINED HERE)
-// -----------------------------------------------------------------------------
-volatile int alpha_gybe_index      = -1;
-volatile int alpha_run_start_index = -1;
+extern int alfa_counter;
 
 // ============================================================================
-// New_run_detection (RP6 logic, KNOTS)
+// gps_run.cpp  (DEBUG INSTRUMENTED)
+// ============================================================================
+
+#include "GPS/gps_run.h"
+
+#include <math.h>
+
+#include "Core/Definitions.h"
+#include "core/system_info.h"
+#include "Core/Globals.h"
+
+// -----------------------------------------------------------------------------
+// External GPS state
+// -----------------------------------------------------------------------------
+extern int index_GPS;
+extern int alfa_counter;
+
+// ============================================================================
+// New_run_detection  (LEGACY behaviour)
 // ============================================================================
 int New_run_detection(float actual_heading, float speed_kn)
 {
-  // RP6 thresholds (converted from mm/s)
-  const float SPEED_DETECTION_MIN       = 7.5f;  // ≈ 4 m/s
-  const float STANDSTILL_DETECTION_MAX  = 2.0f;  // ≈ 1 m/s
-  const int   MEAN_HEADING_TIME         = 15;    // seconds
+  const float SPEED_DETECTION_MIN       = 7.5f;
+  const float STANDSTILL_DETECTION_MAX  = 2.0f;
+  const int   MEAN_HEADING_TIME         = 15;
   const float STRAIGHT_COURSE_MAX_DEV   = 10.0f;
   const float JIBE_COURSE_DEVIATION_MIN = 50.0f;
 
@@ -42,10 +62,10 @@ int New_run_detection(float actual_heading, float speed_kn)
   static float heading       = 0.0f;
 
   static uint32_t delay_counter = 0;
-  static int run_counter        = 0;
+  static int      run_counter   = 0;
 
-  static bool velocity_0 = false;
-  static bool velocity_5 = false;
+  static bool velocity_0      = false;
+  static bool velocity_5      = false;
   static bool straight_course = false;
 
   // ---------------------------------------------------------------------------
@@ -59,18 +79,49 @@ int New_run_detection(float actual_heading, float speed_kn)
   heading_SD  = heading;
 
   // ---------------------------------------------------------------------------
-  // Mean heading (sliding average)
+  // Mean heading
   // ---------------------------------------------------------------------------
   const float N = MEAN_HEADING_TIME * systemInfo.sample_rate;
   Mean_heading = Mean_heading * (N - 1.0f) / N + heading / N;
 
   // ---------------------------------------------------------------------------
+  // DEBUG: basic heartbeat (prints ~1Hz)
+  // ---------------------------------------------------------------------------
+  static uint32_t lastPrint = 0;
+  if(millis() - lastPrint > 1000){
+    lastPrint = millis();
+    Serial.printf(
+      "[RUN] spd=%.2fkn hdg=%.1f mean=%.1f sc=%d v5=%d v0=%d run=%d alfa=%d\n",
+      speed_kn,
+      heading,
+      Mean_heading,
+      straight_course,
+      velocity_5,
+      velocity_0,
+      run_counter,
+      alfa_counter
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Speed gating
   // ---------------------------------------------------------------------------
-  if(speed_kn > SPEED_DETECTION_MIN) velocity_5 = true;
-  if(speed_kn < STANDSTILL_DETECTION_MAX && velocity_5) velocity_0 = true;
+  if(speed_kn > SPEED_DETECTION_MIN){
+    if(!velocity_5){
+      Serial.println("[RUN] Speed gate OPEN (velocity_5)");
+    }
+    velocity_5 = true;
+  }
+
+  if(speed_kn < STANDSTILL_DETECTION_MAX && velocity_5){
+    if(!velocity_0){
+      Serial.println("[RUN] Standstill detected (velocity_0)");
+    }
+    velocity_0 = true;
+  }
 
   if(velocity_0 && speed_kn > SPEED_DETECTION_MIN){
+    Serial.println("[RUN] Restart after standstill");
     velocity_0 = false;
     velocity_5 = false;
     delay_counter = (TIME_DELAY_NEW_RUN - 1) * systemInfo.sample_rate;
@@ -82,95 +133,33 @@ int New_run_detection(float actual_heading, float speed_kn)
   if(fabsf(Mean_heading - heading) < STRAIGHT_COURSE_MAX_DEV &&
      speed_kn > SPEED_DETECTION_MIN)
   {
+    if(!straight_course){
+      Serial.println("[RUN] Straight course LOCKED");
+    }
     straight_course = true;
   }
 
   // ---------------------------------------------------------------------------
-  // Gybe detected → ALPHA boundary
+  // Jibe detection
   // ---------------------------------------------------------------------------
   if(fabsf(Mean_heading - heading) > JIBE_COURSE_DEVIATION_MIN &&
      straight_course)
   {
+    Serial.println("[RUN] >>> JIBE DETECTED <<<");
     straight_course = false;
     delay_counter   = 0;
-
     alfa_counter++;
-    alpha_gybe_index = index_GPS;
   }
 
   // ---------------------------------------------------------------------------
-  // Run transition (delayed)
+  // Run counter
   // ---------------------------------------------------------------------------
   delay_counter++;
 
   if(delay_counter == TIME_DELAY_NEW_RUN * systemInfo.sample_rate){
     run_counter++;
-    alpha_run_start_index = index_GPS;
+    Serial.printf("[RUN] *** NEW RUN %d ***\n", run_counter);
   }
 
   return run_counter;
-}
-
-// ============================================================================
-// Alpha 500 (RP6-style, KNOTS, simplified)
-// ============================================================================
-//
-// Rules enforced:
-// - Must STRADDLE a gybe
-// - ≤ 500 m sailed
-// - ≤ 50 m closure
-// - Speed from SECOND leg (GPS_speed::m_speed_alfa)
-// ============================================================================
-
-static float alpha_best_kn      = 0.0f;
-static int   last_alfa_counter  = -1;
-
-float Alpha500_Update(const GPS_speed& M500)
-{
-  // No gybe yet
-  if(alpha_gybe_index < 0)
-    return alpha_best_kn;
-
-  // Reset on new gybe
-  if(alfa_counter != last_alfa_counter){
-    alpha_best_kn     = 0.0f;
-    last_alfa_counter = alfa_counter;
-  }
-
-  // Need valid samples
-  if(M500.m_sample <= 0)
-    return alpha_best_kn;
-
-  // Entry = gybe position
-  const int i0 = alpha_gybe_index % BUFFER_ALFA;
-  const int i1 = index_GPS % BUFFER_ALFA;
-
-  const float lat0 = _lat[i0];
-  const float lon0 = _long[i0];
-  const float lat1 = _lat[i1];
-  const float lon1 = _long[i1];
-
-  // Straight-line closure distance (meters)
-  const float closure_m = afstandPunten(lon0, lat0, lon1, lat1);
-
-  // Must return within 50 m
-  if(closure_m > 50.0f)
-    return alpha_best_kn;
-
-  // Distance sailed since gybe (mm → m)
-  const float sailed_m =
-    (float)M500.m_distance_alfa / systemInfo.sample_rate;
-
-  if(sailed_m > 500.0f)
-    return alpha_best_kn;
-
-  // Speed from SECOND leg (already knots)
-  const float candidate_kn = M500.m_speed_alfa;
-
-  if(candidate_kn > alpha_best_kn){
-    alpha_best_kn = candidate_kn;
-    RTC_alp_knots = alpha_best_kn;   // snapshot for UI / GeoJSON
-  }
-
-  return alpha_best_kn;
 }

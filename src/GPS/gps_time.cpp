@@ -34,21 +34,7 @@ void GPS_time::Reset_stats(){
   avg_5runs=0; avg_s_sum=0; s_max_speed=0;
 }
 
-// ----------------------------------------------------------------------------
-// Debug helper — dump exact contributing samples (SBP parity)
-// ----------------------------------------------------------------------------
-static void dump_window(const char *label,uint32_t samples){
-  Serial.printf("\n=== NEW BEST %s WINDOW (SBP) ===\n",label);
-  Serial.printf("index_GPS=%d samples=%lu\n",index_GPS,samples);
 
-  float sum_kn=0;
-  for(uint32_t i=0;i<samples;i++){
-    int idx=(index_GPS-samples+1+i)%BUFFER_SIZE; if(idx<0) idx+=BUFFER_SIZE;
-    uint16_t cmps=_sogCms[idx]; float kn=cmps*CMPS_TO_KNOTS; sum_kn+=kn;
-    Serial.printf(" [%3lu] sogCms[%d]=%4u cm/s (%.3f kn)\n",i,idx,cmps,kn);
-  }
-  Serial.printf("AVG=%.3f kn\n========================================\n",sum_kn/samples);
-}
 
 // ----------------------------------------------------------------------------
 float GPS_time::Update_speed(int actual_run)
@@ -90,9 +76,6 @@ float GPS_time::Update_speed(int actual_run)
   // NEW MAX DETECTED
   // ========================================================================
   if(avg_kn>s_max_speed){
-
-    if(time_window==2) dump_window("2s",samples);
-    else if(time_window==10) dump_window("10s",samples);
 
     s_max_speed=avg_kn; avg_speed[0]=s_max_speed;
     if(avg_speed[9]<s_max_speed) avg_speed[9]=s_max_speed;

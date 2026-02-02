@@ -178,7 +178,7 @@ Ublox.push_data(
 // -----------------------------------------------------------------------------
 run_count = New_run_detection(
   ubxMessage.navPvt.heading / 100000.0f,
-  S2.avg_s               // knots
+  gps_speed_value * MMPS_TO_KNOTS
 );
 
 if (run_count != old_run_count)
@@ -193,9 +193,9 @@ M500.Update_distance(run_count);
 M1852.Update_distance(run_count);
 
 // -----------------------------------------------------------------------------
-// Alpha 500 gate (NEW, replaces RP6 Alfa_indicator + A500)
+// Alpha 500 gate 
 // -----------------------------------------------------------------------------
-Alpha500_Update(M500);
+//Alpha500_Update(M500);
 
 // -----------------------------------------------------------------------------
 // Time windows (SBP-style, knots)
