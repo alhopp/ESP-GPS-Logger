@@ -72,5 +72,3 @@ private:
     bool  Run_started        = false;  // Run-in-progress flag
 };
 
-// Global 500 m track instance
-extern GPS_Track M_500;

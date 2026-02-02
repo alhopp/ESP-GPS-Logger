@@ -12,7 +12,7 @@
 
 #include "GPS/gps_simulator.h"
 #include "GPS/gps_alpha.h"
-#include "GPS/gps_track.h"
+#include "GPS/gps_run.h"
 
 // -----------------------------------------------------------------------------
 // Session state (MUST be above usage)
@@ -184,22 +184,25 @@ if (GPS_Signal_OK && !Time_Set_OK && !session_active) {
 
   old_run_count = run_count;
 
-  M100.Update_distance(run_count);
-  M250.Update_distance(run_count);
+  //M100.Update_distance(run_count);
+  //M250.Update_distance(run_count);
+  //S1800.Update_speed(run_count);
+  //A250.Update_Alfa(M250);
+  //a500.Update_Alfa(M500);
+  //s2.Update_speed(run_count);
+  //s10.Update_speed(run_count);
+
+  // Speed over last S seconds 
+  S2.Update_speed(run_count);
+  S10.Update_speed(run_count);
+  S3600.Update_speed(run_count);
+
+  // Speed over last M metres 
   M500.Update_distance(run_count);
   M1852.Update_distance(run_count);
 
-  S2.Update_speed(run_count);
-  s2.Update_speed(run_count);
-  S10.Update_speed(run_count);
-  s10.Update_speed(run_count);
-  S1800.Update_speed(run_count);
-  S3600.Update_speed(run_count);
-
-  A250.Update_Alfa(M250);
   A500.Update_Alfa(M500);
-  a500.Update_Alfa(M500);
 
-  M_500.Update_Track();
+
 
 }

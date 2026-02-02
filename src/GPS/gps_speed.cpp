@@ -12,7 +12,7 @@
 // Distance-based average speed calculator (100m / 250m / 500m / 1852m)
 //
 // UNIT MODEL (SBP / Option B):
-// - Distance integration: mm (from _gSpeed)
+// - Distance integration: mm per sample (from _gSpeed / sample_rate)
 // - Speed samples        : cm/s (_sogCms)
 // - EACH sample converted to knots BEFORE averaging
 // - Averaging            : FLOAT knots
@@ -27,8 +27,11 @@ double GPS_speed::Update_distance(int actual_run)
   // target distance in mm (meters → mm)
   m_Set_Distance = m_set_distance * 1000;
 
-  // integrate distance using Doppler (mm/s per sample)
-  m_distance += _gSpeed[index_GPS % BUFFER_SIZE];
+  // ---------------------------------------------------------------------------
+  // Distance integration (FIXED)
+  // _gSpeed is mm/s → convert to mm per sample
+  // ---------------------------------------------------------------------------
+  m_distance += _gSpeed[index_GPS % BUFFER_SIZE] / systemInfo.sample_rate;
 
   // overflow safety
   if((index_GPS - m_index) >= BUFFER_SIZE){
@@ -39,12 +42,12 @@ double GPS_speed::Update_distance(int actual_run)
   // slide window
   if(m_distance > m_Set_Distance){
     while(m_distance > m_Set_Distance && (index_GPS - m_index) < BUFFER_SIZE){
-      m_distance     -= _gSpeed[m_index % BUFFER_SIZE];
+      m_distance     -= _gSpeed[m_index % BUFFER_SIZE] / systemInfo.sample_rate;
       m_distance_alfa = m_distance;
       m_index++;
     }
     m_index--;
-    m_distance += _gSpeed[m_index % BUFFER_SIZE];
+    m_distance += _gSpeed[m_index % BUFFER_SIZE] / systemInfo.sample_rate;
   }
 
   // sample count
@@ -72,7 +75,7 @@ double GPS_speed::Update_distance(int actual_run)
     speed_kn = avg_kn * completion;
   }
 
-  // alpha variant (same rule, slightly shorter window)
+  // Alpha variant (same rule)
   if((index_GPS - m_index) > 0 && m_Set_Distance > 0){
     double sum_kn = 0.0;
 
@@ -93,9 +96,9 @@ double GPS_speed::Update_distance(int actual_run)
   m_speed_alfa = alfa_kn;    // knots
 
   // ---------------------------------------------------------------------------
-  // New best speed
+  // New best speed (allow first NM to latch)
   // ---------------------------------------------------------------------------
-  if(m_speed > m_max_speed){
+  if((m_max_speed == 0.0 && m_speed > 0.0) || m_speed > m_max_speed){
     m_max_speed = m_speed;
 
     getLocalTime(&tmstruct,0);
