@@ -71,30 +71,49 @@ RTC_DATA_ATTR uint8_t RTC_gps_baud_index  = 0;   // index into baud table
 
 void rtc_snapshot_stats()
 {
-
-  RTC_max_2s_knots  = (double)S2.avg_speed[9]    * CMPS_TO_KNOTS;
-  RTC_avg_10s_knots = (double)S10.avg_5runs      * CMPS_TO_KNOTS;
-
-  // NM = speed over 1852 m window (speed, not distance)
-  RTC_mile_knots    = (double)M1852.avg_speed[9] * CMPS_TO_KNOTS;
-  RTC_alp_knots     = (double)A500.avg_speed[0]  * CMPS_TO_KNOTS;
-  RTC_1h_knots      = (double)S3600.s_max_speed  * CMPS_TO_KNOTS;
-
+  Serial.println("\n================ RTC SNAPSHOT STATS ================");
 
   // -------------------------------------------------------------------------
-  // Ranked 10s speeds (knots)
+  // 2 sec
   // -------------------------------------------------------------------------
-  RTC_R1_10s = (double)S10.avg_speed[9] * CMPS_TO_KNOTS;
-  RTC_R2_10s = (double)S10.avg_speed[8] * CMPS_TO_KNOTS;
-  RTC_R3_10s = (double)S10.avg_speed[7] * CMPS_TO_KNOTS;
-  RTC_R4_10s = (double)S10.avg_speed[6] * CMPS_TO_KNOTS;
-  RTC_R5_10s = (double)S10.avg_speed[5] * CMPS_TO_KNOTS;
-
+  RTC_max_2s_knots = (double)S2.avg_speed[9];
+  Serial.printf("2s max          : %.3f kn\n", RTC_max_2s_knots);
 
   // -------------------------------------------------------------------------
-  // Distances (travelled)
-  // total_distance is cm
+  // Average 5 x 10 sec + Best 10s runs
   // -------------------------------------------------------------------------
-RTC_distance = total_distance * 0.00001f;   // cm → km
+  RTC_avg_10s_knots = (double)S10.avg_5runs;
 
+  RTC_R1_10s = S10.avg_speed[9];
+  RTC_R2_10s = S10.avg_speed[8];
+  RTC_R3_10s = S10.avg_speed[7];
+  RTC_R4_10s = S10.avg_speed[6];
+  RTC_R5_10s = S10.avg_speed[5];
+
+  Serial.printf("10s avg (5 runs): %.3f kn\n", RTC_avg_10s_knots);
+  Serial.println("10s best runs   :");
+  Serial.printf("  R1            : %.3f kn\n", RTC_R1_10s);
+  Serial.printf("  R2            : %.3f kn\n", RTC_R2_10s);
+  Serial.printf("  R3            : %.3f kn\n", RTC_R3_10s);
+  Serial.printf("  R4            : %.3f kn\n", RTC_R4_10s);
+  Serial.printf("  R5            : %.3f kn\n", RTC_R5_10s);
+
+  // -------------------------------------------------------------------------
+  // Mile / Alpha / 1 hour
+  // -------------------------------------------------------------------------
+  RTC_mile_knots = M1852.avg_speed[9];
+  RTC_alp_knots  = A500.avg_speed[9];
+  RTC_1h_knots   = S3600.s_max_speed;
+
+  Serial.printf("NM (1852m)      : %.3f kn\n", RTC_mile_knots);
+  Serial.printf("Alpha 500       : %.3f kn\n", RTC_alp_knots);
+  Serial.printf("1 hour          : %.3f kn\n", RTC_1h_knots);
+
+  // -------------------------------------------------------------------------
+  // Distance travelled
+  // -------------------------------------------------------------------------
+  RTC_distance = total_distance * 0.00001f;   // cm → km
+  Serial.printf("Distance        : %.3f km\n", RTC_distance);
+
+  Serial.println("====================================================\n");
 }

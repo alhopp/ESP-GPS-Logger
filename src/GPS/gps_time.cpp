@@ -10,121 +10,111 @@
 
 // ============================================================================
 // GPS_time
-// SBP-aligned speed statistics
 //
-// Internal storage : cm/s
-// Display / ranking : knots (float)
-// Averaging         : FLOAT knots (SBP-exact)
+// SBP-aligned time-window speed statistics.
 //
-// 2s  = 2 * sample_rate samples
-// 10s = 10 * sample_rate samples
+// UNIT MODEL
+// - Raw input        : cm/s (_sogCms[], _secSpeed[])
+// - Per-sample       : convert to knots FIRST
+// - Averaging        : FLOAT knots (SBP-exact)
+// - Storage / ranking: knots
+//
+// WINDOWS
+// - 2s   = 2  * sample_rate (5 Hz)
+// - 10s  = 10 * sample_rate (5 Hz)
+// - 1h   = 3600 samples (1 Hz, padded)
 // ============================================================================
 
 // ----------------------------------------------------------------------------
-GPS_time::GPS_time(int tijdvenster) : time_window(tijdvenster){
-  Reset_stats();
-}
+GPS_time::GPS_time(int tijdvenster):time_window(tijdvenster){ Reset_stats(); }
 
 // ----------------------------------------------------------------------------
 void GPS_time::Reset_stats(){
-  for(int i=0;i<10;i++){
-    avg_speed[i]=0;
-    display_speed[i]=0;
-  }
-  avg_5runs     = 0;
-  avg_s_sum     = 0;
-  s_max_speed   = 0;
+  for(int i=0;i<10;i++){ avg_speed[i]=0; display_speed[i]=0; }
+  avg_5runs=0; avg_s_sum=0; s_max_speed=0;
 }
 
 // ----------------------------------------------------------------------------
-// Debug helper — prints EXACT contributing samples
+// Debug helper — dump exact contributing samples (SBP parity)
 // ----------------------------------------------------------------------------
-static void dump_window(const char *label, uint32_t samples){
-  Serial.printf("\n=== NEW BEST %s WINDOW (SBP) ===\n", label);
-  Serial.printf("index_GPS = %d\n", index_GPS);
-  Serial.printf("samples   = %lu\n", samples);
+static void dump_window(const char *label,uint32_t samples){
+  Serial.printf("\n=== NEW BEST %s WINDOW (SBP) ===\n",label);
+  Serial.printf("index_GPS=%d samples=%lu\n",index_GPS,samples);
 
-  float sum_kn = 0.0f;
-
+  float sum_kn=0;
   for(uint32_t i=0;i<samples;i++){
-    int idx = (index_GPS - samples + 1 + i) % BUFFER_SIZE;
-    if(idx < 0) idx += BUFFER_SIZE;
-
-    uint16_t cmps = _sogCms[idx];
-    float kn = cmps * CMPS_TO_KNOTS;
-    sum_kn += kn;
-
-    Serial.printf(
-      "  [%3lu] sogCms[%d] = %4u cm/s (%.3f kn)\n",
-      i, idx, cmps, kn
-    );
+    int idx=(index_GPS-samples+1+i)%BUFFER_SIZE; if(idx<0) idx+=BUFFER_SIZE;
+    uint16_t cmps=_sogCms[idx]; float kn=cmps*CMPS_TO_KNOTS; sum_kn+=kn;
+    Serial.printf(" [%3lu] sogCms[%d]=%4u cm/s (%.3f kn)\n",i,idx,cmps,kn);
   }
-
-  Serial.printf("AVG = %.3f kn\n", sum_kn / samples);
-  Serial.println("========================================\n");
+  Serial.printf("AVG=%.3f kn\n========================================\n",sum_kn/samples);
 }
 
 // ----------------------------------------------------------------------------
 float GPS_time::Update_speed(int actual_run)
 {
-  // --------------------------------------------------------------------------
-  // FAST PATH — 2s / 10s (SBP-style)
-  // --------------------------------------------------------------------------
-  if(time_window * systemInfo.sample_rate >= BUFFER_SIZE)
+  // ========================================================================
+  // 1 HOUR (3600 s) — 1 Hz data, padded (missing seconds = zero)
+  // ========================================================================
+  if(time_window==3600){
+    int secs=index_sec+1; if(secs<=0) return s_max_speed; if(secs>3600) secs=3600;
+
+    float sum_kn=0;
+    for(int i=0;i<secs;i++){
+      int idx=(index_sec-i)%BUFFER_SIZE; if(idx<0) idx+=BUFFER_SIZE;
+      sum_kn+=_secSpeed[idx]*CMPS_TO_KNOTS;        // cm/s → knots (per sample)
+    }
+
+    float avg_kn=(sum_kn/secs)*((float)secs/3600.0f); // padding
+    if(avg_kn>s_max_speed) s_max_speed=avg_kn;
     return s_max_speed;
-
-  const uint32_t samples = time_window * systemInfo.sample_rate;
-
-  // window not yet full
-  if(index_GPS < (int)samples - 1)
-    return s_max_speed;
-
-  // --------------------------------------------------------------------------
-  // SBP-EXACT averaging: average FLOAT knots
-  // --------------------------------------------------------------------------
-  float sum_kn = 0.0f;
-
-  for(uint32_t i=0;i<samples;i++){
-    int idx = (index_GPS - samples + 1 + i) % BUFFER_SIZE;
-    if(idx < 0) idx += BUFFER_SIZE;
-
-    sum_kn += _sogCms[idx] * CMPS_TO_KNOTS;
   }
 
-  float avg_kn = sum_kn / samples;
+  // ========================================================================
+  // 2s / 10s — SBP-style, 5 Hz samples
+  // ========================================================================
+  if(time_window*systemInfo.sample_rate>=BUFFER_SIZE) return s_max_speed;
 
-  // --------------------------------------------------------------------------
+  const uint32_t samples=time_window*systemInfo.sample_rate;
+  if(index_GPS<(int)samples-1) return s_max_speed;   // window not full
+
+  // Per-sample cm/s → knots, then average
+  float sum_kn=0;
+  for(uint32_t i=0;i<samples;i++){
+    int idx=(index_GPS-samples+1+i)%BUFFER_SIZE; if(idx<0) idx+=BUFFER_SIZE;
+    sum_kn+=_sogCms[idx]*CMPS_TO_KNOTS;
+  }
+  float avg_kn=sum_kn/samples;
+
+  // ========================================================================
   // NEW MAX DETECTED
-  // --------------------------------------------------------------------------
-  if(avg_kn > s_max_speed){
+  // ========================================================================
+  if(avg_kn>s_max_speed){
 
-    if(time_window == 2)
-      dump_window("2s", samples);
-    else if(time_window == 10)
-      dump_window("10s", samples);
+    if(time_window==2) dump_window("2s",samples);
+    else if(time_window==10) dump_window("10s",samples);
 
-    s_max_speed   = avg_kn;
-    avg_speed[0]  = s_max_speed;
+    s_max_speed=avg_kn; avg_speed[0]=s_max_speed;
+    if(avg_speed[9]<s_max_speed) avg_speed[9]=s_max_speed;
 
-    // immediate session-best promotion
-    if(avg_speed[9] < s_max_speed)
-      avg_speed[9] = s_max_speed;
-
-    speed_run[actual_run % NR_OF_BAR] = s_max_speed;
+    speed_run[actual_run%NR_OF_BAR]=s_max_speed;
 
     getLocalTime(&tmstruct,0);
-    time_hour[0]=tmstruct.tm_hour;
-    time_min [0]=tmstruct.tm_min;
-    time_sec [0]=tmstruct.tm_sec;
-    this_run[0]=actual_run;
+    time_hour[0]=tmstruct.tm_hour; time_min[0]=tmstruct.tm_min;
+    time_sec[0]=tmstruct.tm_sec;   this_run[0]=actual_run;
 
-    for(int i=0;i<10;i++)
-      display_speed[i]=avg_speed[i];
-
+    for(int i=0;i<10;i++) display_speed[i]=avg_speed[i];
     sort_display(display_speed,10);
-    display_max_speed = display_speed[9];
+
+    // Progressive avg of best 5 × 10s (zeros included)
+    if(time_window==10){
+      float sum5=0; for(int i=5;i<10;i++) sum5+=avg_speed[i];
+      avg_5runs=sum5/5.0f;
+    }
+
+    display_max_speed=display_speed[9];
   }
 
-  old_run = actual_run;
+  old_run=actual_run;
   return s_max_speed;
 }

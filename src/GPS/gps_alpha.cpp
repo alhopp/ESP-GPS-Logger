@@ -10,6 +10,12 @@
 // - Closure (entry → exit) <= 50 m
 // - Speed comes DIRECTLY from GPS_speed::m_speed_alfa
 // - Entry is SLID to find best valid sub-window
+//
+// UNIT CONTRACT (Option B, aligned to GPS_time):
+// - Canonical input is speed in mm/s from GPS_speed::m_speed_alfa
+// - Each candidate is converted to FLOAT knots immediately
+// - All comparisons / ranking / stored results are in FLOAT knots
+// - RTC/UI copy knots directly (no extra conversion)
 // ============================================================================
 
 #include "GPS/gps_alpha.h"
@@ -65,9 +71,9 @@ float Alfa_speed::Update_Alfa(GPS_speed M)
   if(alpha_gybe_index < 0)
     return alfa_speed_max;
 
-  float  best_alpha = 0.0f;
-  int    best_entry = -1;
-  double best_dist2 = 0.0;
+  float  best_alpha_kn = 0.0f;
+  int    best_entry    = -1;
+  double best_dist2    = 0.0;
 
   const int exit_index = index_GPS;
   const int exit_i     = modA(exit_index);
@@ -99,21 +105,18 @@ float Alfa_speed::Update_Alfa(GPS_speed M)
       continue;
 
     // ---------------------------------------------------------
-    // Speed comes DIRECTLY from GPS_speed
+    // Speed comes DIRECTLY from GPS_speed (mm/s → knots)
     // ---------------------------------------------------------
-    float s = M.m_speed_alfa;
+    float s_kn = (M.m_sample >= BUFFER_ALFA) ? 0.0f : (M.m_speed_alfa * MMPS_TO_KNOTS);
 
-    if(M.m_sample >= BUFFER_ALFA)
-      s = 0;
-
-    if(s > best_alpha){
-      best_alpha = s;
-      best_entry = entry;
-      best_dist2 = dist2;
+    if(s_kn > best_alpha_kn){
+      best_alpha_kn = s_kn;
+      best_entry    = entry;
+      best_dist2    = dist2;
     }
   }
 
-  alfa_speed = best_alpha;
+  alfa_speed = best_alpha_kn;   // knots
 
   // ---------------------------------------------------------------------------
   // New best Alpha for THIS RUN
@@ -129,8 +132,8 @@ float Alfa_speed::Update_Alfa(GPS_speed M)
     Serial.printf("Entry index    : %d\n", best_entry);
     Serial.printf("Exit index     : %d\n", index_GPS);
 
-    const int samples = index_GPS - best_entry + 1;
-    const double time_s = (double)samples / systemInfo.sample_rate;
+    const int samples     = index_GPS - best_entry + 1;
+    const double time_s   = (double)samples / systemInfo.sample_rate;
 
     Serial.printf("Samples        : %d\n", samples);
     Serial.printf("Elapsed time   : %.3f s\n", time_s);
@@ -141,8 +144,7 @@ float Alfa_speed::Update_Alfa(GPS_speed M)
     Serial.printf("Path distance  : %.3f m\n", path_m);
     Serial.printf("Closure dist   : %.3f m\n", sqrt(best_dist2));
 
-    Serial.printf("Alpha speed(dev): %.3f kn\n",
-      (double)alfa_speed * MMPS_TO_KNOTS);
+    Serial.printf("Alpha speed(dev): %.3f kn\n", (double)alfa_speed_max);
 
     Serial.printf("Alpha speed(calc): %.3f kn\n",
       (path_m / time_s) * 1.943844);
@@ -150,6 +152,7 @@ float Alfa_speed::Update_Alfa(GPS_speed M)
     Serial.println("\nSample speeds (kn):");
     for(int i = best_entry; i <= index_GPS; i++){
       int k = i % BUFFER_SIZE;
+      // _gSpeed is mm/s (shared state) → knots
       Serial.printf("  %4d : %.3f\n",
         i - best_entry,
         (double)_gSpeed[k] * MMPS_TO_KNOTS);
@@ -165,7 +168,7 @@ float Alfa_speed::Update_Alfa(GPS_speed M)
     time_sec [0] = tmstruct.tm_sec;
 
     this_run[0]   = alfa_counter;
-    avg_speed[0]  = alfa_speed_max;
+    avg_speed[0]  = alfa_speed_max;     // knots
     message_nr[0] = nav_pvt_message;
 
     alfa_distance[0] =
