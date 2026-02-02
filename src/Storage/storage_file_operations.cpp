@@ -136,7 +136,7 @@ void Close_files(void)
     .h1       = RTC_1h_knots,
     .max      = RTC_max_2s_knots,
     .avg10    = RTC_avg_10s_knots,
-    .distance = RTC_distance / 1000.0f   // meters → km
+    .distance = RTC_distance 
   };
 
 

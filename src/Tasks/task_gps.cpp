@@ -157,51 +157,53 @@ if (GPS_Signal_OK && !Time_Set_OK && !session_active) {
 }
 
 
-  if (!session_active || nav_pvt_message == old_message)
-    return;
+ if (!session_active || nav_pvt_message == old_message)
+  return;
 
-  old_message = nav_pvt_message;
-  gps_speed_value = ubxMessage.navPvt.gSpeed;
+old_message = nav_pvt_message;
 
-  Ublox.push_data(
-    ubxMessage.navPvt.lat / 1e7,
-    ubxMessage.navPvt.lon / 1e7,
-    gps_speed_value
-  );
+// -----------------------------------------------------------------------------
+// Push raw GPS data
+// -----------------------------------------------------------------------------
+gps_speed_value = ubxMessage.navPvt.gSpeed;   // mm/s
 
-  run_count = New_run_detection(
-    ubxMessage.navPvt.heading / 100000.0f,
-    S2.avg_s
-  );
+Ublox.push_data(
+  ubxMessage.navPvt.lat / 1e7,
+  ubxMessage.navPvt.lon / 1e7,
+  gps_speed_value
+);
 
-  alfa_window = Alfa_indicator(
-    M250, M100,
-    ubxMessage.navPvt.heading / 100000.0f
-  );
+// -----------------------------------------------------------------------------
+// Run / gybe detection (KNOTS)
+// -----------------------------------------------------------------------------
+run_count = New_run_detection(
+  ubxMessage.navPvt.heading / 100000.0f,
+  S2.avg_s               // knots
+);
 
-  if (run_count != old_run_count)
-    Ublox.run_distance = 0;
+if (run_count != old_run_count)
+  Ublox.run_distance = 0;
 
-  old_run_count = run_count;
+old_run_count = run_count;
 
-  //M100.Update_distance(run_count);
-  //M250.Update_distance(run_count);
-  //S1800.Update_speed(run_count);
-  //A250.Update_Alfa(M250);
-  //a500.Update_Alfa(M500);
-  //s2.Update_speed(run_count);
-  //s10.Update_speed(run_count);
+// -----------------------------------------------------------------------------
+// Distance windows (ONLY the ones you use)
+// -----------------------------------------------------------------------------
+M500.Update_distance(run_count);
+M1852.Update_distance(run_count);
 
-  // Speed over last S seconds 
-  S2.Update_speed(run_count);
-  S10.Update_speed(run_count);
-  S3600.Update_speed(run_count);
+// -----------------------------------------------------------------------------
+// Alpha 500 gate (NEW, replaces RP6 Alfa_indicator + A500)
+// -----------------------------------------------------------------------------
+Alpha500_Update(M500);
 
-  // Speed over last M metres 
-  M500.Update_distance(run_count);
-  M1852.Update_distance(run_count);
+// -----------------------------------------------------------------------------
+// Time windows (SBP-style, knots)
+// -----------------------------------------------------------------------------
+S2.Update_speed(run_count);
+S10.Update_speed(run_count);
+S3600.Update_speed(run_count);
 
-  A500.Update_Alfa(M500);
 
 
 

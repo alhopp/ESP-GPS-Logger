@@ -35,7 +35,7 @@ public:
   Alfa_speed(int alfa_radius);
 
   // Update ALFA calculation using distance-based speed window
-  float Update_Alfa(GPS_speed M);
+  float Update_Alfa(const GPS_speed& M);
 
   // Reset all stored ALFA statistics
   void Reset_stats(void);
@@ -44,8 +44,8 @@ public:
   // Live state
   // -------------------------------------------------------------------------
   double straight_dist_square;   // Straight-line distance² (m²)
-  double alfa_speed;             // Current ALFA speed
-  double alfa_speed_max;         // Max ALFA speed in current run
+  double alfa_speed;             // Current ALFA speed (knots)
+  double alfa_speed_max;         // Max ALFA speed in current run (knots)
   float  display_max_speed;      // Live display value
 
   // -------------------------------------------------------------------------
@@ -56,20 +56,21 @@ public:
   // -------------------------------------------------------------------------
   // Stored results (top-10)
   // -------------------------------------------------------------------------
-  double  avg_speed[10];         // Sorted ALFA speeds
-  int     real_distance[10];     // Straight-line distance² per entry
+  double  avg_speed[10];         // Sorted ALFA speeds (knots)
+  int     real_distance[10];     // Straight-line distance (m)
 
   uint8_t time_hour[10];
   uint8_t time_min[10];
   uint8_t time_sec[10];
 
-  int this_run[10];              // Run index per entry
-  int message_nr[10];            // UBX NAV-PVT message index
-  int alfa_distance[10];         // Distance accumulated inside window
+  int this_run[10];              // alfa_counter per entry
+  int message_nr[10];            // UBX NAV-PVT index
+  int alfa_distance[10];         // Path distance inside window (m)
 
 private:
-  int old_run_count;             // Detects run transitions
+  int old_run_count = -1;        // Detects run transitions
 };
+
 
 // ---------------------------------------------------------------------------
 // Global ALFA windows (unchanged API)

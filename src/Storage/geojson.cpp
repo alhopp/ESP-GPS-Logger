@@ -73,12 +73,12 @@ void geojson_end()
 
   if(hasStats){
     geoFile.println("\"stats\":{");
-    geoFile.print("\"nm\":");       geoFile.print(stats.nm,2);       geoFile.println(",");
-    geoFile.print("\"alpha\":");    geoFile.print(stats.alpha,2);    geoFile.println(",");
-    geoFile.print("\"h1\":");       geoFile.print(stats.h1,2);       geoFile.println(",");
-    geoFile.print("\"max\":");      geoFile.print(stats.max,2);      geoFile.println(",");
-    geoFile.print("\"avg10\":");    geoFile.print(stats.avg10,2);    geoFile.println(",");
-    geoFile.print("\"distance\":"); geoFile.print(stats.distance,2);
+    geoFile.print("\"nm\":");       geoFile.print(stats.nm,3);       geoFile.println(",");
+    geoFile.print("\"alpha\":");    geoFile.print(stats.alpha,3);    geoFile.println(",");
+    geoFile.print("\"h1\":");       geoFile.print(stats.h1,3);       geoFile.println(",");
+    geoFile.print("\"max\":");      geoFile.print(stats.max,3);      geoFile.println(",");
+    geoFile.print("\"avg10\":");    geoFile.print(stats.avg10,3);    geoFile.println(",");
+    geoFile.print("\"distance\":"); geoFile.print(stats.distance,3);
     geoFile.println("}");
   }
 

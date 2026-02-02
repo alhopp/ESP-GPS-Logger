@@ -1,11 +1,35 @@
 #pragma once
 #include <stdint.h>
 
+#include "GPS/gps_speed.h"
+
+// ============================================================================
+// Alpha 500 (RP6-style, KNOTS)
+//
+// - Must straddle a gybe
+// - ≤ 500 m sailed
+// - ≤ 50 m closure
+// - Speed from second leg
+// ============================================================================
+float Alpha500_Update(const GPS_speed& M500);
+
 // ============================================================================
 // Run detection
+//
+// Responsibilities:
+// - Detect gybe via heading evolution
+// - Detect new run via delayed trigger
+// - Maintain alpha boundary indices
+//
+// Units:
+// - Heading: degrees
+// - Speed:   knots
 // ============================================================================
-// Detects the start of a new run based on heading evolution and short-term speed
-int New_run_detection(float actual_heading, float S2_speed);
+extern volatile int alpha_gybe_index;
+extern volatile int alpha_run_start_index;
+
+// Returns monotonically increasing run counter
+int New_run_detection(float actual_heading, float S2_speed_kn);
 
 // ============================================================================
 // GPS_Track
@@ -71,4 +95,3 @@ private:
     float Old_distance_end   = 0.0f;   // Previous end-line distance
     bool  Run_started        = false;  // Run-in-progress flag
 };
-

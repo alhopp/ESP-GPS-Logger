@@ -1,98 +1,176 @@
-#include <stdint.h>
-
-#include "Core/Definitions.h"      // TIME_DELAY_NEW_RUN
-#include "core/system_info.h"     // systemInfo
-#include "Core/Globals.h"         // heading_SD, Mean_heading, run_count, etc
-#include "Ublox/ublox.h"
-
-#include "GPS/GPS_data.h"         // alfa_counter
-#include "GPS/gps_utils.h"
 #include "GPS/gps_run.h"
 
+#include <math.h>
+
+#include "Core/Definitions.h"
+#include "core/system_info.h"
+#include "Core/Globals.h"
+#include "Core/rtc_state.h"
+
+#include "GPS/GPS_data.h"
+#include "GPS/gps_geometry.h"
 
 // -----------------------------------------------------------------------------
-// IMPORTANT: index_GPS is the absolute NAV-PVT sample counter (monotonic)
+// Absolute GPS sample index
 // -----------------------------------------------------------------------------
 extern int index_GPS;
 
+// Shared position buffers
+extern float _lat[BUFFER_ALFA];
+extern float _long[BUFFER_ALFA];
+
 // -----------------------------------------------------------------------------
-// NEW: boundary markers for Alpha logic
-//
-// alpha_gybe_index:
-//   - set the instant we detect the jibe (alfa_counter++)
-//   - this is the most "SBP-like" boundary for Alpha closure across runs
-//
-// alpha_run_start_index (optional):
-//   - set when TIME_DELAY_NEW_RUN expires (run_counter++)
-//   - use this if you want boundary aligned with your run_counter semantics
+// Global run / alpha markers (DEFINED HERE)
 // -----------------------------------------------------------------------------
 volatile int alpha_gybe_index      = -1;
 volatile int alpha_run_start_index = -1;
 
 // ============================================================================
-// New_run_detection
+// New_run_detection (RP6 logic, KNOTS)
+// ============================================================================
+int New_run_detection(float actual_heading, float speed_kn)
+{
+  // RP6 thresholds (converted from mm/s)
+  const float SPEED_DETECTION_MIN       = 7.5f;  // ≈ 4 m/s
+  const float STANDSTILL_DETECTION_MAX  = 2.0f;  // ≈ 1 m/s
+  const int   MEAN_HEADING_TIME         = 15;    // seconds
+  const float STRAIGHT_COURSE_MAX_DEV   = 10.0f;
+  const float JIBE_COURSE_DEVIATION_MIN = 50.0f;
+
+  static float old_heading   = 0.0f;
+  static float delta_heading = 0.0f;
+  static float heading       = 0.0f;
+
+  static uint32_t delay_counter = 0;
+  static int run_counter        = 0;
+
+  static bool velocity_0 = false;
+  static bool velocity_5 = false;
+  static bool straight_course = false;
+
+  // ---------------------------------------------------------------------------
+  // Heading unwrap
+  // ---------------------------------------------------------------------------
+  if((actual_heading - old_heading) > 300.0f)  delta_heading -= 360.0f;
+  if((actual_heading - old_heading) < -300.0f) delta_heading += 360.0f;
+
+  old_heading = actual_heading;
+  heading     = actual_heading + delta_heading;
+  heading_SD  = heading;
+
+  // ---------------------------------------------------------------------------
+  // Mean heading (sliding average)
+  // ---------------------------------------------------------------------------
+  const float N = MEAN_HEADING_TIME * systemInfo.sample_rate;
+  Mean_heading = Mean_heading * (N - 1.0f) / N + heading / N;
+
+  // ---------------------------------------------------------------------------
+  // Speed gating
+  // ---------------------------------------------------------------------------
+  if(speed_kn > SPEED_DETECTION_MIN) velocity_5 = true;
+  if(speed_kn < STANDSTILL_DETECTION_MAX && velocity_5) velocity_0 = true;
+
+  if(velocity_0 && speed_kn > SPEED_DETECTION_MIN){
+    velocity_0 = false;
+    velocity_5 = false;
+    delay_counter = (TIME_DELAY_NEW_RUN - 1) * systemInfo.sample_rate;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Straight course detection
+  // ---------------------------------------------------------------------------
+  if(fabsf(Mean_heading - heading) < STRAIGHT_COURSE_MAX_DEV &&
+     speed_kn > SPEED_DETECTION_MIN)
+  {
+    straight_course = true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Gybe detected → ALPHA boundary
+  // ---------------------------------------------------------------------------
+  if(fabsf(Mean_heading - heading) > JIBE_COURSE_DEVIATION_MIN &&
+     straight_course)
+  {
+    straight_course = false;
+    delay_counter   = 0;
+
+    alfa_counter++;
+    alpha_gybe_index = index_GPS;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Run transition (delayed)
+  // ---------------------------------------------------------------------------
+  delay_counter++;
+
+  if(delay_counter == TIME_DELAY_NEW_RUN * systemInfo.sample_rate){
+    run_counter++;
+    alpha_run_start_index = index_GPS;
+  }
+
+  return run_counter;
+}
+
+// ============================================================================
+// Alpha 500 (RP6-style, KNOTS, simplified)
+// ============================================================================
+//
+// Rules enforced:
+// - Must STRADDLE a gybe
+// - ≤ 500 m sailed
+// - ≤ 50 m closure
+// - Speed from SECOND leg (GPS_speed::m_speed_alfa)
 // ============================================================================
 
-int New_run_detection(float actual_heading, float S2_speed)
+static float alpha_best_kn      = 0.0f;
+static int   last_alfa_counter  = -1;
+
+float Alpha500_Update(const GPS_speed& M500)
 {
-    #define SPEED_DETECTION_MIN       4000
-    #define STANDSTILL_DETECTION_MAX  1000
-    #define MEAN_HEADING_TIME         15
-    #define STRAIGHT_COURSE_MAX_DEV   10
-    #define JIBE_COURSE_DEVIATION_MIN 50
+  // No gybe yet
+  if(alpha_gybe_index < 0)
+    return alpha_best_kn;
 
-    static float old_heading,delta_heading,heading;
-    static uint32_t delay_counter;
-    static int run_counter;
-    static bool velocity_0=false, velocity_5=false;
-    static bool straight_course;
+  // Reset on new gybe
+  if(alfa_counter != last_alfa_counter){
+    alpha_best_kn     = 0.0f;
+    last_alfa_counter = alfa_counter;
+  }
 
-    if((actual_heading-old_heading)>300)  delta_heading-=360;
-    if((actual_heading-old_heading)<-300) delta_heading+=360;
-    old_heading=actual_heading;
-    heading=actual_heading+delta_heading;
+  // Need valid samples
+  if(M500.m_sample <= 0)
+    return alpha_best_kn;
 
-    heading_SD=heading;
+  // Entry = gybe position
+  const int i0 = alpha_gybe_index % BUFFER_ALFA;
+  const int i1 = index_GPS % BUFFER_ALFA;
 
-    Mean_heading =
-        Mean_heading*(MEAN_HEADING_TIME*systemInfo.sample_rate-1) /
-        (MEAN_HEADING_TIME*systemInfo.sample_rate)
-        + heading/(MEAN_HEADING_TIME*systemInfo.sample_rate);
+  const float lat0 = _lat[i0];
+  const float lon0 = _long[i0];
+  const float lat1 = _lat[i1];
+  const float lon1 = _long[i1];
 
-    if(S2_speed>SPEED_DETECTION_MIN) velocity_5=true;
-    if(S2_speed<STANDSTILL_DETECTION_MAX && velocity_5) velocity_0=true;
+  // Straight-line closure distance (meters)
+  const float closure_m = afstandPunten(lon0, lat0, lon1, lat1);
 
-    if(velocity_0 && S2_speed>SPEED_DETECTION_MIN){
-        velocity_0=false; velocity_5=false;
-        delay_counter=(TIME_DELAY_NEW_RUN-1)*systemInfo.sample_rate;
-    }
+  // Must return within 50 m
+  if(closure_m > 50.0f)
+    return alpha_best_kn;
 
-    if(abs(Mean_heading-heading)<STRAIGHT_COURSE_MAX_DEV && S2_speed>SPEED_DETECTION_MIN)
-        straight_course=true;
+  // Distance sailed since gybe (mm → m)
+  const float sailed_m =
+    (float)M500.m_distance_alfa / systemInfo.sample_rate;
 
-    // -------------------------------------------------------------------------
-    // JIBE DETECTED:
-    // This is the "boundary" Alpha must straddle (previous run -> next run).
-    // Record the sample index NOW.
-    // -------------------------------------------------------------------------
-    if(abs(Mean_heading-heading)>JIBE_COURSE_DEVIATION_MIN && straight_course){
-        straight_course=false;
-        delay_counter=0;
+  if(sailed_m > 500.0f)
+    return alpha_best_kn;
 
-        alfa_counter++;               // notify alpha logic (existing)
-        alpha_gybe_index = index_GPS; // NEW: boundary index at moment of jibe
-    }
+  // Speed from SECOND leg (already knots)
+  const float candidate_kn = M500.m_speed_alfa;
 
-    delay_counter++;
+  if(candidate_kn > alpha_best_kn){
+    alpha_best_kn = candidate_kn;
+    RTC_alp_knots = alpha_best_kn;   // snapshot for UI / GeoJSON
+  }
 
-    // -------------------------------------------------------------------------
-    // NEW RUN STARTS (delayed boundary):
-    // Optional but useful for debugging and for "run_count boundary" semantics.
-    // -------------------------------------------------------------------------
-    if(delay_counter==TIME_DELAY_NEW_RUN*systemInfo.sample_rate){
-        run_counter++;
-        alpha_run_start_index = index_GPS; // NEW: boundary index when run flips
-    }
-
-    return run_counter;
+  return alpha_best_kn;
 }
