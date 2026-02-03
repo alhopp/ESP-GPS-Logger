@@ -60,6 +60,19 @@ int      index_sec = -1;          // 1-second buffer index
 int      alfa_counter;            // Jibe counter (shared run/alpha state)
 float    total_distance = 0.0f;   // Session distance (cm)
 
+
+volatile int alpha_gybe_index = -1;
+volatile int alpha_holdoff_ticks = 0;
+volatile int  alpha_gybe_start    = -1;   // inclusive
+volatile int  alpha_gybe_end      = -1;   // inclusive
+volatile bool alpha_window_valid  = false;
+
+// -----------------------------------------------------------------------------
+// Alpha shared state (single source of truth)
+// -----------------------------------------------------------------------------
+
+
+
 // ============================================================================
 // GPS_data
 // ============================================================================

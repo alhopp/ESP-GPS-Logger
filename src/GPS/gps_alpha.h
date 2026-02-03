@@ -29,6 +29,11 @@ class GPS_speed;
 // - Uses global GPS buffers (_lat, _long, index_GPS)
 // - Uses squared distances to avoid sqrt()
 // ============================================================================
+
+
+
+
+
 class Alfa_speed {
 public:
   // Constructor: alfa radius in meters (e.g. 50 m)

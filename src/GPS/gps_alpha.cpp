@@ -1,175 +1,216 @@
 // ============================================================================
 // gps_alpha.cpp
 //
-// Alpha 500 — GYBE-CENTRIC, STRADDLE WINDOW, SBP-CORRECT
+// Alpha 500 — LEGACY-COMPATIBLE IMPLEMENTATION (M500-driven)
 //
-// RULES:
-// - Must STRADDLE gybe: entry < alpha_gybe_index < exit
-// - EXIT = current index_GPS
-// - ENTRY slides backwards from gybe-1
-// - Sailed distance (entry → exit) ≤ 500 m
-// - Straight-line closure ≤ alfa_radius (50 m)
-// - Speed = average of PER-SAMPLE speeds:
-//     cm/s → knots → average
-//
-// UNITS:
-// - Speed samples : cm/s → knots
-// - Distance      : cm / m
-// - Geometry      : meters
+// Behaviour (matches your legacy snippet):
+// - Uses distance-based GPS_speed integrator for 500m window
+// - Entry = (M.m_index + 1)
+// - Exit  = current index_GPS
+// - Closure < alfa_radius (50 m)
+// - Speed = M.m_speed_alfa (SBP parity / distance-window exact)
+// - Alpha is FINALIZED on run change
 // ============================================================================
 
 #include "GPS/gps_alpha.h"
 #include "GPS/GPS_data.h"
+#include "GPS/gps_speed.h"
 #include "GPS/gps_utils.h"
 
 #include "Core/Globals.h"
 #include "core/system_info.h"
 
+#include <Arduino.h>
 #include <math.h>
 #include <time.h>
 
-// -----------------------------------------------------------------------------
-// External shared GPS state
-// -----------------------------------------------------------------------------
-extern int      index_GPS;
-extern float    _lat[BUFFER_ALFA];
-extern float    _long[BUFFER_ALFA];
-extern uint16_t _sogCms[BUFFER_SIZE];
-extern uint32_t _distCm[BUFFER_SIZE];
 
-// From gps_run.cpp
-extern volatile int alpha_gybe_index;
+#include "GPS/gps_alpha.h"
+
+// ============================================================================
+// Alfa_speed constructor
+// ============================================================================
+Alfa_speed::Alfa_speed(int alfa_radius)
+{
+  alfa_circle_square = (double)alfa_radius * (double)alfa_radius;
+
+  // Initialise runtime state
+  alfa_speed        = 0.0;
+  alfa_speed_max    = 0.0;
+  display_max_speed = 0.0;
+
+  // Clear result arrays
+  for(int i = 0; i < 10; i++){
+    avg_speed[i]     = 0.0;
+    real_distance[i]= 0;
+    time_hour[i]     = 0;
+    time_min[i]      = 0;
+    time_sec[i]      = 0;
+    this_run[i]      = 0;
+    message_nr[i]    = 0;
+    alfa_distance[i] = 0;
+  }
+
+  old_run_count = -1;
+
+  Serial.printf("[ALFA] ctor radius=%dm\n", alfa_radius);
+}
+
+
+// -----------------------------------------------------------------------------
+// External shared state
+// -----------------------------------------------------------------------------
+extern int index_GPS;
 extern int alfa_counter;
+
+// If gps_utils.h doesn't declare this in your build, keep this prototype here.
+extern void sort_run_results(double a[], int dis[], int message[],
+                             uint8_t hour[], uint8_t minute[], uint8_t seconde[],
+                             int runs[], int samples[], int size);
 
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
-static inline int modA(int i){
-  i %= BUFFER_ALFA;
-  return (i < 0) ? i + BUFFER_ALFA : i;
-}
+static inline double closure_dist2(int a, int b)
+{
+  const double lat0 = _lat[a];
+  const double lon0 = _long[a];
+  const double lat1 = _lat[b];
+  const double lon1 = _long[b];
 
-// cm/s → knots (convert BEFORE averaging)
-static inline float cms_to_kn(uint16_t cms){
-  // 1 kn = 0.514444 m/s ; cms → m/s = cms / 100
-  return (float)cms * 0.0194384449f;
-}
-
-// Fast local-plane closure distance² (m²)
-static inline double closure_dist2(int a, int b){
-  const double lat0 = _lat[a], lon0 = _long[a];
-  const double lat1 = _lat[b], lon1 = _long[b];
   const double latm = 0.5 * (lat0 + lat1);
-  const double dlat = (lat1 - lat0);
+  const double dlat = lat1 - lat0;
   const double dlon = (lon1 - lon0) * cos(DEG2RAD * latm);
-  const double k = 111195.0;
+
+  const double k = 111195.0; // meters/deg
   return (dlat*dlat + dlon*dlon) * k * k;
 }
 
-// ============================================================================
-// Alfa_speed
-// ============================================================================
-Alfa_speed::Alfa_speed(int alfa_radius){
-  alfa_circle_square = alfa_radius * alfa_radius; // m²
+static inline uint32_t every_ms(uint32_t &t, uint32_t period){
+  uint32_t now = millis();
+  if(now - t >= period){ t = now; return 1; }
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
-// Update_Alfa
+// Update_Alfa (LEGACY)
 // -----------------------------------------------------------------------------
-float Alfa_speed::Update_Alfa(const GPS_speed& /*unused*/)
+float Alfa_speed::Update_Alfa(const GPS_speed& M)
 {
-  static int last_alfa_counter = -1;
+  if(alfa_counter == 0)
+    return alfa_speed_max;
+
+  static int old_run = -1;
+  static uint32_t tBeat = 0;
 
   // ---------------------------------------------------------------------------
-  // Reset ONLY on new gybe
+  // Heartbeat: prove alpha is alive
   // ---------------------------------------------------------------------------
-  if(alfa_counter != last_alfa_counter){
-    alfa_speed_max    = 0.0f;
-    alfa_speed        = 0.0f;
-    last_alfa_counter = alfa_counter;
+  if(millis() - tBeat > 1000){
+    tBeat = millis();
+    Serial.printf(
+      "[ALFA] tick idx=%d run=%d alfa=%d M.idx=%d M.samp=%d spd_alfa=%.2f\n",
+      index_GPS, run_count, alfa_counter,
+      M.m_index, M.m_sample, (float)M.m_speed_alfa
+    );
   }
 
-  const int g = alpha_gybe_index;
-  if(g < 0) return alfa_speed_max;
-
-  const int exit = index_GPS;
-  if(exit <= g + 1) return alfa_speed_max;
-
-  const int exitA = modA(exit);
-  const int exitS = exit % BUFFER_SIZE;
+  const int exit  = index_GPS;
+  const int entry = M.m_index + 1;
 
   // ---------------------------------------------------------------------------
-  // Precompute post-gybe contribution [g+1 → exit]
+  // Geometry + speed eligibility
   // ---------------------------------------------------------------------------
-  float post_sum_kn = 0.0f;
-  int   post_n      = 0;
-
-  for(int k = g + 1; k <= exit; k++){
-    post_sum_kn += cms_to_kn(_sogCms[k % BUFFER_SIZE]);
-    post_n++;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Slide ENTRY backwards from gybe-1
-  // ---------------------------------------------------------------------------
-  float pre_sum_kn = 0.0f;
-  int   pre_n      = 0;
-
-  for(int entry = g - 1; entry >= 0 && (g - entry) < BUFFER_SIZE; entry--)
+  if(entry >= 0 && exit > entry && M.m_speed_alfa > 0.0f)
   {
-    // Add this entry sample
-    pre_sum_kn += cms_to_kn(_sogCms[entry % BUFFER_SIZE]);
-    pre_n++;
+    const int entryA = entry % BUFFER_ALFA;
+    const int exitA  = exit  % BUFFER_ALFA;
 
-    // Sailed distance (cm → m)
-    const uint32_t d0 = _distCm[entry % BUFFER_SIZE];
-    const uint32_t d1 = _distCm[exitS];
-    if(d1 <= d0) continue;
+    const double d2 = closure_dist2(entryA, exitA);
 
-    const float sailed_m = (float)(d1 - d0) * 0.01f;
-    if(sailed_m > 500.0f) break; // HARD STOP (earlier entries only get worse)
+    if(d2 < alfa_circle_square && M.m_sample < BUFFER_ALFA)
+    {
+      const float speed = (float)M.m_speed_alfa;
 
-    // Closure test
-    const int entryA = modA(entry);
-    const double dist2 = closure_dist2(entryA, exitA);
-    if(dist2 > alfa_circle_square) continue;
+      Serial.printf(
+        "[ALFA] geom OK entry=%d exit=%d closure=%.1fm spd=%.2f\n",
+        entry, exit, sqrt(d2), speed
+      );
 
-    // Average speed (knots)
-    const int n = pre_n + post_n;
-    if(n <= 0) continue;
+      if(speed > alfa_speed_max)
+      {
+        alfa_speed_max = speed;
+        alfa_speed     = speed;
 
-    const float avg_kn = (pre_sum_kn + post_sum_kn) / (float)n;
-    if(avg_kn <= alfa_speed_max) continue;
+        real_distance[0] = (int)(sqrt(d2) + 0.5);
 
-    // -------------------------------------------------------------------------
-    // New best Alpha
-    // -------------------------------------------------------------------------
-    alfa_speed_max = avg_kn;
-    alfa_speed     = avg_kn;
+        getLocalTime(&tmstruct, 0);
+        time_hour[0] = tmstruct.tm_hour;
+        time_min [0] = tmstruct.tm_min;
+        time_sec [0] = tmstruct.tm_sec;
 
-    real_distance[0] = (int)(sqrt(dist2) + 0.5f);
+        this_run[0]      = alfa_counter;
+        avg_speed[0]     = alfa_speed_max;
+        message_nr[0]    = nav_pvt_message;
+        alfa_distance[0] = (int)(M.m_distance_alfa / systemInfo.sample_rate);
 
-    getLocalTime(&tmstruct, 0);
-    time_hour[0] = tmstruct.tm_hour;
-    time_min [0] = tmstruct.tm_min;
-    time_sec [0] = tmstruct.tm_sec;
-
-    this_run[0]   = alfa_counter;
-    avg_speed[0]  = alfa_speed_max;
-    message_nr[0] = nav_pvt_message;
-
-    alfa_distance[0] = (int)(sailed_m + 0.5f);
+        Serial.printf(
+          "[ALFA] NEW BEST alfa=%d closure=%dm best=%.2fkn dist=%dm\n",
+          alfa_counter,
+          real_distance[0],
+          alfa_speed_max,
+          alfa_distance[0]
+        );
+      }
+    }
   }
+
+  // ---------------------------------------------------------------------------
+  // FINALISE ON RUN CHANGE (CORRECT + RP6-COMPATIBLE)
+  // ---------------------------------------------------------------------------
+  if(run_count != old_run)
+  {
+    if(old_run >= 0 && alfa_speed_max > 0.0f)
+    {
+      Serial.printf(
+        "[ALFA] FINAL run=%d best=%.2fkn\n",
+        old_run, alfa_speed_max
+      );
+
+      sort_run_results(
+        avg_speed,
+        real_distance,
+        message_nr,
+        time_hour,
+        time_min,
+        time_sec,
+        this_run,
+        alfa_distance,
+        10
+      );
+    }
+
+    // Reset for next run
+    alfa_speed     = 0.0f;
+    alfa_speed_max = 0.0f;
+  }
+
+  old_run = run_count;
 
   display_max_speed =
-    (alfa_speed_max > avg_speed[0]) ? alfa_speed_max : avg_speed[0];
+    (alfa_speed_max > avg_speed[9]) ? alfa_speed_max : avg_speed[9];
 
   return alfa_speed_max;
 }
 
+
 // -----------------------------------------------------------------------------
 // Reset
 // -----------------------------------------------------------------------------
-void Alfa_speed::Reset_stats(){
-  for(int i = 0; i < 10; i++) avg_speed[i] = 0;
+void Alfa_speed::Reset_stats()
+{
+  for(int i=0;i<10;i++) avg_speed[i] = 0.0f;
+  alfa_speed     = 0.0f;
+  alfa_speed_max = 0.0f;
+  Serial.println("[ALFA] RESET");
 }
