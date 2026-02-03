@@ -214,3 +214,23 @@ void Alfa_speed::Reset_stats()
   alfa_speed_max = 0.0f;
   Serial.println("[ALFA] RESET");
 }
+
+void Alfa_speed::Finalise_Run()
+{
+  if (alfa_speed_max <= 0.0f) return;
+
+  sort_run_results(
+    avg_speed,
+    real_distance,
+    message_nr,
+    time_hour,
+    time_min,
+    time_sec,
+    this_run,
+    alfa_distance,
+    10
+  );
+
+  display_max_speed = avg_speed[9];
+}
+

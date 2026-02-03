@@ -45,6 +45,9 @@ public:
   // Reset all stored ALFA statistics
   void Reset_stats(void);
 
+  void  Finalise_Run(void);
+
+  
   // -------------------------------------------------------------------------
   // Live state
   // -------------------------------------------------------------------------

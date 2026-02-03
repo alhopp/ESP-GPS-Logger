@@ -30,6 +30,8 @@
 
 #include "GPS/gps_manager.h"
 #include "GPS/gps_data.h"
+#include "GPS/gps_alpha.h"
+
 #include "Display/Screens/screen_system.h"
 
 #include "Core/Definitions.h"
@@ -119,6 +121,7 @@ void setMode(SystemMode newMode)
   switch (currentMode) {
 
     case MODE_LOGGING:
+      A500.Finalise_Run();
       rtc_snapshot_stats();
       storage_shutting_down = true;
       vTaskDelay(pdMS_TO_TICKS(20));
