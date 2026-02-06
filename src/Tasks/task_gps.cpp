@@ -96,6 +96,8 @@ void taskOne(void *parameter)
       }
     }
 
+    // THIS IS DISPLAY THROTTLE
+    // ---------------
     if (getMode() == MODE_LOGGING && GPS_Signal_OK) {
       float kts = ubxMessage.navPvt.gSpeed * MMPS_TO_KNOTS;
       uint32_t intervalMs =

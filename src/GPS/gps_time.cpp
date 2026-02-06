@@ -56,6 +56,12 @@ void GPS_time::Reset_stats()
 // ----------------------------------------------------------------------------
 float GPS_time::Update_speed(int actual_run)
 {
+  // -------------------------------------------------------------------------
+  // Ensure run_count reflects detected runs (Speedreader semantics)
+  // -------------------------------------------------------------------------
+  if(actual_run > run_count && actual_run < 32)
+    run_count = actual_run;
+
   // ========================================================================
   // 1 HOUR (3600 s) — padded 1 Hz average
   // ========================================================================
@@ -118,7 +124,6 @@ float GPS_time::Update_speed(int actual_run)
 
     if(avg_kn > best_10s_per_run[actual_run]){
       best_10s_per_run[actual_run] = avg_kn;
-      if(actual_run > run_count) run_count = actual_run;
     }
 
     // ---- recompute avg of best 5 runs ----
