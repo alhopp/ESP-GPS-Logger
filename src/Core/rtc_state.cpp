@@ -5,6 +5,8 @@
 #include "GPS/gps_speed.h"
 #include "GPS/gps_alpha.h"
 #include "GPS/gps_time.h"
+#include "GPS/gps_run.h"
+
 
 // ---------------------------------------------------------------------------
 // Distance & speed (SI units)
@@ -69,6 +71,8 @@ RTC_DATA_ATTR int   RTC_highest_read          = STARTVALUE_HIGHEST_READ;
 RTC_DATA_ATTR bool    RTC_gps_valid       = false;
 RTC_DATA_ATTR uint8_t RTC_gps_baud_index  = 0;
 
+static int last_printed_run = -1;
+
 
 // ---------------------------------------------------------------------------
 // Snapshot all performance stats to RTC + Serial
@@ -76,6 +80,19 @@ RTC_DATA_ATTR uint8_t RTC_gps_baud_index  = 0;
 void rtc_snapshot_stats()
 {
   Serial.println("\n================ RTC SNAPSHOT STATS ================");
+
+  // -------------------------------------------------------------------------
+  // DEBUG: Run start correlation (Speedreader alignment)
+  // -------------------------------------------------------------------------
+  const int current_run = gps_run_current();
+  if(current_run != last_printed_run && gps_run_started()){
+    last_printed_run = current_run;
+    Serial.printf(
+      "[RUN ] #%d started at GPS sample %d\n",
+      current_run,
+      index_GPS
+    );
+  }
 
   // -------------------------------------------------------------------------
   // 2 second (session best)

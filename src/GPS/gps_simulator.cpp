@@ -1,17 +1,16 @@
 // -----------------------------------------------------------------------------
 // gps_simulator.cpp
-// NAV-PVT simulator (fixed 5 Hz tick, REAL TIME)
+// STRAIGHT + CONSTANT RADIUS TURN SIMULATOR (5 Hz, REAL TIME)
+//
+// Behaviour:
+// - Straight: 500 m @ 30–40 kn with gentle speed variance
+// - Turn    : 24 m radius, 180° arc @ 15–20 kn
+// - Speed ramps smoothly like a windsurfer
 //
 // Guarantees:
-// - Monotonic UTC (no minute/hour rollback)
-// - Stable iTOW + nano for SBP
-// - No turn-exit chord / jump
-//
-// Realism:
-// - Heading wander (±5°)
-// - Lateral slop (±6 m)
-// - Speed texture
-// - Rare “oops” events
+// - Wait-for-sats before motion
+// - Proper UTC init + carry (no rollback)
+// - Clean geometry (no drift, no spirals)
 // -----------------------------------------------------------------------------
 
 #include "GPS/gps_simulator.h"
@@ -19,166 +18,126 @@
 
 #include <Arduino.h>
 #include <math.h>
-#include <stdlib.h>
-
-// -----------------------------------------------------------------------------
-// Demo tracks
-// -----------------------------------------------------------------------------
-struct DemoTrack{ const char *name; double a,b,c,d; };
-
-static const DemoTrack DEMO_TRACKS[] = {
-  { "Melville", -32.02359564, 115.82221, -32.01953, 115.81656},
-  { "Albany",    -35.0507661, 117.86558, -35.03444, 117.85398},
-  { "Mandurah",  -32.5708652, 115.75513, -32.56995, 115.72798}
-};
-static constexpr int NUM_TRACKS = sizeof(DEMO_TRACKS)/sizeof(DEMO_TRACKS[0]);
-
-static double START_LAT,START_LON,END_LAT,END_LON;
 
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
-static constexpr float    KNOTS_TO_MPS = 0.514444f;
-static constexpr uint32_t SIM_RATE_MS  = 200;
-static constexpr double   DT           = 0.2;
+static constexpr float    SIM_DT          = 0.2f;     // 5 Hz
+static constexpr uint32_t SIM_RATE_MS     = 200;
+static constexpr float    KNOTS_TO_MPS    = 0.514444f;
 
-static constexpr double STRAIGHT_MIN_KTS = 30.0;
-static constexpr double STRAIGHT_MAX_KTS = 40.0;
-static constexpr double TURN_TARGET_KTS  = 15.0;
+static constexpr float STRAIGHT_MIN_KTS   = 30.0f;
+static constexpr float STRAIGHT_MAX_KTS   = 40.0f;
+static constexpr float TURN_MIN_KTS       = 15.0f;
+static constexpr float TURN_MAX_KTS       = 20.0f;
 
-static constexpr double SPEED_RAMP_MPS2  = 0.8;
-static constexpr double TURN_RADIUS_M    = 20.0;
+static constexpr float SPEED_RAMP_MPS2    = 1.2f;     // accel/decel
+static constexpr float STRAIGHT_LEN_M     = 500.0f;
+static constexpr float TURN_RADIUS_M      = 24.0f;
+static constexpr float TURN_ANGLE_RAD     = 180.0f * DEG_TO_RAD;
 
-static constexpr double HEADING_WANDER_MAX = 5.0;
-static constexpr double LATERAL_SLOP_MAX   = 6.0;
-static constexpr double SPEED_JITTER_MAX   = 0.30;
+// Speed texture
+static constexpr float STRAIGHT_WIND_AMPL_KTS = 2.5f;   // ± knots
+static constexpr float WIND_OSC_PERIOD_S     = 10.0f;  // seconds
 
 // -----------------------------------------------------------------------------
 // State
 // -----------------------------------------------------------------------------
-static uint32_t last_emit_ms=0, sim_ms=0, last_sat_ms=0;
-static bool sim_initialised=false;
-static int  sat_count=0;
+enum Mode { STRAIGHT, TURN };
+static Mode mode = STRAIGHT;
 
-static double lat=0, lon=0;
-static double speed_mps=0, target_speed_mps=0, heading_deg=0;
+static float lat = -32.0236f;
+static float lon = 115.8222f;
 
-static double track_len_m=0, track_pos_m=0;
-static double dir_n=0, dir_e=0, nrm_n=0, nrm_e=0;
-static int    track_dir=+1;
-static double leg_offset_m=+TURN_RADIUS_M;
+static float heading_deg = 45.0f;
+static float speed_mps   = 0.0f;
+static float target_mps  = 0.0f;
 
-enum { MODE_STRAIGHT, MODE_TURN };
-static int mode=MODE_STRAIGHT;
+// Straight
+static float straight_dist     = 0.0f;
+static float straight_base_mps = 0.0f;
+static float wind_phase        = 0.0f;
 
-static double turn_center_lat=0, turn_center_lon=0;
-static double turn_phi=0, turn_fwd_n=0, turn_fwd_e=0, turn_nrm_n=0, turn_nrm_e=0;
+// Turn geometry
+static float turn_phi        = 0.0f;
+static float turn_center_lat = 0.0f;
+static float turn_center_lon = 0.0f;
+static float turn_dir_n      = 0.0f;
+static float turn_dir_e      = 0.0f;
+static float turn_nrm_n      = 0.0f;
+static float turn_nrm_e      = 0.0f;
 
-// Realism noise
-static double heading_bias=0, heading_rate=0;
-static double lateral_noise=0, lateral_rate=0;
-static int    exit_blend_ticks=0;
+// Timing
+static uint32_t sim_ms = 0;
+
+// Satellites
+static int      sat_count   = 0;
+static uint32_t last_sat_ms = 0;
 
 // Time
-static bool     time_init=false;
-static uint32_t last_sec_tick=0;
+static bool     time_init     = false;
+static uint32_t last_sec_tick = 0;
+
+// Init guard
+static bool sim_initialised = false;
 
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
-static inline int rand_int(int a,int b){ return a + rand()%(b-a+1); }
-static inline double randf(double a,double b){ return a + (b-a)*(double(rand())/RAND_MAX); }
-static inline double clampd(double v,double lo,double hi){ return v<lo?lo:v>hi?hi:v; }
-
-static inline void ramp_speed(){
-  const double max_d = SPEED_RAMP_MPS2 * DT;
-  const double diff  = target_speed_mps - speed_mps;
-  speed_mps += clampd(diff, -max_d, max_d);
+static float randf(float a,float b){
+  return a + (b-a)*(float(rand())/RAND_MAX);
 }
 
-static inline double heading_from_vec(double n,double e){
-  double h = atan2(e,n) * RAD_TO_DEG;
-  return h<0?h+360:h;
+static float clampf(float v,float lo,float hi){
+  return v < lo ? lo : (v > hi ? hi : v);
 }
 
-static inline double m_to_deg_lat(double m){ return m/111111.0; }
-static inline double m_to_deg_lon(double m,double lat){
-  return m/(111111.0*cos(lat*DEG_TO_RAD));
+static void ramp_speed(){
+  const float max_d = SPEED_RAMP_MPS2 * SIM_DT;
+  const float diff  = target_mps - speed_mps;
+  speed_mps += clampf(diff, -max_d, max_d);
 }
 
-// UTC carry (simple calendar)
+static float m_to_deg_lat(float m){ return m / 111111.0f; }
+static float m_to_deg_lon(float m,float lat){
+  return m / (111111.0f * cos(lat * DEG_TO_RAD));
+}
+
+// UTC carry
 static inline void utc_add_one_second(){
   auto &p = ubxMessage.navPvt;
-  if(++p.sec<60) return; p.sec=0;
-  if(++p.min<60) return; p.min=0;
-  if(++p.hour<24) return; p.hour=0;
-  if(++p.day<=28) return; p.day=1;
-  if(++p.month<=12) return; p.month=1;
+  if(++p.sec < 60) return; p.sec = 0;
+  if(++p.min < 60) return; p.min = 0;
+  if(++p.hour < 24) return; p.hour = 0;
+  if(++p.day <= 28) return; p.day = 1;
+  if(++p.month <= 12) return; p.month = 1;
   p.year++;
-}
-
-// Noise update
-static inline void update_noise(){
-  heading_rate += randf(-0.2,0.2);
-  heading_rate *= 0.95;
-  heading_bias += heading_rate * DT;
-  heading_bias  = clampd(heading_bias,-HEADING_WANDER_MAX,HEADING_WANDER_MAX);
-
-  lateral_rate += randf(-0.05,0.05);
-  lateral_rate *= 0.98;
-  lateral_noise += lateral_rate * DT;
-  lateral_noise  = clampd(lateral_noise,-LATERAL_SLOP_MAX,LATERAL_SLOP_MAX);
-
-  if(exit_blend_ticks>0){
-    const double w = double(exit_blend_ticks)/5.0;
-    heading_bias *= w;
-    lateral_noise*= w;
-    exit_blend_ticks--;
-  }
-
-  if((rand()%800)==0 && mode==MODE_STRAIGHT){
-    target_speed_mps *= randf(0.7,0.9);
-    heading_rate += randf(-2.0,2.0);
-  }
 }
 
 // -----------------------------------------------------------------------------
 // Init
 // -----------------------------------------------------------------------------
 void gps_simulator_init(){
-  sim_initialised=true;
-  last_emit_ms=millis();
-  sim_ms=0; sat_count=0; last_sat_ms=last_emit_ms;
-  heading_bias=heading_rate=0;
-  lateral_noise=lateral_rate=0;
-  exit_blend_ticks=0;
-  time_init=false;
+  sim_initialised = true;
+  srand(esp_random());
 
-  static bool seeded=false;
-  if(!seeded){ srand(esp_random()); seeded=true; }
+  mode            = STRAIGHT;
+  straight_dist   = 0.0f;
+  wind_phase      = randf(0, TWO_PI);
 
-// USE MELVILL FOR TESTING ALPHA CALC
-  static constexpr int DEMO_TRACK_INDEX = 0;  // Melville
-  const int i = DEMO_TRACK_INDEX;
-  //const int i=rand_int(0,NUM_TRACKS-1);
+  heading_deg     = 45.0f;
+  speed_mps       = 0.0f;
 
+  straight_base_mps =
+    randf(STRAIGHT_MIN_KTS, STRAIGHT_MAX_KTS) * KNOTS_TO_MPS;
+  target_mps = straight_base_mps;
 
-  START_LAT=DEMO_TRACKS[i].a; START_LON=DEMO_TRACKS[i].b;
-  END_LAT  =DEMO_TRACKS[i].c; END_LON  =DEMO_TRACKS[i].d;
+  sim_ms        = 0;
+  sat_count     = 0;
+  last_sat_ms   = millis();
 
-  const double dn=(END_LAT-START_LAT)*111111.0;
-  const double de=(END_LON-START_LON)*111111.0*cos(START_LAT*DEG_TO_RAD);
-
-  track_len_m=sqrt(dn*dn+de*de);
-  dir_n=dn/track_len_m; dir_e=de/track_len_m;
-  nrm_n=-dir_e; nrm_e=dir_n;
-
-  track_pos_m=0; track_dir=+1; leg_offset_m=+TURN_RADIUS_M;
-  target_speed_mps=randf(STRAIGHT_MIN_KTS,STRAIGHT_MAX_KTS)*KNOTS_TO_MPS;
-  speed_mps=target_speed_mps;
-  heading_deg=heading_from_vec(dir_n,dir_e);
-
-  Serial.printf("[SIM ] Track=%s\n",DEMO_TRACKS[i].name);
+  time_init     = false;
+  last_sec_tick = 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -187,93 +146,143 @@ void gps_simulator_init(){
 int gps_simulator_step(){
   if(!sim_initialised) gps_simulator_init();
 
-  const uint32_t now=millis();
-  if(now-last_emit_ms<SIM_RATE_MS) return MT_NONE;
-  last_emit_ms+=SIM_RATE_MS;
-  sim_ms+=SIM_RATE_MS;
+  static uint32_t last_emit_ms = 0;
+  const uint32_t now = millis();
+  if(now - last_emit_ms < SIM_RATE_MS) return MT_NONE;
+  last_emit_ms += SIM_RATE_MS;
+  sim_ms       += SIM_RATE_MS;
 
+  // ---------------------------------------------------------------------------
+  // UBX timing
+  // ---------------------------------------------------------------------------
   ubxMessage.navPvt.iTOW = sim_ms;
-  ubxMessage.navPvt.nano = (sim_ms%1000)*1000000UL;
+  ubxMessage.navPvt.nano = (sim_ms % 1000) * 1000000UL;
 
-  if(sat_count<10 && now-last_sat_ms>=1500){ sat_count++; last_sat_ms=now; }
-  ubxMessage.navPvt.numSV=sat_count;
-  ubxMessage.navPvt.fixType=(sat_count>=5)?3:0;
-  if(ubxMessage.navPvt.fixType<3) return MT_NAV_PVT;
-
-  if(!time_init){
-    ubxMessage.navPvt.year=2026;
-    ubxMessage.navPvt.month=rand_int(1,12);
-    ubxMessage.navPvt.day=rand_int(1,28);
-    ubxMessage.navPvt.hour=rand_int(6,18);
-    ubxMessage.navPvt.min=rand_int(0,59);
-    ubxMessage.navPvt.sec=rand_int(0,59);
-    ubxMessage.navPvt.valid=0b111;
-    last_sec_tick=sim_ms/1000;
-    time_init=true;
-  } else if(sim_ms/1000!=last_sec_tick){
-    last_sec_tick=sim_ms/1000;
-    utc_add_one_second();
+  // ---------------------------------------------------------------------------
+  // Satellite acquisition
+  // ---------------------------------------------------------------------------
+  if(sat_count < 10 && now - last_sat_ms >= 1500){
+    sat_count++;
+    last_sat_ms = now;
   }
 
-  update_noise();
+  ubxMessage.navPvt.numSV   = sat_count;
+  ubxMessage.navPvt.fixType = (sat_count >= 5) ? 3 : 0;
+
+  // ---------------------------------------------------------------------------
+  // Time init + carry
+  // ---------------------------------------------------------------------------
+  if(ubxMessage.navPvt.fixType >= 3){
+    if(!time_init){
+      ubxMessage.navPvt.year  = 2026;
+      ubxMessage.navPvt.month = rand()%12 + 1;
+      ubxMessage.navPvt.day   = rand()%28 + 1;
+      ubxMessage.navPvt.hour  = rand()%12 + 6;
+      ubxMessage.navPvt.min   = rand()%60;
+      ubxMessage.navPvt.sec   = rand()%60;
+      ubxMessage.navPvt.valid = 0b111;
+      last_sec_tick = sim_ms / 1000;
+      time_init = true;
+    }
+    else if(sim_ms/1000 != last_sec_tick){
+      last_sec_tick = sim_ms/1000;
+      utc_add_one_second();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // No fix → static
+  // ---------------------------------------------------------------------------
+  if(ubxMessage.navPvt.fixType < 3){
+    ubxMessage.navPvt.lat     = lat * 1e7;
+    ubxMessage.navPvt.lon     = lon * 1e7;
+    ubxMessage.navPvt.gSpeed  = 0;
+    ubxMessage.navPvt.heading = heading_deg * 100000.0f;
+    return MT_NAV_PVT;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Motion
+  // ---------------------------------------------------------------------------
+  if(mode == STRAIGHT){
+    // Wind-like speed variation
+    wind_phase += TWO_PI * SIM_DT / WIND_OSC_PERIOD_S;
+    if(wind_phase > TWO_PI) wind_phase -= TWO_PI;
+
+    const float wind_mps =
+      sinf(wind_phase) * STRAIGHT_WIND_AMPL_KTS * KNOTS_TO_MPS;
+
+    target_mps = clampf(
+      straight_base_mps + wind_mps,
+      STRAIGHT_MIN_KTS * KNOTS_TO_MPS,
+      STRAIGHT_MAX_KTS * KNOTS_TO_MPS
+    );
+  }
+
   ramp_speed();
 
-  // -------------------------------------------------------------------------
-  // Motion
-  // -------------------------------------------------------------------------
-  if(mode==MODE_STRAIGHT){
-    track_pos_m+=speed_mps*DT*track_dir;
-    bool hit=(track_pos_m>=track_len_m)||(track_pos_m<=0);
-    track_pos_m=clampd(track_pos_m,0,track_len_m);
+  if(mode == STRAIGHT){
+    straight_dist += speed_mps * SIM_DT;
 
-    const double mn=dir_n*track_pos_m;
-    const double me=dir_e*track_pos_m;
-    const double off=leg_offset_m+lateral_noise;
+    lat += m_to_deg_lat(speed_mps * SIM_DT * cos(heading_deg * DEG_TO_RAD));
+    lon += m_to_deg_lon(speed_mps * SIM_DT * sin(heading_deg * DEG_TO_RAD), lat);
 
-    lat=START_LAT+m_to_deg_lat(mn+nrm_n*off);
-    lon=START_LON+m_to_deg_lon(me+nrm_e*off,lat);
-    heading_deg=heading_from_vec(dir_n*track_dir,dir_e*track_dir)+heading_bias;
+    if(straight_dist >= STRAIGHT_LEN_M){
+      straight_dist = 0.0f;
+      mode = TURN;
 
-    if(hit){
-      target_speed_mps=TURN_TARGET_KTS*KNOTS_TO_MPS;
-      turn_center_lat=lat-m_to_deg_lat(nrm_n*leg_offset_m);
-      turn_center_lon=lon-m_to_deg_lon(nrm_e*leg_offset_m,lat);
-      turn_fwd_n=dir_n*track_dir; turn_fwd_e=dir_e*track_dir;
-      turn_nrm_n=-turn_fwd_e; turn_nrm_e=turn_fwd_n;
-      turn_phi=0; mode=MODE_TURN;
+      target_mps = randf(TURN_MIN_KTS, TURN_MAX_KTS) * KNOTS_TO_MPS;
+
+      const float h = heading_deg * DEG_TO_RAD;
+      turn_dir_n = cos(h);
+      turn_dir_e = sin(h);
+      turn_nrm_n = -turn_dir_e;
+      turn_nrm_e =  turn_dir_n;
+
+      turn_center_lat = lat - m_to_deg_lat(turn_nrm_n * TURN_RADIUS_M);
+      turn_center_lon = lon - m_to_deg_lon(turn_nrm_e * TURN_RADIUS_M, lat);
+
+      turn_phi = 0.0f;
     }
-  } else {
-    turn_phi+=speed_mps/ TURN_RADIUS_M * DT;
+  }
+  else { // TURN
+    turn_phi += speed_mps / TURN_RADIUS_M * SIM_DT;
 
-    if(turn_phi>=M_PI){
-      turn_phi=M_PI;
-      track_dir*=-1;
-      leg_offset_m=-leg_offset_m;
-      exit_blend_ticks=5;
-      mode=MODE_STRAIGHT;
-      return MT_NAV_PVT;   // <- KEY FIX: no straight recompute this tick
+    if(turn_phi >= TURN_ANGLE_RAD){
+      turn_phi = TURN_ANGLE_RAD;
+      mode = STRAIGHT;
+
+      straight_base_mps =
+        randf(STRAIGHT_MIN_KTS, STRAIGHT_MAX_KTS) * KNOTS_TO_MPS;
+
+      target_mps = straight_base_mps;
+      heading_deg = fmodf(heading_deg + TURN_ANGLE_RAD * RAD_TO_DEG, 360.0f);
     }
 
-    const double x=TURN_RADIUS_M*cos(turn_phi);
-    const double y=TURN_RADIUS_M*sin(turn_phi);
-    const double xs=(leg_offset_m>0)?x:-x;
-    const double sl=lateral_noise*0.3;
+    const float x = TURN_RADIUS_M * cos(turn_phi);
+    const float y = TURN_RADIUS_M * sin(turn_phi);
 
-    lat=turn_center_lat+m_to_deg_lat(turn_nrm_n*(xs+sl)+turn_fwd_n*y);
-    lon=turn_center_lon+m_to_deg_lon(turn_nrm_e*(xs+sl)+turn_fwd_e*y,turn_center_lat);
+    lat = turn_center_lat
+        + m_to_deg_lat(turn_nrm_n * x + turn_dir_n * y);
 
-    heading_deg=heading_from_vec(
-      -turn_nrm_n*sin(turn_phi)+turn_fwd_n*cos(turn_phi),
-      -turn_nrm_e*sin(turn_phi)+turn_fwd_e*cos(turn_phi)
-    )+heading_bias;
+    lon = turn_center_lon
+        + m_to_deg_lon(turn_nrm_e * x + turn_dir_e * y, lat);
+
+    heading_deg = atan2(
+      turn_dir_e * cos(turn_phi) - turn_nrm_e * sin(turn_phi),
+      turn_dir_n * cos(turn_phi) - turn_nrm_n * sin(turn_phi)
+    ) * RAD_TO_DEG;
+
+    if(heading_deg < 0) heading_deg += 360.0f;
   }
 
-  const double spd_j=randf(-SPEED_JITTER_MAX,SPEED_JITTER_MAX);
-
-  ubxMessage.navPvt.lat     = lat*1e7;
-  ubxMessage.navPvt.lon     = lon*1e7;
-  ubxMessage.navPvt.gSpeed  = (speed_mps+spd_j)*1000.0;
-  ubxMessage.navPvt.heading = heading_deg*100000.0;
+  // ---------------------------------------------------------------------------
+  // Emit NAV-PVT
+  // ---------------------------------------------------------------------------
+  ubxMessage.navPvt.lat     = lat * 1e7;
+  ubxMessage.navPvt.lon     = lon * 1e7;
+  ubxMessage.navPvt.gSpeed  = speed_mps * 1000.0f;
+  ubxMessage.navPvt.heading = heading_deg * 100000.0f;
 
   return MT_NAV_PVT;
 }
