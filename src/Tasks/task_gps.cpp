@@ -6,7 +6,9 @@
 #include "Ublox/ublox.h"
 #include "Display/E_paper.h"
 #include "Storage/storage_manager.h"
-#include "Storage/storage_session_log.h"
+#include "Storage/storage_file_operations.h"
+
+
 #include "Storage/Geojson.h"
 #include "tasks/task_display.h"
 
@@ -176,10 +178,16 @@ Ublox.push_data(
 // -----------------------------------------------------------------------------
 // Run / gybe detection (KNOTS)
 // -----------------------------------------------------------------------------
-run_count = New_run_detection(
+gps_run_update(
   ubxMessage.navPvt.heading / 100000.0f,
   gps_speed_value * MMPS_TO_KNOTS
 );
+
+run_count = gps_run_current();
+
+if(gps_run_started()){
+  // reset per-run stats here
+}
 
 if (run_count != old_run_count)
   Ublox.run_distance = 0;

@@ -8,9 +8,10 @@
 
 #include "Storage/sbp.h"
 #include "Storage/geojson.h"
+#include <SD_MMC.h>
+
 
 #include "Storage/storage_manager.h"
-#include "Storage/storage_session_log.h"
 
 #include "MANAGERS/config_manager.h"
 #include "core/system_mode.h"

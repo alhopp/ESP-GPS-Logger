@@ -4,6 +4,7 @@
 #include "GPS/GPS_data.h"
 #include "GPS/gps_speed.h"
 #include "GPS/gps_alpha.h"
+#include "GPS/gps_time.h"
 
 // ---------------------------------------------------------------------------
 // Distance & speed (SI units)
@@ -26,7 +27,7 @@ RTC_DATA_ATTR float RTC_1h_knots       = 0.0f;
 RTC_DATA_ATTR float RTC_mile_knots     = 0.0f;
 
 // ---------------------------------------------------------------------------
-// Records (10s rankings)
+// Records (per-run 10s)
 // ---------------------------------------------------------------------------
 RTC_DATA_ATTR float RTC_R1_10s         = 0.0f;
 RTC_DATA_ATTR float RTC_R2_10s         = 0.0f;
@@ -66,37 +67,38 @@ RTC_DATA_ATTR int   RTC_highest_read          = STARTVALUE_HIGHEST_READ;
 // GPS state (RTC cached)
 // ---------------------------------------------------------------------------
 RTC_DATA_ATTR bool    RTC_gps_valid       = false;
-RTC_DATA_ATTR uint8_t RTC_gps_baud_index  = 0;   // index into baud table
+RTC_DATA_ATTR uint8_t RTC_gps_baud_index  = 0;
 
 
+// ---------------------------------------------------------------------------
+// Snapshot all performance stats to RTC + Serial
+// ---------------------------------------------------------------------------
 void rtc_snapshot_stats()
 {
   Serial.println("\n================ RTC SNAPSHOT STATS ================");
 
   // -------------------------------------------------------------------------
-  // 2 sec
+  // 2 second (session best)
   // -------------------------------------------------------------------------
-  RTC_max_2s_knots = (double)S2.avg_speed[9];
+  RTC_max_2s_knots = S2.s_max_speed;
   Serial.printf("2s max          : %.3f kn\n", RTC_max_2s_knots);
 
   // -------------------------------------------------------------------------
-  // Average 5 x 10 sec + Best 10s runs
+  // Per-run 10s + average of best 5 runs
   // -------------------------------------------------------------------------
-  RTC_avg_10s_knots = (double)S10.avg_5runs;
+  float sum5 = 0.0f;
+  int   used = 0;
 
-  RTC_R1_10s = S10.avg_speed[9];
-  RTC_R2_10s = S10.avg_speed[8];
-  RTC_R3_10s = S10.avg_speed[7];
-  RTC_R4_10s = S10.avg_speed[6];
-  RTC_R5_10s = S10.avg_speed[5];
+  Serial.println("10s best per run:");
 
-  Serial.printf("10s avg (5 runs): %.3f kn\n", RTC_avg_10s_knots);
-  Serial.println("10s best runs   :");
-  Serial.printf("  R1            : %.3f kn\n", RTC_R1_10s);
-  Serial.printf("  R2            : %.3f kn\n", RTC_R2_10s);
-  Serial.printf("  R3            : %.3f kn\n", RTC_R3_10s);
-  Serial.printf("  R4            : %.3f kn\n", RTC_R4_10s);
-  Serial.printf("  R5            : %.3f kn\n", RTC_R5_10s);
+  if(S10.run_count >= 1){ RTC_R1_10s = S10.best_10s_per_run[1]; Serial.printf("  R1            : %.3f kn\n", RTC_R1_10s); sum5 += RTC_R1_10s; used++; }
+  if(S10.run_count >= 2){ RTC_R2_10s = S10.best_10s_per_run[2]; Serial.printf("  R2            : %.3f kn\n", RTC_R2_10s); sum5 += RTC_R2_10s; used++; }
+  if(S10.run_count >= 3){ RTC_R3_10s = S10.best_10s_per_run[3]; Serial.printf("  R3            : %.3f kn\n", RTC_R3_10s); sum5 += RTC_R3_10s; used++; }
+  if(S10.run_count >= 4){ RTC_R4_10s = S10.best_10s_per_run[4]; Serial.printf("  R4            : %.3f kn\n", RTC_R4_10s); sum5 += RTC_R4_10s; used++; }
+  if(S10.run_count >= 5){ RTC_R5_10s = S10.best_10s_per_run[5]; Serial.printf("  R5            : %.3f kn\n", RTC_R5_10s); sum5 += RTC_R5_10s; used++; }
+
+  RTC_avg_10s_knots = (used > 0) ? (sum5 / used) : 0.0f;
+  Serial.printf("10s avg (best %d): %.3f kn\n", used, RTC_avg_10s_knots);
 
   // -------------------------------------------------------------------------
   // Mile / Alpha / 1 hour

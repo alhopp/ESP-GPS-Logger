@@ -1,12 +1,12 @@
 // ============================================================================
 // gps_run.cpp
 //
-// LEGACY Run + jibe detection
+// AUTHORITATIVE run + jibe detection
+// - Owns run numbering
+// - Owns jibe detection
+// - Stateless to callers (push model)
 //
-// RESPONSIBILITY:
-// - Detect new runs (standstill + delay)
-// - Detect jibes (heading deviation from mean while straight-course locked)
-// - Increment alfa_counter on jibe (legacy alpha trigger)
+// Call gps_run_update() once per GPS sample
 // ============================================================================
 
 #include "GPS/gps_run.h"
@@ -23,80 +23,75 @@
 extern int index_GPS;
 extern int alfa_counter;
 
-// ============================================================================
-// New_run_detection  (legacy behaviour)
-// ============================================================================
-// Inputs:
-// - actual_heading : degrees (can be unwrapped negative, legacy-safe)
-// - speed_kn       : knots
-int New_run_detection(float actual_heading, float speed_kn)
+// -----------------------------------------------------------------------------
+// Tunables (legacy values preserved)
+// -----------------------------------------------------------------------------
+static constexpr float SPEED_DETECTION_MIN       = 7.5f;   // kn
+static constexpr float STANDSTILL_DETECTION_MAX  = 2.0f;   // kn
+static constexpr int   MEAN_HEADING_TIME         = 15;     // s
+static constexpr float STRAIGHT_COURSE_MAX_DEV   = 10.0f;  // deg
+static constexpr float JIBE_COURSE_DEVIATION_MIN = 50.0f;  // deg
+
+// -----------------------------------------------------------------------------
+// Internal persistent state (AUTHORITATIVE)
+// -----------------------------------------------------------------------------
+static float old_heading   = 0.0f;
+static float delta_heading = 0.0f;
+static float heading       = 0.0f;
+
+
+static uint32_t delay_counter = 0;
+static int      run_counter   = 0;
+
+static bool velocity_0      = false;
+static bool velocity_5      = false;
+static bool straight_course = false;
+
+// Per-sample flags
+static bool run_started_flag = false;
+static bool run_ended_flag   = false;
+
+// Jibe info
+static int last_jibe_idx = -1;
+
+// -----------------------------------------------------------------------------
+// Public API
+// -----------------------------------------------------------------------------
+void gps_run_update(float heading_deg, float speed_kn)
 {
-  const float SPEED_DETECTION_MIN       = 7.5f;   // kn
-  const float STANDSTILL_DETECTION_MAX  = 2.0f;   // kn
-  const int   MEAN_HEADING_TIME         = 15;     // seconds
-  const float STRAIGHT_COURSE_MAX_DEV   = 10.0f;  // deg
-  const float JIBE_COURSE_DEVIATION_MIN = 50.0f;  // deg
-
-  static float old_heading   = 0.0f;
-  static float delta_heading = 0.0f;
-  static float heading       = 0.0f;
-
-  static uint32_t delay_counter = 0;
-  static int      run_counter   = 0;
-
-  static bool velocity_0      = false;
-  static bool velocity_5      = false;
-  static bool straight_course = false;
+  run_started_flag = false;
+  run_ended_flag   = false;
 
   // ---------------------------------------------------------------------------
-  // Heading unwrap (legacy)
+  // Heading unwrap (legacy-safe)
   // ---------------------------------------------------------------------------
-  if((actual_heading - old_heading) > 300.0f)  delta_heading -= 360.0f;
-  if((actual_heading - old_heading) < -300.0f) delta_heading += 360.0f;
+  if((heading_deg - old_heading) > 300.0f)  delta_heading -= 360.0f;
+  if((heading_deg - old_heading) < -300.0f) delta_heading += 360.0f;
 
-  old_heading = actual_heading;
-  heading     = actual_heading + delta_heading;
+  old_heading = heading_deg;
+  heading     = heading_deg + delta_heading;
   heading_SD  = heading;
 
   // ---------------------------------------------------------------------------
-  // Mean heading (15s EWMA-ish legacy filter)
+  // Mean heading (EWMA over MEAN_HEADING_TIME)
   // ---------------------------------------------------------------------------
-  const float N = (float)MEAN_HEADING_TIME * (float)systemInfo.sample_rate;
+  const float N = MEAN_HEADING_TIME * systemInfo.sample_rate;
   Mean_heading = Mean_heading * (N - 1.0f) / N + heading / N;
-
-  // ---------------------------------------------------------------------------
-  // DEBUG heartbeat (~1 Hz)
-  // ---------------------------------------------------------------------------
-  static uint32_t lastPrint = 0;
-  if(millis() - lastPrint > 1000){
-    lastPrint = millis();
-    Serial.printf("[RUN] spd=%.2fkn hdg=%.1f mean=%.1f sc=%d v5=%d v0=%d run=%d alfa=%d idx=%d\n",
-      speed_kn, heading, Mean_heading,
-      (int)straight_course, (int)velocity_5, (int)velocity_0,
-      run_counter, alfa_counter, index_GPS
-    );
-  }
 
   // ---------------------------------------------------------------------------
   // Speed gating
   // ---------------------------------------------------------------------------
-  if(speed_kn > SPEED_DETECTION_MIN){
-    if(!velocity_5) Serial.println("[RUN] Speed gate OPEN (velocity_5)");
-    velocity_5 = true;
-  }
+  if(speed_kn > SPEED_DETECTION_MIN) velocity_5 = true;
 
-  if(speed_kn < STANDSTILL_DETECTION_MAX && velocity_5){
-    if(!velocity_0) Serial.println("[RUN] Standstill detected (velocity_0)");
+  if(speed_kn < STANDSTILL_DETECTION_MAX && velocity_5)
     velocity_0 = true;
-  }
 
-  // Restart after standstill
+  // Restart after standstill → arm delayed new run
   if(velocity_0 && speed_kn > SPEED_DETECTION_MIN){
-    Serial.println("[RUN] Restart after standstill → new run after delay");
-    velocity_0       = false;
-    velocity_5       = false;
-    straight_course  = false;
-    delay_counter    = (TIME_DELAY_NEW_RUN - 1) * systemInfo.sample_rate;
+    velocity_0      = false;
+    velocity_5      = false;
+    straight_course = false;
+    delay_counter   = (TIME_DELAY_NEW_RUN - 1) * systemInfo.sample_rate;
   }
 
   // ---------------------------------------------------------------------------
@@ -105,30 +100,38 @@ int New_run_detection(float actual_heading, float speed_kn)
   if(fabsf(Mean_heading - heading) < STRAIGHT_COURSE_MAX_DEV &&
      speed_kn > SPEED_DETECTION_MIN)
   {
-    if(!straight_course) Serial.println("[RUN] Straight course LOCKED");
     straight_course = true;
   }
 
   // ---------------------------------------------------------------------------
-  // Jibe detection (legacy)
+  // Jibe detection
   // ---------------------------------------------------------------------------
   if(fabsf(Mean_heading - heading) > JIBE_COURSE_DEVIATION_MIN && straight_course)
   {
     straight_course = false;
     delay_counter   = 0;
 
-    alfa_counter++; // legacy alpha trigger
-    Serial.printf("[RUN] >>> JIBE DETECTED (alfa=%d) <<<\n", alfa_counter);
+    alfa_counter++;
+    last_jibe_idx = index_GPS;
   }
 
   // ---------------------------------------------------------------------------
-  // Run counter (delay based)
+  // Run counter (delay-based, legacy timing)
   // ---------------------------------------------------------------------------
   delay_counter++;
   if(delay_counter == (uint32_t)(TIME_DELAY_NEW_RUN * systemInfo.sample_rate)){
     run_counter++;
-    Serial.printf("[RUN] *** NEW RUN %d ***\n", run_counter);
+    run_started_flag = true;
   }
-
-  return run_counter;
 }
+
+// -----------------------------------------------------------------------------
+// Queries
+// -----------------------------------------------------------------------------
+int gps_run_current(){ return run_counter; }
+
+bool gps_run_started(){ return run_started_flag; }
+
+bool gps_run_ended(){ return run_ended_flag; } // reserved for future use
+
+int gps_run_last_jibe_index(){ return last_jibe_idx; }

@@ -159,56 +159,7 @@ namespace {
     display.fillRect(0, line + 2, col3 - 10, 2, GxEPD_BLACK);
   }
 
-  static void draw_STATS7_graph()
-  {
-    Serial.println("STATS7_Simon_bar graph");
-
-    const int posX = 5;
-    const int posY = 0;
-    const int GraphWidth = 215;
-
-    const int MaxBars = NR_OF_BAR;
-    int barSpace = 2, barWidth = 3, barPitch;
-    static int r;
-
-    int top = cal(S10.display_speed[9]);
-    int max_bar = max(int(top / 5 + 1) * 5, 24);
-    int step = (max_bar > 45) ? 5 : 3;
-    int min_bar = max_bar - step * 8;
-    float scale = 80.0f / (max_bar - min_bar);
-
-    display.setFont(Fonts::Body9);
-    display.setCursor(0, 15);
-    display.println("Graph : Speed runs (10sec)");
-
-    r = run_count % MaxBars + 1;
-
-    display.setFont(Fonts::Small6);
-    for (int i = 0; i < 9; i++) {
-      int y = posY - i * 10;
-      display.fillRect(ui_offset + posX, y, GraphWidth, 1, GxEPD_BLACK);
-      display.setCursor(ui_offset + 225, y);
-      display.print(min_bar + i * step);
-    }
-
-    display.setCursor(0, 26);
-    display.print("R1-R5:");
-    for (int i = 9; i > 4; i--) {
-      display.print(cal(S10.display_speed[i]));
-      if (i > 5) display.print(" ");
-    }
-    display.println();
-
-    int bars = (run_count < MaxBars) ? r : MaxBars;
-    barWidth = max((GraphWidth - bars * barSpace) / bars, 3);
-    barPitch = barWidth + barSpace;
-
-    for (int i = 0; i < bars; i++) {
-      int idx = (run_count < MaxBars) ? i : (i + r) % MaxBars;
-      int h = (cal(S10.speed_run[idx]) - min_bar) * scale;
-      display.fillRect(ui_offset + posX + i * barPitch, posY - h, barWidth, h, GxEPD_BLACK);
-    }
-  }
+ 
 
 } // namespace
 
@@ -366,7 +317,7 @@ void draw_STATS(uint8_t page)
     // 7 = old draw_STATS7
     // -----------------------------------------------------------------------
     case 7:
-      draw_STATS7_graph();
+      //draw_STATS7_graph();
       break;
 
     // -----------------------------------------------------------------------
