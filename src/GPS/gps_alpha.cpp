@@ -53,7 +53,7 @@ Alfa_speed::Alfa_speed(int alfa_radius)
 
   old_run_count = -1;
 
-  Serial.printf("[ALFA] ctor radius=%dm\n", alfa_radius);
+  //Serial.printf("[ALFA] ctor radius=%dm\n", alfa_radius);
 }
 
 
@@ -106,14 +106,14 @@ float Alfa_speed::Update_Alfa(const GPS_speed& M)
   // ---------------------------------------------------------------------------
   // Heartbeat: prove alpha is alive
   // ---------------------------------------------------------------------------
-  if(millis() - tBeat > 1000){
-    tBeat = millis();
-    Serial.printf(
-      "[ALFA] tick idx=%d run=%d alfa=%d M.idx=%d M.samp=%d spd_alfa=%.2f\n",
-      index_GPS, run_count, alfa_counter,
-      M.m_index, M.m_sample, (float)M.m_speed_alfa
-    );
-  }
+ // if(millis() - tBeat > 1000){
+ //   tBeat = millis();
+ //   Serial.printf(
+ //     "[ALFA] tick idx=%d run=%d alfa=%d M.idx=%d M.samp=%d spd_alfa=%.2f\n",
+ //     index_GPS, run_count, alfa_counter,
+ //     M.m_index, M.m_sample, (float)M.m_speed_alfa
+ //   );
+ // }
 
   const int exit  = index_GPS;
   const int entry = M.m_index + 1;
@@ -132,10 +132,10 @@ float Alfa_speed::Update_Alfa(const GPS_speed& M)
     {
       const float speed = (float)M.m_speed_alfa;
 
-      Serial.printf(
-        "[ALFA] geom OK entry=%d exit=%d closure=%.1fm spd=%.2f\n",
-        entry, exit, sqrt(d2), speed
-      );
+    //  Serial.printf(
+    //    "[ALFA] geom OK entry=%d exit=%d closure=%.1fm spd=%.2f\n",
+    //    entry, exit, sqrt(d2), speed
+    //  );
 
       if(speed > alfa_speed_max)
       {
@@ -154,14 +154,14 @@ float Alfa_speed::Update_Alfa(const GPS_speed& M)
         message_nr[0]    = nav_pvt_message;
         alfa_distance[0] = (int)(M.m_distance_alfa / systemInfo.sample_rate);
 
-        Serial.printf(
-          "[ALFA] NEW BEST alfa=%d closure=%dm best=%.2fkn dist=%dm\n",
-          alfa_counter,
-          real_distance[0],
-          alfa_speed_max,
-          alfa_distance[0]
-        );
-      }
+       // Serial.printf(
+       //   "[ALFA] NEW BEST alfa=%d closure=%dm best=%.2fkn dist=%dm\n",
+       //   alfa_counter,
+       //   real_distance[0],
+       //   alfa_speed_max,
+       //   alfa_distance[0]
+       // );
+     // }
     }
   }
 
@@ -170,12 +170,12 @@ float Alfa_speed::Update_Alfa(const GPS_speed& M)
   // ---------------------------------------------------------------------------
   if(run_count != old_run)
   {
-    if(old_run >= 0 && alfa_speed_max > 0.0f)
-    {
-      Serial.printf(
-        "[ALFA] FINAL run=%d best=%.2fkn\n",
-        old_run, alfa_speed_max
-      );
+    //if(old_run >= 0 && alfa_speed_max > 0.0f)
+   // {
+    //  Serial.printf(
+    //    "[ALFA] FINAL run=%d best=%.2fkn\n",
+    //    old_run, alfa_speed_max
+    //  );
 
       sort_run_results(
         avg_speed,
@@ -212,7 +212,7 @@ void Alfa_speed::Reset_stats()
   for(int i=0;i<10;i++) avg_speed[i] = 0.0f;
   alfa_speed     = 0.0f;
   alfa_speed_max = 0.0f;
-  Serial.println("[ALFA] RESET");
+//  Serial.println("[ALFA] RESET");
 }
 
 void Alfa_speed::Finalise_Run()

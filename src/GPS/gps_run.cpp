@@ -3,19 +3,12 @@
 //
 // AUTHORITATIVE run detection (GPS Speedreader aligned)
 //
-// KEY IDEA (fix for "one run only"):
-// - Do NOT use Mean_heading deviation as the primary straight/turn discriminator.
-//   After a 190° turn, an EWMA mean lags and can prevent reacquiring "straight".
-// - Use TURN RATE (deg/sec) with persistence instead.
+// DEBUG UPDATE:
+// - Print sample index when straight persistence starts
+// - Print sample index when turn persistence starts
+// - Print persistence origin on RUN START / RUN END
 //
-// Run definition:
-// - Run starts when speed is above threshold AND turn-rate stays low (straight)
-// - Run ends when turn-rate stays high (committed turn) OR speed drops to stop
-//
-// DEBUG:
-// - Prints run start/end with GPS sample index and turn-rate
-//
-// Call gps_run_update() once per GPS sample
+// NO LOGIC CHANGES — diagnostics only
 // ============================================================================
 
 #include "GPS/gps_run.h"
@@ -39,8 +32,8 @@ static constexpr float SPEED_START_MIN          = 7.5f;   // kn
 static constexpr float SPEED_STOP_MAX           = 2.0f;   // kn
 
 // Turn-rate thresholds (deg/sec)
-static constexpr float START_MAX_TURN_RATE_DPS  = 4.0f;   // "straight enough" to start
-static constexpr float END_MIN_TURN_RATE_DPS    = 12.0f;  // "committed turn" to end
+static constexpr float START_MAX_TURN_RATE_DPS  = 4.0f;   // "straight enough"
+static constexpr float END_MIN_TURN_RATE_DPS    = 12.0f;  // "committed turn"
 
 // Persistence (samples @ sample_rate)
 static constexpr int   START_PERSIST_SAMPLES    = 8;      // ~1.6s @ 5Hz
@@ -57,6 +50,10 @@ static int   run_counter = 0;
 
 static int   straight_persist = 0;
 static int   turn_persist     = 0;
+
+// Debug persistence origins
+static int straight_candidate_idx = -1;
+static int turn_candidate_idx     = -1;
 
 // Per-sample flags
 static bool run_started_flag = false;
@@ -90,9 +87,10 @@ void gps_run_update(float heading_deg, float speed_kn)
     return;
   }
 
-  const float sr = (systemInfo.sample_rate > 0) ? (float)systemInfo.sample_rate : 5.0f;
+  const float sr = (systemInfo.sample_rate > 0)
+                 ? (float)systemInfo.sample_rate
+                 : 5.0f;
 
-  // Turn-rate (deg/sec)
   const float dH = fabsf(angdiff_deg(heading_deg, prev_heading_deg));
   const float turn_rate_dps = dH * sr;
 
@@ -104,13 +102,17 @@ void gps_run_update(float heading_deg, float speed_kn)
   if(speed_kn < SPEED_STOP_MAX){
     straight_persist = 0;
     turn_persist     = 0;
+    straight_candidate_idx = -1;
+    turn_candidate_idx     = -1;
 
     if(in_run){
       in_run = false;
       run_ended_flag = true;
 
-      Serial.printf("[RUN END ] #%d @ sample %d  REASON=STOP  spd=%.2f kn  rate=%.1f dps\n",
-                    run_counter, index_GPS, speed_kn, turn_rate_dps);
+      Serial.printf(
+        "[RUN END ] #%d @ sample %d  REASON=STOP  spd=%.2f kn  rate=%.1f dps\n",
+        run_counter, index_GPS, speed_kn, turn_rate_dps
+      );
     }
     return;
   }
@@ -126,10 +128,35 @@ void gps_run_update(float heading_deg, float speed_kn)
     (turn_rate_dps >= END_MIN_TURN_RATE_DPS);
 
   // ---------------------------------------------------------------------------
-  // Build persistence
+  // Build persistence (with diagnostics)
   // ---------------------------------------------------------------------------
-  if(straight_now) straight_persist++; else straight_persist = 0;
-  if(turning_now)  turn_persist++;     else turn_persist     = 0;
+  if(straight_now){
+    if(straight_persist == 0){
+      straight_candidate_idx = index_GPS;
+      Serial.printf(
+        "[STRAIGHT ?] sample=%d  spd=%.2f kn  rate=%.1f dps\n",
+        index_GPS, speed_kn, turn_rate_dps
+      );
+    }
+    straight_persist++;
+  }else{
+    straight_persist = 0;
+    straight_candidate_idx = -1;
+  }
+
+  if(turning_now){
+    if(turn_persist == 0){
+      turn_candidate_idx = index_GPS;
+      Serial.printf(
+        "[TURN ?]     sample=%d  spd=%.2f kn  rate=%.1f dps\n",
+        index_GPS, speed_kn, turn_rate_dps
+      );
+    }
+    turn_persist++;
+  }else{
+    turn_persist = 0;
+    turn_candidate_idx = -1;
+  }
 
   // ---------------------------------------------------------------------------
   // RUN START (requires sustained straight)
@@ -139,11 +166,16 @@ void gps_run_update(float heading_deg, float speed_kn)
     run_counter++;
     run_started_flag = true;
 
-    // Clear turn persistence so we don't instantly end on noisy boundary
-    turn_persist = 0;
+    turn_persist = 0;   // prevent instant end
 
-    Serial.printf("[RUN START] #%d @ sample %d  spd=%.2f kn  rate=%.1f dps  (persist=%d)\n",
-                  run_counter, index_GPS, speed_kn, turn_rate_dps, straight_persist);
+    Serial.printf(
+      "[RUN START] #%d @ sample %d  straight_since=%d  spd=%.2f kn  rate=%.1f dps\n",
+      run_counter,
+      index_GPS,
+      straight_candidate_idx,
+      speed_kn,
+      turn_rate_dps
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -156,12 +188,17 @@ void gps_run_update(float heading_deg, float speed_kn)
     alfa_counter++;
     last_jibe_idx = index_GPS;
 
-    // Clear straight persistence so we don't instantly start again mid-turn
     straight_persist = 0;
     turn_persist     = 0;
 
-    Serial.printf("[RUN END ] #%d @ sample %d  REASON=TURN  spd=%.2f kn  rate=%.1f dps  (persist=%d)\n",
-                  run_counter, index_GPS, speed_kn, turn_rate_dps, END_PERSIST_SAMPLES);
+    Serial.printf(
+      "[RUN END ] #%d @ sample %d  turn_since=%d  spd=%.2f kn  rate=%.1f dps\n",
+      run_counter,
+      index_GPS,
+      turn_candidate_idx,
+      speed_kn,
+      turn_rate_dps
+    );
   }
 }
 
