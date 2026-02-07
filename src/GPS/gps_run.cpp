@@ -33,7 +33,7 @@ static constexpr float SPEED_STOP_MAX           = 2.0f;   // kn
 
 // Turn-rate thresholds (deg/sec)
 static constexpr float START_MAX_TURN_RATE_DPS  = 4.0f;   // "straight enough"
-static constexpr float END_MIN_TURN_RATE_DPS    = 12.0f;  // "committed turn"
+static constexpr float END_MIN_TURN_RATE_DPS    = 10.0f;  // "committed turn"
 
 // Persistence (samples @ sample_rate)
 static constexpr int   START_PERSIST_SAMPLES    = 8;      // ~1.6s @ 5Hz
