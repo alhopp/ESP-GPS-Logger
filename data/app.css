@@ -35,9 +35,6 @@ h3{margin:0 0 10px;font-size:18px;color:var(--a);display:flex;align-items:center
 label{display:block;margin-top:10px;font-size:14px;color:var(--f)}
 input,select{width:100%;margin-top:4px;padding:12px;font-size:17px;border:1px solid var(--e);border-radius:10px;background:#fff}
 
-
-
-
 /* ================= FILES ================= */
 
 .file-list{flex:0 0 auto}
@@ -52,11 +49,8 @@ input,select{width:100%;margin-top:4px;padding:12px;font-size:17px;border:1px so
 .file-size{font-size:13px;color:var(--f)}
 section#files.a~footer{display:none}
 
-/* Files: no press-scale (prevents jump) */
-#files .card:active{
-  transform:none;
-  box-shadow:var(--sh); /* optional: keep original shadow */
-}
+/* Files: no press-scale */
+#files .card:active{transform:none;box-shadow:var(--sh)}
 
 /* ================= SETTINGS ================= */
 
@@ -80,8 +74,7 @@ section#settings{padding-bottom:200px;scroll-padding-bottom:200px}
 .sys-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--e)}
 .sys-row span:last-child{font-weight:700}
 section#system.a~footer{display:none}
-#system .card .sys-row:last-child{border-bottom:0;padding-bottom:0;}
-
+#system .card .sys-row:last-child{border-bottom:0;padding-bottom:0}
 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center}
 .modal.show{display:flex}
@@ -99,4 +92,30 @@ footer button:active{transform:scale(.97)}
   body{background:var(--c)}
   .card{box-shadow:0 12px 26px rgba(0,0,0,.28)}
   input,select{background:#0b1220;color:#e9eff7}
+}
+
+/* ======================================================================
+   FIXES — MAP + STATS INTERACTION (CRITICAL)
+   ====================================================================== */
+
+/* Pane handles ONLY horizontal swipe (sessions) */
+.session-pane{
+  pointer-events:auto;
+  touch-action:pan-x;
+}
+
+/* Stats must always receive taps */
+.stats-grid,
+.stat,
+.stat *{
+  pointer-events:auto !important;
+  touch-action:manipulation;
+}
+
+.stat{cursor:pointer}
+
+/* Prevent iOS scroll/tap suppression inside map section */
+section#map{
+  overflow:hidden !important;
+  -webkit-overflow-scrolling:auto !important;
 }
