@@ -14,7 +14,11 @@
 // - Per-run bests (display support only)
 // - Ranked top-10 results
 // - Avg of best 5 × 10s
+//
+// ALSO EXPORTS
+// - Geometry window indices for GeoJSON generation
 // ============================================================================
+
 class GPS_time {
 public:
   explicit GPS_time(int tijdvenster);
@@ -22,7 +26,6 @@ public:
   // ---------------- per-run (10s only) ----------------
   float best_10s_per_run[32];   // best 10s per completed run
   int   run_count;              // highest run index seen
-
 
   // Update statistics for the current run
   // Returns session-level best for this window (knots)
@@ -63,3 +66,24 @@ extern GPS_time S2;     // 2-second window (session best)
 extern GPS_time S10;    // 10-second window
 extern GPS_time S1800;  // 30-minute window (if used)
 extern GPS_time S3600;  // 1-hour window
+
+// ============================================================================
+// Geometry window exports (USED BY STORAGE / GEOJSON)
+// All indices are GPS sample indices unless stated otherwise.
+// A value of -1 means "not valid / not available".
+// ============================================================================
+
+// ---- 2s window (GPS index domain) ----
+extern int win_2s_start;
+extern int win_2s_end;
+
+// ---- 10s window (GPS index domain) ---
+extern int win_10s_start;
+extern int win_10s_end;
+
+// ---- 1h window (SECOND index domain) --
+extern int win_1h_start_sec;
+extern int win_1h_end_sec;
+
+// ---- Second → GPS index mapping ------
+extern int sec_to_gps_index[];

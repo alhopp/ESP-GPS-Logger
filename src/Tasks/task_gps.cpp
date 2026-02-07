@@ -9,7 +9,7 @@
 #include "Storage/storage_file_operations.h"
 
 
-#include "Storage/Geojson.h"
+#include "Storage/geojson.h"
 #include "tasks/task_display.h"
 
 #include "GPS/gps_simulator.h"

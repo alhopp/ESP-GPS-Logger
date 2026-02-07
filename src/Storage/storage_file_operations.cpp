@@ -10,7 +10,6 @@
 #include "Storage/geojson.h"
 #include <SD_MMC.h>
 
-
 #include "Storage/storage_manager.h"
 
 #include "MANAGERS/config_manager.h"
@@ -22,6 +21,9 @@
 #include "Core/system_info.h"
 #include "Core/rtc_state.h"
 
+#include "GPS/gps_speed.h"
+#include "GPS/gps_time.h"
+#include "GPS/gps_alpha.h"
 
 #include <esp_system.h>
 
@@ -43,7 +45,10 @@ char filenameERR[128]="/", filenameUBX[128]="/", filenameSBP[128]="/", filenameG
 // -----------------------------------------------------------------------------
 void Open_files(void)
 {
-  if(storage_shutting_down||!Time_Set_OK){ LOG_STORAGE("Open_files","called without valid GPS time"); return; }
+  if(storage_shutting_down || !Time_Set_OK){
+    LOG_STORAGE("Open_files","called without valid GPS time");
+    return;
+  }
 
   if(!SD_MMC.exists("/logs")) SD_MMC.mkdir("/logs");
   getLocalTime(&tmstruct);
@@ -51,7 +56,6 @@ void Open_files(void)
   uint64_t chipMac = 0;
   esp_efuse_mac_get_default((uint8_t*)&chipMac);
 
-  // Extract last 3 bytes (NIC portion)
   uint8_t mac3 = (chipMac >> 16) & 0xFF;
   uint8_t mac4 = (chipMac >> 8)  & 0xFF;
   uint8_t mac5 = (chipMac)       & 0xFF;
@@ -62,9 +66,11 @@ void Open_files(void)
     mac3, mac4, mac5,
     tmstruct.tm_year + 1900,
     tmstruct.tm_mon  + 1,
-    tmstruct.tm_mday, tmstruct.tm_hour, tmstruct.tm_min, tmstruct.tm_sec
+    tmstruct.tm_mday,
+    tmstruct.tm_hour,
+    tmstruct.tm_min,
+    tmstruct.tm_sec
   );
-
 
   snprintf(path,sizeof(path),"/logs/%s",base);
 
@@ -73,10 +79,18 @@ void Open_files(void)
   snprintf(filenameSBP,sizeof(filenameSBP),"%s.sbp",path);
   snprintf(filenameGEO,sizeof(filenameGEO),"%s.geojson",path);
 
-  if(config.logUBX)  ubxfile=SD_MMC.open(filenameUBX,FILE_APPEND);
-  if(config.logSBP){ sbpfile=SD_MMC.open(filenameSBP,FILE_WRITE); if(sbpfile.size()==0) log_header_SBP(sbpfile); }
+  if(config.logUBX)
+    ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
 
+  if(config.logSBP){
+    sbpfile = SD_MMC.open(filenameSBP, FILE_WRITE);
+    if(sbpfile.size()==0)
+      log_header_SBP(sbpfile);
+  }
+
+  // ---- GeoJSON base track ----
   geojson_begin(filenameGEO);
+  geojson_begin_feature("track");
 
   LOG_STORAGE("LOG","Session started %s",base);
 }
@@ -86,13 +100,14 @@ void Open_files(void)
 // -----------------------------------------------------------------------------
 void Flush_files(void)
 {
-  if(storage_shutting_down||systemInfo.sample_rate>10) return;
+  if(storage_shutting_down || systemInfo.sample_rate > 10) return;
+
   static uint8_t lb=0;
   switch(lb){
-    case 0: if(ubxfile)   ubxfile.flush();   break;
-    case 3: if(sbpfile)   sbpfile.flush();   break;
+    case 0: if(ubxfile) ubxfile.flush(); break;
+    case 3: if(sbpfile) sbpfile.flush(); break;
   }
-  lb=(lb+1)%5;
+  lb = (lb + 1) % 5;
 }
 
 // -----------------------------------------------------------------------------
@@ -100,52 +115,96 @@ void Flush_files(void)
 // -----------------------------------------------------------------------------
 void Log_to_SD(void)
 {
-  if(storage_shutting_down||!Time_Set_OK) return;
+  if(storage_shutting_down || !Time_Set_OK) return;
 
-  if(config.logUBX&&ubxfile){
+  if(config.logUBX && ubxfile){
     ubxfile.write(0xB5); ubxfile.write(0x62);
     ubxfile.write((const uint8_t*)&ubxMessage.navPvt,sizeof(ubxMessage.navPvt));
 
     static int old_sat=0;
-    if(nav_sat_message!=old_sat){
-      old_sat=nav_sat_message;
+    if(nav_sat_message != old_sat){
+      old_sat = nav_sat_message;
       ubxfile.write(0xB5); ubxfile.write(0x62);
-      ubxfile.write((const uint8_t*)&ubxMessage.navSat,(ubxMessage.navSatHdr.len+6));
+      ubxfile.write(
+        (const uint8_t*)&ubxMessage.navSat,
+        (ubxMessage.navSatHdr.len + 6)
+      );
     }
   }
 
-  if(config.logUBX_nav_sat&&ubxfile){
+  if(config.logUBX_nav_sat && ubxfile){
     ubxfile.write(0xB5); ubxfile.write(0x62);
     ubxfile.write((const uint8_t*)&ubxMessage.navDOP,sizeof(ubxMessage.navDOP));
   }
 
-  if(config.logSBP&&sbpfile&&getMode()==MODE_LOGGING){
-    uint32_t itow=ubxMessage.navPvt.iTOW;
-    if(itow!=last_sbp_iTOW){ last_sbp_iTOW=itow; log_SBP(sbpfile); }
+  if(config.logSBP && sbpfile && getMode()==MODE_LOGGING){
+    uint32_t itow = ubxMessage.navPvt.iTOW;
+    if(itow != last_sbp_iTOW){
+      last_sbp_iTOW = itow;
+      log_SBP(sbpfile);
+    }
   }
 }
 
 // -----------------------------------------------------------------------------
-// Close files cleanly
+// Close files cleanly + write derived GeoJSON features
 // -----------------------------------------------------------------------------
 void Close_files(void)
 {
- // ---- Final session stats (RTC snapshot) ----
- GeoJSONStats s {
-    .nm       = RTC_mile_knots,          // avg speed over 1 NM
+  // ---- Final session stats (SET FIRST) ----
+  GeoJSONStats s {
+    .nm       = RTC_mile_knots,
     .alpha    = RTC_alp_knots,
     .h1       = RTC_1h_knots,
     .max      = RTC_max_2s_knots,
     .avg10    = RTC_avg_10s_knots,
-    .distance = RTC_distance 
+    .distance = RTC_distance
   };
-
-
   geojson_set_stats(s);
 
+  // ---- Finish base track (stats written here) ----
+  geojson_end_feature();
+
+  // ============================================================
+  // DERIVED LINESTRINGS
+  // ============================================================
+
+  if(win_2s_start >= 0 && win_2s_end >= win_2s_start){
+    geojson_begin_feature("2s");
+    for(int i = win_2s_start; i <= win_2s_end; i++)
+      geojson_add_point(_lat[i], _long[i]);
+    geojson_end_feature();
+  }
+
+  if(win_10s_start >= 0 && win_10s_end >= win_10s_start){
+    geojson_begin_feature("10s");
+    for(int i = win_10s_start; i <= win_10s_end; i++)
+      geojson_add_point(_lat[i], _long[i]);
+    geojson_end_feature();
+  }
+
+  if(alpha_start >= 0 && alpha_end >= alpha_start){
+    geojson_begin_feature("alpha");
+    for(int i = alpha_start; i <= alpha_end; i++)
+      geojson_add_point(_lat[i], _long[i]);
+    geojson_end_feature();
+  }
+
+  if(win_nm_start >= 0 && win_nm_end >= win_nm_start){
+    geojson_begin_feature("nm");
+    for(int i = win_nm_start; i <= win_nm_end; i++)
+      geojson_add_point(_lat[i], _long[i]);
+    geojson_end_feature();
+  }
+
+  if(win_1h_start_sec >= 0 && win_1h_end_sec > win_1h_start_sec){
+    geojson_begin_feature("1h");
+    for(int s = win_1h_start_sec; s <= win_1h_end_sec; s++){
+      int idx = sec_to_gps_index[s];
+      geojson_add_point(_lat[idx], _long[idx]);
+    }
+    geojson_end_feature();
+  }
+
   geojson_end();
-
-  if(sbpfile){ sbpfile.flush(); sbpfile.close(); sbpfile=File(); LOG_STORAGE("SBP","Closed cleanly"); }
-  if(ubxfile){ ubxfile.flush(); ubxfile.close(); ubxfile=File(); LOG_STORAGE("UBX","Closed cleanly"); }
-
 }

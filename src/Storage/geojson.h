@@ -5,21 +5,20 @@
 
 // -----------------------------------------------------------------------------
 // GeoJSON session writer
-//
-// Responsibilities:
-// - Create one GeoJSON FeatureCollection per session
-// - Append GPS points incrementally
-// - Finalise valid JSON on close
-//
-// Notes:
-// - Coordinates are written as [lon, lat]
-// - No dynamic allocation
-// - SD write-safe
 // -----------------------------------------------------------------------------
 
 void geojson_begin(const char* filename);
+
+// Feature lifecycle
+void geojson_begin_feature(const char* mode);
 void geojson_add_point(double lat, double lon);
+void geojson_end_feature();
+
 void geojson_end();
+
+// -----------------------------------------------------------------------------
+// Session statistics (attached to base track only)
+// -----------------------------------------------------------------------------
 
 struct GeoJSONStats {
   float nm;
@@ -31,4 +30,3 @@ struct GeoJSONStats {
 };
 
 void geojson_set_stats(const GeoJSONStats& s);
-

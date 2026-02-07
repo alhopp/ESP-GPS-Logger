@@ -68,8 +68,10 @@ volatile int  alpha_gybe_end      = -1;   // inclusive
 volatile bool alpha_window_valid  = false;
 
 // -----------------------------------------------------------------------------
-// Alpha shared state (single source of truth)
+// Second → GPS index mapping
 // -----------------------------------------------------------------------------
+int sec_to_gps_index[BUFFER_SIZE] = {0};
+
 
 
 
@@ -128,8 +130,13 @@ void GPS_data::push_data(float latitude,float longitude,uint32_t gSpeed)
     if((index_GPS % systemInfo.sample_rate) == 0){
         index_sec++;
         _secSpeed[index_sec % BUFFER_SIZE] = acc_cm / systemInfo.sample_rate;
+
+        // map this 1Hz bucket → the GPS sample index it corresponds to
+        sec_to_gps_index[index_sec % BUFFER_SIZE] = index_GPS;
+
         acc_cm = 0;
     }
+
 }
 
 // ============================================================================

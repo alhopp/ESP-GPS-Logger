@@ -1,11 +1,16 @@
 // ============================================================================
 // MapView
 // - ESP-hosted Leaflet map (STA mode)
-// - Displays exactly ONE session track at a time
+// - Displays ONE base track + optional overlay
 // ============================================================================
 
 window.MapView = {
-  map:null, track:null, dot:null, _r:null,
+  map:null,
+  baseTrack:null,
+  overlay:null,
+  dot:null,
+  _r:null,
+  _overlays:{},
 
   // -------------------------------------------------------------------------
   // init() — create map once
@@ -24,7 +29,7 @@ window.MapView = {
       maxZoom:22
     });
 
-    // Shared canvas renderer (single context)
+    // Shared canvas renderer
     this._r = L.canvas({padding:0.5});
 
     L.tileLayer(
@@ -37,7 +42,6 @@ window.MapView = {
       }
     ).addTo(this.map);
 
-    // Placeholder view (overridden when session loads)
     setTimeout(()=>{
       this.map.setView([0,0],14);
       this.map.invalidateSize(true);
@@ -49,8 +53,6 @@ window.MapView = {
     },150);
   },
 
-  // -------------------------------------------------------------------------
-  // zoomToLayer() — fit bounds + clamp zoom
   // -------------------------------------------------------------------------
   zoomToLayer(layer){
     if(!layer) return;
@@ -65,15 +67,12 @@ window.MapView = {
   },
 
   // -------------------------------------------------------------------------
-  // loadGeoJSON() — load one ESP-served track
+  // loadGeoJSON() — multi-feature aware
   // -------------------------------------------------------------------------
   loadGeoJSON(url){
     if(!this.map) return;
 
-    if(this.track){
-      this.map.removeLayer(this.track);
-      this.track = null;
-    }
+    this.clear();
 
     fetch(url,{cache:"no-store"})
       .then(r=>{
@@ -81,47 +80,76 @@ window.MapView = {
         return r.json();
       })
       .then(gj=>{
-        const feature = gj.features?.[0];
-        const stats   = feature?.properties?.stats;
+        if(!gj.features) return;
 
-        // Update stats panel
+        this._overlays = {};
+
+        // ---- split features by mode ----
+        const base = gj.features.find(f=>f.properties?.mode==="track");
+
+        gj.features.forEach(f=>{
+          const m = f.properties?.mode;
+          if(m && m!=="track") this._overlays[m] = f;
+        });
+
+        // ---- stats only live on base track ----
+        const stats = base?.properties?.stats;
         updateStatsUI(stats);
 
-        // Draw geometry
-        this.track = L.geoJSON(gj,{
-          renderer:this._r,
-          coordsToLatLng:c=>L.latLng(c[1],c[0]),
-          style:{color:"#ff3b30",weight:5,opacity:1}
-        }).addTo(this.map);
+        // ---- draw base track (grey) ----
+        if(base){
+          this.baseTrack = L.geoJSON(base,{
+            renderer:this._r,
+            coordsToLatLng:c=>L.latLng(c[1],c[0]),
+            style:{ color:"#9aa0a6", weight:4, opacity:0.75 }
+          }).addTo(this.map);
 
-        this.track.bringToFront();
-        this.zoomToLayer(this.track);
+          this.zoomToLayer(this.baseTrack);
+        }
+
         setTimeout(()=>this.map.invalidateSize(true),50);
       })
       .catch(e=>console.warn("[Map] GeoJSON failed",e));
   },
 
   // -------------------------------------------------------------------------
-  // clear() — remove dynamic layers
+  // showOverlay() — draw one performance slice on top
+  // -------------------------------------------------------------------------
+  showOverlay(mode){
+    if(this.overlay){
+      this.map.removeLayer(this.overlay);
+      this.overlay = null;
+    }
+
+    const f = this._overlays?.[mode];
+    if(!f) return;
+
+    this.overlay = L.geoJSON(f,{
+      renderer:this._r,
+      coordsToLatLng:c=>L.latLng(c[1],c[0]),
+      style:{ color:"#ff3b30", weight:6, opacity:1 }
+    }).addTo(this.map);
+
+    this.overlay.bringToFront();
+  },
+
   // -------------------------------------------------------------------------
   clear(){
-    if(this.track){ this.map.removeLayer(this.track); this.track=null; }
+    if(this.baseTrack){ this.map.removeLayer(this.baseTrack); this.baseTrack=null; }
+    if(this.overlay){ this.map.removeLayer(this.overlay); this.overlay=null; }
     if(this.dot){ this.map.removeLayer(this.dot); this.dot=null; }
+    this._overlays = {};
   }
 };
 
 
 // ============================================================================
-// MapSessions
-// - Fetch available GeoJSON sessions from ESP
-// - Maintain index
-// - Swipe navigation
+// MapSessions (UNCHANGED logic)
 // ============================================================================
 
 window.MapSessions = {
   files:[], index:0, _started:false,
 
-  // -------------------------------------------------------------------------
   async init(){
     const r = await fetch("/api/files",{cache:"no-store"});
     const j = await r.json();
@@ -138,7 +166,6 @@ window.MapSessions = {
     this.bindGestures();
   },
 
-  // -------------------------------------------------------------------------
   async reload(){
     const r = await fetch("/api/files",{cache:"no-store"});
     const j = await r.json();
@@ -161,7 +188,6 @@ window.MapSessions = {
     this.loadCurrent();
   },
 
-  // -------------------------------------------------------------------------
   loadCurrent(){
     const f = this.files[this.index];
     if(!f) return;
@@ -179,11 +205,6 @@ window.MapSessions = {
   prev(){ if(this.index < this.files.length-1){ this.index++; this.loadCurrent(); } },
   next(){ if(this.index > 0){ this.index--; this.loadCurrent(); } },
 
-  // -------------------------------------------------------------------------
-  // bindGestures()
-  // - Horizontal swipe → session change
-  // - Vertical swipe → stats panel
-  // -------------------------------------------------------------------------
   bindGestures(){
     const card = $("sessionCard");
     let x0=0,y0=0,dx=0,dy=0,active=false,locked=null;
@@ -197,7 +218,6 @@ window.MapSessions = {
 
     card.addEventListener("touchmove",e=>{
       if(!active) return;
-
       const t = e.touches[0];
       dx=t.clientX-x0;
       dy=t.clientY-y0;
@@ -207,7 +227,6 @@ window.MapSessions = {
         else if(Math.abs(dy)>12) locked="y";
         else return;
       }
-
       if(locked==="y") e.preventDefault();
     },{passive:false});
 
@@ -220,7 +239,6 @@ window.MapSessions = {
         else if(dy > THRESH) hideStats();
         return;
       }
-
       if(locked==="x"){
         if(dx < -THRESH) this.next();
         else if(dx > THRESH) this.prev();
@@ -246,8 +264,8 @@ function hideStats(){
 
 // ---------------------------------------------------------------------------
 // updateStatsUI()
-// - Updates single stats grid (no preview duplication)
 // ---------------------------------------------------------------------------
+
 function updateStatsUI(stats){
   const set = (id,v)=>{
     const el = $(id);
@@ -269,3 +287,14 @@ function updateStatsUI(stats){
   set("map_stat_1h",       stats.h1?.toFixed(3)       ?? "–");
   set("map_stat_distance", stats.distance?.toFixed(3) ?? "–");
 }
+
+
+// ============================================================================
+// Overlay bindings (tap stats → overlay)
+// ============================================================================
+
+$("map_stat_2s").onclick    = ()=>MapView.showOverlay("2s");
+$("map_stat_10s").onclick   = ()=>MapView.showOverlay("10s");
+$("map_stat_alpha").onclick = ()=>MapView.showOverlay("alpha");
+$("map_stat_nm").onclick    = ()=>MapView.showOverlay("nm");
+$("map_stat_1h").onclick    = ()=>MapView.showOverlay("1h");

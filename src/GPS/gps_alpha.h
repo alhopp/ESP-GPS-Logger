@@ -113,3 +113,10 @@ float Alfa_indicator(GPS_speed M250,
                      float actual_heading);
 
 
+// ---------------------------------------------------------------------------
+// Geometry window export (Alpha 500)
+// ---------------------------------------------------------------------------
+extern int alpha_start;
+extern int alpha_end;
+
+

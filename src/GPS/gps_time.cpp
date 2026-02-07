@@ -23,21 +23,29 @@
 // - 2s   = 2  * sample_rate (5 Hz)
 // - 10s  = 10 * sample_rate (5 Hz)
 // - 1h   = 3600 samples (1 Hz, padded)
-//
-// GUARANTEES
-// - s_max_speed          : session best (this window)
-// - best_10s_per_run[]   : per-run best (10s only)
-// - avg_5runs            : avg of best 5 runs (10s only)
 // ============================================================================
 
 
-// ----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Geometry window exports
+// -----------------------------------------------------------------------------
+int win_2s_start  = -1;
+int win_2s_end    = -1;
+
+int win_10s_start = -1;
+int win_10s_end   = -1;
+
+int win_1h_start_sec = -1;
+int win_1h_end_sec   = -1;
+
+
+// -----------------------------------------------------------------------------
 GPS_time::GPS_time(int tijdvenster) : time_window(tijdvenster)
 {
   Reset_stats();
 }
 
-// ----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 void GPS_time::Reset_stats()
 {
   for(int i=0;i<10;i++){
@@ -53,7 +61,7 @@ void GPS_time::Reset_stats()
     best_10s_per_run[i] = 0;
 }
 
-// ----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 float GPS_time::Update_speed(int actual_run)
 {
   // -------------------------------------------------------------------------
@@ -66,23 +74,31 @@ float GPS_time::Update_speed(int actual_run)
   // 1 HOUR (3600 s) — padded 1 Hz average
   // ========================================================================
   if(time_window == 3600){
-  // Drop first second bucket (Speedreader behaviour)
-  int secs = index_sec;              // NOT +1
-  if(secs <= 0) return s_max_speed;
-  if(secs > 3600) secs = 3600;
 
-  float sum_kn = 0;
-  for(int i=0;i<secs;i++){
-    int idx = (index_sec - i) % BUFFER_SIZE;
-    if(idx < 0) idx += BUFFER_SIZE;
-    sum_kn += _secSpeed[idx] * CMPS_TO_KNOTS;
-  }
+    // Drop first second bucket (Speedreader behaviour)
+    int secs = index_sec;              // NOT +1
+    if(secs <= 0) return s_max_speed;
+    if(secs > 3600) secs = 3600;
 
-  // Scale to full hour (SBP-compatible padding)
-  float avg_kn = sum_kn / 3600.0f;
+    float sum_kn = 0.0f;
+    for(int i=0;i<secs;i++){
+      int idx = (index_sec - i) % BUFFER_SIZE;
+      if(idx < 0) idx += BUFFER_SIZE;
+      sum_kn += _secSpeed[idx] * CMPS_TO_KNOTS;
+    }
 
+    // Pad to full hour
+    float avg_kn = sum_kn / 3600.0f;
 
-    if(avg_kn > s_max_speed) s_max_speed = avg_kn;
+    if(avg_kn > s_max_speed){
+      s_max_speed = avg_kn;
+
+      // ---- capture 1h geometry (seconds) ----
+      win_1h_end_sec   = index_sec;
+      win_1h_start_sec = index_sec - secs + 1;
+      if(win_1h_start_sec < 0) win_1h_start_sec = 0;
+    }
+
     return s_max_speed;
   }
 
@@ -93,7 +109,7 @@ float GPS_time::Update_speed(int actual_run)
   if(samples >= BUFFER_SIZE) return s_max_speed;
   if(index_GPS < (int)samples - 1) return s_max_speed;
 
-  float sum_kn = 0;
+  float sum_kn = 0.0f;
   for(uint32_t i=0;i<samples;i++){
     int idx = (index_GPS - samples + 1 + i) % BUFFER_SIZE;
     if(idx < 0) idx += BUFFER_SIZE;
@@ -107,7 +123,21 @@ float GPS_time::Update_speed(int actual_run)
   // ========================================================================
   if(avg_kn > s_max_speed){
     s_max_speed  = avg_kn;
-    avg_speed[9]= s_max_speed;
+    avg_speed[9] = s_max_speed;
+
+    // ---- capture geometry window ----
+    int start = index_GPS - samples + 1;
+    if(start < 0) start = 0;
+
+    if(time_window == 2){
+      win_2s_start = start;
+      win_2s_end   = index_GPS;
+    }
+
+    if(time_window == 10){
+      win_10s_start = start;
+      win_10s_end   = index_GPS;
+    }
 
     getLocalTime(&tmstruct,0);
     time_hour[9] = tmstruct.tm_hour;

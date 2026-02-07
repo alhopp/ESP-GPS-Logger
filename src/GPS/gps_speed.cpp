@@ -11,7 +11,7 @@
 // GPS_speed
 // Distance-based average speed calculator (100m / 250m / 500m / 1852m)
 //
-// UNIT MODEL (SBP / Speedreader-aligned):
+// UNIT MODEL (Speedreader-aligned):
 // - Sample 0 initializes state ONLY (no distance contribution)
 // - Distance integration starts at sample 1
 // - Distance: mm per sample (_gSpeed / sample_rate)
@@ -20,12 +20,18 @@
 // - Padding allowed for incomplete windows
 // -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// Geometry window export (NM only for now)
+// -----------------------------------------------------------------------------
+int win_nm_start = -1;
+int win_nm_end   = -1;
+
 GPS_speed::GPS_speed(int afstand) : m_set_distance(afstand){}
 
 // -----------------------------------------------------------------------------
 double GPS_speed::Update_distance(int actual_run)
 {
-  // target distance in mm (meters → mm)
+  // Target distance in mm (meters → mm)
   m_Set_Distance = m_set_distance * 1000;
 
   // ---------------------------------------------------------------------------
@@ -33,7 +39,7 @@ double GPS_speed::Update_distance(int actual_run)
   // ---------------------------------------------------------------------------
   if(index_GPS == 0){
     m_distance = 0.0;
-    m_index    = 1;     // distance window starts at sample 1
+    m_index    = 1;      // distance window starts at sample 1
     m_sample   = 0;
     old_run    = actual_run;
     return m_max_speed;
@@ -45,7 +51,7 @@ double GPS_speed::Update_distance(int actual_run)
   // ---------------------------------------------------------------------------
   m_distance += _gSpeed[index_GPS % BUFFER_SIZE] / systemInfo.sample_rate;
 
-  // overflow safety
+  // Overflow safety
   if((index_GPS - m_index) >= BUFFER_SIZE){
     m_distance = 0.0;
     m_index    = index_GPS;
@@ -64,7 +70,7 @@ double GPS_speed::Update_distance(int actual_run)
     m_distance += _gSpeed[m_index % BUFFER_SIZE] / systemInfo.sample_rate;
   }
 
-  // sample count (distance-bearing samples only)
+  // Sample count (distance-bearing samples only)
   m_sample = index_GPS - m_index + 1;
   if(m_sample <= 0) return m_max_speed;
 
@@ -113,10 +119,16 @@ double GPS_speed::Update_distance(int actual_run)
   m_speed_alfa = alfa_kn;
 
   // ---------------------------------------------------------------------------
-  // New best speed
+  // New best speed → CAPTURE GEOMETRY WINDOW
   // ---------------------------------------------------------------------------
   if((m_max_speed == 0.0 && m_speed > 0.0) || m_speed > m_max_speed){
     m_max_speed = m_speed;
+
+    // ---- Capture NM geometry window (1852 m only) ----
+    if(m_set_distance == 1852){
+      win_nm_start = m_index;
+      win_nm_end   = index_GPS;
+    }
 
     getLocalTime(&tmstruct,0);
     time_hour[0] = tmstruct.tm_hour;

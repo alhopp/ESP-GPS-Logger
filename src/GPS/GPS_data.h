@@ -33,6 +33,13 @@ extern int index_sec;
 
 
 
+// -----------------------------------------------------------------------------
+// Second → GPS index mapping (for 1h / decimated geometry)
+// -----------------------------------------------------------------------------
+// sec index ∈ [0..BUFFER_SIZE)
+// value = corresponding index_GPS at that second
+extern int sec_to_gps_index[BUFFER_SIZE];
+
 
 void reset_session_stats(); 
 
