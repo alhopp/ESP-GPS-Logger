@@ -8,7 +8,11 @@
 // - Print sample index when turn persistence starts
 // - Print persistence origin on RUN START / RUN END
 //
-// NO LOGIC CHANGES — diagnostics only
+// LOGIC UPDATE:
+// - RUN END now requires BOTH:
+//     * sustained turn-rate
+//     * accumulated heading change >= 45°
+// - This prevents ±40° course changes from ending a run
 // ============================================================================
 
 #include "GPS/gps_run.h"
@@ -39,6 +43,9 @@ static constexpr float END_MIN_TURN_RATE_DPS    = 10.0f;  // "committed turn"
 static constexpr int   START_PERSIST_SAMPLES    = 8;      // ~1.6s @ 5Hz
 static constexpr int   END_PERSIST_SAMPLES      = 3;      // ~0.6s @ 5Hz
 
+// Accumulated heading change required to confirm a real turn
+static constexpr float END_MIN_TURN_ARC_DEG     = 45.0f;
+
 // -----------------------------------------------------------------------------
 // Internal persistent state
 // -----------------------------------------------------------------------------
@@ -50,6 +57,9 @@ static int   run_counter = 0;
 
 static int   straight_persist = 0;
 static int   turn_persist     = 0;
+
+// Accumulated turn angle (degrees)
+static float turn_accum_deg   = 0.0f;
 
 // Debug persistence origins
 static int straight_candidate_idx = -1;
@@ -102,6 +112,8 @@ void gps_run_update(float heading_deg, float speed_kn)
   if(speed_kn < SPEED_STOP_MAX){
     straight_persist = 0;
     turn_persist     = 0;
+    turn_accum_deg   = 0.0f;
+
     straight_candidate_idx = -1;
     turn_candidate_idx     = -1;
 
@@ -128,7 +140,7 @@ void gps_run_update(float heading_deg, float speed_kn)
     (turn_rate_dps >= END_MIN_TURN_RATE_DPS);
 
   // ---------------------------------------------------------------------------
-  // Build persistence (with diagnostics)
+  // Build persistence + accumulate turn angle
   // ---------------------------------------------------------------------------
   if(straight_now){
     if(straight_persist == 0){
@@ -147,14 +159,17 @@ void gps_run_update(float heading_deg, float speed_kn)
   if(turning_now){
     if(turn_persist == 0){
       turn_candidate_idx = index_GPS;
+      turn_accum_deg = 0.0f;   // reset at start of turn
       Serial.printf(
         "[TURN ?]     sample=%d  spd=%.2f kn  rate=%.1f dps\n",
         index_GPS, speed_kn, turn_rate_dps
       );
     }
     turn_persist++;
+    turn_accum_deg += dH;
   }else{
-    turn_persist = 0;
+    turn_persist   = 0;
+    turn_accum_deg = 0.0f;
     turn_candidate_idx = -1;
   }
 
@@ -166,7 +181,8 @@ void gps_run_update(float heading_deg, float speed_kn)
     run_counter++;
     run_started_flag = true;
 
-    turn_persist = 0;   // prevent instant end
+    turn_persist   = 0;
+    turn_accum_deg = 0.0f;
 
     Serial.printf(
       "[RUN START] #%d @ sample %d  straight_since=%d  spd=%.2f kn  rate=%.1f dps\n",
@@ -179,9 +195,12 @@ void gps_run_update(float heading_deg, float speed_kn)
   }
 
   // ---------------------------------------------------------------------------
-  // RUN END (requires sustained turning)
+  // RUN END (requires sustained turn AND sufficient accumulated arc)
   // ---------------------------------------------------------------------------
-  if(in_run && turn_persist >= END_PERSIST_SAMPLES){
+  if(in_run &&
+     turn_persist >= END_PERSIST_SAMPLES &&
+     turn_accum_deg >= END_MIN_TURN_ARC_DEG)
+  {
     in_run = false;
     run_ended_flag = true;
 
@@ -190,12 +209,14 @@ void gps_run_update(float heading_deg, float speed_kn)
 
     straight_persist = 0;
     turn_persist     = 0;
+    turn_accum_deg   = 0.0f;
 
     Serial.printf(
-      "[RUN END ] #%d @ sample %d  turn_since=%d  spd=%.2f kn  rate=%.1f dps\n",
+      "[RUN END ] #%d @ sample %d  turn_since=%d  arc=%.1f°  spd=%.2f kn  rate=%.1f dps\n",
       run_counter,
       index_GPS,
       turn_candidate_idx,
+      turn_accum_deg,
       speed_kn,
       turn_rate_dps
     );
