@@ -32,6 +32,15 @@ window.MapView = {
     // Shared canvas renderer
     this._r = L.canvas({padding:0.5});
 
+    // -----------------------------------------------------------------------
+    // PANES — REQUIRED for correct z-order with canvas
+    // -----------------------------------------------------------------------
+    this.map.createPane("basePane");
+    this.map.createPane("overlayPane");
+
+    this.map.getPane("basePane").style.zIndex    = 400;
+    this.map.getPane("overlayPane").style.zIndex = 450;
+
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/" +
       "World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -99,6 +108,7 @@ window.MapView = {
         // ---- draw base track (grey) ----
         if(base){
           this.baseTrack = L.geoJSON(base,{
+            pane:"basePane",
             renderer:this._r,
             coordsToLatLng:c=>L.latLng(c[1],c[0]),
             style:{ color:"#9aa0a6", weight:4, opacity:0.75 }
@@ -125,12 +135,11 @@ window.MapView = {
     if(!f) return;
 
     this.overlay = L.geoJSON(f,{
+      pane:"overlayPane",
       renderer:this._r,
       coordsToLatLng:c=>L.latLng(c[1],c[0]),
       style:{ color:"#ff3b30", weight:6, opacity:1 }
     }).addTo(this.map);
-
-    this.overlay.bringToFront();
   },
 
   // -------------------------------------------------------------------------

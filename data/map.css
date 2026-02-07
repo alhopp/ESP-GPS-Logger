@@ -51,7 +51,7 @@ section#map.a~footer{display:none}
 
 /* expanded (stats + graphs) */
 .session-card.stats{
-  height:70vh;                 /* graph-friendly */
+  height:70vh;                 
   transition:height .28s cubic-bezier(.2,.8,.2,1);
 }
 
@@ -79,14 +79,42 @@ section#map.a~footer{display:none}
 }
 
 /* map pane (default) */
-.session-pane-map{transform:translateY(0)}
+.session-pane-map{
+  transform:translateY(0);
+}
 
 /* stats pane (hidden by default) */
-.session-pane-stats{transform:translateY(100%)}
+.session-pane-stats{
+  transform:translateY(100%);
+}
 
 /* swap panes */
-.session-card.stats .session-pane-map{transform:translateY(-100%)}
-.session-card.stats .session-pane-stats{transform:translateY(0)}
+.session-card.stats .session-pane-map{
+  transform:translateY(-100%);
+}
+.session-card.stats .session-pane-stats{
+  transform:translateY(0);
+}
+
+/* ---------------------------------------------------------------------------
+   POINTER EVENTS (CRITICAL FIX)
+--------------------------------------------------------------------------- */
+
+/* stats visible */
+.session-card.stats .session-pane-stats{
+  pointer-events:auto;
+}
+.session-card.stats .session-pane-map{
+  pointer-events:none;
+}
+
+/* map visible */
+.session-card:not(.stats) .session-pane-map{
+  pointer-events:auto;
+}
+.session-card:not(.stats) .session-pane-stats{
+  pointer-events:none;
+}
 
 /* ---------------------------------------------------------------------------
    SESSION HEADER
@@ -96,7 +124,10 @@ section#map.a~footer{display:none}
   padding:2px 16px 4px;
   margin-bottom:2px;
 }
-.session-title{font-size:16px;font-weight:800}
+.session-title{
+  font-size:16px;
+  font-weight:800;
+}
 .session-meta{
   margin-top:0px;
   line-height:1.2;   
@@ -114,7 +145,6 @@ section#map.a~footer{display:none}
   gap:12px;
   padding:12px 16px 16px;
 
-  /* grid scrolls if graphs push content */
   flex:0 0 auto;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
@@ -129,9 +159,16 @@ section#map.a~footer{display:none}
   display:flex;
   flex-direction:column;
   justify-content:center;
+  cursor:pointer;              /* UX clarity */
 }
-.stat label{font-size:13px;color:var(--f)}
-.stat span{font-size:22px;font-weight:800}
+.stat label{
+  font-size:13px;
+  color:var(--f);
+}
+.stat span{
+  font-size:22px;
+  font-weight:800;
+}
 
 /* ---------------------------------------------------------------------------
    GRAPH AREA
