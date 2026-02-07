@@ -66,18 +66,22 @@ float GPS_time::Update_speed(int actual_run)
   // 1 HOUR (3600 s) — padded 1 Hz average
   // ========================================================================
   if(time_window == 3600){
-    int secs = index_sec + 1;
-    if(secs <= 0) return s_max_speed;
-    if(secs > 3600) secs = 3600;
+  // Drop first second bucket (Speedreader behaviour)
+  int secs = index_sec;              // NOT +1
+  if(secs <= 0) return s_max_speed;
+  if(secs > 3600) secs = 3600;
 
-    float sum_kn = 0;
-    for(int i=0;i<secs;i++){
-      int idx = (index_sec - i) % BUFFER_SIZE;
-      if(idx < 0) idx += BUFFER_SIZE;
-      sum_kn += _secSpeed[idx] * CMPS_TO_KNOTS;
-    }
+  float sum_kn = 0;
+  for(int i=0;i<secs;i++){
+    int idx = (index_sec - i) % BUFFER_SIZE;
+    if(idx < 0) idx += BUFFER_SIZE;
+    sum_kn += _secSpeed[idx] * CMPS_TO_KNOTS;
+  }
 
-    float avg_kn = (sum_kn / secs) * ((float)secs / 3600.0f);
+  // Scale to full hour (SBP-compatible padding)
+  float avg_kn = sum_kn / 3600.0f;
+
+
     if(avg_kn > s_max_speed) s_max_speed = avg_kn;
     return s_max_speed;
   }

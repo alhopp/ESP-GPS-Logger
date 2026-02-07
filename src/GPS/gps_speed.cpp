@@ -11,11 +11,12 @@
 // GPS_speed
 // Distance-based average speed calculator (100m / 250m / 500m / 1852m)
 //
-// UNIT MODEL (SBP / Option B):
-// - Distance integration: mm per sample (from _gSpeed / sample_rate)
-// - Speed samples        : cm/s (_sogCms)
-// - EACH sample converted to knots BEFORE averaging
-// - Averaging            : FLOAT knots
+// UNIT MODEL (SBP / Speedreader-aligned):
+// - Sample 0 initializes state ONLY (no distance contribution)
+// - Distance integration starts at sample 1
+// - Distance: mm per sample (_gSpeed / sample_rate)
+// - Speed samples: cm/s → knots BEFORE averaging
+// - Averaging: FLOAT knots
 // - Padding allowed for incomplete windows
 // -----------------------------------------------------------------------------
 
@@ -28,18 +29,31 @@ double GPS_speed::Update_distance(int actual_run)
   m_Set_Distance = m_set_distance * 1000;
 
   // ---------------------------------------------------------------------------
-  // Distance integration (FIXED)
+  // Sample 0 = state init only (Speedreader behaviour)
+  // ---------------------------------------------------------------------------
+  if(index_GPS == 0){
+    m_distance = 0.0;
+    m_index    = 1;     // distance window starts at sample 1
+    m_sample   = 0;
+    old_run    = actual_run;
+    return m_max_speed;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Distance integration
   // _gSpeed is mm/s → convert to mm per sample
   // ---------------------------------------------------------------------------
   m_distance += _gSpeed[index_GPS % BUFFER_SIZE] / systemInfo.sample_rate;
 
   // overflow safety
   if((index_GPS - m_index) >= BUFFER_SIZE){
-    m_distance = 0;
+    m_distance = 0.0;
     m_index    = index_GPS;
   }
 
-  // slide window
+  // ---------------------------------------------------------------------------
+  // Slide distance window
+  // ---------------------------------------------------------------------------
   if(m_distance > m_Set_Distance){
     while(m_distance > m_Set_Distance && (index_GPS - m_index) < BUFFER_SIZE){
       m_distance     -= _gSpeed[m_index % BUFFER_SIZE] / systemInfo.sample_rate;
@@ -50,8 +64,9 @@ double GPS_speed::Update_distance(int actual_run)
     m_distance += _gSpeed[m_index % BUFFER_SIZE] / systemInfo.sample_rate;
   }
 
-  // sample count
+  // sample count (distance-bearing samples only)
   m_sample = index_GPS - m_index + 1;
+  if(m_sample <= 0) return m_max_speed;
 
   // ---------------------------------------------------------------------------
   // SBP-style averaging: cm/s → knots → average → padded
@@ -59,7 +74,7 @@ double GPS_speed::Update_distance(int actual_run)
   double speed_kn = 0.0;
   double alfa_kn  = 0.0;
 
-  if(m_sample > 0 && m_Set_Distance > 0){
+  if(m_Set_Distance > 0){
     double sum_kn = 0.0;
 
     for(int i = m_index; i <= index_GPS; i++){
@@ -75,7 +90,9 @@ double GPS_speed::Update_distance(int actual_run)
     speed_kn = avg_kn * completion;
   }
 
-  // Alpha variant (same rule)
+  // ---------------------------------------------------------------------------
+  // Alpha variant (same rule, excludes anchor sample)
+  // ---------------------------------------------------------------------------
   if((index_GPS - m_index) > 0 && m_Set_Distance > 0){
     double sum_kn = 0.0;
 
@@ -92,11 +109,11 @@ double GPS_speed::Update_distance(int actual_run)
     alfa_kn = avg_kn * completion;
   }
 
-  m_speed      = speed_kn;   // knots
-  m_speed_alfa = alfa_kn;    // knots
+  m_speed      = speed_kn;
+  m_speed_alfa = alfa_kn;
 
   // ---------------------------------------------------------------------------
-  // New best speed (allow first NM to latch)
+  // New best speed
   // ---------------------------------------------------------------------------
   if((m_max_speed == 0.0 && m_speed > 0.0) || m_speed > m_max_speed){
     m_max_speed = m_speed;
@@ -112,7 +129,7 @@ double GPS_speed::Update_distance(int actual_run)
     nr_samples[0] = m_sample;
     message_nr[0] = nav_pvt_message;
 
-    for(int i=0;i<10;i++) display_speed[i]=avg_speed[i];
+    for(int i=0;i<10;i++) display_speed[i] = avg_speed[i];
     sort_display(display_speed,10);
   }
 
@@ -131,8 +148,8 @@ double GPS_speed::Update_distance(int actual_run)
       nr_samples,
       10
     );
-    avg_speed[0]=0;
-    m_max_speed=0;
+    avg_speed[0] = 0.0;
+    m_max_speed  = 0.0;
   }
 
   old_run = actual_run;
