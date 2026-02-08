@@ -179,12 +179,21 @@ void Close_files(void)
     geojson_end_feature();
   }
 
-  if(win_10s_start >= 0 && win_10s_end >= win_10s_start){
-    geojson_begin_feature("10s");
-    for(int i = win_10s_start; i <= win_10s_end; i++)
-      geojson_add_point(_lat[i], _long[i]);
-    geojson_end_feature();
+ // ---- Top 5 × 10s runs (Speedreader style) ----
+for(int i = 0; i < win_10s_top5_count; i++){
+  geojson_begin_feature("10s");
+
+  for(int idx = win_10s_top5_start[i];
+          idx <= win_10s_top5_end[i];
+          idx++){
+    geojson_add_point(_lat[idx], _long[idx]);
   }
+
+  geojson_end_feature();
+}
+
+  
+
 
   if(alpha_start >= 0 && alpha_end >= alpha_start){
     geojson_begin_feature("alpha");

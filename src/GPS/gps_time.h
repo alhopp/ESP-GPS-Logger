@@ -87,3 +87,8 @@ extern int win_1h_end_sec;
 
 // ---- Second → GPS index mapping ------
 extern int sec_to_gps_index[];
+
+
+extern int win_10s_top5_start[5];
+extern int win_10s_top5_end[5];
+extern int win_10s_top5_count;
