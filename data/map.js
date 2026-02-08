@@ -153,7 +153,7 @@ window.MapView = {
 
 
 // ============================================================================
-// MapSessions (UNCHANGED logic)
+// MapSessions
 // ============================================================================
 
 window.MapSessions = {
@@ -214,46 +214,52 @@ window.MapSessions = {
   prev(){ if(this.index < this.files.length-1){ this.index++; this.loadCurrent(); } },
   next(){ if(this.index > 0){ this.index--; this.loadCurrent(); } },
 
-  bindGestures(){
-    const card = $("sessionCard");
-    let x0=0,y0=0,dx=0,dy=0,active=false,locked=null;
-    const THRESH = 40;
+  // -------------------------------------------------------------------------
+  // FIXED gesture handler
+  // -------------------------------------------------------------------------
+bindGestures(){
+  const card = $("sessionCard");
+  let x0=0,y0=0,dx=0,dy=0,active=false,locked=null;
+  const THRESH = 40;
 
-    card.addEventListener("touchstart",e=>{
-      const t = e.touches[0];
-      x0=t.clientX; y0=t.clientY;
-      dx=dy=0; locked=null; active=true;
-    },{passive:true});
+  card.addEventListener("touchstart",e=>{
+    const t = e.touches[0];
+    x0=t.clientX; y0=t.clientY;
+    dx=dy=0; locked=null; active=true;
+  },{passive:true});
 
-    card.addEventListener("touchmove",e=>{
-      if(!active) return;
-      const t = e.touches[0];
-      dx=t.clientX-x0;
-      dy=t.clientY-y0;
+  card.addEventListener("touchmove",e=>{
+    if(!active) return;
 
-      if(!locked){
-        if(Math.abs(dx)>12) locked="x";
-        else if(Math.abs(dy)>12) locked="y";
-        else return;
-      }
-      if(locked==="y") e.preventDefault();
-    },{passive:false});
+    const t = e.touches[0];
+    dx=t.clientX-x0;
+    dy=t.clientY-y0;
 
-    card.addEventListener("touchend",()=>{
-      if(!active) return;
-      active=false;
+    if(!locked){
+      if(Math.abs(dx)>12) locked="x";
+      else if(Math.abs(dy)>12) locked="y";
+      else return;
+    }
 
-      if(locked==="y"){
-        if(dy < -THRESH) showStats();
-        else if(dy > THRESH) hideStats();
-        return;
-      }
-      if(locked==="x"){
-        if(dx < -THRESH) this.next();
-        else if(dx > THRESH) this.prev();
-      }
-    });
-  }
+    e.preventDefault();   // 🔒 OWN the gesture
+  },{passive:false});
+
+  card.addEventListener("touchend",()=>{
+    if(!active) return;
+    active=false;
+
+    if(locked==="y"){
+      if(dy < -THRESH) showStats();
+      else if(dy > THRESH) hideStats();
+      return;
+    }
+    if(locked==="x"){
+      if(dx < -THRESH) this.next();
+      else if(dx > THRESH) this.prev();
+    }
+  });
+}
+
 };
 
 
@@ -298,12 +304,10 @@ function updateStatsUI(stats){
 }
 
 
-// ============================================================================
-// Overlay bindings (tap stats → overlay)
-// ============================================================================
+document.querySelectorAll(".stat").forEach(stat=>{
+  stat.addEventListener("click", ()=>{
+    const mode = stat.dataset.mode;
+    if(mode) MapView.showOverlay(mode);
+  });
+});
 
-$("map_stat_2s").onclick    = ()=>MapView.showOverlay("2s");
-$("map_stat_10s").onclick   = ()=>MapView.showOverlay("10s");
-$("map_stat_alpha").onclick = ()=>MapView.showOverlay("alpha");
-$("map_stat_nm").onclick    = ()=>MapView.showOverlay("nm");
-$("map_stat_1h").onclick    = ()=>MapView.showOverlay("1h");

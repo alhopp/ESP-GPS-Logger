@@ -42,16 +42,12 @@ section#map.a~footer{display:none}
   z-index:600;
   overflow:hidden;
 
-  /* collapsed height (shows first stats row comfortably) */
   height:172px;
-
-  /* smooth close */
   transition:height .18s ease-out;
 }
 
-/* expanded (stats + graphs) */
 .session-card.stats{
-  height:70vh;                 
+  height:70vh;
   transition:height .28s cubic-bezier(.2,.8,.2,1);
 }
 
@@ -65,81 +61,29 @@ section#map.a~footer{display:none}
 }
 
 /* ---------------------------------------------------------------------------
-   SLIDING PANES
---------------------------------------------------------------------------- */
-
-.session-pane{
-  position:absolute;
-  inset:0;
-  display:flex;
-  flex-direction:column;
-  transition:transform .22s ease;
-  will-change:transform;
-  padding-top:66px; /* grab + header */
-}
-
-/* map pane (default) */
-.session-pane-map{
-  transform:translateY(0);
-}
-
-/* stats pane (hidden by default) */
-.session-pane-stats{
-  transform:translateY(100%);
-}
-
-/* swap panes */
-.session-card.stats .session-pane-map{
-  transform:translateY(-100%);
-}
-.session-card.stats .session-pane-stats{
-  transform:translateY(0);
-}
-
-/* ---------------------------------------------------------------------------
-   POINTER EVENTS (CRITICAL FIX)
---------------------------------------------------------------------------- */
-
-/* stats visible */
-.session-card.stats .session-pane-stats{
-  pointer-events:auto;
-}
-.session-card.stats .session-pane-map{
-  pointer-events:none;
-}
-
-/* map visible */
-.session-card:not(.stats) .session-pane-map{
-  pointer-events:auto;
-}
-.session-card:not(.stats) .session-pane-stats{
-  pointer-events:none;
-}
-
-/* ---------------------------------------------------------------------------
    SESSION HEADER
 --------------------------------------------------------------------------- */
 
 .session-body{
   padding:2px 16px 4px;
-  margin-bottom:2px;
 }
 .session-title{
   font-size:16px;
   font-weight:800;
 }
 .session-meta{
-  margin-top:0px;
-  line-height:1.2;   
+  line-height:1.2;
   font-size:13px;
   color:var(--f);
 }
 
 /* ---------------------------------------------------------------------------
-   STATS GRID (single source of truth)
+   STATS GRID (NOT TRANSFORMED — iOS SAFE)
 --------------------------------------------------------------------------- */
 
 .stats-grid{
+  position:relative;
+  z-index:700;                 /* above panes */
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:12px;
@@ -148,6 +92,7 @@ section#map.a~footer{display:none}
   flex:0 0 auto;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
+  pointer-events:auto;
 }
 
 /* stat tiles */
@@ -159,7 +104,7 @@ section#map.a~footer{display:none}
   display:flex;
   flex-direction:column;
   justify-content:center;
-  cursor:pointer;              /* UX clarity */
+  cursor:pointer;
 }
 .stat label{
   font-size:13px;
@@ -168,6 +113,40 @@ section#map.a~footer{display:none}
 .stat span{
   font-size:22px;
   font-weight:800;
+}
+
+/* ---------------------------------------------------------------------------
+   SLIDING PANES (MAP + GRAPH ONLY)
+--------------------------------------------------------------------------- */
+
+.session-pane{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  padding-top:132px;
+  transition:transform .22s ease;
+
+  pointer-events:none;   /* 🔑 CRITICAL */
+}
+
+
+/* map pane */
+.session-pane-map{
+  transform:translateY(0);
+}
+
+/* stats graph pane */
+.session-pane-stats{
+  transform:translateY(100%);
+}
+
+/* swap panes */
+.session-card.stats .session-pane-map{
+  transform:translateY(-100%);
+}
+.session-card.stats .session-pane-stats{
+  transform:translateY(0);
 }
 
 /* ---------------------------------------------------------------------------
@@ -184,7 +163,6 @@ section#map.a~footer{display:none}
    VISUAL POLISH
 --------------------------------------------------------------------------- */
 
-/* subtle top fade when expanded */
 .session-card.stats::before{
   content:"";
   position:absolute;

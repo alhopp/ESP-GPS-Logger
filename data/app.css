@@ -94,25 +94,17 @@ footer button:active{transform:scale(.97)}
   input,select{background:#0b1220;color:#e9eff7}
 }
 
-/* ======================================================================
-   FIXES — MAP + STATS INTERACTION (CRITICAL)
-   ====================================================================== */
 
-/* Pane handles ONLY horizontal swipe (sessions) */
-.session-pane{
-  pointer-events:auto;
-  touch-action:pan-x;
-}
-
-/* Stats must always receive taps */
 .stats-grid,
-.stat,
-.stat *{
-  pointer-events:auto !important;
+.stat{
+  pointer-events:auto;
   touch-action:manipulation;
 }
 
-.stat{cursor:pointer}
+.stat *{
+  pointer-events:none;
+}
+
 
 /* Prevent iOS scroll/tap suppression inside map section */
 section#map{
