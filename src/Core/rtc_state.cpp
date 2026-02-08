@@ -139,7 +139,7 @@ void rtc_snapshot_stats()
   }
 
   // Average of best 5
-  RTC_avg_10s_knots = (cnt > 0) ? (sum5 / cnt) : 0.0f;
+  RTC_avg_10s_knots = sum5 / 5.0f;
   Serial.printf("10s avg (best %d): %.3f kn\n", cnt, RTC_avg_10s_knots);
 
 

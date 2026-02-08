@@ -151,7 +151,11 @@ void Log_to_SD(void)
 // -----------------------------------------------------------------------------
 void Close_files(void)
 {
-  // ---- Final session stats (SET FIRST) ----
+  Serial.println("[STORAGE] Close_files()");
+
+  // ------------------------------------------------------------
+  // FINAL SESSION STATS (used by GeoJSON)
+  // ------------------------------------------------------------
   GeoJSONStats s {
     .nm       = RTC_mile_knots,
     .alpha    = RTC_alp_knots,
@@ -162,13 +166,12 @@ void Close_files(void)
   };
   geojson_set_stats(s);
 
-  // ---- Finish base track (stats written here) ----
+  // ---- Finish base track ----
   geojson_end_feature();
 
-  // ============================================================
-  // DERIVED LINESTRINGS
-  // ============================================================
-
+  // ------------------------------------------------------------
+  // DERIVED FEATURES
+  // ------------------------------------------------------------
   if(win_2s_start >= 0 && win_2s_end >= win_2s_start){
     geojson_begin_feature("2s");
     for(int i = win_2s_start; i <= win_2s_end; i++)
@@ -206,5 +209,25 @@ void Close_files(void)
     geojson_end_feature();
   }
 
-  geojson_end();
+  geojson_end();   // closes GEOJSON file internally
+
+  // ============================================================
+  // 🔑 CRITICAL: FLUSH + CLOSE RAW LOG FILES
+  // ============================================================
+
+  if(ubxfile){
+    Serial.printf("[UBX] close size=%u\n", ubxfile.size());
+    ubxfile.flush();
+    ubxfile.close();
+    ubxfile = File();
+  }
+
+  if(sbpfile){
+    Serial.printf("[SBP] close size=%u\n", sbpfile.size());
+    sbpfile.flush();
+    sbpfile.close();
+    sbpfile = File();
+  }
+
+  Serial.println("[STORAGE] files closed");
 }
