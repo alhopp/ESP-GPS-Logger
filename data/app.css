@@ -52,6 +52,25 @@ section#files.a~footer{display:none}
 /* Files: no press-scale */
 #files .card:active{transform:none;box-shadow:var(--sh)}
 
+/* ================= FILE DATE HEADERS ================= */
+
+.file-date{
+  padding:10px 12px 6px;
+  margin:28px 0 12px; 
+  font-size:22px;
+  font-weight:800;
+  color:var(--b);
+  border-bottom:2px solid var(--e);
+}
+
+@media(prefers-color-scheme:dark){
+  .file-date{
+    color:#e9eff7;
+    background:linear-gradient(180deg,#101b30,#0c1626);
+  }
+}
+
+
 /* ================= SETTINGS ================= */
 
 .toggle{display:flex;justify-content:space-between;align-items:center;margin-top:12px;cursor:pointer;touch-action:manipulation}

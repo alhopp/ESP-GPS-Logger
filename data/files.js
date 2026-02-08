@@ -1,8 +1,31 @@
 // files.js
+// Outlook-style file list with date grouping + swipe delete
+
 let swipeBound = false;   // Files-tab local state
 
 // -----------------------------------------------------------------------------
-// Load file list from device SD
+// Helpers — filename → date
+// -----------------------------------------------------------------------------
+function parseDateKey(name){
+  // Expect: BBBC2C_YYYYMMDD_HHMMSS.ext
+  const m = name.match(/_(\d{4})(\d{2})(\d{2})_/);
+  if(!m) return "unknown";
+  return `${m[1]}-${m[2]}-${m[3]}`; // YYYY-MM-DD
+}
+
+function formatDateLabel(key){
+  if(key === "unknown") return "Unknown date";
+  const d = new Date(key);
+  return d.toLocaleDateString(undefined,{
+    weekday:"short",
+    day:"numeric",
+    month:"short",
+    year:"numeric"
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Load file list from device SD (grouped by date like Outlook)
 // -----------------------------------------------------------------------------
 async function loadFiles(fileList, sdInfo){
   if(!fileList || !sdInfo) return;
@@ -17,26 +40,48 @@ async function loadFiles(fileList, sdInfo){
     const j = await r.json();
     if(!j.ok) throw new Error("no sd");
 
-    sdInfo.textContent = `${j.files.length} files`;
+    // ---------------- Group files by date ----------------
+    const groups = {};
 
     j.files.forEach(f=>{
-      fileList.insertAdjacentHTML("beforeend",`
-        <div class="file-row file-swipe" data-name="${f.name}">
-          <div class="file-delete">🗑</div>
-          <div class="file-swipe-inner">
-            <div class="file-icon">📄</div>
-            <div class="file-text">
-              <div class="file-name">${f.name}</div>
-              <div class="file-size">${(f.size/1024).toFixed(1)} KB</div>
-            </div>
-          </div>
-        </div>
-      `);
+      const dateKey = parseDateKey(f.name);
+      (groups[dateKey] ||= []).push(f);
     });
+
+    // ---------------- Render groups (newest first) ----------------
+    Object.keys(groups)
+      .sort((a,b)=>b.localeCompare(a))
+      .forEach(date=>{
+        fileList.insertAdjacentHTML("beforeend",`
+          <div class="file-date" data-date="${date}">
+            ${formatDateLabel(date)}
+          </div>
+        `);
+
+        groups[date].forEach(f=>{
+          fileList.insertAdjacentHTML("beforeend",`
+            <div class="file-row file-swipe"
+                 data-name="${f.name}"
+                 data-date="${date}">
+              <div class="file-delete">🗑</div>
+              <div class="file-swipe-inner">
+                <div class="file-icon">📄</div>
+                <div class="file-text">
+                  <div class="file-name">${f.name}</div>
+                  <div class="file-size">${(f.size/1024).toFixed(1)} KB</div>
+                </div>
+              </div>
+            </div>
+          `);
+        });
+      });
+
+    sdInfo.textContent =
+      `${fileList.querySelectorAll(".file-row").length} files`;
 
   }catch(e){
     sdInfo.textContent = "SD not available";
-    console.warn("Files API unavailable");
+    console.warn("Files API unavailable", e);
   }
 }
 
@@ -47,7 +92,7 @@ function enableSwipe(container, fileList, sdInfo){
   if(swipeBound || !container) return;
   swipeBound = true;
 
-  let row = null, x0 = 0, y0 = 0, dx = 0, sw = false, moved = false;
+  let row = null, x0 = 0, y0 = 0, dx = 0, sw = false;
 
   const closeAll = () =>
     container.querySelectorAll(".file-swipe.show-delete")
@@ -68,6 +113,8 @@ function enableSwipe(container, fileList, sdInfo){
       const r = del.closest(".file-swipe");
       if(!r) return;
 
+      const date = r.dataset.date;
+
       fetch("/api/file",{
         method:"DELETE",
         headers:{ "Content-Type":"application/json" },
@@ -75,7 +122,15 @@ function enableSwipe(container, fileList, sdInfo){
       });
 
       r.remove();
-      sdInfo && (sdInfo.textContent = `${fileList.children.length} files`);
+
+      // Remove date header if no files remain for that date
+      if(!fileList.querySelector(`.file-row[data-date="${date}"]`)){
+        const h = fileList.querySelector(`.file-date[data-date="${date}"]`);
+        h && h.remove();
+      }
+
+      sdInfo && (sdInfo.textContent =
+        `${fileList.querySelectorAll(".file-row").length} files`);
 
       // 🔁 refresh map sessions if map already running
       if(window.MapSessions?._started){
@@ -83,7 +138,6 @@ function enableSwipe(container, fileList, sdInfo){
       }
 
       return;
-
     }
 
     row = e.target.closest(".file-swipe");
@@ -94,7 +148,6 @@ function enableSwipe(container, fileList, sdInfo){
     y0 = e.touches[0].clientY;
     dx = 0;
     sw = true;
-    moved = false;
   }, { passive:false });
 
   // ---------------- Touch move ----------------
@@ -105,7 +158,6 @@ function enableSwipe(container, fileList, sdInfo){
     const y = e.touches[0].clientY;
 
     if(Math.abs(x - x0) > Math.abs(y - y0) + 8){
-      moved = true;
       e.preventDefault();
       dx = x - x0;
     }
@@ -117,7 +169,6 @@ function enableSwipe(container, fileList, sdInfo){
     sw = false;
 
     row.classList.toggle("show-delete", dx < -36);
-    moved = false;
   }, { passive:true });
 
   // ---------------- Click (download only) ----------------
@@ -130,4 +181,3 @@ function enableSwipe(container, fileList, sdInfo){
     }
   });
 }
-
