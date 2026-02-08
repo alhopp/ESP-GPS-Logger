@@ -3,16 +3,11 @@
 //
 // AUTHORITATIVE run detection (GPS Speedreader aligned)
 //
-// DEBUG UPDATE:
-// - Print sample index when straight persistence starts
-// - Print sample index when turn persistence starts
-// - Print persistence origin on RUN START / RUN END
-//
-// LOGIC UPDATE:
-// - RUN END now requires BOTH:
-//     * sustained turn-rate
-//     * accumulated heading change >= 45°
-// - This prevents ±40° course changes from ending a run
+// KEY BEHAVIOUR (MATCHES SPEEDREADER):
+// - Run END occurs EARLY in the turn (mid-gybe, not after completion)
+// - Run START requires sustained straight + speed
+// - Turn arc accumulation is STICKY across short turn-rate dips
+// - No gaps in samples used for 10s / NM / Alpha windows
 // ============================================================================
 
 #include "GPS/gps_run.h"
@@ -43,34 +38,35 @@ static constexpr float END_MIN_TURN_RATE_DPS    = 10.0f;  // "committed turn"
 static constexpr int   START_PERSIST_SAMPLES    = 8;      // ~1.6s @ 5Hz
 static constexpr int   END_PERSIST_SAMPLES      = 3;      // ~0.6s @ 5Hz
 
-// Accumulated heading change required to confirm a real turn
-static constexpr float END_MIN_TURN_ARC_DEG     = 45.0f;
+// Accumulated heading change required to confirm run end
+// (Speedreader flips runs mid-turn, not at full 45°)
+static constexpr float END_MIN_TURN_ARC_DEG     = 50.0f;
 
 // -----------------------------------------------------------------------------
 // Internal persistent state
 // -----------------------------------------------------------------------------
-static float prev_heading_deg = 0.0f;
-static bool  prev_heading_valid = false;
+static float prev_heading_deg      = 0.0f;
+static bool  prev_heading_valid    = false;
 
-static bool  in_run = false;
-static int   run_counter = 0;
+static bool  in_run                = false;
+static int   run_counter           = 0;
 
-static int   straight_persist = 0;
-static int   turn_persist     = 0;
+static int   straight_persist      = 0;
+static int   turn_persist          = 0;
 
 // Accumulated turn angle (degrees)
-static float turn_accum_deg   = 0.0f;
+static float turn_accum_deg        = 0.0f;
 
 // Debug persistence origins
-static int straight_candidate_idx = -1;
-static int turn_candidate_idx     = -1;
+static int straight_candidate_idx  = -1;
+static int turn_candidate_idx      = -1;
 
 // Per-sample flags
-static bool run_started_flag = false;
-static bool run_ended_flag   = false;
+static bool run_started_flag       = false;
+static bool run_ended_flag         = false;
 
 // Jibe marker
-static int last_jibe_idx = -1;
+static int last_jibe_idx            = -1;
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -92,7 +88,7 @@ void gps_run_update(float heading_deg, float speed_kn)
 
   // Need a previous heading to compute turn-rate
   if(!prev_heading_valid){
-    prev_heading_deg = heading_deg;
+    prev_heading_deg   = heading_deg;
     prev_heading_valid = true;
     return;
   }
@@ -107,7 +103,7 @@ void gps_run_update(float heading_deg, float speed_kn)
   prev_heading_deg = heading_deg;
 
   // ---------------------------------------------------------------------------
-  // STOP condition
+  // STOP condition (hard reset)
   // ---------------------------------------------------------------------------
   if(speed_kn < SPEED_STOP_MAX){
     straight_persist = 0;
@@ -159,7 +155,7 @@ void gps_run_update(float heading_deg, float speed_kn)
   if(turning_now){
     if(turn_persist == 0){
       turn_candidate_idx = index_GPS;
-      turn_accum_deg = 0.0f;   // reset at start of turn
+      turn_accum_deg = 0.0f;   // reset only at START of committed turn
       Serial.printf(
         "[TURN ?]     sample=%d  spd=%.2f kn  rate=%.1f dps\n",
         index_GPS, speed_kn, turn_rate_dps
@@ -168,9 +164,14 @@ void gps_run_update(float heading_deg, float speed_kn)
     turn_persist++;
     turn_accum_deg += dH;
   }else{
-    turn_persist   = 0;
-    turn_accum_deg = 0.0f;
-    turn_candidate_idx = -1;
+    // IMPORTANT:
+    // Do NOT wipe accumulated arc unless we are clearly straight again
+    turn_persist = 0;
+
+    if(turn_rate_dps < START_MAX_TURN_RATE_DPS){
+      turn_accum_deg = 0.0f;
+      turn_candidate_idx = -1;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -195,10 +196,10 @@ void gps_run_update(float heading_deg, float speed_kn)
   }
 
   // ---------------------------------------------------------------------------
-  // RUN END (requires sustained turn AND sufficient accumulated arc)
+  // RUN END (early in turn — Speedreader behaviour)
   // ---------------------------------------------------------------------------
   if(in_run &&
-     turn_persist >= END_PERSIST_SAMPLES &&
+     turn_persist   >= END_PERSIST_SAMPLES &&
      turn_accum_deg >= END_MIN_TURN_ARC_DEG)
   {
     in_run = false;
