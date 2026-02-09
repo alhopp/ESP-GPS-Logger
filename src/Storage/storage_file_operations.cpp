@@ -175,49 +175,68 @@ void Close_files(void)
   geojson_end_feature();
 
   // ------------------------------------------------------------
-  // DERIVED FEATURES
+  // Helpers (ring-safe, 1 Hz decimation)
   // ------------------------------------------------------------
-  if(win_2s_start >= 0 && win_2s_end >= win_2s_start){
-    geojson_begin_feature("2s");
-    for(int i = win_2s_start; i <= win_2s_end; i++){
-      if(VALID_GPS_INDEX(i))
-        geojson_add_point(_lat[i], _long[i]);
-    }
-    geojson_end_feature();
-  }
-
-  // ---- Top 5 × 10s runs ----
-  for(int i = 0; i < win_10s_top5_count; i++){
-    int s = win_10s_top5_start[i];
-    int e = win_10s_top5_end[i];
-    if(s < 0 || e < s) continue;
-
-    geojson_begin_feature("10s");
-    for(int idx = s; idx <= e; idx++){
+  auto add_ring_window_1hz = [&](int start_gps_idx, int seconds){
+    for(int s = 0; s < seconds; s++){
+      int idx = start_gps_idx + s * systemInfo.sample_rate;
+      idx %= BUFFER_SIZE; if(idx < 0) idx += BUFFER_SIZE;
       if(VALID_GPS_INDEX(idx))
         geojson_add_point(_lat[idx], _long[idx]);
     }
+  };
+
+  auto add_ring_range_1hz = [&](int start, int end){
+    int idx = start;
+    int step = 0;
+
+    for(int guard = 0; guard < BUFFER_SIZE; guard++){
+      if(step % systemInfo.sample_rate == 0){
+        if(VALID_GPS_INDEX(idx))
+          geojson_add_point(_lat[idx], _long[idx]);
+      }
+      if(idx == end) break;
+      idx++; if(idx >= BUFFER_SIZE) idx = 0;
+      step++;
+    }
+  };
+
+  // ------------------------------------------------------------
+  // DERIVED FEATURES (DISPLAY-RATE GEOMETRY)
+  // ------------------------------------------------------------
+
+  // ---- 2s (fixed length) ----
+  if(win_2s_start >= 0){
+    geojson_begin_feature("2s");
+    add_ring_window_1hz(win_2s_start, 2);
     geojson_end_feature();
   }
 
-  if(alpha_start >= 0 && alpha_end >= alpha_start){
+  // ---- Top-5 × 10s (fixed length) ----
+  for(int i = 0; i < win_10s_top5_count; i++){
+    int s = win_10s_top5_start[i];
+    if(s < 0) continue;
+
+    geojson_begin_feature("10s");
+    add_ring_window_1hz(s, 10);
+    geojson_end_feature();
+  }
+
+  // ---- Alpha (geometry-defined) ----
+  if(alpha_start >= 0 && alpha_end >= 0){
     geojson_begin_feature("alpha");
-    for(int i = alpha_start; i <= alpha_end; i++){
-      if(VALID_GPS_INDEX(i))
-        geojson_add_point(_lat[i], _long[i]);
-    }
+    add_ring_range_1hz(alpha_start, alpha_end);
     geojson_end_feature();
   }
 
-  if(win_nm_start >= 0 && win_nm_end >= win_nm_start){
+  // ---- Nautical Mile (geometry-defined) ----
+  if(win_nm_start >= 0 && win_nm_end >= 0){
     geojson_begin_feature("nm");
-    for(int i = win_nm_start; i <= win_nm_end; i++){
-      if(VALID_GPS_INDEX(i))
-        geojson_add_point(_lat[i], _long[i]);
-    }
+    add_ring_range_1hz(win_nm_start, win_nm_end);
     geojson_end_feature();
   }
 
+  // ---- 1h (already 1 Hz by definition) ----
   if(win_1h_start_sec >= 0 && win_1h_end_sec > win_1h_start_sec){
     geojson_begin_feature("1h");
     for(int s = win_1h_start_sec; s <= win_1h_end_sec; s++){
@@ -228,6 +247,9 @@ void Close_files(void)
     geojson_end_feature();
   }
 
+  // ------------------------------------------------------------
+  // FINALISE GEOJSON
+  // ------------------------------------------------------------
   geojson_end();
 
   // ------------------------------------------------------------

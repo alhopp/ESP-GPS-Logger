@@ -23,6 +23,12 @@
 // - 2s   = 2  * sample_rate (5 Hz)
 // - 10s  = 10 * sample_rate (5 Hz)
 // - 1h   = 3600 samples (1 Hz, padded)
+//
+// INDEX MODEL (IMPORTANT)
+// - index_GPS is a ring index into BUFFER_SIZE
+// - window starts MUST be stored as ring indices (wrap-safe)
+// - end indices are the current index_GPS (ring)
+// - exporters must iterate ring-aware when start > end
 // ============================================================================
 
 
@@ -54,6 +60,16 @@ int   win_10s_end_run  [32];
 
 
 // -----------------------------------------------------------------------------
+// Small helper: wrap any int to ring [0..BUFFER_SIZE-1]
+// -----------------------------------------------------------------------------
+static inline int wrap_gps(int i){
+  i %= BUFFER_SIZE;
+  if(i < 0) i += BUFFER_SIZE;
+  return i;
+}
+
+
+// -----------------------------------------------------------------------------
 GPS_time::GPS_time(int tijdvenster) : time_window(tijdvenster){ Reset_stats(); }
 
 // -----------------------------------------------------------------------------
@@ -79,6 +95,9 @@ float GPS_time::Update_speed(int actual_run)
 
   // ========================================================================
   // 1 HOUR (3600 s) — padded 1 Hz average
+  // - index_sec is a monotonic "seconds since start" counter (NOT ring)
+  // - _secSpeed[] is a ring; we wrap idx when reading it
+  // - win_1h_* are SECOND indices (not GPS ring indices)
   // ========================================================================
   if(time_window == 3600){
     int secs = index_sec;
@@ -104,6 +123,8 @@ float GPS_time::Update_speed(int actual_run)
 
   // ========================================================================
   // 2s / 10s — SBP-style rolling window (5 Hz)
+  // - index_GPS is ring index
+  // - samples is window length in samples
   // ========================================================================
   const uint32_t samples = time_window * systemInfo.sample_rate;
   if(samples >= BUFFER_SIZE) return s_max_speed;
@@ -111,23 +132,24 @@ float GPS_time::Update_speed(int actual_run)
 
   float sum_kn=0.0f;
   for(uint32_t i=0;i<samples;i++){
-    int idx=(index_GPS - samples + 1 + i) % BUFFER_SIZE; if(idx<0) idx += BUFFER_SIZE;
+    int idx=(index_GPS - (int)samples + 1 + (int)i) % BUFFER_SIZE; if(idx<0) idx += BUFFER_SIZE;
     sum_kn += _sogCms[idx] * CMPS_TO_KNOTS;
   }
 
   float avg_kn = sum_kn / samples;
 
   // ========================================================================
-  // SESSION BEST (ALL WINDOWS — kept exactly as before)
+  // SESSION BEST (ALL WINDOWS)
+  // IMPORTANT: store window start as RING index (wrap-safe)
   // ========================================================================
   if(avg_kn > s_max_speed){
     s_max_speed  = avg_kn;
     avg_speed[9] = s_max_speed;
 
-    int start = index_GPS - (int)samples + 1; if(start < 0) start = 0;
+    int start = wrap_gps(index_GPS - (int)samples + 1);
 
-    if(time_window == 2){ win_2s_start=start; win_2s_end=index_GPS; }
-    if(time_window == 10){ win_10s_start=start; win_10s_end=index_GPS; }
+    if(time_window == 2){  win_2s_start  = start; win_2s_end  = index_GPS; }
+    if(time_window == 10){ win_10s_start = start; win_10s_end = index_GPS; }
 
     getLocalTime(&tmstruct,0);
     time_hour[9]=tmstruct.tm_hour; time_min[9]=tmstruct.tm_min; time_sec[9]=tmstruct.tm_sec;
@@ -140,6 +162,7 @@ float GPS_time::Update_speed(int actual_run)
 
   // ========================================================================
   // PER-RUN BEST 10s + TOP-5 WINDOWS (Speedreader style)
+  // NOTE: exported windows must be treated as ring ranges by the exporter.
   // ========================================================================
   if(time_window == 10 && actual_run > 0 && actual_run < 32){
 
@@ -147,7 +170,8 @@ float GPS_time::Update_speed(int actual_run)
     if(avg_kn > best_10s_per_run[actual_run]){
       best_10s_per_run[actual_run] = avg_kn;
 
-      int start = index_GPS - (int)samples + 1; if(start < 0) start = 0;
+      int start = wrap_gps(index_GPS - (int)samples + 1);
+
       win_10s_start_run[actual_run] = start;
       win_10s_end_run  [actual_run] = index_GPS;
     }
@@ -172,7 +196,7 @@ float GPS_time::Update_speed(int actual_run)
     for(int r=1;r<=run_count;r++){
       if(best_10s_per_run[r] > 0.0f &&
          win_10s_start_run[r] >= 0 &&
-         win_10s_end_run[r]   >= win_10s_start_run[r]){
+         win_10s_end_run[r]   >= 0){
         runs[rn].run = r;
         runs[rn].spd = best_10s_per_run[r];
         rn++;
