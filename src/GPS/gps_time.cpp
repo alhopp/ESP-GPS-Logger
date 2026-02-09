@@ -11,25 +11,24 @@
 // ============================================================================
 // GPS_time
 //
-// SBP-aligned time-window speed statistics
+// Time-window speed engine for GPS data.
 //
-// UNIT MODEL
-// - Raw input        : cm/s (_sogCms[], _secSpeed[])
-// - Per-sample       : converted to knots FIRST
-// - Averaging        : float knots (SBP-exact)
-// - Storage          : knots
+// - Computes SBP-aligned 2s, 10s, and 1h speed metrics from raw GPS samples
+// - Tracks session-best and per-run results (Speedreader compatible)
+// - Exports ring-indexed geometry windows for plotting/logging (no rendering)
 //
-// WINDOWS
-// - 2s   = 2  * sample_rate (5 Hz)
-// - 10s  = 10 * sample_rate (5 Hz)
-// - 1h   = 3600 samples (1 Hz, padded)
-//
-// INDEX MODEL (IMPORTANT)
+// CONTRACT
+// - Inputs: raw GPS speed buffers (_sogCms[], _secSpeed[])
+// - Outputs: best speeds + window start/end indices
 // - index_GPS is a ring index into BUFFER_SIZE
-// - window starts MUST be stored as ring indices (wrap-safe)
-// - end indices are the current index_GPS (ring)
-// - exporters must iterate ring-aware when start > end
+// - Exported windows are ring ranges and must be iterated wrap-safe
+//
+// ROLE
+// - Numbers are computed here
+// - Geometry *locations* are identified here
+// - Drawing / logging is handled elsewhere
 // ============================================================================
+
 
 
 // -----------------------------------------------------------------------------
