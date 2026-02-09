@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // File Operations Manager
 // Opens / flushes / logs / closes UBX, SBP, TXT (+ others) session files.
-// ----------------------------------------------------------------------------- 
+// -----------------------------------------------------------------------------
 
 #include <Arduino.h>
 #include <FS.h>
@@ -28,17 +28,22 @@
 #include <esp_system.h>
 
 // -----------------------------------------------------------------------------
+// Safety
+// -----------------------------------------------------------------------------
+#define VALID_GPS_INDEX(i) ((i) >= 0 && (i) < BUFFER_SIZE)
+
+// -----------------------------------------------------------------------------
 // State / buffers
 // -----------------------------------------------------------------------------
-char dataStr[255]="", Buffer[50]="";
+char dataStr[255] = "", Buffer[50] = "";
 uint64_t GPS_UTC_ms;
-static uint32_t last_sbp_iTOW=0;
+static uint32_t last_sbp_iTOW = 0;
 
 // Files
 File ubxfile, sbpfile;
 
 // Filenames
-char filenameERR[128]="/", filenameUBX[128]="/", filenameSBP[128]="/", filenameGEO[128]="/";  
+char filenameERR[128] = "/", filenameUBX[128] = "/", filenameSBP[128] = "/", filenameGEO[128] = "/";
 
 // -----------------------------------------------------------------------------
 // Open logging files
@@ -72,19 +77,19 @@ void Open_files(void)
     tmstruct.tm_sec
   );
 
-  snprintf(path,sizeof(path),"/logs/%s",base);
+  snprintf(path, sizeof(path), "/logs/%s", base);
 
-  snprintf(filenameERR,sizeof(filenameERR),"%s.txt",path);
-  snprintf(filenameUBX,sizeof(filenameUBX),"%s.ubx",path);
-  snprintf(filenameSBP,sizeof(filenameSBP),"%s.sbp",path);
-  snprintf(filenameGEO,sizeof(filenameGEO),"%s.geojson",path);
+  snprintf(filenameERR, sizeof(filenameERR), "%s.txt", path);
+  snprintf(filenameUBX, sizeof(filenameUBX), "%s.ubx", path);
+  snprintf(filenameSBP, sizeof(filenameSBP), "%s.sbp", path);
+  snprintf(filenameGEO, sizeof(filenameGEO), "%s.geojson", path);
 
   if(config.logUBX)
     ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
 
   if(config.logSBP){
     sbpfile = SD_MMC.open(filenameSBP, FILE_WRITE);
-    if(sbpfile.size()==0)
+    if(sbpfile.size() == 0)
       log_header_SBP(sbpfile);
   }
 
@@ -92,7 +97,7 @@ void Open_files(void)
   geojson_begin(filenameGEO);
   geojson_begin_feature("track");
 
-  LOG_STORAGE("LOG","Session started %s",base);
+  LOG_STORAGE("LOG","Session started %s", base);
 }
 
 // -----------------------------------------------------------------------------
@@ -102,7 +107,7 @@ void Flush_files(void)
 {
   if(storage_shutting_down || systemInfo.sample_rate > 10) return;
 
-  static uint8_t lb=0;
+  static uint8_t lb = 0;
   switch(lb){
     case 0: if(ubxfile) ubxfile.flush(); break;
     case 3: if(sbpfile) sbpfile.flush(); break;
@@ -119,9 +124,9 @@ void Log_to_SD(void)
 
   if(config.logUBX && ubxfile){
     ubxfile.write(0xB5); ubxfile.write(0x62);
-    ubxfile.write((const uint8_t*)&ubxMessage.navPvt,sizeof(ubxMessage.navPvt));
+    ubxfile.write((const uint8_t*)&ubxMessage.navPvt, sizeof(ubxMessage.navPvt));
 
-    static int old_sat=0;
+    static int old_sat = 0;
     if(nav_sat_message != old_sat){
       old_sat = nav_sat_message;
       ubxfile.write(0xB5); ubxfile.write(0x62);
@@ -134,10 +139,10 @@ void Log_to_SD(void)
 
   if(config.logUBX_nav_sat && ubxfile){
     ubxfile.write(0xB5); ubxfile.write(0x62);
-    ubxfile.write((const uint8_t*)&ubxMessage.navDOP,sizeof(ubxMessage.navDOP));
+    ubxfile.write((const uint8_t*)&ubxMessage.navDOP, sizeof(ubxMessage.navDOP));
   }
 
-  if(config.logSBP && sbpfile && getMode()==MODE_LOGGING){
+  if(config.logSBP && sbpfile && getMode() == MODE_LOGGING){
     uint32_t itow = ubxMessage.navPvt.iTOW;
     if(itow != last_sbp_iTOW){
       last_sbp_iTOW = itow;
@@ -154,7 +159,7 @@ void Close_files(void)
   Serial.println("[STORAGE] Close_files()");
 
   // ------------------------------------------------------------
-  // FINAL SESSION STATS (used by GeoJSON)
+  // FINAL SESSION STATS
   // ------------------------------------------------------------
   GeoJSONStats s {
     .nm       = RTC_mile_knots,
@@ -174,38 +179,42 @@ void Close_files(void)
   // ------------------------------------------------------------
   if(win_2s_start >= 0 && win_2s_end >= win_2s_start){
     geojson_begin_feature("2s");
-    for(int i = win_2s_start; i <= win_2s_end; i++)
-      geojson_add_point(_lat[i], _long[i]);
+    for(int i = win_2s_start; i <= win_2s_end; i++){
+      if(VALID_GPS_INDEX(i))
+        geojson_add_point(_lat[i], _long[i]);
+    }
     geojson_end_feature();
   }
 
- // ---- Top 5 × 10s runs (Speedreader style) ----
-for(int i = 0; i < win_10s_top5_count; i++){
-  geojson_begin_feature("10s");
+  // ---- Top 5 × 10s runs ----
+  for(int i = 0; i < win_10s_top5_count; i++){
+    int s = win_10s_top5_start[i];
+    int e = win_10s_top5_end[i];
+    if(s < 0 || e < s) continue;
 
-  for(int idx = win_10s_top5_start[i];
-          idx <= win_10s_top5_end[i];
-          idx++){
-    geojson_add_point(_lat[idx], _long[idx]);
+    geojson_begin_feature("10s");
+    for(int idx = s; idx <= e; idx++){
+      if(VALID_GPS_INDEX(idx))
+        geojson_add_point(_lat[idx], _long[idx]);
+    }
+    geojson_end_feature();
   }
-
-  geojson_end_feature();
-}
-
-  
-
 
   if(alpha_start >= 0 && alpha_end >= alpha_start){
     geojson_begin_feature("alpha");
-    for(int i = alpha_start; i <= alpha_end; i++)
-      geojson_add_point(_lat[i], _long[i]);
+    for(int i = alpha_start; i <= alpha_end; i++){
+      if(VALID_GPS_INDEX(i))
+        geojson_add_point(_lat[i], _long[i]);
+    }
     geojson_end_feature();
   }
 
   if(win_nm_start >= 0 && win_nm_end >= win_nm_start){
     geojson_begin_feature("nm");
-    for(int i = win_nm_start; i <= win_nm_end; i++)
-      geojson_add_point(_lat[i], _long[i]);
+    for(int i = win_nm_start; i <= win_nm_end; i++){
+      if(VALID_GPS_INDEX(i))
+        geojson_add_point(_lat[i], _long[i]);
+    }
     geojson_end_feature();
   }
 
@@ -213,26 +222,24 @@ for(int i = 0; i < win_10s_top5_count; i++){
     geojson_begin_feature("1h");
     for(int s = win_1h_start_sec; s <= win_1h_end_sec; s++){
       int idx = sec_to_gps_index[s];
-      geojson_add_point(_lat[idx], _long[idx]);
+      if(VALID_GPS_INDEX(idx))
+        geojson_add_point(_lat[idx], _long[idx]);
     }
     geojson_end_feature();
   }
 
-  geojson_end();   // closes GEOJSON file internally
+  geojson_end();
 
-  // ============================================================
-  // 🔑 CRITICAL: FLUSH + CLOSE RAW LOG FILES
-  // ============================================================
-
+  // ------------------------------------------------------------
+  // FLUSH + CLOSE RAW FILES
+  // ------------------------------------------------------------
   if(ubxfile){
-    Serial.printf("[UBX] close size=%u\n", ubxfile.size());
     ubxfile.flush();
     ubxfile.close();
     ubxfile = File();
   }
 
   if(sbpfile){
-    Serial.printf("[SBP] close size=%u\n", sbpfile.size());
     sbpfile.flush();
     sbpfile.close();
     sbpfile = File();

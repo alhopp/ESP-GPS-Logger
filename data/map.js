@@ -79,68 +79,82 @@ window.MapView = {
   // loadGeoJSON() — multi-feature aware
   // -------------------------------------------------------------------------
   loadGeoJSON(url){
-    if(!this.map) return;
+  if(!this.map) return;
 
-    this.clear();
+  this.clear();
 
-    fetch(url,{cache:"no-store"})
-      .then(r=>{
-        if(!r.ok) throw Error("GeoJSON fetch failed");
-        return r.json();
-      })
-      .then(gj=>{
-        if(!gj.features) return;
+  fetch(url,{cache:"no-store"})
+    .then(r=>{
+      if(!r.ok) throw Error("GeoJSON fetch failed");
+      return r.json();
+    })
+    .then(gj=>{
+      if(!gj.features) return;
 
-        this._overlays = {};
+      this._overlays = {};
 
-        // ---- split features by mode ----
-        const base = gj.features.find(f=>f.properties?.mode==="track");
+      // ---- split features by mode ----
+      const base = gj.features.find(f=>f.properties?.mode==="track");
 
-        gj.features.forEach(f=>{
-          const m = f.properties?.mode;
-          if(m && m!=="track") this._overlays[m] = f;
-        });
+      gj.features.forEach(f=>{
+        const m = f.properties?.mode;
+        if(!m || m==="track") return;
 
-        // ---- stats only live on base track ----
-        const stats = base?.properties?.stats;
-        updateStatsUI(stats);
+        // ignore empty LineStrings
+        if(!f.geometry?.coordinates || f.geometry.coordinates.length < 2) return;
 
-        // ---- draw base track (grey) ----
-        if(base){
-          this.baseTrack = L.geoJSON(base,{
-            pane:"basePane",
-            renderer:this._r,
-            coordsToLatLng:c=>L.latLng(c[1],c[0]),
-            style:{ color:"#9aa0a6", weight:4, opacity:0.75 }
-          }).addTo(this.map);
+        if(!this._overlays[m]) this._overlays[m] = [];
+        this._overlays[m].push(f);
+      });
 
-          this.zoomToLayer(this.baseTrack);
-        }
+      // ---- stats only live on base track ----
+      const stats = base?.properties?.stats;
+      updateStatsUI(stats);
 
-        setTimeout(()=>this.map.invalidateSize(true),50);
-      })
-      .catch(e=>console.warn("[Map] GeoJSON failed",e));
-  },
+      // ---- draw base track (grey) ----
+      if(base){
+        this.baseTrack = L.geoJSON(base,{
+          pane:"basePane",
+          renderer:this._r,
+          coordsToLatLng:c=>L.latLng(c[1],c[0]),
+          style:{ color:"#9aa0a6", weight:4, opacity:0.75 }
+        }).addTo(this.map);
 
-  // -------------------------------------------------------------------------
-  // showOverlay() — draw one performance slice on top
-  // -------------------------------------------------------------------------
-  showOverlay(mode){
-    if(this.overlay){
-      this.map.removeLayer(this.overlay);
-      this.overlay = null;
-    }
+        this.zoomToLayer(this.baseTrack);
+      }
 
-    const f = this._overlays?.[mode];
-    if(!f) return;
+      setTimeout(()=>this.map.invalidateSize(true),50);
+    })
+    .catch(e=>console.warn("[Map] GeoJSON failed",e));
+},
 
-    this.overlay = L.geoJSON(f,{
+
+// -------------------------------------------------------------------------
+// showOverlay() — draw one performance slice on top
+// -------------------------------------------------------------------------
+showOverlay(mode){
+  if(this.overlay){
+    this.map.removeLayer(this.overlay);
+    this.overlay = null;
+  }
+
+  const list = this._overlays?.[mode];
+  if(!list || !list.length) return;
+
+  this.overlay = L.geoJSON(
+    {
+      type:"FeatureCollection",
+      features:list
+    },
+    {
       pane:"overlayPane",
       renderer:this._r,
       coordsToLatLng:c=>L.latLng(c[1],c[0]),
       style:{ color:"#ff3b30", weight:6, opacity:1 }
-    }).addTo(this.map);
-  },
+    }
+  ).addTo(this.map);
+},
+
 
   // -------------------------------------------------------------------------
   clear(){
