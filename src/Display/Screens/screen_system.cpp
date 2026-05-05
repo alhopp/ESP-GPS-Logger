@@ -61,16 +61,18 @@ void draw_BOOT()
 constexpr int MAG_X = 30, MAG_Y = 12, MAG_R = 8;
 
 // Partial window tightly covering affordance
-constexpr int MAG_WIN_X = MAG_X - MAG_R - 2;
-constexpr int MAG_WIN_Y = MAG_Y - MAG_R - 2;
-constexpr int MAG_WIN_W = MAG_R * 2 + 4;
-constexpr int MAG_WIN_H = MAG_R * 2 + 4;
+constexpr DisplayWindow MAGNET_WINDOW = {
+  MAG_X - MAG_R - 2,
+  MAG_Y - MAG_R - 2,
+  MAG_R * 2 + 4,
+  MAG_R * 2 + 4
+};
 
 
 // UI hook (called by input layer on state change)
 void screen_request_magnet_affordance()
 {
-  screen_request_partial(MAG_WIN_X, MAG_WIN_Y, MAG_WIN_W, MAG_WIN_H);
+  screen_request_partial(MAGNET_WINDOW);
 }
 
 

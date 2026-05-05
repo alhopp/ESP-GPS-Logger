@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include "core/input_pins.h"
 #include "core/magnet_input.h"
 #include "core/Definitions.h"
 #include "core/system_mode.h"

@@ -45,6 +45,7 @@ static int staAttempts = 0;
 // -----------------------------------------------------------------------------
 
 static WifiUiState wifiUiState = WIFI_UI_OFF;
+static constexpr DisplayWindow WIFI_STATUS_WINDOW = DISPLAY_FULL_WINDOW;
 
 WifiUiState wifi_get_ui_state()
 {
@@ -56,7 +57,7 @@ static void wifi_set_ui_state(WifiUiState s)
   if (wifiUiState == s) return;
 
   wifiUiState = s;
-  screen_request_partial(0, 0, 250, 122);
+  screen_request_partial(WIFI_STATUS_WINDOW);
 }
 
 // -----------------------------------------------------------------------------

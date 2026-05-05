@@ -28,7 +28,7 @@ volatile SystemMode currentMode = MODE_BOOT;
 
 void requestModeRedraw()
 {
-  screen_request_partial(0, 0, 250, 122);
+  screen_request_partial(DISPLAY_FULL_WINDOW);
 }
 
 void exitLogging()
@@ -201,4 +201,3 @@ void setMode(SystemMode newMode)
 
   runEnterActions(newMode);
 }
-

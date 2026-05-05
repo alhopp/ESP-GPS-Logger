@@ -17,12 +17,17 @@
 // -----------------------------------------------------------------------------
 // GPS task state
 // -----------------------------------------------------------------------------
-int GPS_delay = 0;
-TaskHandle_t t1 = nullptr;
-
 namespace {
+constexpr uint32_t IDLE_DELAY_MS = 200;
+constexpr uint32_t POLL_DELAY_MS = 5;
+
+constexpr DisplayWindow SAT_WAIT_WINDOW = {0, 100, 250, 122};
+constexpr DisplayWindow SPEED_WINDOW = {0, 0, 250, 122};
+
 uint32_t timeWaitStartMs = 0;
 
+bool gpsTaskShouldRun();
+void processGpsFix(const GpsFix& fix);
 void processGpsMessage(const GpsFix& fix);
 void noteGpsSignalReady(const GpsFix& fix);
 void maybeEnterLoggingMode();
@@ -35,34 +40,45 @@ void updateSpeedDisplayThrottle(const GpsFix& fix);
 // -----------------------------------------------------------------------------
 // GPS task
 // -----------------------------------------------------------------------------
-void taskOne(void *parameter)
+void gpsTask(void *parameter)
 {
+  (void)parameter;
+
   for (;;) {
-    if (getMode() != MODE_LOGGING && getMode() != MODE_WAIT_SATS) {
-      vTaskDelay(pdMS_TO_TICKS(200));
+    if (!gpsTaskShouldRun()) {
+      vTaskDelay(pdMS_TO_TICKS(IDLE_DELAY_MS));
       continue;
     }
 
     wdt_task0 = millis();
 
     if (gps_source_next_message() == MT_NAV_PVT) {
-      const GpsFix fix = gps_fix_from_ubx();
-
-      processGpsMessage(fix);
-
-      if (logging_session_active() && GPS_Signal_OK) {
-        logging_session_write_fix(fix, getMode() == MODE_LOGGING);
-      }
-
-      updateSatelliteWaitDisplay(fix);
-      updateSpeedDisplayThrottle(fix);
+      processGpsFix(gps_fix_from_ubx());
     }
 
-    vTaskDelay(pdMS_TO_TICKS(5));
+    vTaskDelay(pdMS_TO_TICKS(POLL_DELAY_MS));
   }
 }
 
 namespace {
+
+bool gpsTaskShouldRun()
+{
+  const SystemMode mode = getMode();
+  return mode == MODE_LOGGING || mode == MODE_WAIT_SATS;
+}
+
+void processGpsFix(const GpsFix& fix)
+{
+  processGpsMessage(fix);
+
+  if (logging_session_active() && GPS_Signal_OK) {
+    logging_session_write_fix(fix, getMode() == MODE_LOGGING);
+  }
+
+  updateSatelliteWaitDisplay(fix);
+  updateSpeedDisplayThrottle(fix);
+}
 
 void processGpsMessage(const GpsFix& fix)
 {
@@ -127,7 +143,7 @@ void updateSatelliteWaitDisplay(const GpsFix& fix)
 
   if (fix.satellites != lastSV) {
     lastSV = fix.satellites;
-    screen_request_partial(0, 100, 250, 122);
+    screen_request_partial(SAT_WAIT_WINDOW);
   }
 }
 
@@ -146,7 +162,7 @@ void updateSpeedDisplayThrottle(const GpsFix& fix)
   const uint32_t now = millis();
   if (intervalMs != UINT32_MAX && now - lastSpeedUpdateMs >= intervalMs) {
     lastSpeedUpdateMs = now;
-    screen_request_partial(0, 0, 250, 122);
+    screen_request_partial(SPEED_WINDOW);
   }
 }
 

@@ -16,21 +16,15 @@
 
 #include <Arduino.h>
 
-#include "esp_sleep.h"
 #include "esp_task_wdt.h"
 
-#include "Fonts.h"
 #include "Core/Definitions.h"
-#include "Layout.h"
-#include "Core/Globals.h"
 
+#include "core/sleep_control.h"
 #include "core/system_mode.h"
 
 #include "Display/E_paper.h"
 #include "Display/screen_draw.h"
-#include "Display/Screens/screen_system.h"
-
-#include "Core/magnet_input.h"
 
 // ============================================================================
 // Redraw signalling state
@@ -39,13 +33,93 @@
 static volatile bool display_dirty = false;   // full refresh requested
 static volatile bool partial_dirty = false;   // partial refresh requested
 
-static int partial_x = 0;
-static int partial_y = 0;
-static int partial_w = 0;
-static int partial_h = 0;
+static DisplayWindow partialWindow = {0, 0, 0, 0};
 
-// Display task handle (exported)
-TaskHandle_t t2 = nullptr;
+static TaskHandle_t displayTaskHandle = nullptr;
+
+namespace {
+struct RefreshRequest {
+  bool partial = false;
+  DisplayWindow window = {0, 0, 0, 0};
+};
+
+bool hasPendingRefresh()
+{
+  return display_dirty || partial_dirty;
+}
+
+RefreshRequest takeRefreshRequest()
+{
+  RefreshRequest request;
+  request.partial = partial_dirty && !display_dirty;
+  request.window = partialWindow;
+
+  display_dirty = false;
+  partial_dirty = false;
+
+  return request;
+}
+
+void drawPage(const RefreshRequest& request, DrawFn draw)
+{
+  if (request.partial) {
+    display.fillRect(
+      request.window.x,
+      request.window.y,
+      request.window.w,
+      request.window.h,
+      GxEPD_WHITE
+    );
+  } else {
+    display.fillScreen(GxEPD_WHITE);
+  }
+
+  if (draw) draw();
+
+  esp_task_wdt_reset();
+  vTaskDelay(1);
+}
+
+void renderRefresh(const RefreshRequest& request, DrawFn draw)
+{
+  if (request.partial) {
+    display.setPartialWindow(
+      request.window.x,
+      request.window.y,
+      request.window.w,
+      request.window.h
+    );
+  } else {
+    display.setFullWindow();
+  }
+
+  display.firstPage();
+  do {
+    drawPage(request, draw);
+  } while (display.nextPage());
+}
+
+void enterDeepSleep(DrawFn draw)
+{
+  LOG_TASK("Display", "forcing final FULL refresh before deep sleep");
+
+  // HARD reset any lingering partial-window state
+  display.setPartialWindow(0, 0, display.width(), display.height());
+  display.setFullWindow();
+
+  display.firstPage();
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    if (draw) draw();
+    esp_task_wdt_reset();
+    vTaskDelay(1);
+  } while (display.nextPage());
+
+  delay(200);
+
+  sleep_enter_from_magnet();
+}
+}
 
 // ============================================================================
 // Public redraw requests
@@ -55,15 +129,15 @@ TaskHandle_t t2 = nullptr;
 void screen_request_redraw()
 {
   display_dirty = true;
-  if (t2) xTaskNotifyGive(t2);
+  if (displayTaskHandle) xTaskNotifyGive(displayTaskHandle);
 }
 
 // Request PARTIAL redraw
-void screen_request_partial(int x, int y, int w, int h)
+void screen_request_partial(DisplayWindow window)
 {
-  partial_x = x; partial_y = y; partial_w = w; partial_h = h;
+  partialWindow = window;
   partial_dirty = true;
-  if (t2) xTaskNotifyGive(t2);
+  if (displayTaskHandle) xTaskNotifyGive(displayTaskHandle);
 }
 
 // ============================================================================
@@ -71,77 +145,30 @@ void screen_request_partial(int x, int y, int w, int h)
 // ============================================================================
 
 
-void taskTwo(void* parameter)
+void displayTask(void* parameter)
 {
-  t2 = xTaskGetCurrentTaskHandle();
+  displayTaskHandle = xTaskGetCurrentTaskHandle();
   LOG_TASK("Display", "task started");
 
-  for (;;)
-  {
+  for (;;) {
     // Wait until someone asks for a redraw
     ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
 
-    if (!display_dirty && !partial_dirty)
+    if (!hasPendingRefresh()) {
       continue;
+    }
 
-    const bool doPartial = partial_dirty && !display_dirty;
-    const int px = partial_x, py = partial_y, pw = partial_w, ph = partial_h;
-
-    display_dirty  = false;
-    partial_dirty  = false;
-
+    const RefreshRequest request = takeRefreshRequest();
     const SystemMode mode = getMode();
     const DrawFn draw = getDrawFnForMode(mode);
 
-    // -----------------------------------------------------------------------
-    // Refresh policy (intent-driven, not mode-driven)
-    // -----------------------------------------------------------------------
-    if (doPartial) {
-      display.setPartialWindow(px, py, pw, ph);
-    } else {
-      display.setFullWindow();
-    }
-
-    display.firstPage();
-    do {
-      if (doPartial)
-        display.fillRect(px, py, pw, ph, GxEPD_WHITE);
-      else
-        display.fillScreen(GxEPD_WHITE);
-
-      if (draw) draw();
-
-      esp_task_wdt_reset();
-      vTaskDelay(1);
-
-    } while (display.nextPage());
+    renderRefresh(request, draw);
 
     // -----------------------------------------------------------------------
     // Deep sleep handling (FORCE full refresh)
     // -----------------------------------------------------------------------
-    if(mode == MODE_SLEEP){
-      LOG_TASK("Display","forcing final FULL refresh before deep sleep");
-
-       // HARD reset any lingering partial-window state
-      display.setPartialWindow(0, 0, display.width(), display.height());
-      display.setFullWindow();
-      
-      display.firstPage();
-      do{
-        display.fillScreen(GxEPD_WHITE);
-        if(draw) draw();
-        esp_task_wdt_reset();
-        vTaskDelay(1);
-      }while(display.nextPage());
-
-      delay(200);
-
-      esp_sleep_enable_ext1_wakeup(
-        1ULL << MAGNET_PIN,
-        ESP_EXT1_WAKEUP_ALL_LOW
-      );
-      esp_deep_sleep_start();
+    if (mode == MODE_SLEEP) {
+      enterDeepSleep(draw);
     }
-
   }
 }
