@@ -10,7 +10,6 @@
 #include <SD_MMC.h>
 #include <LittleFS.h>
 
-#include "managers/config_manager.h"
 #include "core/Definitions.h"
 
 // Public state flags

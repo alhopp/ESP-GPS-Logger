@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>
 
 #include "Core/Definitions.h"
-#include "managers/config_manager.h"
+#include "managers/config_types.h"
 
 bool config_load_json(File& file)
 {
@@ -87,4 +87,3 @@ void config_write_json(File& file)
 
   serializeJsonPretty(doc, file);
 }
-

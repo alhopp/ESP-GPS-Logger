@@ -4,7 +4,7 @@
 #include "Storage/sbp.h"
 #include "Ublox/Ublox.h"
 #include "core/system_mode.h"
-#include "managers/config_manager.h"
+#include "managers/config_types.h"
 
 namespace {
 uint32_t last_sbp_iTOW = 0;
@@ -46,4 +46,3 @@ void session_write_sbp(File& sbpfile)
   last_sbp_iTOW = itow;
   log_SBP(sbpfile);
 }
-

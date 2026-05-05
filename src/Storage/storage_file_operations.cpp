@@ -17,8 +17,9 @@
 #include "Storage/session_raw_writers.h"
 #include "Storage/storage_file_operations.h"
 #include "Storage/storage_manager.h"
-#include "managers/config_manager.h"
+#include "managers/config_types.h"
 
+namespace {
 char dataStr[255] = "";
 char Buffer[50] = "";
 uint64_t GPS_UTC_ms;
@@ -30,6 +31,7 @@ char filenameERR[128] = "/";
 char filenameUBX[128] = "/";
 char filenameSBP[128] = "/";
 char filenameGEO[128] = "/";
+}
 
 void Open_files(void)
 {

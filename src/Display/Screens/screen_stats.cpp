@@ -14,7 +14,6 @@
 #include "Display/Screens/screen_stats.h"
 #include "Display/E_paper.h"
 #include "Layout.h"
-#include "MANAGERS/config_manager.h"
 #include "Core/Globals.h"
 #include "Fonts.h"
 #include "GPS/gps_alpha.h"

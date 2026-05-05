@@ -2,77 +2,66 @@
 // boot_manager.cpp
 //
 // Deterministic early-boot initialisation.
-// Responsibilities (report-only):
-//  - Bring up Serial with bounded wait
-//  - Take a fresh battery ADC sample and scale it
-//  - Reset system timebase
-//  - Initialise e-paper display early (for error reporting)
-//  - Detect fatal boot conditions (low battery / reset boot)
-//
-// Non-responsibilities:
-//  - NO mode transitions
-//  - NO sleep / shutdown decisions
-//  - NO retries or fallbacks
-//
-// Returns:
-//  - BootResult enum; main.cpp decides what happens next.
+// This module reports whether boot may continue; it does not change system mode.
 // -----------------------------------------------------------------------------
+
+#include "boot_manager.h"
 
 #include <Arduino.h>
 #include <sys/time.h>
-#include "boot_manager.h"
 
 #include "Display/E_paper.h"
-#include "tasks/task_display.h"
-
-#include "core/rtc_state.h"
-#include "core/Globals.h"
 #include "core/Definitions.h"
+#include "core/Globals.h"
+#include "core/rtc_state.h"
 
+namespace {
+constexpr uint8_t PIN_BAT = 35;
+constexpr float BAT_SCALE = 5.0f;
+constexpr uint32_t SERIAL_WAIT_MS = 400;
 
-static constexpr uint8_t PIN_BAT = 35;
-static constexpr float BAT_SCALE = 5.0f;
+const char* s_failReason = nullptr;
 
-// -----------------------------------------------------------------------------
-// Internal state
-// -----------------------------------------------------------------------------
-static const char* s_failReason = nullptr;
-
-// -----------------------------------------------------------------------------
-// initBoot()
-// -----------------------------------------------------------------------------
-BootResult initBoot()
+void initSerial()
 {
-  s_failReason = nullptr;
-
-// ---- Start Serial Monitor @115200 Baud
   Serial.begin(115200);
+
   const uint32_t t0 = millis();
-  while (millis() - t0 < 400) delay(10);
+  while (millis() - t0 < SERIAL_WAIT_MS) {
+    delay(10);
+  }
 
   LOG_BOOT("Init", "starting");
+}
 
-
-  // ---- Battery ADC: always take a fresh sample (ignore RTC residue)
+void sampleBattery()
+{
   analogRead(PIN_BAT);
-  delay(5);              
-  analog_mean       = analogRead(PIN_BAT);
-  RTC_voltage_bat   = analog_mean * BAT_SCALE;
+  delay(5);
+
+  analog_mean = analogRead(PIN_BAT);
+  RTC_voltage_bat = analog_mean * BAT_SCALE;
 
   LOG_BOOT("Battery", "%.2f V", RTC_voltage_bat);
+}
 
-  // ---- Timebase: reset to epoch (RTC validity determined later)
-  timeval tv = {}; 
+void resetTimebase()
+{
+  timeval tv = {};
   settimeofday(&tv, nullptr);
+}
 
-  // ---- Display: early init for deterministic error reporting
+void initEarlyDisplay()
+{
   LOG_BOOT("Display", "init");
+
   display.init(115200, true, 2, false);
   display.setRotation(1);
   display.setTextColor(GxEPD_BLACK);
+}
 
-
-  // ---- Fatal boot conditions (report only)
+BootResult checkFatalBootConditions()
+{
   if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
     LOG_BOOT("Shutdown", "low battery");
     s_failReason = "Shut down Low Bat!";
@@ -85,12 +74,30 @@ BootResult initBoot()
     return BOOT_AFTER_RESET;
   }
 
+  return BOOT_OK;
+}
+}
+
+BootResult initBoot()
+{
+  s_failReason = nullptr;
+
+  initSerial();
+  sampleBattery();
+  resetTimebase();
+  initEarlyDisplay();
+
+  const BootResult result = checkFatalBootConditions();
+  if (result != BOOT_OK) {
+    return result;
+  }
+
   LOG_BOOT("Status", "boot checks passed");
   return BOOT_OK;
 }
 
+const char* bootFailReason()
+{
+  return s_failReason;
+}
 
-// -----------------------------------------------------------------------------
-// bootFailReason()
-// -----------------------------------------------------------------------------
-const char* bootFailReason() { return s_failReason; }

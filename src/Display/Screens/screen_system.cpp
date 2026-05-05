@@ -28,7 +28,7 @@
 
 #include "Ublox/ublox.h"
 
-#include "MANAGERS/config_manager.h"
+#include "managers/config_types.h"
 
 // ============================================================================
 // Local helpers

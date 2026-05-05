@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #include "Core/Definitions.h"
-#include "managers/config_manager.h"
+#include "managers/config_types.h"
 
 void config_validate()
 {

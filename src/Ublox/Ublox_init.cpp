@@ -1,8 +1,8 @@
 #include "Ublox/ublox.h"
 #include "Core/Definitions.h"
-#include "MANAGERS/config_manager.h"
 #include "Core/rtc_state.h"
 #include "Core/Globals.h"
+#include "managers/config_types.h"
 
 // ============================================================================
 // CFG-PRT (UART1) — Board-specific UART configuration for u-blox M10

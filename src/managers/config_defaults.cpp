@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #include "Core/Definitions.h"
-#include "managers/config_manager.h"
+#include "managers/config_types.h"
 
 void config_set_defaults()
 {
@@ -36,4 +36,3 @@ void config_set_defaults()
   strlcpy(config.phone_ssid, "", sizeof(config.phone_ssid));
   strlcpy(config.phone_pass, "", sizeof(config.phone_pass));
 }
-

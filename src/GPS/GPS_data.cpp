@@ -29,7 +29,6 @@
 
 #include "Ublox/ublox.h"
 #include "Core/Definitions.h"
-#include "MANAGERS/config_manager.h"
 #include "Core/Globals.h"
 #include "core/system_info.h"
 #include <algorithm>

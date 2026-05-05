@@ -1,9 +1,9 @@
 #include <Arduino.h>
 
 #include "Core/Globals.h"
-#include "MANAGERS/config_manager.h"
 #include "Ublox/ublox.h"
 #include "core/system_mode.h"
+#include "managers/config_types.h"
 #include "session/logging_session.h"
 #include "tasks/task_display.h"
 #include "tasks/task_gps.h"

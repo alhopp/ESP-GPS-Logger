@@ -11,8 +11,8 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 
-#include "MANAGERS/config_manager.h"
 #include "core/build_config.h"
+#include "managers/config_types.h"
 #include "tasks/task_display.h"
 
 // ============================================================================
@@ -229,4 +229,3 @@ bool wifi_show_ap_page()
 {
   return apActive;
 }
-
