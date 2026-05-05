@@ -11,9 +11,9 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 
-#include "core/build_config.h"
+#include "Core/build_config.h"
 #include "managers/config_types.h"
-#include "tasks/display_redraw.h"
+#include "Tasks/display_redraw.h"
 
 // ============================================================================
 // DEV MODE OVERRIDE

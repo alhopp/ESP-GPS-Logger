@@ -10,7 +10,7 @@
 #include <SD_MMC.h>
 #include <LittleFS.h>
 
-#include "core/Definitions.h"
+#include "Core/Definitions.h"
 
 // Public state flags
 bool sdOK=false, LITTLEFS_OK=false;

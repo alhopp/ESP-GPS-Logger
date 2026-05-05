@@ -4,7 +4,7 @@
 #include <WiFi.h>
 
 #include "MANAGERS/config_manager.h"
-#include "core/system_info.h"
+#include "Core/system_info.h"
 
 namespace {
 void sendJson(WebServer& server, JsonDocument& doc)

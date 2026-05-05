@@ -15,14 +15,14 @@
 #include "GPS/gps_manager.h"
 
 // --- Tasks ------------------------------------------------------------------
-#include "tasks/task_runtime.h"
+#include "Tasks/task_runtime.h"
 
 // --- System / input ----------------------------------------------------------
-#include "core/sleep_control.h"
-#include "core/system_mode.h"
-#include "core/magnet_input.h"
-#include "core/Definitions.h"
-#include "core/Globals.h"
+#include "Core/sleep_control.h"
+#include "Core/system_mode.h"
+#include "Core/magnet_input.h"
+#include "Core/Definitions.h"
+#include "Core/Globals.h"
 
 // --- Local config ------------------------------------------------------------
 namespace {

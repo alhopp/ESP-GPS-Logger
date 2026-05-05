@@ -3,7 +3,7 @@
 #include "Core/Globals.h"
 #include "Storage/sbp.h"
 #include "Ublox/Ublox.h"
-#include "core/system_mode.h"
+#include "Core/system_mode.h"
 #include "managers/config_types.h"
 
 namespace {

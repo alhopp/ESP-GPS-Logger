@@ -1,12 +1,12 @@
-#include "tasks/task_runtime.h"
+#include "Tasks/task_runtime.h"
 
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include "core/Definitions.h"
-#include "tasks/task_display.h"
-#include "tasks/task_gps.h"
+#include "Core/Definitions.h"
+#include "Tasks/task_display.h"
+#include "Tasks/task_gps.h"
 
 namespace {
 constexpr uint32_t GPS_TASK_STACK = 4096;

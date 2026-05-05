@@ -15,10 +15,10 @@
 #include <driver/rtc_io.h>
 #include <driver/gpio.h>
 
-#include "core/Definitions.h"
-#include "core/rtc_state.h"     // RTC_gps_* + RTC time fields
-#include "Ublox/ublox.h"         // ubx::poll::mon_ver definition
-#include "core/Globals.h"
+#include "Core/Definitions.h"
+#include "Core/rtc_state.h"     // RTC_gps_* + RTC time fields
+#include "Ublox/Ublox.h"         // ubx::poll::mon_ver definition
+#include "Core/Globals.h"
 
 #include "GPS/gps_time.h"
 #include "GPS/gps_speed.h"

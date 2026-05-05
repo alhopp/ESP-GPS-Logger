@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#include "core/system_info.h"
+#include "Core/system_info.h"
 #include "managers/config_types.h"
 
 void config_dump()

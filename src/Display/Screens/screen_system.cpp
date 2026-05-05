@@ -22,11 +22,11 @@
 #include "web/wifi_manager.h"
 #include "Core/rtc_state.h"
 
-#include "core/magnet_input.h"
-#include "core/system_mode.h"
-#include "tasks/display_redraw.h"
+#include "Core/magnet_input.h"
+#include "Core/system_mode.h"
+#include "Tasks/display_redraw.h"
 
-#include "Ublox/ublox.h"
+#include "Ublox/Ublox.h"
 
 #include "managers/config_types.h"
 

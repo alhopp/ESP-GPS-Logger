@@ -15,7 +15,7 @@
 #include <math.h>
 
 #include "Core/Definitions.h"
-#include "core/system_info.h"
+#include "Core/system_info.h"
 #include "Core/Globals.h"
 
 // -----------------------------------------------------------------------------

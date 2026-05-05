@@ -1,13 +1,6 @@
 #pragma once
 
-struct DisplayWindow {
-  int x;
-  int y;
-  int w;
-  int h;
-};
-
-constexpr DisplayWindow DISPLAY_FULL_WINDOW = {0, 0, 250, 122};
+#include "Display/display_geometry.h"
 
 // Request a full screen redraw (async, display-task owned)
 void screen_request_redraw();

@@ -5,9 +5,9 @@
 
 #include "Storage/storage_manager.h"
 #include "Ublox/Ublox.h"
-#include "core/Globals.h"
-#include "core/build_config.h"
-#include "core/system_mode.h"
+#include "Core/Globals.h"
+#include "Core/build_config.h"
+#include "Core/system_mode.h"
 #include "session/logging_session.h"
 
 namespace {

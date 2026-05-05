@@ -27,10 +27,10 @@
 // It only stores, accumulates, and resets shared state.
 // ============================================================================
 
-#include "Ublox/ublox.h"
+#include "Ublox/Ublox.h"
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
-#include "core/system_info.h"
+#include "Core/system_info.h"
 #include <algorithm>
 
 #include "GPS/GPS_data.h"

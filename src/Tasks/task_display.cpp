@@ -12,7 +12,7 @@
 // - Other code may ONLY signal redraw intent
 // ============================================================================
 
-#include "tasks/task_display.h"
+#include "Tasks/task_display.h"
 
 #include <Arduino.h>
 
@@ -20,12 +20,12 @@
 
 #include "Core/Definitions.h"
 
-#include "core/sleep_control.h"
-#include "core/system_mode.h"
+#include "Core/sleep_control.h"
+#include "Core/system_mode.h"
 
 #include "Display/E_paper.h"
 #include "Display/screen_draw.h"
-#include "tasks/display_redraw.h"
+#include "Tasks/display_redraw.h"
 
 // ============================================================================
 // Redraw signalling state
@@ -37,6 +37,7 @@ static volatile bool partial_dirty = false;   // partial refresh requested
 static DisplayWindow partialWindow = {0, 0, 0, 0};
 
 static TaskHandle_t displayTaskHandle = nullptr;
+static portMUX_TYPE redrawMux = portMUX_INITIALIZER_UNLOCKED;
 
 namespace {
 struct RefreshRequest {
@@ -46,17 +47,23 @@ struct RefreshRequest {
 
 bool hasPendingRefresh()
 {
-  return display_dirty || partial_dirty;
+  taskENTER_CRITICAL(&redrawMux);
+  const bool pending = display_dirty || partial_dirty;
+  taskEXIT_CRITICAL(&redrawMux);
+  return pending;
 }
 
 RefreshRequest takeRefreshRequest()
 {
   RefreshRequest request;
+
+  taskENTER_CRITICAL(&redrawMux);
   request.partial = partial_dirty && !display_dirty;
   request.window = partialWindow;
 
   display_dirty = false;
   partial_dirty = false;
+  taskEXIT_CRITICAL(&redrawMux);
 
   return request;
 }
@@ -129,15 +136,21 @@ void enterDeepSleep(DrawFn draw)
 // Request FULL redraw
 void screen_request_redraw()
 {
+  taskENTER_CRITICAL(&redrawMux);
   display_dirty = true;
+  taskEXIT_CRITICAL(&redrawMux);
+
   if (displayTaskHandle) xTaskNotifyGive(displayTaskHandle);
 }
 
 // Request PARTIAL redraw
 void screen_request_partial(DisplayWindow window)
 {
+  taskENTER_CRITICAL(&redrawMux);
   partialWindow = window;
   partial_dirty = true;
+  taskEXIT_CRITICAL(&redrawMux);
+
   if (displayTaskHandle) xTaskNotifyGive(displayTaskHandle);
 }
 

@@ -19,7 +19,7 @@
 // - system_mode decides *what mode we are in*
 // -----------------------------------------------------------------------------
 
-#include "core/system_mode.h"
+#include "Core/system_mode.h"
 
 // -----------------------------------------------------------------------------
 // Draw function signature

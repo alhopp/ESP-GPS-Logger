@@ -11,9 +11,9 @@
 #include <sys/time.h>
 
 #include "Display/E_paper.h"
-#include "core/Definitions.h"
-#include "core/Globals.h"
-#include "core/rtc_state.h"
+#include "Core/Definitions.h"
+#include "Core/Globals.h"
+#include "Core/rtc_state.h"
 
 namespace {
 constexpr uint8_t PIN_BAT = 35;
@@ -54,10 +54,7 @@ void resetTimebase()
 void initEarlyDisplay()
 {
   LOG_BOOT("Display", "init");
-
-  display.init(115200, true, 2, false);
-  display.setRotation(1);
-  display.setTextColor(GxEPD_BLACK);
+  display_init();
 }
 
 BootResult checkFatalBootConditions()
@@ -100,4 +97,3 @@ const char* bootFailReason()
 {
   return s_failReason;
 }
-

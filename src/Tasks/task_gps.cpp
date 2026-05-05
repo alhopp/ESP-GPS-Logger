@@ -1,13 +1,14 @@
 #include <Arduino.h>
 
 #include "Core/Globals.h"
-#include "Ublox/ublox.h"
-#include "core/system_mode.h"
+#include "Ublox/Ublox.h"
+#include "Core/system_mode.h"
 #include "managers/config_types.h"
 #include "session/logging_session.h"
-#include "tasks/display_redraw.h"
-#include "tasks/task_gps.h"
+#include "Tasks/display_redraw.h"
+#include "Tasks/task_gps.h"
 
+#include "Display/display_geometry.h"
 #include "GPS/gps_alpha.h"
 #include "GPS/gps_fix.h"
 #include "GPS/gps_run.h"
@@ -21,8 +22,8 @@ namespace {
 constexpr uint32_t IDLE_DELAY_MS = 200;
 constexpr uint32_t POLL_DELAY_MS = 5;
 
-constexpr DisplayWindow SAT_WAIT_WINDOW = {0, 100, 250, 122};
-constexpr DisplayWindow SPEED_WINDOW = {0, 0, 250, 122};
+constexpr DisplayWindow SAT_WAIT_WINDOW = DISPLAY_BOTTOM_STATUS_WINDOW;
+constexpr DisplayWindow SPEED_WINDOW = DISPLAY_FULL_WINDOW;
 
 uint32_t timeWaitStartMs = 0;
 

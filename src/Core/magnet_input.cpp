@@ -1,10 +1,10 @@
 #include <Arduino.h>
 
-#include "core/input_pins.h"
-#include "core/magnet_input.h"
-#include "core/Definitions.h"
-#include "core/system_mode.h"
-#include "core/Globals.h"
+#include "Core/input_pins.h"
+#include "Core/magnet_input.h"
+#include "Core/Definitions.h"
+#include "Core/system_mode.h"
+#include "Core/Globals.h"
 
 #include "Display/Screens/screen_system.h"
 

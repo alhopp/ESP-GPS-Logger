@@ -2,7 +2,7 @@
 
 #include "GPS/gps_simulator.h"
 #include "Ublox/Ublox.h"
-#include "core/build_config.h"
+#include "Core/build_config.h"
 
 int gps_source_next_message()
 {

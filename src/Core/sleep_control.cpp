@@ -1,8 +1,8 @@
-#include "core/sleep_control.h"
+#include "Core/sleep_control.h"
 
 #include <esp_sleep.h>
 
-#include "core/input_pins.h"
+#include "Core/input_pins.h"
 
 bool sleep_woke_from_magnet()
 {
