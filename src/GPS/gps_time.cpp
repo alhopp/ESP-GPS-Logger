@@ -2,7 +2,7 @@
 #include "GPS/GPS_data.h"
 #include "GPS/gps_utils.h"
 
-#include "Ublox/Ublox.h"
+#include "GPS/Ublox/Ublox.h"
 #include "Core/Globals.h"
 #include "Core/system_info.h"
 

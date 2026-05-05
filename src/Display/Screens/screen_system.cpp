@@ -19,14 +19,14 @@
 #include "Fonts/BitmapSurfbuddies.h"
 
 #include "Storage/storage_manager.h"
-#include "web/wifi_manager.h"
+#include "Web/wifi_manager.h"
 #include "Core/rtc_state.h"
 
 #include "Core/magnet_input.h"
 #include "Core/system_mode.h"
-#include "Tasks/display_redraw.h"
+#include "Runtime/display_redraw.h"
 
-#include "Ublox/Ublox.h"
+#include "GPS/Ublox/Ublox.h"
 
 #include "Config/config_types.h"
 

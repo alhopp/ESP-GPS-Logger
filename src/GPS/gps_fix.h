@@ -4,7 +4,7 @@
 #include <time.h>
 
 #include "Core/Definitions.h"
-#include "Ublox/Ublox.h"
+#include "GPS/Ublox/Ublox.h"
 
 struct GpsFix {
   bool validFix = false;
@@ -47,4 +47,3 @@ inline GpsFix gps_fix_from_ubx()
 
   return fix;
 }
-

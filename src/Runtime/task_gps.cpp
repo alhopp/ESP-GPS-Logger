@@ -1,12 +1,12 @@
 #include <Arduino.h>
 
 #include "Core/Globals.h"
-#include "Ublox/Ublox.h"
+#include "GPS/Ublox/Ublox.h"
 #include "Core/system_mode.h"
 #include "Config/config_types.h"
 #include "Logging/logging_session.h"
-#include "Tasks/display_redraw.h"
-#include "Tasks/task_gps.h"
+#include "Runtime/display_redraw.h"
+#include "Runtime/task_gps.h"
 
 #include "Display/display_geometry.h"
 #include "GPS/gps_alpha.h"

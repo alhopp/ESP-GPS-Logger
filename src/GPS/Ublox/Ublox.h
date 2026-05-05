@@ -22,7 +22,7 @@
 #include <driver/rtc_io.h>
 #include <driver/gpio.h>
 #include "Core/board_pins.h"
-#include "Ublox/Ublox_ubx.h"
+#include "GPS/Ublox/Ublox_ubx.h"
 
 // ============================================================================
 // HELPERS

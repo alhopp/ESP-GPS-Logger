@@ -17,7 +17,7 @@
 
 #include "Core/Definitions.h"
 #include "Core/rtc_state.h"     // RTC_gps_* + RTC time fields
-#include "Ublox/Ublox.h"         // ubx::poll::mon_ver definition
+#include "GPS/Ublox/Ublox.h"     // ubx::poll::mon_ver definition
 #include "Core/Globals.h"
 
 #include "GPS/gps_time.h"

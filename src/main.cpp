@@ -15,7 +15,7 @@
 #include "GPS/gps_manager.h"
 
 // --- Tasks ------------------------------------------------------------------
-#include "Tasks/task_runtime.h"
+#include "Runtime/task_runtime.h"
 
 // --- System / input ----------------------------------------------------------
 #include "Core/sleep_control.h"

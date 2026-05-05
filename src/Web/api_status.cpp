@@ -1,10 +1,10 @@
-#include "web/api_status.h"
+#include "Web/api_status.h"
 
 #include <ArduinoJson.h>
 #include <WiFi.h>
 
 #include "Storage/storage_manager.h"
-#include "Ublox/Ublox.h"
+#include "GPS/Ublox/Ublox.h"
 #include "Core/Globals.h"
 #include "Core/build_config.h"
 #include "Core/system_mode.h"

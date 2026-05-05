@@ -5,15 +5,15 @@
 // - Web server only runs when network stack is UP
 // ============================================================================
 
-#include "web/web_server.h"
-#include "web/wifi_manager.h"
+#include "Web/web_server.h"
+#include "Web/wifi_manager.h"
 
 #include <ESPmDNS.h>
 #include <WiFi.h>
 
 #include "Core/build_config.h"
 #include "Config/config_types.h"
-#include "Tasks/display_redraw.h"
+#include "Runtime/display_redraw.h"
 
 // ============================================================================
 // DEV MODE OVERRIDE

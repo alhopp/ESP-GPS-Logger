@@ -1,7 +1,7 @@
 #include "GPS/gps_source.h"
 
 #include "GPS/gps_simulator.h"
-#include "Ublox/Ublox.h"
+#include "GPS/Ublox/Ublox.h"
 #include "Core/build_config.h"
 
 int gps_source_next_message()

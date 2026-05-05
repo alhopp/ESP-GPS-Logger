@@ -1,4 +1,4 @@
-#include "Ublox/Ublox.h"
+#include "GPS/Ublox/Ublox.h"
 #include "Core/Definitions.h"
 
 // -----------------------------------------------------------------------------

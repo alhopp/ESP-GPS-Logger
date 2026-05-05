@@ -19,9 +19,9 @@
 #include "GPS/gps_manager.h"
 #include "Storage/storage_manager.h"
 #include "Logging/logging_session.h"
-#include "Tasks/display_redraw.h"
-#include "web/web_server.h"
-#include "web/wifi_manager.h"
+#include "Runtime/display_redraw.h"
+#include "Web/web_server.h"
+#include "Web/wifi_manager.h"
 
 namespace {
 volatile SystemMode currentMode = MODE_BOOT;

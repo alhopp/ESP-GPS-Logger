@@ -3,16 +3,16 @@
 // HTTP server wiring for ESP32 GPS Logger.
 // ============================================================================
 
-#include "web/web_server.h"
+#include "Web/web_server.h"
 
 #include <Arduino.h>
 #include <LittleFS.h>
 
 #include "Core/Definitions.h"
-#include "web/api_config.h"
-#include "web/api_status.h"
-#include "web/web_files.h"
-#include "web/wifi_manager.h"
+#include "Web/api_config.h"
+#include "Web/api_status.h"
+#include "Web/web_files.h"
+#include "Web/wifi_manager.h"
 
 #include <esp_system.h>
 
@@ -73,4 +73,3 @@ void webserver_loop()
 {
   server.handleClient();
 }
-
