@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------------
 
 #include "storage/storage_manager.h"
-#include "storage/storage_file_operations.h"
 
 #include <SD_MMC.h>
 #include <LittleFS.h>
@@ -107,15 +106,12 @@ static bool mountSD_MMC()
 }
 
 // Clean shutdown of SD_MMC:
-// - close open files first
+// - logging sessions must already be closed by the session owner
 // - end SD_MMC bus
 // - short delay for stability before continuing
 static void unmountSD_MMC()
 {
   if(!sd_mounted) return;
-
-  LOG_STORAGE("SD MMC","closing files");
-  Close_files();
 
   LOG_STORAGE("SD MMC","unmount");
   SD_MMC.end();

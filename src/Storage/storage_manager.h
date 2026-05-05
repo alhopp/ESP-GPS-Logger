@@ -13,7 +13,7 @@ bool storage_off();
 // Global storage state
 // ----------------------------------------------------
 extern bool sdOK;
-extern bool littlefsOK;
+extern bool LITTLEFS_OK;
 
 // Hardware-fixed SD configuration
 static constexpr const char* SD_MMC_MOUNTPOINT = "/sdcard";
