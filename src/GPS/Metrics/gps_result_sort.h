@@ -5,19 +5,12 @@
 #include <math.h>
 
 // -----------------------------------------------------------------------------
-// Run sorting and detection helpers
+// GPS result sorting helpers
 //
 // Responsibilities:
 // - Sort run result arrays by speed while keeping all associated metadata aligned
-// - Detect the start of a new run based on heading changes and speed thresholds
-//
-// Notes:
 // - Sorting is performed in-place on fixed-size arrays
 // - All parallel arrays (time, distance, CNO, run index, etc.) are kept in sync
-// - New_run_detection() implements heuristic-based run detection using:
-//     - Heading change
-//     - Speed thresholds
-//     - Temporal stability
 // -----------------------------------------------------------------------------
 
 // Sort run results by speed (descending), keeping timing and satellite data aligned

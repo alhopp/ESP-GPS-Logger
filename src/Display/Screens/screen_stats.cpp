@@ -16,7 +16,7 @@
 #include "Layout.h"
 #include "Core/Globals.h"
 #include "Fonts.h"
-#include "GPS/gps_alpha_speed.h"
+#include "GPS/Metrics/gps_alpha_speed.h"
 
 static int ui_offset = 0;
 

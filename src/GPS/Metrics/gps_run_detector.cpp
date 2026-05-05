@@ -10,7 +10,7 @@
 // - No gaps in samples used for 10s / NM / Alpha windows
 // ============================================================================
 
-#include "GPS/gps_run_detector.h"
+#include "GPS/Metrics/gps_run_detector.h"
 #include <Arduino.h>
 #include <math.h>
 

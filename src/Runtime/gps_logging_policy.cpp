@@ -4,7 +4,7 @@
 
 #include "Config/config_types.h"
 #include "Core/Globals.h"
-#include "GPS/gps_data.h"
+#include "GPS/Data/gps_data.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "Logging/logging_session.h"
 

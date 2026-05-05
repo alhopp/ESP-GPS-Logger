@@ -1,6 +1,6 @@
-#include "GPS/gps_distance_speed.h"
-#include "GPS/gps_data.h"
-#include "GPS/gps_utils.h"
+#include "GPS/Metrics/gps_distance_speed.h"
+#include "GPS/Data/gps_data.h"
+#include "GPS/Metrics/gps_result_sort.h"
 
 #include "Core/system_info.h"
 #include "GPS/Ublox/ublox_driver.h"

@@ -1,4 +1,4 @@
-#include "GPS/gps_geometry.h"
+#include "GPS/Geometry/gps_geometry.h"
 #include <math.h>
 
 // -----------------------------------------------------------------------------

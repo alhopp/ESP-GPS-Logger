@@ -12,10 +12,10 @@
 // - Alpha is FINALISED on run change
 // ============================================================================
 
-#include "GPS/gps_alpha_speed.h"
-#include "GPS/gps_data.h"
-#include "GPS/gps_distance_speed.h"
-#include "GPS/gps_utils.h"
+#include "GPS/Metrics/gps_alpha_speed.h"
+#include "GPS/Data/gps_data.h"
+#include "GPS/Metrics/gps_distance_speed.h"
+#include "GPS/Metrics/gps_result_sort.h"
 
 #include "Core/Globals.h"
 #include "Core/system_info.h"
@@ -36,13 +36,6 @@ int alpha_end   = -1;
 // -----------------------------------------------------------------------------
 extern int index_GPS;
 extern int alfa_counter;
-
-// If not already provided by gps_utils.h
-extern void sort_run_results(
-  double a[], int dis[], int message[],
-  uint8_t hour[], uint8_t minute[], uint8_t seconde[],
-  int runs[], int samples[], int size
-);
 
 // -----------------------------------------------------------------------------
 // Helpers

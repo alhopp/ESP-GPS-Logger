@@ -10,7 +10,7 @@
 
 #include "GPS/gps_fix.h"
 #include "GPS/gps_source.h"
-#include "GPS/gps_stats_service.h"
+#include "GPS/Metrics/gps_stats_service.h"
 
 // -----------------------------------------------------------------------------
 // GPS task state

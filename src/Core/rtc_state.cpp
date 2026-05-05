@@ -1,12 +1,12 @@
 #include "Core/rtc_state.h"
 #include "Core/Definitions.h"
 
-#include "GPS/gps_data.h"
-#include "GPS/gps_distance_speed.h"
-#include "GPS/gps_alpha_speed.h"
-#include "GPS/gps_time_speed.h"
-#include "GPS/gps_run_detector.h"
-#include "GPS/gps_utils.h"
+#include "GPS/Data/gps_data.h"
+#include "GPS/Metrics/gps_distance_speed.h"
+#include "GPS/Metrics/gps_alpha_speed.h"
+#include "GPS/Metrics/gps_time_speed.h"
+#include "GPS/Metrics/gps_run_detector.h"
+#include "GPS/Metrics/gps_result_sort.h"
 
 // ---------------------------------------------------------------------------
 // Distance & speed (SI units)

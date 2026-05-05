@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "GPS/gps_time_speed.h"
-#include "GPS/gps_distance_speed.h"
+#include "GPS/Metrics/gps_time_speed.h"
+#include "GPS/Metrics/gps_distance_speed.h"
 
 
 // Define constants
