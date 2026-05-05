@@ -19,14 +19,9 @@
 #include "managers/config_types.h"
 
 namespace {
-char dataStr[255] = "";
-char Buffer[50] = "";
-uint64_t GPS_UTC_ms;
-
 File ubxfile;
 File sbpfile;
 
-char filenameERR[128] = "/";
 char filenameUBX[128] = "/";
 char filenameSBP[128] = "/";
 char filenameGEO[128] = "/";
@@ -70,7 +65,6 @@ void Open_files(void)
 
   snprintf(path, sizeof(path), "/logs/%s", base);
 
-  snprintf(filenameERR, sizeof(filenameERR), "%s.txt", path);
   snprintf(filenameUBX, sizeof(filenameUBX), "%s.ubx", path);
   snprintf(filenameSBP, sizeof(filenameSBP), "%s.sbp", path);
   snprintf(filenameGEO, sizeof(filenameGEO), "%s.geojson", path);

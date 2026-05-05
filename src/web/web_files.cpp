@@ -15,9 +15,6 @@
 
 #include "Storage/storage_manager.h"
 
-#include <dirent.h>
-#include <sys/stat.h>
-
 // -----------------------------------------------------------------------------
 // Helpers (local)
 // -----------------------------------------------------------------------------
@@ -60,32 +57,28 @@ void registerFileEndpoints(WebServer &server)
     j["ok"] = true;
     JsonArray files = j.createNestedArray("files");
 
-    char logsPath[64];
-    snprintf(logsPath, sizeof(logsPath), "%s/logs", storage_sd_mount_path());
-
-    DIR* dir = opendir(logsPath);
-    if (!dir) {
+    fs::FS& storage = storage_sd_fs();
+    File dir = storage.open("/logs");
+    if (!dir || !dir.isDirectory()) {
       j["ok"] = false;
       server.send(200, "application/json", j.as<String>());
       return;
     }
 
-    struct dirent* ent;
-    while ((ent = readdir(dir)) != nullptr) {
-      if (ent->d_type != DT_REG) continue;
+    File file = dir.openNextFile();
+    while (file) {
+      if (!file.isDirectory()) {
+        const char* base = basenameOnly(file.name());
+        if (isValidLogFile(base)) {
+          JsonObject o = files.createNestedObject();
+          o["name"] = base;
+          o["size"] = file.size();
+        }
+      }
 
-      String name = ent->d_name;
-      String path = String(logsPath) + "/" + name;
-
-      struct stat st;
-      if (stat(path.c_str(), &st) != 0) continue;
-
-      JsonObject o = files.createNestedObject();
-      o["name"] = name;
-      o["size"] = st.st_size;
+      file = dir.openNextFile();
     }
 
-    closedir(dir);
     server.send(200, "application/json", j.as<String>());
   });
 

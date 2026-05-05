@@ -2,10 +2,6 @@
 
 #include <Arduino.h>
 
-
-// u-blox power / control pins (GPIO numbers only — no ESP-IDF types here)
-
-
 // ============================================================================
 // RAW UBX BLOBS
 //

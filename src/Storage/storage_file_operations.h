@@ -1,14 +1,6 @@
-
 #pragma once
 
-void Open_files(void);
-void Log_to_SD(void); 
-void Flush_files(void);
-void Close_files(void);
-
-
-
-
-
-
-
+void Open_files();
+void Log_to_SD();
+void Flush_files();
+void Close_files();
