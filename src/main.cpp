@@ -8,7 +8,7 @@
 #include <Arduino.h>
 
 // --- Core managers -----------------------------------------------------------
-#include "storage/storage_manager.h"
+#include "Storage/storage_manager.h"
 #include "managers/boot_manager.h"
 #include "managers/config_manager.h"
 #include "managers/watchdog_manager.h"
@@ -27,6 +27,24 @@
 // --- Local config ------------------------------------------------------------
 namespace {
 constexpr uint32_t LOOP_DELAY_MS = 10;
+
+void initSubsystems()
+{
+  initStorage();
+  initConfig();
+  initGPS();
+  initMagnet();
+}
+
+bool startTasksOrEnterError()
+{
+  if (startRuntimeTasks()) {
+    return true;
+  }
+
+  setMode(MODE_ERROR);
+  return false;
+}
 }
 
 // ============================================================================
@@ -47,14 +65,10 @@ void setup() {
   }
 
   // Init order matters: storage → config → GPS → input
-  initStorage();
-  initConfig();
-  initGPS();
-  initMagnet();
+  initSubsystems();
 
   // Start runtime tasks
-  if (!startRuntimeTasks()) {
-    setMode(MODE_ERROR);
+  if (!startTasksOrEnterError()) {
     return;
   }
 

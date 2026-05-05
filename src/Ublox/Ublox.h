@@ -21,6 +21,7 @@
 #include <sys/time.h>
 #include <driver/rtc_io.h>
 #include <driver/gpio.h>
+#include "Core/board_pins.h"
 #include "Ublox/Ublox_ubx.h"
 
 // ============================================================================

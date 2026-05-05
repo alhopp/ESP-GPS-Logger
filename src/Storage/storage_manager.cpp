@@ -5,24 +5,25 @@
 // - SD_MMC   = removable/high-volume data logging storage
 // -----------------------------------------------------------------------------
 
-#include "storage/storage_manager.h"
+#include "Storage/storage_manager.h"
 
 #include <SD_MMC.h>
 #include <LittleFS.h>
 
+#include "Core/board_pins.h"
 #include "Core/Definitions.h"
 
-// Public state flags
-bool sdOK=false, LITTLEFS_OK=false;
-bool storage_shutting_down=false;
-
-// Internal mount state
+// Internal storage state
+static bool littlefs_available=false;
+static bool sd_detected=false;
 static bool sd_mounted=false;
+static bool shutting_down=false;
 
 // Internal helpers
+static void setLittleFsAvailable(bool available);
+static void setSdAvailable(bool available);
 static bool mountSD_MMC();
 static void unmountSD_MMC();
-static fs::FS& activeFS();
 static bool quickIOTest(fs::FS& fs,const char* path);
 static void logLittleFSStats();
 static void logSDStats();
@@ -35,24 +36,26 @@ static void logSDStats();
 void initStorage()
 {
   LOG_STORAGE("Init","start");
-  sdOK=false; LITTLEFS_OK=false;
+  setSdAvailable(false);
+  setLittleFsAvailable(false);
+  storage_end_shutdown();
 
   // Mount LittleFS so config/control storage is always available.
   if(!LittleFS.begin(true)) LOG_ERROR("LittleFS","mount failed");
   else{
-    LITTLEFS_OK=true;
+    setLittleFsAvailable(true);
     LOG_STORAGE("LittleFS","mounted");
     logLittleFSStats();
   }
 
   // Mount SD_MMC for main data logging if card is present/usable.
   if(mountSD_MMC()){
-    sdOK=true;
+    setSdAvailable(true);
     LOG_STORAGE("SD","MMC mounted");
     logSDStats();
 
     // Quick write/remove check to catch bad cards or broken mount states.
-    if(quickIOTest(activeFS(),"/.io_test")) LOG_STORAGE("SD I/O","OK");
+    if(quickIOTest(storage_sd_fs(),"/.io_test")) LOG_STORAGE("SD I/O","OK");
     else LOG_ERROR("SD I/O","FAILED");
   } else {
     LOG_STORAGE("SD","not available");
@@ -65,7 +68,7 @@ void initStorage()
 // Returns false if SD was never successfully detected or remount fails.
 bool storage_on()
 {
-  if(!sdOK) return false;
+  if(!storage_sd_available()) return false;
   if(!mountSD_MMC()) return false;
   return true;
 }
@@ -78,10 +81,67 @@ bool storage_off()
   return true;
 }
 
-// Return preferred active filesystem:
-// - SD_MMC when available
-// - otherwise fall back to LittleFS
-static fs::FS& activeFS(){ return sdOK ? static_cast<fs::FS&>(SD_MMC) : static_cast<fs::FS&>(LittleFS); }
+bool storage_sd_available()
+{
+  return sd_detected;
+}
+
+bool storage_littlefs_available()
+{
+  return littlefs_available;
+}
+
+bool storage_sd_mounted()
+{
+  return sd_mounted;
+}
+
+fs::FS& storage_sd_fs()
+{
+  return static_cast<fs::FS&>(SD_MMC);
+}
+
+const char* storage_sd_mount_path()
+{
+  return SD_MMC_MOUNTPOINT;
+}
+
+bool storage_logs_dir_ready()
+{
+  if (!storage_on()) return false;
+
+  fs::FS& fs = storage_sd_fs();
+  if (!fs.exists("/logs")) {
+    return fs.mkdir("/logs");
+  }
+
+  return true;
+}
+
+bool storage_is_shutting_down()
+{
+  return shutting_down;
+}
+
+void storage_begin_shutdown()
+{
+  shutting_down = true;
+}
+
+void storage_end_shutdown()
+{
+  shutting_down = false;
+}
+
+static void setLittleFsAvailable(bool available)
+{
+  littlefs_available = available;
+}
+
+static void setSdAvailable(bool available)
+{
+  sd_detected = available;
+}
 
 // Mount SD_MMC in 1-bit safe mode.
 // DAT0 gets a pull-up preflight to improve bring-up reliability.

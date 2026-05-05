@@ -16,11 +16,6 @@
 constexpr int TIME_DELAY_NEW_RUN = 10;
 
 // ---------------------------------------------------------------------------
-// SD / storage (board-level, minimal)
-// ---------------------------------------------------------------------------
-constexpr uint8_t SDMMC_DAT0_PIN = 2;   // MUST be pulled HIGH when no card present
-
-// ---------------------------------------------------------------------------
 // Battery / voltage calibration
 // ---------------------------------------------------------------------------
 constexpr float CALIBRATION_BAT_V      = 1.7f;

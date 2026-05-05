@@ -17,9 +17,9 @@ bool logging_session_begin(const GpsFix& firstFix)
 {
   if (session_active) return true;
 
-  if (storage_shutting_down || !Time_Set_OK) {
+  if (storage_is_shutting_down() || !Time_Set_OK) {
     LOG_STORAGE("Session", "begin rejected time=%d shutdown=%d",
-                Time_Set_OK, storage_shutting_down);
+                Time_Set_OK, storage_is_shutting_down());
     return false;
   }
 

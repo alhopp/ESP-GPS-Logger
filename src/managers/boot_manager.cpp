@@ -11,12 +11,12 @@
 #include <sys/time.h>
 
 #include "Display/E_paper.h"
+#include "Core/board_pins.h"
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
 #include "Core/rtc_state.h"
 
 namespace {
-constexpr uint8_t PIN_BAT = 35;
 constexpr float BAT_SCALE = 5.0f;
 constexpr uint32_t SERIAL_WAIT_MS = 400;
 
@@ -36,10 +36,10 @@ void initSerial()
 
 void sampleBattery()
 {
-  analogRead(PIN_BAT);
+  analogRead(BATTERY_ADC_PIN);
   delay(5);
 
-  analog_mean = analogRead(PIN_BAT);
+  analog_mean = analogRead(BATTERY_ADC_PIN);
   RTC_voltage_bat = analog_mean * BAT_SCALE;
 
   LOG_BOOT("Battery", "%.2f V", RTC_voltage_bat);

@@ -36,12 +36,11 @@ void registerStatusApi(WebServer& server)
     j["gps_signal_ok"] = GPS_Signal_OK;
     j["satellites"] = ubxMessage.navPvt.numSV;
     j["fix_type"] = ubxMessage.navPvt.fixType;
-    j["sd_ok"] = sdOK;
-    j["littlefs_ok"] = LITTLEFS_OK;
-    j["storage_shutting_down"] = storage_shutting_down;
+    j["sd_ok"] = storage_sd_available();
+    j["littlefs_ok"] = storage_littlefs_available();
+    j["storage_shutting_down"] = storage_is_shutting_down();
     j["simulator"] = build_gps_simulator_enabled();
     j["wifi_connected"] = WiFi.status() == WL_CONNECTED;
     sendJson(server, j);
   });
 }
-

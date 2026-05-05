@@ -1,7 +1,8 @@
 #include "geojson.h"
-#include <SD_MMC.h>
 #include <string.h>
 #include <math.h>   // isfinite()
+
+#include "Storage/storage_manager.h"
 
 // -----------------------------------------------------------------------------
 // Internal state
@@ -29,9 +30,10 @@ void geojson_set_stats(const GeoJSONStats& s){
 // -----------------------------------------------------------------------------
 void geojson_begin(const char* filename){
   if(geoFile) geoFile.close();
-  if(SD_MMC.exists(filename)) SD_MMC.remove(filename);
+  fs::FS& storage = storage_sd_fs();
+  if(storage.exists(filename)) storage.remove(filename);
 
-  geoFile = SD_MMC.open(filename, FILE_WRITE);
+  geoFile = storage.open(filename, FILE_WRITE);
   if(!geoFile) return;
 
   firstFeature = true;

@@ -11,7 +11,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <SD_MMC.h>
+#include <FS.h>
 
 #include "Storage/storage_manager.h"
 
@@ -60,7 +60,10 @@ void registerFileEndpoints(WebServer &server)
     j["ok"] = true;
     JsonArray files = j.createNestedArray("files");
 
-    DIR* dir = opendir("/sdcard/logs");
+    char logsPath[64];
+    snprintf(logsPath, sizeof(logsPath), "%s/logs", storage_sd_mount_path());
+
+    DIR* dir = opendir(logsPath);
     if (!dir) {
       j["ok"] = false;
       server.send(200, "application/json", j.as<String>());
@@ -72,7 +75,7 @@ void registerFileEndpoints(WebServer &server)
       if (ent->d_type != DT_REG) continue;
 
       String name = ent->d_name;
-      String path = "/sdcard/logs/" + name;
+      String path = String(logsPath) + "/" + name;
 
       struct stat st;
       if (stat(path.c_str(), &st) != 0) continue;
@@ -92,7 +95,7 @@ void registerFileEndpoints(WebServer &server)
   // ---------------------------------------------------------------------------
   server.on("/api/download", HTTP_GET, [&] {
 
-    if (!sdOK || !server.hasArg("file")) { server.send(400); return; }
+    if (!storage_sd_available() || !server.hasArg("file")) { server.send(400); return; }
 
     String file = server.arg("file");
 
@@ -106,9 +109,10 @@ void registerFileEndpoints(WebServer &server)
     char path[128];
     snprintf(path, sizeof(path), "/logs/%s", base);
 
-    if (!SD_MMC.exists(path)) { server.send(404); return; }
+    fs::FS& storage = storage_sd_fs();
+    if (!storage.exists(path)) { server.send(404); return; }
 
-    File f = SD_MMC.open(path, FILE_READ);
+    File f = storage.open(path, FILE_READ);
     if (!f) { server.send(500); return; }
 
     // ---- Force download (instead of inline open) ----
@@ -128,7 +132,7 @@ void registerFileEndpoints(WebServer &server)
   // ---------------------------------------------------------------------------
   server.on("/api/file", HTTP_DELETE, [&] {
 
-    if (!sdOK || !server.hasArg("plain")) {
+    if (!storage_sd_available() || !server.hasArg("plain")) {
       server.send(200, "application/json", "{\"ok\":false}");
       return;
     }
@@ -148,7 +152,7 @@ void registerFileEndpoints(WebServer &server)
     char path[128];
     snprintf(path, sizeof(path), "/logs/%s", base);
 
-    bool ok = SD_MMC.remove(path);
+    bool ok = storage_sd_fs().remove(path);
     server.send(200, "application/json",
                 ok ? "{\"ok\":true}" : "{\"ok\":false}");
   });

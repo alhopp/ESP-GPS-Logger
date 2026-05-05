@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 
-#include "MANAGERS/config_manager.h"
+#include "managers/config_manager.h"
 #include "Core/system_info.h"
 
 namespace {
@@ -112,4 +112,3 @@ void registerConfigApi(WebServer& server)
     server.send(200, "text/plain", "OK");
   });
 }
-

@@ -31,16 +31,32 @@ void requestModeRedraw()
   screen_request_partial(DISPLAY_FULL_WINDOW);
 }
 
+void beginStorageShutdown()
+{
+  storage_begin_shutdown();
+  vTaskDelay(pdMS_TO_TICKS(20));
+}
+
+void ensureStorageReady(const char* context)
+{
+  if (!storage_on()) {
+    LOG_ERROR("SD", "storage_on failed in %s", context);
+  }
+}
+
+void stopLoggingStorage()
+{
+  logging_session_end();
+  storage_off();
+}
+
 void exitLogging()
 {
   A500.Finalise_Run();
   rtc_snapshot_stats();
 
-  storage_shutting_down = true;
-  vTaskDelay(pdMS_TO_TICKS(20));
-
-  logging_session_end();
-  storage_off();
+  beginStorageShutdown();
+  stopLoggingStorage();
 }
 
 void exitConfig()
@@ -84,27 +100,23 @@ void enterLogging()
 {
   LOG_SYS("MODE", "ENTER LOGGING, Wi-Fi OFF");
 
-  storage_shutting_down = false;
+  storage_end_shutdown();
 
   wifi_stop();
   gps_power_on();
 
-  if (!storage_on()) {
-    LOG_ERROR("SD", "storage_on failed, abort logging");
-  }
+  ensureStorageReady("LOGGING");
 }
 
 void enterConfig()
 {
-  storage_shutting_down = false;
+  storage_end_shutdown();
 
   LOG_SYS("MODE", "ENTER CONFIG");
 
   gps_power_off();
 
-  if (!storage_on()) {
-    LOG_ERROR("SD", "storage_on failed in CONFIG");
-  }
+  ensureStorageReady("CONFIG");
 
   wifi_init();
 

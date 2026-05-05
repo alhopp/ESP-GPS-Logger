@@ -5,7 +5,6 @@
 
 #include <Arduino.h>
 #include <FS.h>
-#include <SD_MMC.h>
 #include <esp_system.h>
 
 #include "Core/Definitions.h"
@@ -35,12 +34,17 @@ char filenameGEO[128] = "/";
 
 void Open_files(void)
 {
-  if (storage_shutting_down || !Time_Set_OK) {
+  if (storage_is_shutting_down() || !Time_Set_OK) {
     LOG_STORAGE("Open_files", "called without valid GPS time");
     return;
   }
 
-  if (!SD_MMC.exists("/logs")) SD_MMC.mkdir("/logs");
+  if (!storage_logs_dir_ready()) {
+    LOG_ERROR("STORAGE", "logs dir unavailable");
+    return;
+  }
+
+  fs::FS& storage = storage_sd_fs();
   getLocalTime(&tmstruct);
 
   uint64_t chipMac = 0;
@@ -72,11 +76,11 @@ void Open_files(void)
   snprintf(filenameGEO, sizeof(filenameGEO), "%s.geojson", path);
 
   if (config.logUBX) {
-    ubxfile = SD_MMC.open(filenameUBX, FILE_APPEND);
+    ubxfile = storage.open(filenameUBX, FILE_APPEND);
   }
 
   if (config.logSBP) {
-    sbpfile = SD_MMC.open(filenameSBP, FILE_WRITE);
+    sbpfile = storage.open(filenameSBP, FILE_WRITE);
     if (sbpfile.size() == 0) {
       log_header_SBP(sbpfile);
     }
@@ -90,7 +94,7 @@ void Open_files(void)
 
 void Flush_files(void)
 {
-  if (storage_shutting_down || systemInfo.sample_rate > 10) return;
+  if (storage_is_shutting_down() || systemInfo.sample_rate > 10) return;
 
   static uint8_t lb = 0;
   switch (lb) {
@@ -108,7 +112,7 @@ void Flush_files(void)
 
 void Log_to_SD(void)
 {
-  if (storage_shutting_down || !Time_Set_OK) return;
+  if (storage_is_shutting_down() || !Time_Set_OK) return;
 
   session_write_ubx(ubxfile);
   session_write_sbp(sbpfile);

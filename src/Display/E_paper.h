@@ -5,15 +5,9 @@
 #include <GxEPD2_BW.h>
 #include <epd/GxEPD2_213_B74.h>
 
-extern GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display;
+#include "Core/board_pins.h"
 
-// ==========================
-// E-paper pin mapping
-// ==========================
-#define ELINK_SS     5
-#define ELINK_DC     17
-#define ELINK_RESET  16
-#define ELINK_BUSY  4
+extern GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> display;
 
 // ============================================================================
 //  Public E-paper API

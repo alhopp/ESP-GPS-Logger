@@ -1,11 +1,6 @@
 #include "Storage/sbp.h"
 #include "Ublox/Ublox.h"
 #include "Core/Globals.h"
-#include <SD_MMC.h>
-#include <dirent.h>
-#include <sys/stat.h>
-
-static bool sbp_test_done = false;
 
 SBP_Header sbp_header = {30, 0xA0, 0xA2, 30, 0xFD, "ESP-GPS,0,unknown,unknown"};
 
