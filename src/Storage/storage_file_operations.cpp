@@ -48,18 +48,27 @@ void buildSessionPath(char* path, size_t pathSize, const char* base, const char*
 {
   snprintf(path, pathSize, "/logs/%s.%s", base, extension);
 }
+
+void closeFile(File& file)
+{
+  if (!file) return;
+
+  file.flush();
+  file.close();
+  file = File();
+}
 }
 
-void storage_files_open()
+bool storage_files_open()
 {
   if (storage_is_shutting_down() || !Time_Set_OK) {
     LOG_STORAGE("storage_files_open", "called without valid GPS time");
-    return;
+    return false;
   }
 
   if (!storage_logs_dir_ready()) {
     LOG_ERROR("STORAGE", "logs dir unavailable");
-    return;
+    return false;
   }
 
   fs::FS& storage = storage_sd_fs();
@@ -77,27 +86,46 @@ void storage_files_open()
 
   if (config.logUBX) {
     ubxfile = storage.open(filenameUBX, FILE_APPEND);
+    if (!ubxfile) {
+      LOG_ERROR("STORAGE", "UBX open failed");
+      closeFile(ubxfile);
+      return false;
+    }
   }
 
   if (config.logSBP) {
     sbpfile = storage.open(filenameSBP, FILE_WRITE);
+    if (!sbpfile) {
+      LOG_ERROR("STORAGE", "SBP open failed");
+      closeFile(ubxfile);
+      closeFile(sbpfile);
+      return false;
+    }
+
     if (sbpfile.size() == 0) {
-      log_header_SBP(sbpfile);
+      sbp_write_header(sbpfile);
     }
   }
 
-  geojson_begin(filenameGEO);
+  if (!geojson_begin(filenameGEO)) {
+    LOG_ERROR("STORAGE", "GeoJSON open failed");
+    closeFile(ubxfile);
+    closeFile(sbpfile);
+    return false;
+  }
+
   geojson_begin_feature("track");
 
   LOG_STORAGE("LOG", "Session started %s", base);
+  return true;
 }
 
 void storage_files_write_raw()
 {
   if (storage_is_shutting_down() || !Time_Set_OK) return;
 
-  session_write_ubx(ubxfile);
-  session_write_sbp(sbpfile);
+  session_raw_writers_write_ubx(ubxfile);
+  session_raw_writers_write_sbp(sbpfile);
 }
 
 void storage_files_close()
@@ -106,17 +134,8 @@ void storage_files_close()
 
   session_geojson_finalize();
 
-  if (ubxfile) {
-    ubxfile.flush();
-    ubxfile.close();
-    ubxfile = File();
-  }
-
-  if (sbpfile) {
-    sbpfile.flush();
-    sbpfile.close();
-    sbpfile = File();
-  }
+  closeFile(ubxfile);
+  closeFile(sbpfile);
 
   Serial.println("[STORAGE] files closed");
 }

@@ -1,13 +1,10 @@
 #pragma once
 
-#include <Arduino.h>
-#include <FS.h>
-
 // -----------------------------------------------------------------------------
 // GeoJSON session writer
 // -----------------------------------------------------------------------------
 
-void geojson_begin(const char* filename);
+bool geojson_begin(const char* filename);
 
 // Feature lifecycle
 void geojson_begin_feature(const char* mode);

@@ -9,6 +9,40 @@
 namespace {
 uint32_t last_sbp_iTOW = 0;
 int last_nav_sat_message = 0;
+
+void writeUbxSync(File& file)
+{
+  file.write(0xB5);
+  file.write(0x62);
+}
+
+void writeUbxMessage(File& file, const void* payload, size_t payloadSize)
+{
+  writeUbxSync(file);
+  file.write(static_cast<const uint8_t*>(payload), payloadSize);
+}
+
+void writeNavSatIfUpdated(File& file)
+{
+  if (nav_sat_message == last_nav_sat_message) return;
+
+  last_nav_sat_message = nav_sat_message;
+  writeUbxMessage(file, &ubxMessage.navSat, ubxMessage.navSatHdr.len + 6);
+}
+
+bool sbpLoggingReady(File& file)
+{
+  return config.logSBP && file && getMode() == MODE_LOGGING;
+}
+
+bool sbpItowChanged()
+{
+  const uint32_t itow = ubxMessage.navPvt.iTOW;
+  if (itow == last_sbp_iTOW) return false;
+
+  last_sbp_iTOW = itow;
+  return true;
+}
 }
 
 void session_raw_writers_reset()
@@ -17,38 +51,22 @@ void session_raw_writers_reset()
   last_nav_sat_message = 0;
 }
 
-void session_write_ubx(File& ubxfile)
+void session_raw_writers_write_ubx(File& ubxfile)
 {
   if (config.logUBX && ubxfile) {
-    ubxfile.write(0xB5);
-    ubxfile.write(0x62);
-    ubxfile.write((const uint8_t*)&ubxMessage.navPvt, sizeof(ubxMessage.navPvt));
-
-    if (nav_sat_message != last_nav_sat_message) {
-      last_nav_sat_message = nav_sat_message;
-      ubxfile.write(0xB5);
-      ubxfile.write(0x62);
-      ubxfile.write(
-        (const uint8_t*)&ubxMessage.navSat,
-        (ubxMessage.navSatHdr.len + 6)
-      );
-    }
+    writeUbxMessage(ubxfile, &ubxMessage.navPvt, sizeof(ubxMessage.navPvt));
+    writeNavSatIfUpdated(ubxfile);
   }
 
   if (config.logUBX_nav_sat && ubxfile) {
-    ubxfile.write(0xB5);
-    ubxfile.write(0x62);
-    ubxfile.write((const uint8_t*)&ubxMessage.navDOP, sizeof(ubxMessage.navDOP));
+    writeUbxMessage(ubxfile, &ubxMessage.navDOP, sizeof(ubxMessage.navDOP));
   }
 }
 
-void session_write_sbp(File& sbpfile)
+void session_raw_writers_write_sbp(File& sbpfile)
 {
-  if (!config.logSBP || !sbpfile || getMode() != MODE_LOGGING) return;
+  if (!sbpLoggingReady(sbpfile)) return;
+  if (!sbpItowChanged()) return;
 
-  uint32_t itow = ubxMessage.navPvt.iTOW;
-  if (itow == last_sbp_iTOW) return;
-
-  last_sbp_iTOW = itow;
-  log_SBP(sbpfile);
+  sbp_write_frame(sbpfile);
 }

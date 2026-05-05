@@ -23,7 +23,10 @@ bool logging_session_begin(const GpsFix& firstFix)
     return false;
   }
 
-  storage_files_open();
+  if (!storage_files_open()) {
+    return false;
+  }
+
   session_active = true;
   last_geojson_ms = 0;
   LOG_STORAGE("Session", "started sats=%u lat=%.6f lon=%.6f",

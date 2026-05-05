@@ -30,7 +30,7 @@ void geojson_set_stats(const GeoJSONStats& s)
 // -----------------------------------------------------------------------------
 // Begin GeoJSON file
 // -----------------------------------------------------------------------------
-void geojson_begin(const char* filename)
+bool geojson_begin(const char* filename)
 {
   if (geoFile) {
     geoFile.close();
@@ -42,7 +42,7 @@ void geojson_begin(const char* filename)
   }
 
   geoFile = storage.open(filename, FILE_WRITE);
-  if (!geoFile) return;
+  if (!geoFile) return false;
 
   firstFeature = true;
   currentMode = nullptr;
@@ -50,6 +50,7 @@ void geojson_begin(const char* filename)
   geoFile.println("{");
   geoFile.println("\"type\":\"FeatureCollection\",");
   geoFile.println("\"features\":[");
+  return true;
 }
 
 // -----------------------------------------------------------------------------
