@@ -9,11 +9,11 @@
 
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
-#include "Logging/geojson.h"
-#include "Logging/sbp.h"
-#include "Logging/session_geojson.h"
-#include "Logging/session_raw_writers.h"
-#include "Logging/storage_file_operations.h"
+#include "Logging/geojson_writer.h"
+#include "Logging/sbp_writer.h"
+#include "Logging/geojson_session_export.h"
+#include "Logging/logging_raw_writers.h"
+#include "Logging/logging_session_files.h"
 #include "Storage/storage_manager.h"
 #include "Config/config_types.h"
 
@@ -59,10 +59,10 @@ void closeFile(File& file)
 }
 }
 
-bool storage_files_open()
+bool logging_session_files_open()
 {
   if (storage_is_shutting_down() || !Time_Set_OK) {
-    LOG_STORAGE("storage_files_open", "called without valid GPS time");
+    LOG_STORAGE("session_files", "called without valid GPS time");
     return false;
   }
 
@@ -72,7 +72,7 @@ bool storage_files_open()
   }
 
   fs::FS& storage = storage_sd_fs();
-  session_raw_writers_reset();
+  logging_raw_writers_reset();
 
   char base[96];
   char filenameUBX[128];
@@ -120,19 +120,19 @@ bool storage_files_open()
   return true;
 }
 
-void storage_files_write_raw()
+void logging_session_files_write_raw()
 {
   if (storage_is_shutting_down() || !Time_Set_OK) return;
 
-  session_raw_writers_write_ubx(ubxfile);
-  session_raw_writers_write_sbp(sbpfile);
+  logging_raw_writers_write_ubx(ubxfile);
+  logging_raw_writers_write_sbp(sbpfile);
 }
 
-void storage_files_close()
+void logging_session_files_close()
 {
-  Serial.println("[STORAGE] storage_files_close()");
+  Serial.println("[STORAGE] logging_session_files_close()");
 
-  session_geojson_finalize();
+  geojson_session_export_finalize();
 
   closeFile(ubxfile);
   closeFile(sbpfile);

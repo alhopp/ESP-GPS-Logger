@@ -4,8 +4,8 @@
 
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
-#include "Logging/geojson.h"
-#include "Logging/storage_file_operations.h"
+#include "Logging/geojson_writer.h"
+#include "Logging/logging_session_files.h"
 #include "Storage/storage_manager.h"
 
 namespace {
@@ -23,7 +23,7 @@ bool logging_session_begin(const GpsFix& firstFix)
     return false;
   }
 
-  if (!storage_files_open()) {
+  if (!logging_session_files_open()) {
     return false;
   }
 
@@ -38,7 +38,7 @@ void logging_session_write_fix(const GpsFix& fix, bool writeLiveTrack)
 {
   if (!session_active) return;
 
-  storage_files_write_raw();
+  logging_session_files_write_raw();
 
   if (!writeLiveTrack) return;
 
@@ -55,7 +55,7 @@ void logging_session_end()
 
   LOG_STORAGE("Session", "ending");
   session_active = false;
-  storage_files_close();
+  logging_session_files_close();
 }
 
 bool logging_session_active()

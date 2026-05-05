@@ -4,7 +4,7 @@
 
 // Owns high-level logging session lifetime.
 //
-// Lower-level storage_file_operations still performs the actual UBX/SBP/GeoJSON
+// Lower-level logging_session_files still performs the actual UBX/SBP/GeoJSON
 // writes, but callers should go through this API so session state has one owner.
 
 bool logging_session_begin(const GpsFix& firstFix);

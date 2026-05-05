@@ -1,4 +1,4 @@
-#include "Logging/geojson.h"
+#include "Logging/geojson_writer.h"
 #include <string.h>
 
 #include "Storage/storage_manager.h"

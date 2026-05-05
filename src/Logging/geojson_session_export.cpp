@@ -1,4 +1,4 @@
-#include "Logging/session_geojson.h"
+#include "Logging/geojson_session_export.h"
 
 #include "Core/Definitions.h"
 #include "Core/rtc_state.h"
@@ -7,7 +7,7 @@
 #include "GPS/Metrics/gps_alpha_speed.h"
 #include "GPS/Metrics/gps_distance_speed.h"
 #include "GPS/Metrics/gps_time_speed.h"
-#include "Logging/geojson.h"
+#include "Logging/geojson_writer.h"
 
 namespace {
 bool validGpsIndex(int i)
@@ -114,7 +114,7 @@ void addDerivedFeatures()
 }
 }
 
-void session_geojson_finalize()
+void geojson_session_export_finalize()
 {
   attachSessionStats();
   geojson_end_feature();

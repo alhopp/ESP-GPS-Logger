@@ -1,7 +1,7 @@
-#include "Logging/session_raw_writers.h"
+#include "Logging/logging_raw_writers.h"
 
 #include "Core/Globals.h"
-#include "Logging/sbp.h"
+#include "Logging/sbp_writer.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "Core/system_mode.h"
 #include "Config/config_types.h"
@@ -45,13 +45,13 @@ bool sbpItowChanged()
 }
 }
 
-void session_raw_writers_reset()
+void logging_raw_writers_reset()
 {
   last_sbp_iTOW = 0;
   last_nav_sat_message = 0;
 }
 
-void session_raw_writers_write_ubx(File& ubxfile)
+void logging_raw_writers_write_ubx(File& ubxfile)
 {
   if (config.logUBX && ubxfile) {
     writeUbxMessage(ubxfile, &ubxMessage.navPvt, sizeof(ubxMessage.navPvt));
@@ -63,7 +63,7 @@ void session_raw_writers_write_ubx(File& ubxfile)
   }
 }
 
-void session_raw_writers_write_sbp(File& sbpfile)
+void logging_raw_writers_write_sbp(File& sbpfile)
 {
   if (!sbpLoggingReady(sbpfile)) return;
   if (!sbpItowChanged()) return;
