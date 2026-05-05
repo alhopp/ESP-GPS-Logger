@@ -20,7 +20,6 @@
 #include "core/system_info.h"
 #include "Layout.h"
 #include "Display/Screens/screen_system.h"
-#include "tasks/task_display.h"
 
 // ============================================================================
 // Display instance (OWNED HERE)

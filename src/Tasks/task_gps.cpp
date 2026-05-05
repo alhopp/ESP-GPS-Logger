@@ -5,7 +5,7 @@
 #include "core/system_mode.h"
 #include "managers/config_types.h"
 #include "session/logging_session.h"
-#include "tasks/task_display.h"
+#include "tasks/display_redraw.h"
 #include "tasks/task_gps.h"
 
 #include "GPS/gps_alpha.h"

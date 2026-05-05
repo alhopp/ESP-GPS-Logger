@@ -13,7 +13,7 @@
 
 #include "core/build_config.h"
 #include "managers/config_types.h"
-#include "tasks/task_display.h"
+#include "tasks/display_redraw.h"
 
 // ============================================================================
 // DEV MODE OVERRIDE

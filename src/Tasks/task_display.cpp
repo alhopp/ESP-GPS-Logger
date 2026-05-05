@@ -25,6 +25,7 @@
 
 #include "Display/E_paper.h"
 #include "Display/screen_draw.h"
+#include "tasks/display_redraw.h"
 
 // ============================================================================
 // Redraw signalling state

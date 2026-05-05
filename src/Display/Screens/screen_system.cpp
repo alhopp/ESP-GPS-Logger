@@ -24,7 +24,7 @@
 
 #include "core/magnet_input.h"
 #include "core/system_mode.h"
-#include "tasks/task_display.h"
+#include "tasks/display_redraw.h"
 
 #include "Ublox/ublox.h"
 
