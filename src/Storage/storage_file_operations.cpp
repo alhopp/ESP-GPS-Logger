@@ -14,16 +14,14 @@
 #include "Storage/geojson.h"
 #include "Storage/sbp.h"
 #include "Storage/session_geojson.h"
+#include "Storage/session_raw_writers.h"
 #include "Storage/storage_file_operations.h"
 #include "Storage/storage_manager.h"
-#include "Ublox/Ublox.h"
-#include "core/system_mode.h"
 #include "managers/config_manager.h"
 
 char dataStr[255] = "";
 char Buffer[50] = "";
 uint64_t GPS_UTC_ms;
-static uint32_t last_sbp_iTOW = 0;
 
 File ubxfile;
 File sbpfile;
@@ -110,36 +108,8 @@ void Log_to_SD(void)
 {
   if (storage_shutting_down || !Time_Set_OK) return;
 
-  if (config.logUBX && ubxfile) {
-    ubxfile.write(0xB5);
-    ubxfile.write(0x62);
-    ubxfile.write((const uint8_t*)&ubxMessage.navPvt, sizeof(ubxMessage.navPvt));
-
-    static int old_sat = 0;
-    if (nav_sat_message != old_sat) {
-      old_sat = nav_sat_message;
-      ubxfile.write(0xB5);
-      ubxfile.write(0x62);
-      ubxfile.write(
-        (const uint8_t*)&ubxMessage.navSat,
-        (ubxMessage.navSatHdr.len + 6)
-      );
-    }
-  }
-
-  if (config.logUBX_nav_sat && ubxfile) {
-    ubxfile.write(0xB5);
-    ubxfile.write(0x62);
-    ubxfile.write((const uint8_t*)&ubxMessage.navDOP, sizeof(ubxMessage.navDOP));
-  }
-
-  if (config.logSBP && sbpfile && getMode() == MODE_LOGGING) {
-    uint32_t itow = ubxMessage.navPvt.iTOW;
-    if (itow != last_sbp_iTOW) {
-      last_sbp_iTOW = itow;
-      log_SBP(sbpfile);
-    }
-  }
+  session_write_ubx(ubxfile);
+  session_write_sbp(sbpfile);
 }
 
 void Close_files(void)
@@ -162,4 +132,3 @@ void Close_files(void)
 
   Serial.println("[STORAGE] files closed");
 }
-
