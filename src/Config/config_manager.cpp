@@ -9,12 +9,12 @@
 #include <LittleFS.h>
 
 #include "Core/Definitions.h"
-#include "managers/config_defaults.h"
-#include "managers/config_dump.h"
-#include "managers/config_json.h"
-#include "managers/config_manager.h"
-#include "managers/config_runtime.h"
-#include "managers/config_validation.h"
+#include "Config/config_defaults.h"
+#include "Config/config_dump.h"
+#include "Config/config_json.h"
+#include "Config/config_manager.h"
+#include "Config/config_runtime.h"
+#include "Config/config_validation.h"
 
 namespace {
 constexpr const char* CONFIG_FILE = "/config.txt";

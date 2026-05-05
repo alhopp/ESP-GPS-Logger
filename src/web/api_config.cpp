@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 
-#include "managers/config_manager.h"
+#include "Config/config_manager.h"
 #include "Core/system_info.h"
 
 namespace {

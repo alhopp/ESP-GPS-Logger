@@ -18,7 +18,7 @@
 #include "GPS/gps_alpha.h"
 #include "GPS/gps_manager.h"
 #include "Storage/storage_manager.h"
-#include "session/logging_session.h"
+#include "Logging/logging_session.h"
 #include "Tasks/display_redraw.h"
 #include "web/web_server.h"
 #include "web/wifi_manager.h"

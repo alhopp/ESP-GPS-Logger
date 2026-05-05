@@ -1,11 +1,11 @@
-#include "managers/config_runtime.h"
+#include "Config/config_runtime.h"
 
 #include <Arduino.h>
 
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
 #include "Core/rtc_state.h"
-#include "managers/config_types.h"
+#include "Config/config_types.h"
 
 void config_apply_runtime()
 {

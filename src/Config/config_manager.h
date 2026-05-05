@@ -1,6 +1,6 @@
 #pragma once
 
-#include "managers/config_types.h"
+#include "Config/config_types.h"
 
 // ============================================================================
 // Configuration Manager API

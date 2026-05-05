@@ -9,13 +9,13 @@
 
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
-#include "Storage/geojson.h"
-#include "Storage/sbp.h"
-#include "Storage/session_geojson.h"
-#include "Storage/session_raw_writers.h"
-#include "Storage/storage_file_operations.h"
+#include "Logging/geojson.h"
+#include "Logging/sbp.h"
+#include "Logging/session_geojson.h"
+#include "Logging/session_raw_writers.h"
+#include "Logging/storage_file_operations.h"
 #include "Storage/storage_manager.h"
-#include "managers/config_types.h"
+#include "Config/config_types.h"
 
 namespace {
 File ubxfile;

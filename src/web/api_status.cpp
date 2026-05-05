@@ -8,7 +8,7 @@
 #include "Core/Globals.h"
 #include "Core/build_config.h"
 #include "Core/system_mode.h"
-#include "session/logging_session.h"
+#include "Logging/logging_session.h"
 
 namespace {
 void sendJson(WebServer& server, JsonDocument& doc)

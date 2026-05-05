@@ -1,11 +1,11 @@
-#include "session/logging_session.h"
+#include "Logging/logging_session.h"
 
 #include <Arduino.h>
 
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
-#include "Storage/geojson.h"
-#include "Storage/storage_file_operations.h"
+#include "Logging/geojson.h"
+#include "Logging/storage_file_operations.h"
 #include "Storage/storage_manager.h"
 
 namespace {

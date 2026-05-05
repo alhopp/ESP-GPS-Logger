@@ -3,8 +3,8 @@
 #include "Core/Globals.h"
 #include "Ublox/Ublox.h"
 #include "Core/system_mode.h"
-#include "managers/config_types.h"
-#include "session/logging_session.h"
+#include "Config/config_types.h"
+#include "Logging/logging_session.h"
 #include "Tasks/display_redraw.h"
 #include "Tasks/task_gps.h"
 
@@ -115,19 +115,24 @@ void maybeEnterLoggingMode()
 
 void maybeStartLoggingSession(const GpsFix& fix)
 {
-  if (!GPS_Signal_OK || Time_Set_OK || logging_session_active()) return;
-  if (!fix.validDateTime && millis() - timeWaitStartMs <= 15000UL) return;
+  if (!GPS_Signal_OK || logging_session_active()) return;
 
-  if (fix.validDateTime) {
-    Set_GPS_Time(config.timezone);
+  if (!Time_Set_OK) {
+    if (!fix.validDateTime && millis() - timeWaitStartMs <= 15000UL) return;
+
+    if (fix.validDateTime) {
+      Set_GPS_Time(config.timezone);
+    }
+
+    Time_Set_OK = true;
   }
 
-  Time_Set_OK = true;
+  if (!logging_session_begin(fix)) return;
+
   Shut_down_Save_session = true;
   start_logging_millis = millis();
 
   reset_session_stats();
-  logging_session_begin(fix);
 }
 
 void updateSessionStats(const GpsFix& fix)

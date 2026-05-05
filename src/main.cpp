@@ -9,9 +9,9 @@
 
 // --- Core managers -----------------------------------------------------------
 #include "Storage/storage_manager.h"
-#include "managers/boot_manager.h"
-#include "managers/config_manager.h"
-#include "managers/watchdog_manager.h"
+#include "System/boot_manager.h"
+#include "Config/config_manager.h"
+#include "System/watchdog_manager.h"
 #include "GPS/gps_manager.h"
 
 // --- Tasks ------------------------------------------------------------------

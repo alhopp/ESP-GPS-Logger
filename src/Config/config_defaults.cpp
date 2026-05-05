@@ -1,9 +1,9 @@
-#include "managers/config_defaults.h"
+#include "Config/config_defaults.h"
 
 #include <Arduino.h>
 
 #include "Core/Definitions.h"
-#include "managers/config_types.h"
+#include "Config/config_types.h"
 
 void config_set_defaults()
 {

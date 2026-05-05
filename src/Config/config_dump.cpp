@@ -1,9 +1,9 @@
-#include "managers/config_dump.h"
+#include "Config/config_dump.h"
 
 #include <Arduino.h>
 
 #include "Core/system_info.h"
-#include "managers/config_types.h"
+#include "Config/config_types.h"
 
 void config_dump()
 {

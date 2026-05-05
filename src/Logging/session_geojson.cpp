@@ -1,4 +1,4 @@
-#include "Storage/session_geojson.h"
+#include "Logging/session_geojson.h"
 
 #include "Core/Definitions.h"
 #include "Core/rtc_state.h"
@@ -7,7 +7,7 @@
 #include "GPS/gps_alpha.h"
 #include "GPS/gps_speed.h"
 #include "GPS/gps_time.h"
-#include "Storage/geojson.h"
+#include "Logging/geojson.h"
 
 namespace {
 bool validGpsIndex(int i)

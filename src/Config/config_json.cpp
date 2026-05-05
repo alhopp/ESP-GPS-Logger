@@ -1,10 +1,10 @@
-#include "managers/config_json.h"
+#include "Config/config_json.h"
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
 #include "Core/Definitions.h"
-#include "managers/config_types.h"
+#include "Config/config_types.h"
 
 bool config_load_json(File& file)
 {
