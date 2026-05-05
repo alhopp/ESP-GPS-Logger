@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "GPS/gps_time.h"
-#include "GPS/gps_speed.h"
+#include "GPS/gps_time_speed.h"
+#include "GPS/gps_distance_speed.h"
 
 
 // Define constants
@@ -20,7 +20,7 @@ constexpr int    NR_OF_BAR       = 42;     // Bar-graph resolution
 constexpr int    NAV_SAT_BUFFER  = 10;     // Rolling NAV-SAT statistics window
 
 // -----------------------------------------------------------------------------
-// Shared GPS raw buffers (owned by GPS_data.cpp)
+// Shared GPS raw buffers (owned by gps_data.cpp)
 // -----------------------------------------------------------------------------
 extern uint16_t _gSpeed[BUFFER_SIZE];
 extern uint16_t _secSpeed[BUFFER_SIZE];

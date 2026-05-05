@@ -1,17 +1,14 @@
 #include <Arduino.h>
 
 #include "Core/Globals.h"
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 #include "Core/system_mode.h"
-#include "Config/config_types.h"
 #include "Logging/logging_session.h"
-#include "Runtime/display_redraw.h"
+#include "Runtime/gps_display_policy.h"
+#include "Runtime/gps_logging_policy.h"
 #include "Runtime/task_gps.h"
 
-#include "Display/display_geometry.h"
-#include "GPS/gps_alpha.h"
 #include "GPS/gps_fix.h"
-#include "GPS/gps_run.h"
 #include "GPS/gps_source.h"
 #include "GPS/gps_stats_service.h"
 
@@ -22,20 +19,12 @@ namespace {
 constexpr uint32_t IDLE_DELAY_MS = 200;
 constexpr uint32_t POLL_DELAY_MS = 5;
 
-constexpr DisplayWindow SAT_WAIT_WINDOW = DISPLAY_BOTTOM_STATUS_WINDOW;
-constexpr DisplayWindow SPEED_WINDOW = DISPLAY_FULL_WINDOW;
-
-uint32_t timeWaitStartMs = 0;
-
 bool gpsTaskShouldRun();
 void processGpsFix(const GpsFix& fix);
 void processGpsMessage(const GpsFix& fix);
 void noteGpsSignalReady(const GpsFix& fix);
 void maybeEnterLoggingMode();
-void maybeStartLoggingSession(const GpsFix& fix);
 void updateSessionStats(const GpsFix& fix);
-void updateSatelliteWaitDisplay(const GpsFix& fix);
-void updateSpeedDisplayThrottle(const GpsFix& fix);
 }
 
 // -----------------------------------------------------------------------------
@@ -77,8 +66,7 @@ void processGpsFix(const GpsFix& fix)
     logging_session_write_fix(fix, getMode() == MODE_LOGGING);
   }
 
-  updateSatelliteWaitDisplay(fix);
-  updateSpeedDisplayThrottle(fix);
+  gps_display_policy_update(fix);
 }
 
 void processGpsMessage(const GpsFix& fix)
@@ -89,7 +77,7 @@ void processGpsMessage(const GpsFix& fix)
 
   noteGpsSignalReady(fix);
   maybeEnterLoggingMode();
-  maybeStartLoggingSession(fix);
+  gps_logging_policy_maybe_start_session(fix);
   updateSessionStats(fix);
 }
 
@@ -102,7 +90,7 @@ void noteGpsSignalReady(const GpsFix& fix)
       fix.validDateTime) {
     GPS_Signal_OK = true;
     first_fix_GPS = millis() / 1000;
-    timeWaitStartMs = millis();
+    gps_logging_policy_note_signal_ready(millis());
   }
 }
 
@@ -113,63 +101,10 @@ void maybeEnterLoggingMode()
   }
 }
 
-void maybeStartLoggingSession(const GpsFix& fix)
-{
-  if (!GPS_Signal_OK || logging_session_active()) return;
-
-  if (!Time_Set_OK) {
-    if (!fix.validDateTime && millis() - timeWaitStartMs <= 15000UL) return;
-
-    if (fix.validDateTime) {
-      Set_GPS_Time(config.timezone);
-    }
-
-    Time_Set_OK = true;
-  }
-
-  if (!logging_session_begin(fix)) return;
-
-  Shut_down_Save_session = true;
-  start_logging_millis = millis();
-
-  reset_session_stats();
-}
-
 void updateSessionStats(const GpsFix& fix)
 {
   if (!logging_session_active()) return;
   gps_stats_update(fix);
-}
-
-void updateSatelliteWaitDisplay(const GpsFix& fix)
-{
-  static uint8_t lastSV = 0;
-
-  if (getMode() != MODE_WAIT_SATS) return;
-
-  if (fix.satellites != lastSV) {
-    lastSV = fix.satellites;
-    screen_request_partial(SAT_WAIT_WINDOW);
-  }
-}
-
-void updateSpeedDisplayThrottle(const GpsFix& fix)
-{
-  static uint32_t lastSpeedUpdateMs = 0;
-
-  if (getMode() != MODE_LOGGING || !GPS_Signal_OK) return;
-
-  const float kts = fix.speedKnots;
-  const uint32_t intervalMs =
-    kts < 10.0f ? UINT32_MAX :
-    kts < 20.0f ? 5000 :
-    kts < 38.0f ? 3000 : 1000;
-
-  const uint32_t now = millis();
-  if (intervalMs != UINT32_MAX && now - lastSpeedUpdateMs >= intervalMs) {
-    lastSpeedUpdateMs = now;
-    screen_request_partial(SPEED_WINDOW);
-  }
 }
 
 } // namespace

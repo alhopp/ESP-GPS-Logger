@@ -1,5 +1,5 @@
 // ============================================================================
-// gps_run.cpp
+// gps_run_detector.cpp
 //
 // AUTHORITATIVE run detection (GPS Speedreader aligned)
 //
@@ -10,7 +10,7 @@
 // - No gaps in samples used for 10s / NM / Alpha windows
 // ============================================================================
 
-#include "GPS/gps_run.h"
+#include "GPS/gps_run_detector.h"
 #include <Arduino.h>
 #include <math.h>
 

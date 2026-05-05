@@ -1,5 +1,5 @@
 // ============================================================================
-// GPS_data.cpp
+// gps_data.cpp
 //
 // ROLE IN THE SYSTEM
 // ------------------
@@ -16,9 +16,9 @@
 //        ▼
 //   GPS_data::push_data()
 //        │
-//        ├─ _gSpeed[]   → gps_speed / gps_time / gps_alpha
+//        ├─ _gSpeed[]   → gps_distance_speed / gps_time_speed / gps_alpha_speed
 //        ├─ _sogCms[]   → SBP-parity per-sample speed (cm/s)
-//        ├─ _lat/_long  → gps_alpha / gps_track / geometry
+//        ├─ _lat/_long  → gps_alpha_speed / gps_track / geometry
 //        ├─ _distCm[]   → cumulative distance (cm) for Alpha windows
 //        ├─ distances   → session / run / alfa accumulation
 //        └─ _secSpeed[] → long time-window averages
@@ -27,16 +27,16 @@
 // It only stores, accumulates, and resets shared state.
 // ============================================================================
 
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
 #include "Core/system_info.h"
 #include <algorithm>
 
-#include "GPS/GPS_data.h"
+#include "GPS/gps_data.h"
 #include "GPS/gps_manager.h"
-#include "GPS/gps_speed.h"
-#include "GPS/gps_alpha.h"
+#include "GPS/gps_distance_speed.h"
+#include "GPS/gps_alpha_speed.h"
 #include "GPS/gps_geometry.h"
 #include "GPS/gps_utils.h"
 

@@ -1,9 +1,9 @@
-#include "GPS/gps_speed.h"
-#include "GPS/GPS_data.h"
+#include "GPS/gps_distance_speed.h"
+#include "GPS/gps_data.h"
 #include "GPS/gps_utils.h"
 
 #include "Core/system_info.h"
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 #include "Core/Globals.h"
 #include <time.h>
 

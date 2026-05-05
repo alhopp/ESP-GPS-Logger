@@ -1,5 +1,5 @@
 // ============================================================================
-// gps_alpha.cpp
+// gps_alpha_speed.cpp
 //
 // Alpha 500 — LEGACY-COMPATIBLE IMPLEMENTATION (M500-driven)
 //
@@ -12,9 +12,9 @@
 // - Alpha is FINALISED on run change
 // ============================================================================
 
-#include "GPS/gps_alpha.h"
-#include "GPS/GPS_data.h"
-#include "GPS/gps_speed.h"
+#include "GPS/gps_alpha_speed.h"
+#include "GPS/gps_data.h"
+#include "GPS/gps_distance_speed.h"
 #include "GPS/gps_utils.h"
 
 #include "Core/Globals.h"

@@ -1,5 +1,5 @@
 #include "Logging/sbp.h"
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 #include "Core/Globals.h"
 
 namespace {

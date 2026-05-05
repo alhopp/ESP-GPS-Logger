@@ -2,7 +2,7 @@
 
 #include "Core/Globals.h"
 #include "Logging/sbp.h"
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 #include "Core/system_mode.h"
 #include "Config/config_types.h"
 

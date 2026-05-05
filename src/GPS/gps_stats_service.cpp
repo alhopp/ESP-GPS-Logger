@@ -1,10 +1,10 @@
 #include "GPS/gps_stats_service.h"
 
 #include "Core/Globals.h"
-#include "GPS/gps_alpha.h"
-#include "GPS/gps_run.h"
-#include "GPS/gps_speed.h"
-#include "GPS/gps_time.h"
+#include "GPS/gps_alpha_speed.h"
+#include "GPS/gps_run_detector.h"
+#include "GPS/gps_distance_speed.h"
+#include "GPS/gps_time_speed.h"
 
 void gps_stats_update(const GpsFix& fix)
 {
@@ -46,4 +46,3 @@ void gps_stats_update(const GpsFix& fix)
   S10.Update_speed(run_count);
   S3600.Update_speed(run_count);
 }
-

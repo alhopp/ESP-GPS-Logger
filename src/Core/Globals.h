@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <time.h>
 #include "Core/Definitions.h"
-#include "GPS/GPS_data.h"
+#include "GPS/gps_data.h"
 
 
 // ============================================================================

@@ -1,11 +1,11 @@
 #pragma once
 // ============================================================================
-// Ublox.h — Legacy-compatible u-blox M10 interface
+// ublox_driver.h — Legacy-compatible u-blox M10 interface
 //
 // This header defines:
 //   • Raw UBX configuration blobs (CFG-VALSET, CFG-RATE, etc.)
 //   • Binary-exact UBX message structs (NAV-PVT, NAV-DOP, MON-VER, …)
-//   • A single shared UBXMessage container used by Ublox.cpp + loggers
+//   • A single shared UBXMessage container used by ublox_driver.cpp + loggers
 //
 // DESIGN GOALS
 //   ✔ Zero STL usage inside namespace ubx (prevents std corruption)
@@ -13,8 +13,8 @@
 //
 // IMPORTANT
 //   • This file intentionally mixes *modern M10 CFG-VALSET* blobs with
-//     *legacy CFG-RATE* messages because Ublox.cpp expects both.
-//   • Do NOT “simplify” unless Ublox.cpp is refactored at the same time.
+//     *legacy CFG-RATE* messages because ublox_driver.cpp expects both.
+//   • Do NOT “simplify” unless ublox_driver.cpp is refactored at the same time.
 // ============================================================================
 
 #include <Arduino.h>
@@ -22,7 +22,7 @@
 #include <driver/rtc_io.h>
 #include <driver/gpio.h>
 #include "Core/board_pins.h"
-#include "GPS/Ublox/Ublox_ubx.h"
+#include "GPS/Ublox/ubx_protocol.h"
 
 // ============================================================================
 // HELPERS

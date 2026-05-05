@@ -1,11 +1,11 @@
 #include "Core/rtc_state.h"
 #include "Core/Definitions.h"
 
-#include "GPS/GPS_data.h"
-#include "GPS/gps_speed.h"
-#include "GPS/gps_alpha.h"
-#include "GPS/gps_time.h"
-#include "GPS/gps_run.h"
+#include "GPS/gps_data.h"
+#include "GPS/gps_distance_speed.h"
+#include "GPS/gps_alpha_speed.h"
+#include "GPS/gps_time_speed.h"
+#include "GPS/gps_run_detector.h"
 #include "GPS/gps_utils.h"
 
 // ---------------------------------------------------------------------------

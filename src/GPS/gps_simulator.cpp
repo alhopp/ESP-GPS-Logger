@@ -14,7 +14,7 @@
 // -----------------------------------------------------------------------------
 
 #include "GPS/gps_simulator.h"
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 
 #include <Arduino.h>
 #include <math.h>

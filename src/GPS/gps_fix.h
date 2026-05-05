@@ -4,7 +4,7 @@
 #include <time.h>
 
 #include "Core/Definitions.h"
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 
 struct GpsFix {
   bool validFix = false;

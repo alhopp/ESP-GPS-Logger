@@ -1,7 +1,7 @@
 #pragma once
 
 // ============================================================================
-// gps_run
+// gps_run_detector
 //
 // Run + jibe detection (AUTHORITATIVE)
 //

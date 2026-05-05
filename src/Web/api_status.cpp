@@ -4,7 +4,7 @@
 #include <WiFi.h>
 
 #include "Storage/storage_manager.h"
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 #include "Core/Globals.h"
 #include "Core/build_config.h"
 #include "Core/system_mode.h"

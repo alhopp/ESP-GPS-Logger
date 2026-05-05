@@ -17,12 +17,12 @@
 
 #include "Core/Definitions.h"
 #include "Core/rtc_state.h"     // RTC_gps_* + RTC time fields
-#include "GPS/Ublox/Ublox.h"     // ubx::poll::mon_ver definition
+#include "GPS/Ublox/ublox_driver.h" // ubx::poll::mon_ver definition
 #include "Core/Globals.h"
 
-#include "GPS/gps_time.h"
-#include "GPS/gps_speed.h"
-#include "GPS/gps_alpha.h"
+#include "GPS/gps_time_speed.h"
+#include "GPS/gps_distance_speed.h"
+#include "GPS/gps_alpha_speed.h"
 
 
 tm tmstruct{};
@@ -213,7 +213,7 @@ bool initGPS()
 // GPS acquisition, statistics, logging, and display layers.
 //
 // Definitions live here (gps_manager.cpp).
-// Declarations are provided as `extern` in GPS_data.h.
+// Declarations are provided as `extern` in gps_data.h.
 // ============================================================================
 
 // -----------------------------------------------------------------------------

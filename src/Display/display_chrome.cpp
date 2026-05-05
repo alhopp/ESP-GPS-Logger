@@ -19,7 +19,7 @@
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
 #include "Core/rtc_state.h"
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 
 namespace {
 constexpr int INFO_BAR_ROW_OFFSET = 2;

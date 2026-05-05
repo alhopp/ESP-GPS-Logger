@@ -1,9 +1,9 @@
-#include "GPS/Ublox/Ublox.h"
+#include "GPS/Ublox/ublox_driver.h"
 #include "Core/Definitions.h"
 
 
 // ============================================================================
-// Ublox.cpp
+// ublox_driver.cpp
 //
 // High-level u-blox driver entry point.
 //
@@ -13,8 +13,8 @@
 //
 // All heavy logic is split out for clarity:
 //
-//   - Ublox_init.cpp    → GPS configuration, UBX setup, time sync
-//   - Ublox_parser.cpp  → Streaming UBX frame parser (state machine)
+//   - ublox_init.cpp    → GPS configuration, UBX setup, time sync
+//   - ublox_parser.cpp  → Streaming UBX frame parser (state machine)
 //
 // Rationale:
 //   • Keeps this file small and readable
