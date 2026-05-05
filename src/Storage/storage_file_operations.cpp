@@ -9,7 +9,6 @@
 
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
-#include "Core/system_info.h"
 #include "Storage/geojson.h"
 #include "Storage/sbp.h"
 #include "Storage/session_geojson.h"
@@ -22,37 +21,18 @@ namespace {
 File ubxfile;
 File sbpfile;
 
-char filenameUBX[128] = "/";
-char filenameSBP[128] = "/";
-char filenameGEO[128] = "/";
-}
-
-void Open_files(void)
+void buildSessionBase(char* base, size_t baseSize)
 {
-  if (storage_is_shutting_down() || !Time_Set_OK) {
-    LOG_STORAGE("Open_files", "called without valid GPS time");
-    return;
-  }
-
-  if (!storage_logs_dir_ready()) {
-    LOG_ERROR("STORAGE", "logs dir unavailable");
-    return;
-  }
-
-  fs::FS& storage = storage_sd_fs();
   getLocalTime(&tmstruct);
 
   uint64_t chipMac = 0;
   esp_efuse_mac_get_default((uint8_t*)&chipMac);
 
-  uint8_t mac3 = (chipMac >> 16) & 0xFF;
-  uint8_t mac4 = (chipMac >> 8) & 0xFF;
-  uint8_t mac5 = chipMac & 0xFF;
+  const uint8_t mac3 = (chipMac >> 16) & 0xFF;
+  const uint8_t mac4 = (chipMac >> 8) & 0xFF;
+  const uint8_t mac5 = chipMac & 0xFF;
 
-  char base[96];
-  char path[128];
-
-  snprintf(base, sizeof(base),
+  snprintf(base, baseSize,
     "%02X%02X%02X_%04d%02d%02d_%02d%02d%02d",
     mac3, mac4, mac5,
     tmstruct.tm_year + 1900,
@@ -62,12 +42,38 @@ void Open_files(void)
     tmstruct.tm_min,
     tmstruct.tm_sec
   );
+}
 
-  snprintf(path, sizeof(path), "/logs/%s", base);
+void buildSessionPath(char* path, size_t pathSize, const char* base, const char* extension)
+{
+  snprintf(path, pathSize, "/logs/%s.%s", base, extension);
+}
+}
 
-  snprintf(filenameUBX, sizeof(filenameUBX), "%s.ubx", path);
-  snprintf(filenameSBP, sizeof(filenameSBP), "%s.sbp", path);
-  snprintf(filenameGEO, sizeof(filenameGEO), "%s.geojson", path);
+void storage_files_open()
+{
+  if (storage_is_shutting_down() || !Time_Set_OK) {
+    LOG_STORAGE("storage_files_open", "called without valid GPS time");
+    return;
+  }
+
+  if (!storage_logs_dir_ready()) {
+    LOG_ERROR("STORAGE", "logs dir unavailable");
+    return;
+  }
+
+  fs::FS& storage = storage_sd_fs();
+  session_raw_writers_reset();
+
+  char base[96];
+  char filenameUBX[128];
+  char filenameSBP[128];
+  char filenameGEO[128];
+
+  buildSessionBase(base, sizeof(base));
+  buildSessionPath(filenameUBX, sizeof(filenameUBX), base, "ubx");
+  buildSessionPath(filenameSBP, sizeof(filenameSBP), base, "sbp");
+  buildSessionPath(filenameGEO, sizeof(filenameGEO), base, "geojson");
 
   if (config.logUBX) {
     ubxfile = storage.open(filenameUBX, FILE_APPEND);
@@ -86,25 +92,7 @@ void Open_files(void)
   LOG_STORAGE("LOG", "Session started %s", base);
 }
 
-void Flush_files(void)
-{
-  if (storage_is_shutting_down() || systemInfo.sample_rate > 10) return;
-
-  static uint8_t lb = 0;
-  switch (lb) {
-    case 0:
-      if (ubxfile) ubxfile.flush();
-      break;
-
-    case 3:
-      if (sbpfile) sbpfile.flush();
-      break;
-  }
-
-  lb = (lb + 1) % 5;
-}
-
-void Log_to_SD(void)
+void storage_files_write_raw()
 {
   if (storage_is_shutting_down() || !Time_Set_OK) return;
 
@@ -112,9 +100,9 @@ void Log_to_SD(void)
   session_write_sbp(sbpfile);
 }
 
-void Close_files(void)
+void storage_files_close()
 {
-  Serial.println("[STORAGE] Close_files()");
+  Serial.println("[STORAGE] storage_files_close()");
 
   session_geojson_finalize();
 

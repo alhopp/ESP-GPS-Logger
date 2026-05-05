@@ -1,43 +1,51 @@
 #include "geojson.h"
 #include <string.h>
-#include <math.h>   // isfinite()
 
 #include "Storage/storage_manager.h"
 
 // -----------------------------------------------------------------------------
 // Internal state
 // -----------------------------------------------------------------------------
-static File geoFile;
+namespace {
+File geoFile;
 
-static bool firstFeature = true;
-static bool firstPoint   = true;
+bool firstFeature = true;
+bool firstPoint = true;
 
-static bool hasStats = false;
-static GeoJSONStats stats;
+bool hasStats = false;
+GeoJSONStats stats;
 
-static const char* currentMode = nullptr;
+const char* currentMode = nullptr;
+}
 
 // -----------------------------------------------------------------------------
 // Stats setter (called once per session)
 // -----------------------------------------------------------------------------
-void geojson_set_stats(const GeoJSONStats& s){
-  stats    = s;
+void geojson_set_stats(const GeoJSONStats& s)
+{
+  stats = s;
   hasStats = true;
 }
 
 // -----------------------------------------------------------------------------
 // Begin GeoJSON file
 // -----------------------------------------------------------------------------
-void geojson_begin(const char* filename){
-  if(geoFile) geoFile.close();
+void geojson_begin(const char* filename)
+{
+  if (geoFile) {
+    geoFile.close();
+  }
+
   fs::FS& storage = storage_sd_fs();
-  if(storage.exists(filename)) storage.remove(filename);
+  if (storage.exists(filename)) {
+    storage.remove(filename);
+  }
 
   geoFile = storage.open(filename, FILE_WRITE);
-  if(!geoFile) return;
+  if (!geoFile) return;
 
   firstFeature = true;
-  currentMode  = nullptr;
+  currentMode = nullptr;
 
   geoFile.println("{");
   geoFile.println("\"type\":\"FeatureCollection\",");
@@ -47,13 +55,16 @@ void geojson_begin(const char* filename){
 // -----------------------------------------------------------------------------
 // Begin a new feature (track / 2s / 10s / alpha / nm / 1h)
 // -----------------------------------------------------------------------------
-void geojson_begin_feature(const char* mode){
-  if(!geoFile) return;
+void geojson_begin_feature(const char* mode)
+{
+  if (!geoFile) return;
 
-  if(!firstFeature) geoFile.println(",");
+  if (!firstFeature) {
+    geoFile.println(",");
+  }
   firstFeature = false;
 
-  firstPoint  = true;
+  firstPoint = true;
   currentMode = mode;
 
   geoFile.println("{");
@@ -65,14 +76,14 @@ void geojson_begin_feature(const char* mode){
 
 // -----------------------------------------------------------------------------
 // Append coordinate to current feature
-// HARDENED:
-// - drops NaN/Inf (prevents partial prints like "-,")
 // -----------------------------------------------------------------------------
 void geojson_add_point(double lat, double lon)
 {
-  if(!geoFile || !currentMode) return;
+  if (!geoFile || !currentMode) return;
 
-  if(!firstPoint) geoFile.println(",");
+  if (!firstPoint) {
+    geoFile.println(",");
+  }
   firstPoint = false;
 
   char buf[64];
@@ -87,8 +98,9 @@ void geojson_add_point(double lat, double lon)
 // -----------------------------------------------------------------------------
 // End current feature
 // -----------------------------------------------------------------------------
-void geojson_end_feature(){
-  if(!geoFile || !currentMode) return;
+void geojson_end_feature()
+{
+  if (!geoFile || !currentMode) return;
 
   geoFile.println();
   geoFile.println("]");     // end coordinates array
@@ -101,15 +113,26 @@ void geojson_end_feature(){
   geoFile.print("\"");
 
   // Attach session stats ONLY to base track
-  if(hasStats && strcmp(currentMode, "track") == 0){
+  if (hasStats && strcmp(currentMode, "track") == 0) {
     geoFile.println(",");
     geoFile.println("\"stats\":{");
-    geoFile.print("\"nm\":");       geoFile.print(stats.nm,3);       geoFile.println(",");
-    geoFile.print("\"alpha\":");    geoFile.print(stats.alpha,3);    geoFile.println(",");
-    geoFile.print("\"h1\":");       geoFile.print(stats.h1,3);       geoFile.println(",");
-    geoFile.print("\"max\":");      geoFile.print(stats.max,3);      geoFile.println(",");
-    geoFile.print("\"avg10\":");    geoFile.print(stats.avg10,3);    geoFile.println(",");
-    geoFile.print("\"distance\":"); geoFile.print(stats.distance,3);
+    geoFile.print("\"nm\":");
+    geoFile.print(stats.nm, 3);
+    geoFile.println(",");
+    geoFile.print("\"alpha\":");
+    geoFile.print(stats.alpha, 3);
+    geoFile.println(",");
+    geoFile.print("\"h1\":");
+    geoFile.print(stats.h1, 3);
+    geoFile.println(",");
+    geoFile.print("\"max\":");
+    geoFile.print(stats.max, 3);
+    geoFile.println(",");
+    geoFile.print("\"avg10\":");
+    geoFile.print(stats.avg10, 3);
+    geoFile.println(",");
+    geoFile.print("\"distance\":");
+    geoFile.print(stats.distance, 3);
     geoFile.println("}");
   }
 
@@ -122,8 +145,9 @@ void geojson_end_feature(){
 // -----------------------------------------------------------------------------
 // Finalise GeoJSON file
 // -----------------------------------------------------------------------------
-void geojson_end(){
-  if(!geoFile) return;
+void geojson_end()
+{
+  if (!geoFile) return;
 
   geoFile.println();
   geoFile.println("]");

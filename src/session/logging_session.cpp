@@ -23,7 +23,7 @@ bool logging_session_begin(const GpsFix& firstFix)
     return false;
   }
 
-  Open_files();
+  storage_files_open();
   session_active = true;
   last_geojson_ms = 0;
   LOG_STORAGE("Session", "started sats=%u lat=%.6f lon=%.6f",
@@ -35,7 +35,7 @@ void logging_session_write_fix(const GpsFix& fix, bool writeLiveTrack)
 {
   if (!session_active) return;
 
-  Log_to_SD();
+  storage_files_write_raw();
 
   if (!writeLiveTrack) return;
 
@@ -52,7 +52,7 @@ void logging_session_end()
 
   LOG_STORAGE("Session", "ending");
   session_active = false;
-  Close_files();
+  storage_files_close();
 }
 
 bool logging_session_active()

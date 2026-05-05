@@ -8,6 +8,13 @@
 
 namespace {
 uint32_t last_sbp_iTOW = 0;
+int last_nav_sat_message = 0;
+}
+
+void session_raw_writers_reset()
+{
+  last_sbp_iTOW = 0;
+  last_nav_sat_message = 0;
 }
 
 void session_write_ubx(File& ubxfile)
@@ -17,9 +24,8 @@ void session_write_ubx(File& ubxfile)
     ubxfile.write(0x62);
     ubxfile.write((const uint8_t*)&ubxMessage.navPvt, sizeof(ubxMessage.navPvt));
 
-    static int old_sat = 0;
-    if (nav_sat_message != old_sat) {
-      old_sat = nav_sat_message;
+    if (nav_sat_message != last_nav_sat_message) {
+      last_nav_sat_message = nav_sat_message;
       ubxfile.write(0xB5);
       ubxfile.write(0x62);
       ubxfile.write(

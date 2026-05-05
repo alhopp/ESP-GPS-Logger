@@ -1,6 +1,5 @@
 #pragma once
 
-void Open_files();
-void Log_to_SD();
-void Flush_files();
-void Close_files();
+void storage_files_open();
+void storage_files_write_raw();
+void storage_files_close();
