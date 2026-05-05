@@ -1,26 +1,10 @@
 #pragma once
 
-#include <stdint.h>
-
 // ============================================================================
 // gps_manager.h
 //
 // GPS hardware bring-up and power control for ESP32 + u-blox.
 //
-// Responsibilities:
-// - Power sequencing
-// - UART bring-up
-// - Baud detection (RTC-assisted)
-// - RTC time injection for warm starts
-//
-// Non-responsibilities:
-// - GPS statistics
-// - Logging formats
-// - UI state
-// - Task control
-// ============================================================================
-
-
 // -----------------------------------------------------------------------------
 // PRIMARY API
 // -----------------------------------------------------------------------------

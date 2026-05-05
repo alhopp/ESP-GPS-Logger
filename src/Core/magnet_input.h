@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 // Initialise the Hall sensor input and internal timing state
-void magnet_init();
+void initMagnet();
 
 // Poll the Hall sensor and interpret user intent
 // Must be called frequently from loop()

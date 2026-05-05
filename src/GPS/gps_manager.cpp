@@ -15,10 +15,10 @@
 #include <driver/rtc_io.h>
 #include <driver/gpio.h>
 
-#include "Core/Definitions.h"
-#include "Core/rtc_state.h"     // RTC_gps_* + RTC time fields
+#include "core/Definitions.h"
+#include "core/rtc_state.h"     // RTC_gps_* + RTC time fields
 #include "Ublox/ublox.h"         // ubx::poll::mon_ver definition
-#include "Core/Globals.h"
+#include "core/Globals.h"
 
 #include "GPS/gps_time.h"
 #include "GPS/gps_speed.h"
@@ -27,17 +27,6 @@
 
 tm tmstruct{};
 int Time_Set_OK = 0;
-
-
-// -----------------------------------------------------------------------------
-// BAUD TABLE
-// -----------------------------------------------------------------------------
-static const uint32_t gpsBauds[] = {
-  0,        // index 0 = invalid
-  9600,     // index 1
-  38400,    // index 2
-  115200    // index 3
-};
 
 // -----------------------------------------------------------------------------
 // POWER CONTROL
@@ -180,7 +169,6 @@ static bool probe_gps(uint32_t baud)
 // -----------------------------------------------------------------------------
 // initGPS()
 // - Powers GPS
-// - Detects current baud (RTC fast path + scan fallback)
 // - Applies full M10 UBX configuration ONCE
 // - Forces final baud to 38400
 // - Restarts UART at 38400
@@ -194,82 +182,28 @@ bool initGPS()
   gps_power_on();
   delay(100);
 
-  // ---------------------------------------------------------------------------
-  // Detect current baud (RTC fast path, then scan)
-  // ---------------------------------------------------------------------------
-  uint32_t detectedBaud = 0;
-
-  if (RTC_gps_valid &&
-      RTC_gps_baud_index >= 1 &&
-      RTC_gps_baud_index <= 3) {
-
-    uint32_t baud = gpsBauds[RTC_gps_baud_index];
-    LOG_GPS("Detect", "cached baud=%lu", (unsigned long)baud);
-
-    if (probe_gps(baud)) {
-      detectedBaud = baud;
-      LOG_GPS("Detect", "cache hit");
-    } else {
-      LOG_GPS("Detect", "cache failed → scan");
-      RTC_gps_valid = false;
-    }
-  }
-
-  if (detectedBaud == 0) {
-    LOG_GPS("Detect", "baud scan");
-
-    for (uint8_t i = 1; i <= 3; i++) {
-      if (probe_gps(gpsBauds[i])) {
-        detectedBaud = gpsBauds[i];
-        RTC_gps_baud_index = i;
-        RTC_gps_valid = true;
-        LOG_GPS("Detect", "found baud=%lu", (unsigned long)detectedBaud);
-        break;
-      }
-    }
-  }
-
-  if (detectedBaud == 0) {
-    RTC_gps_valid = false;
-    LOG_GPS("Init", "no GPS detected");
-    return false;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Apply M10 configuration (UBX-only, GNSS, messages, SEA model)
-  //     UART is currently at detectedBaud
-  // ---------------------------------------------------------------------------
-  LOG_GPS("Config", "apply M10 profile");
-  Init_ubloxM10();   // sends UBX + switches GPS internally to 38400
-
-  // ---------------------------------------------------------------------------
-  // Force UART to final authoritative baud (38400)
-  // ---------------------------------------------------------------------------
+  // Start UART
   UbloxSerial.end();
-  delay(50);
+  delay(20);
   UbloxSerial.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
   delay(100);
 
-  sendUbx(ubx::msg::nav_pvt);
-  sendUbx(ubx::msg::nav_dop);
+  // Confirm GPS is alive
+  if (!probe_gps(38400)) {
+    LOG_GPS("Init", "no GPS response");
+    gps_power_off();
+    return false;
+  }
 
-  RTC_gps_baud_index = 2; // index for 38400
-  RTC_gps_valid      = true;
+  // Configure M10
+  Init_ubloxM10();
 
-  LOG_GPS("Detect", "locked @38400");
-
-  // ---------------------------------------------------------------------------
-  // Inject RTC time (optional, accelerates first fix)
-  // ---------------------------------------------------------------------------
+  // Inject RTC time
   gps_send_time_from_rtc();
 
   LOG_GPS("Init", "GPS ready");
-
-  delay(50);
-
   return true;
 }
-
 
 // ============================================================================
 // Global GPS runtime instances

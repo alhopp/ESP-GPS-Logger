@@ -46,7 +46,8 @@ void initConfig()
 {
   LOG_CONFIG("Init","Loading configuration");
 
-  if(!LittleFS.begin(true)){ LOG_ERROR("CONFIG","LittleFS not mounted"); return; }
+  // Not needed as should already be loaded by storage init.
+  //if(!LittleFS.begin(true)){ LOG_ERROR("CONFIG","LittleFS not mounted"); return; }
 
   // ---------------------------------------------------------------------------
   // No config → create defaults

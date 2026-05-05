@@ -25,13 +25,13 @@
 #include "Display/E_paper.h"
 #include "tasks/task_display.h"
 
-#include "Core/rtc_state.h"
-#include "Core/Globals.h"
-#include "Core/Definitions.h"
+#include "core/rtc_state.h"
+#include "core/Globals.h"
+#include "core/Definitions.h"
 
 
-constexpr uint8_t PIN_BAT    = 35;
-int BAT_SCALE = 5;
+static constexpr uint8_t PIN_BAT = 35;
+static constexpr float BAT_SCALE = 5.0f;
 
 // -----------------------------------------------------------------------------
 // Internal state
@@ -88,8 +88,6 @@ BootResult initBoot()
   LOG_BOOT("Status", "boot checks passed");
   return BOOT_OK;
 }
-
-
 
 
 // -----------------------------------------------------------------------------

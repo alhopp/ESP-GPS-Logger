@@ -1,10 +1,10 @@
 #include <Arduino.h>
 
 #include "core/magnet_input.h"
-#include "Core/Definitions.h"
+#include "core/Definitions.h"
 #include "core/system_mode.h"
-#include "Core/Globals.h"
-#include "tasks/task_display.h"   // <-- REQUIRED
+#include "core/Globals.h"
+#include "tasks/task_display.h"  
 
 #include "Display/Screens/screen_system.h"
 
@@ -35,7 +35,7 @@ bool magnet_active = false;
 // -----------------------------------------------------------------------------
 // Init
 // -----------------------------------------------------------------------------
-void magnet_init()
+void initMagnet()
 {
   pinMode(MAGNET_PIN, INPUT_PULLUP);
   bootTime = millis();

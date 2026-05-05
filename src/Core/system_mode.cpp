@@ -71,6 +71,7 @@ const char* modeToString(SystemMode mode)
     case MODE_CONFIG:        return "CONFIG";
     case MODE_LOGGING:       return "LOGGING";
     case MODE_SLEEP:         return "SLEEP";
+    case MODE_ERROR:         return "ERROR";
     default:                 return "?";
   }
 }
