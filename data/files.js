@@ -63,7 +63,9 @@ async function loadFiles(fileList, sdInfo){
           </div>
         `);
 
-        groups[date].forEach(f=>{
+        groups[date]
+          .sort((a,b)=>b.name.localeCompare(a.name))
+          .forEach(f=>{
           const downloadName = f.sbp_name || f.name;
           const displayName = f.sbp_name || f.name;
           const details = f.sbp_name

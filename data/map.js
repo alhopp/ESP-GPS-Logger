@@ -63,16 +63,44 @@ window.MapView = {
   },
 
   // -------------------------------------------------------------------------
-  zoomToLayer(layer){
-    if(!layer) return;
-    const b = layer.getBounds();
+  zoomToBounds(bounds, meta){
+    const b = bounds;
     if(!b.isValid()) return;
 
-    this.map.fitBounds(b,{padding:[30,30],animate:false});
+    this.map.fitBounds(b,{
+      padding:[30,30],
+      animate:false,
+      maxZoom:17
+    });
 
     const z = this.map.getZoom();
     if(z > this.map.options.maxZoom) this.map.setZoom(this.map.options.maxZoom);
     if(z < this.map.options.minZoom) this.map.setZoom(this.map.options.minZoom);
+
+    if(meta){
+      console.log("[Map] bounds", meta);
+    }
+  },
+
+  trackBounds(feature){
+    const coords = feature?.geometry?.coordinates || [];
+    const bounds = L.latLngBounds([]);
+    let count = 0;
+
+    coords.forEach(c=>{
+      if(!Array.isArray(c) || c.length < 2) return;
+
+      const lon = Number(c[0]);
+      const lat = Number(c[1]);
+      if(!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      if(Math.abs(lat) < 0.001 && Math.abs(lon) < 0.001) return;
+      if(Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
+
+      bounds.extend([lat, lon]);
+      count++;
+    });
+
+    return { bounds, count };
   },
 
   // -------------------------------------------------------------------------
@@ -113,6 +141,8 @@ window.MapView = {
 
       // ---- draw base track (grey) ----
       if(base){
+        const tb = this.trackBounds(base);
+
         this.baseTrack = L.geoJSON(base,{
           pane:"basePane",
           renderer:this._r,
@@ -120,7 +150,13 @@ window.MapView = {
           style:{ color:"#9aa0a6", weight:4, opacity:0.75 }
         }).addTo(this.map);
 
-        this.zoomToLayer(this.baseTrack);
+        this.zoomToBounds(tb.bounds,{
+          points: tb.count,
+          south: tb.bounds.getSouth(),
+          west: tb.bounds.getWest(),
+          north: tb.bounds.getNorth(),
+          east: tb.bounds.getEast()
+        });
       }
 
       setTimeout(()=>this.map.invalidateSize(true),50);
@@ -217,9 +253,10 @@ window.MapSessions = {
 
     const total   = this.files.length;
     const logical = total - this.index;
+    const displayName = f.sbp_name || f.name;
 
     $("sessionTitle").textContent = `Session ${logical} of ${total}`;
-    $("sessionMeta").textContent  = f.name.replace(".geojson","");
+    $("sessionMeta").textContent  = displayName.replace(/\.(geojson|sbp|ubx|txt)$/i,"");
 
     MapView.clear();
     MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}`);

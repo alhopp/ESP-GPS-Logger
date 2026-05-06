@@ -144,7 +144,7 @@ void registerFileEndpoints(WebServer &server)
             if (storage.remove(path)) removedEmpty++;
           } else if (hasExtension(baseCopy, ".geojson")) {
             JsonObject o = files.createNestedObject();
-            o["name"] = baseCopy;
+            o["name"] = String(baseCopy);
             o["size"] = size;
 
             char sbpPath[128];
@@ -152,7 +152,7 @@ void registerFileEndpoints(WebServer &server)
             if (storage.exists(sbpPath)) {
               File sbp = storage.open(sbpPath, FILE_READ);
               if (sbp) {
-                o["sbp_name"] = basenameOnly(sbpPath);
+                o["sbp_name"] = String(basenameOnly(sbpPath));
                 o["sbp_size"] = sbp.size();
                 sbp.close();
               }
