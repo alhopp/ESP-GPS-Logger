@@ -1,5 +1,8 @@
 #pragma once
 
+// Shared display geometry constants.
+// DisplayWindow is used by the display task to request bounded partial refreshes.
+
 struct DisplayWindow {
   int x;
   int y;

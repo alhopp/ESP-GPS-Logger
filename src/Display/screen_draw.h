@@ -1,12 +1,12 @@
 #pragma once
 
 // -----------------------------------------------------------------------------
-// screen_dispatch.h
+// screen_draw.h
 //
 // Screen rendering dispatch interface.
 //
 // Responsibilities:
-// - Declare the authoritative mapping from SystemMode → draw function
+// - Declare the authoritative mapping from SystemMode to draw function
 //
 // Design rules:
 // - Stateless
@@ -15,27 +15,14 @@
 // - No side effects
 //
 // Notes:
-// - task_display decides *when* to draw
-// - system_mode decides *what mode we are in*
+// - task_display decides when to draw
+// - system_mode decides what mode we are in
 // -----------------------------------------------------------------------------
 
 #include "Core/system_mode.h"
 
-// -----------------------------------------------------------------------------
-// Draw function signature
-//
-// Each draw_* function must:
-// - Perform a complete screen render
-// - Be stateless
-// - Not block or delay
-// -----------------------------------------------------------------------------
+// Each draw_* function must perform a complete, non-blocking screen render.
 using DrawFn = void (*)();
 
-// -----------------------------------------------------------------------------
-// MODE → DRAW FUNCTION lookup
-//
-// Returns:
-// - Pointer to draw_* function for the given SystemMode
-// - nullptr if no renderer is defined for that mode
-// -----------------------------------------------------------------------------
+// Return the draw_* function for the given SystemMode, or nullptr if undefined.
 DrawFn getDrawFnForMode(SystemMode mode);
