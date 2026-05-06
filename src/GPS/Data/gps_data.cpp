@@ -18,7 +18,6 @@
 // ============================================================================
 
 #include "GPS/Data/gps_data.h"
-
 #include "Core/system_info.h"
 #include "GPS/Data/gps_sample_quality.h"
 
@@ -30,6 +29,8 @@ uint16_t _gSpeed[BUFFER_SIZE];    // Doppler speed per GPS sample, mm/s.
 uint16_t _sogCms[BUFFER_SIZE];    // Same speed in cm/s for SBP-style output.
 uint16_t _secSpeed[BUFFER_SIZE];  // 1-second averaged speed, mm/s.
 bool     _sampleGood[BUFFER_SIZE];// False means speed was zeroed and position may be held.
+
+uint32_t _distCm[BUFFER_SIZE];    // Cumulative session distance, cm.
 
 float _lat[BUFFER_ALFA];          // Latitude ring buffer, decimal degrees.
 float _long[BUFFER_ALFA];         // Longitude ring buffer, decimal degrees.
@@ -100,6 +101,13 @@ void accumulateDistanceIfGood(const GpsSampleQualityResult& sample,
   alphaDistance += distanceMm;
 }
 
+// Store cumulative distance in centimeters so export code can relate a GPS
+// sample back to travelled distance without recalculating from scratch.
+void storeDistanceSnapshot(int gpsIdx)
+{
+  _distCm[gpsIdx] = static_cast<uint32_t>((total_distance * 0.1f) + 0.5f);
+}
+
 // Build one averaged speed sample per second. The high-rate _gSpeed[] ring is
 // too short for 30-minute/1-hour windows, so those stats run on this 1 Hz ring.
 void updateOneSecondSpeed(int gpsIdx)
@@ -157,6 +165,9 @@ void GPS_data::push_data(float latitude, float longitude, uint32_t gSpeed)
   // Step 2: update distance totals only if this sample was trusted.
   accumulateDistanceIfGood(sample, run_distance, alfa_distance);
 
-  // Step 3: maintain the slower 1 Hz speed ring for long time-window stats.
+  // Step 3: snapshot cumulative distance at this sample for export/geometry.
+  storeDistanceSnapshot(gpsIdx);
+
+  // Step 4: maintain the slower 1 Hz speed ring for long time-window stats.
   updateOneSecondSpeed(gpsIdx);
 }

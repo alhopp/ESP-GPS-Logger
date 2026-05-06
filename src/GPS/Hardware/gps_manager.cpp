@@ -11,6 +11,7 @@
 #include <Arduino.h>
 
 #include "Core/board_pins.h"
+#include "Core/build_config.h"
 #include "Core/log.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "GPS/Hardware/gps_power.h"
@@ -62,6 +63,11 @@ bool probeGps(uint32_t baud)
 
 bool initGPS()
 {
+#if GPS_SIMULATOR
+  LOG_GPS("Init", "simulator enabled, skipping hardware init");
+  setLifecycleState(GpsLifecycleState::Ready);
+  return true;
+#else
   LOG_GPS("Init", "starting");
   setLifecycleState(GpsLifecycleState::Starting);
 
@@ -85,12 +91,17 @@ bool initGPS()
   LOG_GPS("Init", "GPS ready");
   setLifecycleState(GpsLifecycleState::Ready);
   return true;
+#endif
 }
 
 void gps_shutdown()
 {
+#if GPS_SIMULATOR
+  setLifecycleState(GpsLifecycleState::Off);
+#else
   gps_power_off();
   setLifecycleState(GpsLifecycleState::Off);
+#endif
 }
 
 const char* gps_lifecycle_state_name()

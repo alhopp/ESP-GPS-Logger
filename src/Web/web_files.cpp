@@ -13,11 +13,12 @@
 #include <ArduinoJson.h>
 #include <FS.h>
 
+#include "Core/log.h"
 #include "Storage/storage_manager.h"
 #include "Web/web_json.h"
 
 namespace {
-constexpr size_t FILE_LIST_JSON_BYTES = 8192;
+constexpr size_t FILE_LIST_JSON_BYTES = 16384;
 
 // Return filename portion of a path. Callers must copy it before the owning
 // File/String goes out of scope.
@@ -36,6 +37,28 @@ bool isAllowedLogExtension(const char* ext)
          !strcasecmp(ext, ".geojson");
 }
 
+bool hasExtension(const char* name, const char* ext)
+{
+  const char* actual = strrchr(name, '.');
+  return actual && !strcasecmp(actual, ext);
+}
+
+void buildLogPath(char* out, size_t outSize, const char* base)
+{
+  snprintf(out, outSize, "/logs/%s", base);
+}
+
+void buildPairedPath(char* out, size_t outSize, const char* base, const char* newExt)
+{
+  char stem[96];
+  strlcpy(stem, base, sizeof(stem));
+
+  char* dot = strrchr(stem, '.');
+  if (dot) *dot = '\0';
+
+  snprintf(out, outSize, "/logs/%s%s", stem, newExt);
+}
+
 // Validate log filename + extension, reject paths.
 bool isValidLogFile(const char* name)
 {
@@ -50,6 +73,23 @@ void sendJsonOk(WebServer& server, bool ok)
 {
   server.send(200, "application/json", ok ? "{\"ok\":true}" : "{\"ok\":false}");
 }
+
+void removePairedLogFile(fs::FS& storage, const char* base)
+{
+  char pairedPath[128];
+
+  if (hasExtension(base, ".geojson")) {
+    buildPairedPath(pairedPath, sizeof(pairedPath), base, ".sbp");
+  } else if (hasExtension(base, ".sbp")) {
+    buildPairedPath(pairedPath, sizeof(pairedPath), base, ".geojson");
+  } else {
+    return;
+  }
+
+  if (storage.exists(pairedPath)) {
+    storage.remove(pairedPath);
+  }
+}
 } // namespace
 
 // -----------------------------------------------------------------------------
@@ -63,12 +103,14 @@ void registerFileEndpoints(WebServer &server)
   // List log files in /logs (name + size only)
   // ---------------------------------------------------------------------------
   server.on("/api/files", HTTP_GET, [&] {
+    LOG_STORAGE("API files", "request");
 
     DynamicJsonDocument j(FILE_LIST_JSON_BYTES);
     j["ok"] = true;
     JsonArray files = j.createNestedArray("files");
 
     if (!storage_logs_dir_ready()) {
+      LOG_STORAGE("API files", "storage not ready");
       j["ok"] = false;
       web_send_json(server, j);
       return;
@@ -77,25 +119,67 @@ void registerFileEndpoints(WebServer &server)
     fs::FS& storage = storage_sd_fs();
     File dir = storage.open("/logs");
     if (!dir || !dir.isDirectory()) {
+      LOG_STORAGE("API files", "/logs unavailable");
       j["ok"] = false;
       web_send_json(server, j);
       return;
     }
 
+    int count = 0;
+    int removedEmpty = 0;
     File file = dir.openNextFile();
     while (file) {
       if (!file.isDirectory()) {
         const char* base = basenameOnly(file.name());
         if (isValidLogFile(base)) {
-          JsonObject o = files.createNestedObject();
-          o["name"] = base;
-          o["size"] = file.size();
-        }
-      }
+          char baseCopy[96];
+          strlcpy(baseCopy, base, sizeof(baseCopy));
 
+          const size_t size = file.size();
+          file.close();
+
+          if (size == 0) {
+            char path[128];
+            buildLogPath(path, sizeof(path), baseCopy);
+            if (storage.remove(path)) removedEmpty++;
+          } else if (hasExtension(baseCopy, ".geojson")) {
+            JsonObject o = files.createNestedObject();
+            o["name"] = baseCopy;
+            o["size"] = size;
+
+            char sbpPath[128];
+            buildPairedPath(sbpPath, sizeof(sbpPath), baseCopy, ".sbp");
+            if (storage.exists(sbpPath)) {
+              File sbp = storage.open(sbpPath, FILE_READ);
+              if (sbp) {
+                o["sbp_name"] = basenameOnly(sbpPath);
+                o["sbp_size"] = sbp.size();
+                sbp.close();
+              }
+            }
+
+            count++;
+          }
+        } else {
+          file.close();
+        }
+      } else {
+        file.close();
+      }
       file = dir.openNextFile();
     }
+    dir.close();
 
+    if (j.overflowed()) {
+      LOG_ERROR("API files", "JSON overflow after %d files", count);
+      j.clear();
+      j["ok"] = false;
+      j["error"] = "too_many_files";
+      web_send_json(server, j);
+      return;
+    }
+
+    LOG_STORAGE("API files", "%d sessions, removed %d empty", count, removedEmpty);
     web_send_json(server, j);
   });
 
@@ -117,7 +201,7 @@ void registerFileEndpoints(WebServer &server)
     if (!isValidLogFile(base)) { server.send(400); return; }
 
     char path[128];
-    snprintf(path, sizeof(path), "/logs/%s", base);
+    buildLogPath(path, sizeof(path), base);
 
     fs::FS& storage = storage_sd_fs();
     if (!storage.exists(path)) { server.send(404); return; }
@@ -159,9 +243,13 @@ void registerFileEndpoints(WebServer &server)
       return;
     }
 
+    fs::FS& storage = storage_sd_fs();
     char path[128];
-    snprintf(path, sizeof(path), "/logs/%s", base);
+    buildLogPath(path, sizeof(path), base);
 
-    sendJsonOk(server, storage_sd_fs().remove(path));
+    const bool removed = storage.remove(path);
+    if (removed) removePairedLogFile(storage, base);
+
+    sendJsonOk(server, removed);
   });
 }

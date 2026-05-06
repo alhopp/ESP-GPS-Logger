@@ -30,6 +30,7 @@ static const char *DEV_PASS = "alan1234";
 
 static bool wifiStarted = false;
 static bool apActive = false;
+static bool mdnsStarted = false;
 
 // -----------------------------------------------------------------------------
 // STA retry control
@@ -90,6 +91,13 @@ static bool have_phone_wifi()
 
 static void start_sta()
 {
+  if (wifi_sta_connected()) {
+    LOG_WIFI("STA", "already connected IP=%s", WiFi.localIP().toString().c_str());
+    wifi_set_ui_state(WIFI_UI_CONNECTED);
+    webserver_start();
+    return;
+  }
+
 #if DEV_FORCE_WIFI
   const char *ssid = DEV_SSID;
   const char *pass = DEV_PASS;
@@ -122,8 +130,9 @@ static void start_sta()
     LOG_WIFI("STA", "connected IP=%s", WiFi.localIP().toString().c_str());
     wifi_set_ui_state(WIFI_UI_CONNECTED);
 
-    if (MDNS.begin("gps")) {
+    if (!mdnsStarted && MDNS.begin("gps")) {
       MDNS.addService("http", "tcp", 80);
+      mdnsStarted = true;
     }
 
     webserver_start();
@@ -186,6 +195,10 @@ void wifi_stop()
   WiFi.disconnect(true);
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
+  if (mdnsStarted) {
+    MDNS.end();
+    mdnsStarted = false;
+  }
 
   wifiStarted = false;
   apActive = false;

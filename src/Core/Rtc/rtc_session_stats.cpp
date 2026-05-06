@@ -114,19 +114,21 @@ void snapshotTopRun10s()
 
   clearTopRun10sSlots();
 
-  const int topCount = (resultCount >= 5) ? 5 : resultCount;
   double topSumKnots = 0.0;
 
   Serial.println("10s best (top 5 runs):");
 
-  for (int rank = 0; rank < topCount; rank++) {
-    const float valueKnots = runResults[resultCount - 1 - rank] * MMPS_TO_KNOTS;
+  for (int rank = 0; rank < 5; rank++) {
+    const int resultIndex = resultCount - 1 - rank;
+    const float valueKnots =
+        resultIndex >= 0 ? runResults[resultIndex] * MMPS_TO_KNOTS : 0.0f;
+
     topSumKnots += valueKnots;
     storeTopRun10sSlot(rank, valueKnots);
   }
 
   RTC_avg_10s_knots = topSumKnots / 5.0f;
-  Serial.printf("10s avg (best %d): %.3f kn\n", topCount, RTC_avg_10s_knots);
+  Serial.printf("10s avg (best 5): %.3f kn\n", RTC_avg_10s_knots);
 }
 
 void snapshotSpecialSpeeds()
@@ -145,6 +147,18 @@ void snapshotDistance()
   RTC_distance = total_distance * 0.000001f;   // mm -> km
   Serial.printf("Distance        : %.3f km\n", RTC_distance);
 }
+
+void printFinalScreenValues()
+{
+  Serial.println();
+  Serial.println("Final screen values:");
+  Serial.printf("  02: %.3f kn\n", RTC_max_2s_knots);
+  Serial.printf("  10: %.3f kn\n", RTC_avg_10s_knots);
+  Serial.printf("  1H: %.3f kn\n", RTC_1h_knots);
+  Serial.printf("  AL: %.3f kn\n", RTC_alp_knots);
+  Serial.printf("  NM: %.3f kn\n", RTC_mile_knots);
+  Serial.printf("  DI: %.3f km\n", RTC_distance);
+}
 } // namespace
 
 void rtc_snapshot_stats()
@@ -155,5 +169,6 @@ void rtc_snapshot_stats()
   snapshotTopRun10s();
   snapshotSpecialSpeeds();
   snapshotDistance();
+  printFinalScreenValues();
   printSnapshotFooter();
 }

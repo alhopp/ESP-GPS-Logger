@@ -36,6 +36,7 @@ void unmountSD_MMC();
 bool quickIOTest(fs::FS& fs, const char* path);
 void logLittleFSStats();
 void logSDStats();
+void logDirectory(fs::FS& fs, const char* path, int depth = 0);
 
 }
 
@@ -67,6 +68,8 @@ void initStorage()
     } else {
       LOG_ERROR("SD I/O", "FAILED");
     }
+
+    logDirectory(storage_sd_fs(), "/logs");
   } else {
     LOG_STORAGE("SD", "not available");
   }
@@ -204,6 +207,48 @@ void logLittleFSStats()
     (unsigned)(LittleFS.totalBytes() / 1024),
     (unsigned)(LittleFS.usedBytes() / 1024),
     (unsigned)((LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024));
+}
+
+void logDirectory(fs::FS& fs, const char* path, int depth)
+{
+#if LOG_ENABLED
+  File root = fs.open(path);
+  if (!root) {
+    LOG_STORAGE("SD Files", "%s not found", path);
+    return;
+  }
+
+  if (!root.isDirectory()) {
+    LOG_STORAGE("SD Files", "%s is not a directory", path);
+    root.close();
+    return;
+  }
+
+  LOG_STORAGE("SD Files", "%s", path);
+
+  File file = root.openNextFile();
+  while (file) {
+    if (file.isDirectory()) {
+      LOG_STORAGE("SD Dir", "%s/", file.name());
+      if (depth > 0) {
+        logDirectory(fs, file.path(), depth - 1);
+      }
+    } else {
+      LOG_STORAGE("SD File", "%s %llu bytes",
+                  file.name(),
+                  (unsigned long long)file.size());
+    }
+
+    file.close();
+    file = root.openNextFile();
+  }
+
+  root.close();
+#else
+  (void)fs;
+  (void)path;
+  (void)depth;
+#endif
 }
 
 }

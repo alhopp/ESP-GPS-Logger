@@ -13,8 +13,11 @@
 
 namespace {
 constexpr float TARGET_CLOSURE_M = 48.0f;
-constexpr float HOLD_BAND_M = 3.0f;
+constexpr float HOLD_BAND_M = 0.75f;
 constexpr float ACTIVE_DISTANCE_AFTER_GYBE_M = 650.0f;
+constexpr float ALPHA_COMPLETE_DISTANCE_M = 500.0f;
+constexpr float ALPHA_MISSED_DISTANCE_M = 540.0f;
+constexpr float VALID_ALPHA_CLOSURE_M = 50.0f;
 constexpr float METERS_PER_DEGREE = 111195.0f;
 
 AlphaGuidanceState state;
@@ -150,8 +153,22 @@ void gps_alpha_guidance_update()
 
   state.closureM = fabsf(signedCrossTrackMeters(reference_start, reference_end, index_GPS));
   state.errorM = state.closureM - TARGET_CLOSURE_M;
+  state.pathSinceGybeM = alphaPathMeters();
   state.alphaSpeedKnots = static_cast<float>(speed_500m.m_speed_alfa) * MMPS_TO_KNOTS;
   state.advice = adviceFor(state.closureM);
+
+  const bool alphaComplete =
+      state.pathSinceGybeM >= ALPHA_COMPLETE_DISTANCE_M &&
+      state.closureM <= VALID_ALPHA_CLOSURE_M &&
+      speed_500m.m_speed_alfa > 0.0;
+
+  const bool alphaMissed =
+      state.pathSinceGybeM >= ALPHA_MISSED_DISTANCE_M &&
+      state.closureM > VALID_ALPHA_CLOSURE_M;
+
+  if (alphaComplete || alphaMissed) {
+    deactivate();
+  }
 }
 
 const AlphaGuidanceState& gps_alpha_guidance_state()

@@ -29,9 +29,9 @@ constexpr int SPEED_Y = 112;
 const char* adviceText(AlphaSteerAdvice advice)
 {
   switch (advice) {
-    case AlphaSteerAdvice::GoUp:   return "GO UP";
-    case AlphaSteerAdvice::GoDown: return "GO DOWN";
-    case AlphaSteerAdvice::Hold:   return "HOLD";
+    case AlphaSteerAdvice::GoUp:   return "UP";
+    case AlphaSteerAdvice::GoDown: return "DOWN";
+    case AlphaSteerAdvice::Hold:   return "GOOD";
     default:                       return "";
   }
 }
@@ -44,8 +44,8 @@ void drawAlphaHelper()
   display.setCursor(UI_OFFSET + 4, 18);
   display.print("ALPHA HELPER");
 
-  display.setFont(Fonts::Big30);
-  display.setCursor(UI_OFFSET + 8, 62);
+  display.setFont(Fonts::Body18);
+  display.setCursor(UI_OFFSET + 8, 58);
   display.print(adviceText(helper.advice));
 
   display.setFont(Fonts::Body12);

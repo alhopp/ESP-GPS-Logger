@@ -24,6 +24,14 @@ function formatDateLabel(key){
   });
 }
 
+function sessionTitle(name){
+  return name.replace(/\.(geojson|sbp|ubx|txt)$/i,"");
+}
+
+function fileSizeKb(size){
+  return `${((size || 0)/1024).toFixed(1)} KB`;
+}
+
 // -----------------------------------------------------------------------------
 // Load file list from device SD (grouped by date like Outlook)
 // -----------------------------------------------------------------------------
@@ -56,16 +64,22 @@ async function loadFiles(fileList, sdInfo){
         `);
 
         groups[date].forEach(f=>{
+          const downloadName = f.sbp_name || f.name;
+          const details = f.sbp_name
+            ? `SBP ${fileSizeKb(f.sbp_size)} | Map ${fileSizeKb(f.size)}`
+            : `Map ${fileSizeKb(f.size)}`;
+
           fileList.insertAdjacentHTML("beforeend",`
             <div class="file-row file-swipe"
                  data-name="${f.name}"
+                 data-download="${downloadName}"
                  data-date="${date}">
               <div class="file-delete">&#128465;</div>
               <div class="file-swipe-inner">
                 <div class="file-icon">&#128196;</div>
                 <div class="file-text">
-                  <div class="file-name">${f.name}</div>
-                  <div class="file-size">${(f.size/1024).toFixed(1)} KB</div>
+                  <div class="file-name">${sessionTitle(f.name)}</div>
+                  <div class="file-size">${details}</div>
                 </div>
               </div>
             </div>
@@ -170,7 +184,7 @@ function enableSwipe(container, fileList, sdInfo){
     if(!r) return;
 
     if(!r.classList.contains("show-delete")){
-      download(r.dataset.name);
+      download(r.dataset.download || r.dataset.name);
     }
   });
 }
