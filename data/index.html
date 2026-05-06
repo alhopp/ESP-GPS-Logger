@@ -27,7 +27,7 @@
 <section id="files" class="a">
   <div class="card">
     <h3>Logs</h3>
-    <div id="sdInfo">Scanning…</div>
+    <div id="sdInfo">Scanning...</div>
     <div class="file-list" id="fileList"></div>
   </div>
 </section>
@@ -36,10 +36,10 @@
 <section id="settings">
 
   <div class="card">
-    <h3>Performance Screens<button class="info-btn" data-info="performance">ⓘ</button></h3>
+    <h3>Performance Screens<button class="info-btn" data-info="performance">?</button></h3>
     <div class="toggle"><span>2 seconds</span><label><input type="checkbox" id="stat_2s"><div class="slider"></div></label></div>
-    <div class="toggle"><span>5 × 10 seconds</span><label><input type="checkbox" id="stat_5x10"><div class="slider"></div></label></div>
-    <div class="toggle"><span>Alpha – Gybe</span><label><input type="checkbox" id="stat_alpha"><div class="slider"></div></label></div>
+    <div class="toggle"><span>5 x 10 seconds</span><label><input type="checkbox" id="stat_5x10"><div class="slider"></div></label></div>
+    <div class="toggle"><span>Alpha - Gybe</span><label><input type="checkbox" id="stat_alpha"><div class="slider"></div></label></div>
     <div class="toggle"><span>Nautical mile</span><label><input type="checkbox" id="stat_nm"><div class="slider"></div></label></div>
     <div class="toggle"><span>1 hour</span><label><input type="checkbox" id="stat_hour"><div class="slider"></div></label></div>
     <div class="toggle"><span>Distance</span><label><input type="checkbox" id="stat_distance"><div class="slider"></div></label></div>
@@ -47,23 +47,19 @@
 
   <div class="card">
     <h3>Wi-Fi</h3>
-    <label>Home Wi-Fi</label>
-    <input id="home_ssid" placeholder="SSID">
-    <input id="home_pass" type="password" placeholder="Password">
-
-    <label style="margin-top:14px">Phone Hotspot</label>
+    <label>Phone Hotspot</label>
     <input id="phone_ssid" placeholder="SSID">
     <input id="phone_pass" type="password" placeholder="Password">
   </div>
 
   <div class="card">
-    <h3>File Logging<button class="info-btn" data-info="logging">ⓘ</button></h3>
+    <h3>File Logging<button class="info-btn" data-info="logging">?</button></h3>
     <div class="toggle"><span>Raw GNSS (SBP)</span><label><input type="checkbox" id="logSBP"><div class="slider"></div></label></div>
     <div class="toggle"><span>Raw GNSS (UBX)</span><label><input type="checkbox" id="logUBX"><div class="slider"></div></label></div>
   </div>
 
   <div class="card">
-    <h3>Sleep Screen Text<button class="info-btn" data-info="sleep">ⓘ</button></h3>
+    <h3>Sleep Screen Text<button class="info-btn" data-info="sleep">?</button></h3>
     <label>Name</label>
     <input id="Sleep_info1">
     <label>Phone</label>
@@ -80,40 +76,31 @@
   </div>
 
   <div id="sessionCard" class="session-card">
-
     <div class="session-grab"></div>
 
-    <!-- shared session header -->
+    <!-- ================= SHARED SESSION HEADER ================= -->
     <div class="session-body">
+      <div class="session-title" id="sessionTitle">Latest Session</div>
       <div class="session-meta" id="sessionMeta"></div>
     </div>
 
-    <!-- stats pane (used for BOTH collapsed + expanded states) -->
-<!-- ================= SHARED SESSION HEADER ================= -->
-<div class="session-body">
-  <div class="session-title" id="sessionTitle">Latest Session</div>
-  <div class="session-meta" id="sessionMeta"></div>
-</div>
+    <!-- ================= STATS (VISIBLE IN BOTH STATES) ================= -->
+    <div class="stats-grid">
+      <div class="stat" data-mode="2s"><label>2s</label><span id="map_stat_2s">-</span></div>
+      <div class="stat" data-mode="10s"><label>10s</label><span id="map_stat_10s">-</span></div>
+      <div class="stat" data-mode="alpha"><label>Alpha</label><span id="map_stat_alpha">-</span></div>
+      <div class="stat" data-mode="nm"><label>NM</label><span id="map_stat_nm">-</span></div>
+      <div class="stat" data-mode="1h"><label>1h</label><span id="map_stat_1h">-</span></div>
+      <div class="stat" data-mode="distance"><label>Dist</label><span id="map_stat_distance">-</span></div>
+    </div>
 
-<!-- ================= STATS (VISIBLE IN BOTH STATES) ================= -->
-<div class="stats-grid">
-<div class="stat" data-mode="2s"><label>2s</label><span id="map_stat_2s">–</span></div>
-<div class="stat" data-mode="10s"><label>10s</label><span id="map_stat_10s">–</span></div>
-<div class="stat" data-mode="alpha"><label>Alpha</label><span id="map_stat_alpha">–</span></div>
+    <!-- ================= SLIDING PANES ================= -->
+    <div class="session-pane session-pane-map"></div>
 
-<div class="stat" data-mode="nm"><label>NM</label><span id="map_stat_nm">–</span></div>
-<div class="stat" data-mode="1h"><label>1h</label><span id="map_stat_1h">–</span></div>
-<div class="stat" data-mode="distance"><label>Dist</label><span id="map_stat_distance">–</span></div>
-
-</div>
-
-<!-- ================= SLIDING PANES ================= -->
-<div class="session-pane session-pane-map"></div>
-
-<div class="session-pane session-pane-stats">
-  <canvas id="statsGraph" height="140"></canvas>
-</div>
-
+    <div class="session-pane session-pane-stats">
+      <canvas id="statsGraph" height="140"></canvas>
+    </div>
+  </div>
 </section>
 
 <!-- ================= SYSTEM ================= -->

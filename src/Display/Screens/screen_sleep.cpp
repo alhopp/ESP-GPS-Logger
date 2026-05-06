@@ -3,11 +3,11 @@
 #include "Config/config_types.h"
 #include "Core/Rtc/rtc_battery_state.h"
 #include "Core/Rtc/rtc_session_stats.h"
+#include "Display/Bitmaps/display_bitmaps.h"
 #include "Display/E_paper.h"
 #include "Display/display_battery.h"
 #include "Display/Screens/ui_fixed_numbers.h"
 #include "Fonts.h"
-#include "Fonts/BitmapSurfbuddies.h"
 
 namespace {
 

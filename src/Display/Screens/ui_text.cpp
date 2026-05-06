@@ -2,13 +2,6 @@
 
 #include "Display/E_paper.h"
 
-void drawTextAt(int x, int y, const GFXfont* font, const char* text)
-{
-  display.setFont(font);
-  display.setCursor(x, y);
-  display.print(text);
-}
-
 void drawCenteredText(const char* text, int y, const GFXfont* font)
 {
   int16_t x1;

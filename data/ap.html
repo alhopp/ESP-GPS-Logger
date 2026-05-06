@@ -24,8 +24,6 @@ html,body{touch-action:manipulation}
 
 <header>Wi-Fi Setup</header>
 
-<header>Setup</header>
-
 <section class="a">
   <div class="card">
     <img src="/ESP32_logo.jpg" class="logo" alt="GPS">
@@ -77,7 +75,7 @@ async function save(){
   if(!ssid) return alert("SSID required");
 
   btn.disabled = true;
-  statusEl.textContent = "Saving Wi-Fi settings… rebooting device";
+  statusEl.textContent = "Saving Wi-Fi settings... rebooting device";
 
   await fetch("/api/config",{
     method:"POST",

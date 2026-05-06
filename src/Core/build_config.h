@@ -21,8 +21,3 @@ inline constexpr bool build_dev_wifi_enabled()
 {
   return DEV_FORCE_WIFI != 0;
 }
-
-inline constexpr bool build_logging_enabled()
-{
-  return LOG_ENABLED != 0;
-}

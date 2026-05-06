@@ -26,22 +26,3 @@ constexpr uint8_t STATS_PAGE_MAX = 11;
 // Main entry point
 // -----------------------------------------------------------------------------
 void draw_STATS(uint8_t page);
-
-// -----------------------------------------------------------------------------
-// Reusable primitives used by multiple stats pages
-// (kept public because other screens may reuse them)
-// -----------------------------------------------------------------------------
-void Stats_4lines(
-  const char* m1, const char* m2,
-  const char* m3, const char* m4,
-  float v1, float v2, float v3, float v4
-);
-
-void Stats_2s_3_lines(
-  const char* m1,
-  const char* m2,
-  const char* m3,
-  float v1,
-  float v2,
-  float v3
-);

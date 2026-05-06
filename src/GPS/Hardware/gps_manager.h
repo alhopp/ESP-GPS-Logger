@@ -23,6 +23,5 @@ bool initGPS();
 // Power down GPS and mark the lifecycle state as Off.
 void gps_shutdown();
 
-// Current lifecycle state for diagnostics and future UI/status reporting.
-GpsLifecycleState gps_lifecycle_state();
+// Current lifecycle state for diagnostics and UI/status reporting.
 const char* gps_lifecycle_state_name();

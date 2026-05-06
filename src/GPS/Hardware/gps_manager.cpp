@@ -88,11 +88,6 @@ void gps_shutdown()
   setLifecycleState(GpsLifecycleState::Off);
 }
 
-GpsLifecycleState gps_lifecycle_state()
-{
-  return lifecycleState;
-}
-
 const char* gps_lifecycle_state_name()
 {
   switch (lifecycleState) {

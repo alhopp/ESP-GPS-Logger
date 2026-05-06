@@ -84,7 +84,6 @@ void registerConfigApi(WebServer& server)
     }
 
     if (j["logging"]) {
-      if (j["logging"]["logTXT"] != nullptr) config.track_distance = j["logging"]["logTXT"];
       if (j["logging"]["logUBX"] != nullptr) config.logUBX = j["logging"]["logUBX"];
       if (j["logging"]["logSBP"] != nullptr) config.logSBP = j["logging"]["logSBP"];
     }

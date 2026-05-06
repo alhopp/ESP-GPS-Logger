@@ -6,6 +6,7 @@
  * ========================================================================== */
 
 const CONFIG_URL = "/api/config";
+const PASSWORD_PLACEHOLDER = "********";
 
 /* ---------------------------------------------------------------------------
  * UI helpers
@@ -28,14 +29,13 @@ window.loadConfig = async function loadConfig(els){
 
 
     /* ---------- Logging ---------- */
-    //setChk(els.logTXT, c.logging?.logTXT);
     setChk(els.logUBX, c.logging?.logUBX);
     setChk(els.logSBP, c.logging?.logSBP);
 
     /* ---------- Wi-Fi ---------- */
     if (c.wifi) {
       setVal(els.phone_ssid, c.wifi.phone_ssid);
-      setVal(els.phone_pass, c.wifi.phone_pass_set ? "********" : "");
+      setVal(els.phone_pass, c.wifi.phone_pass_set ? PASSWORD_PLACEHOLDER : "");
     }
 
 
@@ -62,15 +62,18 @@ window.loadConfig = async function loadConfig(els){
  * Save configuration
  * ------------------------------------------------------------------------- */
 window.saveConfig = async function saveConfig(els){
-const payload={
+  const phonePass = els.phone_pass?.value ?? "";
+  const payload={
     ui:{
       Sleep_info1: els.Sleep_info1?.value ?? "",
       Sleep_info2: els.Sleep_info2?.value ?? ""
       },
     logging:{
-      logTXT:!!els.logTXT?.checked,
       logUBX:!!els.logUBX?.checked,
       logSBP:!!els.logSBP?.checked
+    },
+    wifi:{
+      phone_ssid: els.phone_ssid?.value ?? ""
     },
     stats:{
       s2:!!els.stat_2s?.checked,
@@ -81,6 +84,10 @@ const payload={
       distance:!!els.stat_distance?.checked
     }
   };
+
+  if(phonePass && phonePass !== PASSWORD_PLACEHOLDER){
+    payload.wifi.phone_pass = phonePass;
+  }
 
   const r = await fetch(CONFIG_URL,{
     method:"POST",

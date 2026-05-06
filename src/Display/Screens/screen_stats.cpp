@@ -80,9 +80,7 @@ void drawStats6Table()
   display.fillRect(0, line + 2, col3 - 10, 2, GxEPD_BLACK);
 }
 
-} // namespace
-
-void Stats_4lines(
+void drawStats4Lines(
   const char* m1,
   const char* m2,
   const char* m3,
@@ -100,7 +98,7 @@ void Stats_4lines(
   }
 }
 
-void Stats_2s_3_lines(
+void drawStats2s3Lines(
   const char* m1,
   const char* m2,
   const char* m3,
@@ -126,6 +124,8 @@ void Stats_2s_3_lines(
   display.println(v3, 2);
 }
 
+} // namespace
+
 void draw_STATS(uint8_t page)
 {
   if (page < STATS_PAGE_MIN) {
@@ -137,7 +137,7 @@ void draw_STATS(uint8_t page)
 
   switch (page) {
     case 1:
-      Stats_2s_3_lines(
+      drawStats2s3Lines(
         "10sF: ", "10sS: ", "AVG:  ",
         statsKnots(S10.display_speed[9]),
         statsKnots(S10.display_speed[5]),
@@ -148,7 +148,7 @@ void draw_STATS(uint8_t page)
     case 2: {
       static bool toggle;
 
-      Stats_4lines(
+      drawStats4Lines(
         "Dist: ", "1852m: ", toggle ? "3600s: " : "1800s: ", "Alfa: ",
         total_distance / 1000,
         statsKnots(M1852.display_speed[9]),
@@ -161,7 +161,7 @@ void draw_STATS(uint8_t page)
     }
 
     case 3:
-      Stats_4lines(
+      drawStats4Lines(
         "100m:", "250m:", "500m:", "Alfa:",
         statsKnots(M100.display_speed[9]),
         statsKnots(M250.display_speed[9]),
@@ -204,7 +204,7 @@ void draw_STATS(uint8_t page)
       break;
 
     case 11:
-      Stats_2s_3_lines(
+      drawStats2s3Lines(
         "10sLast: ", "10sBest: ", "AVG :  ",
         statsKnots(S10.display_last_run),
         statsKnots(S10.display_speed[9]),
