@@ -25,9 +25,7 @@ public:
 
   // ---------------- per-run / rolling state ----------------
   float best_10s_per_run[32];   // compatibility export for RTC/GeoJSON
-  float speed_run[42];          // RP6 bar-graph run speeds
   int   run_count;              // highest run index seen
-  int   speed_run_counter;
 
   // Update statistics for the current run
   // Returns session-level best for this window (mm/s)

@@ -93,13 +93,10 @@ void GPS_time_speed::Reset_stats()
   avg_s_sum=0;
   s_max_speed=0;
   run_count=0;
-  speed_run_counter=0;
   old_run=0;
   reset_display_last_run=0;
   display_max_speed=0;
   display_last_run=0;
-
-  for(int i=0;i<42;i++) speed_run[i]=0.0f;
 
   for(int i=0;i<32;i++){
     best_10s_per_run[i]=0.0f;
@@ -128,7 +125,6 @@ float GPS_time_speed::Update_speed(int actual_run)
 
     if(s_max_speed < avg_s){
       s_max_speed = avg_s;
-      speed_run[actual_run % NR_OF_BAR] = avg_s;
 
       const int start = wrap_gps(index_GPS - samples + 1);
       if(time_window == 2){ win_2s_start = start; win_2s_end = index_GPS; }
@@ -173,8 +169,6 @@ float GPS_time_speed::Update_speed(int actual_run)
         10
       );
 
-      if(s_max_speed > 5000) speed_run_counter++;
-      speed_run[actual_run % NR_OF_BAR] = avg_speed[0];
       avg_speed[0]=0;
       s_max_speed=0;
       avg_5runs=0;
