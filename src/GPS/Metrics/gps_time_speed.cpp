@@ -1,5 +1,6 @@
 #include "GPS/Metrics/gps_time_speed.h"
 #include "GPS/Data/gps_data.h"
+#include "GPS/Data/gps_satellite_quality.h"
 #include "GPS/Metrics/gps_result_sort.h"
 
 #include "GPS/Ublox/ublox_driver.h"
@@ -13,12 +14,13 @@
 //
 // Time-window speed engine for GPS data.
 //
-// - Computes SBP-aligned 2s, 10s, and 1h speed metrics from raw GPS samples
+// - Computes RP6/Speedreader-aligned 2s, 10s, and 1h speed metrics
 // - Tracks session-best and per-run results (Speedreader compatible)
 // - Exports ring-indexed geometry windows for plotting/logging (no rendering)
 //
 // CONTRACT
-// - Inputs: raw GPS speed buffers (_sogCms[], _secSpeed[])
+// - Inputs: raw GPS speed buffers (_gSpeed[], _secSpeed[])
+// - Outputs: mm/s; display/export code converts to knots
 // - Outputs: best speeds + window start/end indices
 // - index_GPS is a ring index into BUFFER_SIZE
 // - Exported windows are ring ranges and must be iterated wrap-safe
@@ -74,8 +76,30 @@ GPS_time::GPS_time(int tijdvenster) : time_window(tijdvenster){ Reset_stats(); }
 // -----------------------------------------------------------------------------
 void GPS_time::Reset_stats()
 {
-  for(int i=0;i<10;i++){ avg_speed[i]=0; display_speed[i]=0; }
-  avg_5runs=0; s_max_speed=0; run_count=0;
+  for(int i=0;i<10;i++){
+    avg_speed[i]=0;
+    display_speed[i]=0;
+    time_hour[i]=0;
+    time_min[i]=0;
+    time_sec[i]=0;
+    Mean_cno[i]=0;
+    Max_cno[i]=0;
+    Min_cno[i]=0;
+    Mean_numSat[i]=0;
+    this_run[i]=0;
+  }
+  avg_5runs=0;
+  avg_s=0;
+  avg_s_sum=0;
+  s_max_speed=0;
+  run_count=0;
+  speed_run_counter=0;
+  old_run=0;
+  reset_display_last_run=0;
+  display_max_speed=0;
+  display_last_run=0;
+
+  for(int i=0;i<42;i++) speed_run[i]=0.0f;
 
   for(int i=0;i<32;i++){
     best_10s_per_run[i]=0.0f;
@@ -92,100 +116,81 @@ float GPS_time::Update_speed(int actual_run)
 {
   if(actual_run > run_count && actual_run < 32) run_count = actual_run;
 
-  // ========================================================================
-  // 1 HOUR (3600 s) — padded 1 Hz average
-  // - index_sec is a monotonic "seconds since start" counter (NOT ring)
-  // - _secSpeed[] is a ring; we wrap idx when reading it
-  // - win_1h_* are SECOND indices (not GPS ring indices)
-  // ========================================================================
-  if(time_window == 3600){
-    int secs = index_sec;
-    if(secs <= 0) return s_max_speed;
-    if(secs > 3600) secs = 3600;
+  if(time_window * systemInfo.sample_rate < BUFFER_SIZE){
+    const int samples = time_window * systemInfo.sample_rate;
+    avg_s_sum += _gSpeed[index_GPS % BUFFER_SIZE];
 
-    float sum_kn=0.0f;
-    for(int i=0;i<secs;i++){
-      int idx=(index_sec - i) % BUFFER_SIZE; if(idx<0) idx += BUFFER_SIZE;
-      sum_kn += _secSpeed[idx] * CMPS_TO_KNOTS;
+    if(index_GPS >= samples){
+      avg_s_sum -= _gSpeed[(index_GPS - samples) % BUFFER_SIZE];
     }
 
-    float avg_kn = sum_kn / 3600.0f;
+    avg_s = avg_s_sum / time_window / systemInfo.sample_rate;
 
-    if(avg_kn > s_max_speed){
-      s_max_speed = avg_kn;
-      win_1h_end_sec   = index_sec;
-      win_1h_start_sec = index_sec - secs + 1;
-      if(win_1h_start_sec < 0) win_1h_start_sec = 0;
-    }
-    return s_max_speed;
-  }
+    if(s_max_speed < avg_s){
+      s_max_speed = avg_s;
+      speed_run[actual_run % NR_OF_BAR] = avg_s;
 
-  // ========================================================================
-  // 2s / 10s — SBP-style rolling window (5 Hz)
-  // - index_GPS is ring index
-  // - samples is window length in samples
-  // ========================================================================
-  const uint32_t samples = time_window * systemInfo.sample_rate;
-  if(samples >= BUFFER_SIZE) return s_max_speed;
-  if(index_GPS < (int)samples - 1) return s_max_speed;
+      const int start = wrap_gps(index_GPS - samples + 1);
+      if(time_window == 2){ win_2s_start = start; win_2s_end = index_GPS; }
+      if(time_window == 10){ win_10s_start = start; win_10s_end = index_GPS; }
 
-  float sum_kn=0.0f;
-  for(uint32_t i=0;i<samples;i++){
-    int idx=(index_GPS - (int)samples + 1 + (int)i) % BUFFER_SIZE; if(idx<0) idx += BUFFER_SIZE;
-    sum_kn += _sogCms[idx] * CMPS_TO_KNOTS;
-  }
+      getLocalTime(&tmstruct,0);
+      time_hour[0]=tmstruct.tm_hour;
+      time_min[0]=tmstruct.tm_min;
+      time_sec[0]=tmstruct.tm_sec;
+      this_run[0]=actual_run;
+      avg_speed[0]=s_max_speed;
+      Mean_cno[0]=Ublox_Sat.sat_info.Mean_mean_cno;
+      Max_cno[0]=Ublox_Sat.sat_info.Mean_max_cno;
+      Min_cno[0]=Ublox_Sat.sat_info.Mean_min_cno;
+      Mean_numSat[0]=Ublox_Sat.sat_info.Mean_numSV;
 
-  float avg_kn = sum_kn / samples;
+      if(time_window == 10 && actual_run > 0 && actual_run < 32){
+        best_10s_per_run[actual_run] = s_max_speed;
+        win_10s_start_run[actual_run] = start;
+        win_10s_end_run[actual_run] = index_GPS;
+      }
 
-  // ========================================================================
-  // SESSION BEST (ALL WINDOWS)
-  // IMPORTANT: store window start as RING index (wrap-safe)
-  // ========================================================================
-  if(avg_kn > s_max_speed){
-    s_max_speed  = avg_kn;
-    avg_speed[9] = s_max_speed;
-
-    int start = wrap_gps(index_GPS - (int)samples + 1);
-
-    if(time_window == 2){  win_2s_start  = start; win_2s_end  = index_GPS; }
-    if(time_window == 10){ win_10s_start = start; win_10s_end = index_GPS; }
-
-    getLocalTime(&tmstruct,0);
-    time_hour[9]=tmstruct.tm_hour; time_min[9]=tmstruct.tm_min; time_sec[9]=tmstruct.tm_sec;
-    this_run[9]=actual_run;
-
-    for(int i=0;i<10;i++) display_speed[i]=avg_speed[i];
-    sort_display(display_speed,10);
-    display_max_speed = display_speed[9];
-  }
-
-  // ========================================================================
-  // PER-RUN BEST 10s + TOP-5 WINDOWS (Speedreader style)
-  // NOTE: exported windows must be treated as ring ranges by the exporter.
-  // ========================================================================
-  if(time_window == 10 && actual_run > 0 && actual_run < 32){
-
-    // --- update per-run best + its window ---
-    if(avg_kn > best_10s_per_run[actual_run]){
-      best_10s_per_run[actual_run] = avg_kn;
-
-      int start = wrap_gps(index_GPS - (int)samples + 1);
-
-      win_10s_start_run[actual_run] = start;
-      win_10s_end_run  [actual_run] = index_GPS;
+      for(int i=0;i<10;i++) display_speed[i]=avg_speed[i];
+      sort_display(display_speed,10);
+      display_max_speed = display_speed[9];
+      avg_5runs=0;
+      for(int i=5;i<10;i++) avg_5runs += display_speed[i];
+      avg_5runs /= 5;
     }
 
-    // --- recompute avg of best 5 runs (ALWAYS divide by 5) ---
-    double tmp[32]; int n=0;
-    for(int r=1;r<=run_count;r++) if(best_10s_per_run[r] > 0) tmp[n++] = best_10s_per_run[r];
+    if((actual_run != old_run) && (this_run[0] == old_run)){
+      sort_run(
+        avg_speed,
+        time_hour,
+        time_min,
+        time_sec,
+        Mean_cno,
+        Max_cno,
+        Min_cno,
+        Mean_numSat,
+        this_run,
+        10
+      );
 
-    if(n > 0){
-      sort_display(tmp,n);
-      double sum=0.0; int cnt=(n>=5)?5:n;
-      for(int i=n-cnt;i<n;i++) sum += tmp[i];
-      avg_5runs = (float)(sum / 5.0);   // Speedreader padding rule
-    }else{
-      avg_5runs = 0.0f;
+      if(s_max_speed > 5000) speed_run_counter++;
+      speed_run[actual_run % NR_OF_BAR] = avg_speed[0];
+      avg_speed[0]=0;
+      s_max_speed=0;
+      avg_5runs=0;
+      for(int i=5;i<10;i++) avg_5runs += avg_speed[i];
+      avg_5runs /= 5;
+
+      for(int i=0;i<10;i++) display_speed[i]=avg_speed[i];
+      sort_display(display_speed,10);
+      display_max_speed = display_speed[9];
+    }
+
+    if((actual_run != reset_display_last_run) && (avg_s > 3000)){
+      reset_display_last_run = actual_run;
+      display_last_run = 0;
+    }else if(display_last_run < s_max_speed){
+      display_last_run = s_max_speed;
     }
 
     // --- recompute TOP-5 run windows (for GeoJSON export) ---
@@ -217,8 +222,60 @@ float GPS_time::Update_speed(int actual_run)
       win_10s_top5_start[k] = win_10s_start_run[r];
       win_10s_top5_end  [k] = win_10s_end_run  [r];
     }
+
+    old_run = actual_run;
+    return s_max_speed;
   }
 
-  old_run = actual_run;
+  if(index_GPS % systemInfo.sample_rate == 0){
+    avg_s_sum += (int)_secSpeed[index_sec % BUFFER_SIZE];
+    if(index_sec >= time_window){
+      avg_s_sum -= (int)_secSpeed[(index_sec - time_window) % BUFFER_SIZE];
+    }
+    avg_s = avg_s_sum / time_window;
+
+    if(s_max_speed < avg_s){
+      s_max_speed = avg_s;
+      getLocalTime(&tmstruct,0);
+      time_hour[0]=tmstruct.tm_hour;
+      time_min[0]=tmstruct.tm_min;
+      time_sec[0]=tmstruct.tm_sec;
+      this_run[0]=actual_run;
+      avg_speed[0]=s_max_speed;
+
+      if(time_window == 3600){
+        win_1h_end_sec = index_sec;
+        win_1h_start_sec = index_sec - time_window + 1;
+        if(win_1h_start_sec < 0) win_1h_start_sec = 0;
+      }
+    }
+
+    if(s_max_speed > avg_speed[9]) display_max_speed = s_max_speed;
+    else display_max_speed = avg_speed[9];
+
+    if((actual_run != old_run) && (this_run[0] == old_run)){
+      sort_run(
+        avg_speed,
+        time_hour,
+        time_min,
+        time_sec,
+        Mean_cno,
+        Max_cno,
+        Min_cno,
+        Mean_numSat,
+        this_run,
+        10
+      );
+      avg_speed[0]=0;
+      s_max_speed=0;
+      avg_5runs=0;
+      for(int i=5;i<10;i++) avg_5runs += avg_speed[i];
+      avg_5runs /= 5;
+    }
+
+    old_run = actual_run;
+    return s_max_speed;
+  }
+
   return s_max_speed;
 }

@@ -52,8 +52,8 @@ public:
   // Live state
   // -------------------------------------------------------------------------
   double straight_dist_square;   // Straight-line distance² (m²)
-  double alfa_speed;             // Current ALFA speed (knots)
-  double alfa_speed_max;         // Max ALFA speed in current run (knots)
+  double alfa_speed;             // Current ALFA speed (mm/s)
+  double alfa_speed_max;         // Max ALFA speed in current run (mm/s)
   float  display_max_speed;      // Live display value
 
   // -------------------------------------------------------------------------
@@ -64,8 +64,8 @@ public:
   // -------------------------------------------------------------------------
   // Stored results (top-10)
   // -------------------------------------------------------------------------
-  double  avg_speed[10];         // Sorted ALFA speeds (knots)
-  int     real_distance[10];     // Straight-line distance (m)
+  double  avg_speed[10];         // Sorted ALFA speeds (mm/s)
+  int     real_distance[10];     // Squared straight-line distance (m^2)
 
   uint8_t time_hour[10];
   uint8_t time_min[10];
@@ -73,7 +73,7 @@ public:
 
   int this_run[10];              // alfa_counter per entry
   int message_nr[10];            // UBX NAV-PVT index
-  int alfa_distance[10];         // Path distance inside window (m)
+  int alfa_distance[10];         // Path distance inside window (mm)
 
 private:
   int old_run_count = -1;        // Detects run transitions

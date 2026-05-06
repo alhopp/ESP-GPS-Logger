@@ -66,14 +66,14 @@ void processGpsFix(const GpsFix& fix)
     logging_session_write_fix(fix, getMode() == MODE_LOGGING);
   }
 
+  if (logging_session_active()) nav_pvt_message++;
+
   gps_display_policy_update(fix);
 }
 
 void processGpsMessage(const GpsFix& fix)
 {
   last_gps_msg = millis();
-
-  if (logging_session_active()) nav_pvt_message++;
 
   noteGpsSignalReady(fix);
   maybeEnterLoggingMode();

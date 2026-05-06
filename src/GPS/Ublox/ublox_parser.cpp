@@ -16,6 +16,17 @@ inline uint8_t classifyMessage(uint8_t cls, uint8_t id)
               if (id == 0x04) return MT_NAV_DOP;
               if (id == 0x35) return MT_NAV_SAT;
               break;
+          case 0x05: // ACK
+              if (id == 0x01) return MT_NAV_ACK;
+              if (id == 0x00) return MT_NAV_NACK;
+              break;
+          case 0x0A: // MON
+              if (id == 0x28) return MT_MON_GNSS;
+              if (id == 0x04) return MT_MON_VER;
+              break;
+          case 0x27: // SEC/UID
+              if (id == 0x03) return MT_NAV_ID;
+              break;
       }
       return MT_NONE;
   }
@@ -156,6 +167,41 @@ int processGPS()
                 handleNavSatPayload(c);
                 break;
 
+            case MT_NAV_ACK:
+                if (payPos == 0)
+                    initUbxHeader(ubxMessage.navAck, cls, id, len);
+                if (payPos < sizeof(NAV_ACK) - UBX_HDR)
+                    ((uint8_t*)&ubxMessage.navAck)[UBX_HDR + payPos] = c;
+                break;
+
+            case MT_NAV_NACK:
+                if (payPos == 0)
+                    initUbxHeader(ubxMessage.navNack, cls, id, len);
+                if (payPos < sizeof(NAV_NACK) - UBX_HDR)
+                    ((uint8_t*)&ubxMessage.navNack)[UBX_HDR + payPos] = c;
+                break;
+
+            case MT_NAV_ID:
+                if (payPos == 0)
+                    initUbxHeader(ubxMessage.ubxId, cls, id, len);
+                if (payPos < sizeof(NAV_ID) - UBX_HDR)
+                    ((uint8_t*)&ubxMessage.ubxId)[UBX_HDR + payPos] = c;
+                break;
+
+            case MT_MON_GNSS:
+                if (payPos == 0)
+                    initUbxHeader(ubxMessage.monGNSS, cls, id, len);
+                if (payPos < sizeof(MON_GNSS) - UBX_HDR)
+                    ((uint8_t*)&ubxMessage.monGNSS)[UBX_HDR + payPos] = c;
+                break;
+
+            case MT_MON_VER:
+                if (payPos == 0)
+                    initUbxHeader(ubxMessage.monVER, cls, id, len);
+                if (payPos < sizeof(MON_VER) - UBX_HDR)
+                    ((uint8_t*)&ubxMessage.monVER)[UBX_HDR + payPos] = c;
+                break;
+
             // -------------------------------------------------------------
             // Everything else is ignored
             // -------------------------------------------------------------
@@ -270,9 +316,13 @@ int processGPS()
                 } else {
                     // Finalise NAV-SAT special case (variable satellite blocks)
                     if (currentMsgType == MT_NAV_SAT)
-                        ubxMessage.navSatCount = ubxMessage.navSatHdr.numSvs;
+                        ubxMessage.navSatCount =
+                            ubxMessage.navSatHdr.numSvs > UBX_MAX_SVS
+                            ? UBX_MAX_SVS
+                            : ubxMessage.navSatHdr.numSvs;
 
                     const uint8_t ret = currentMsgType;
+                    ubxMessage.lastMsgType = (_ubxMsgType)ret;
                     resetFrame();
                     return ret;
                 }

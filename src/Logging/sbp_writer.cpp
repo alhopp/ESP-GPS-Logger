@@ -51,8 +51,6 @@ void sbp_write_header(File& file)
 
 void sbp_write_frame(File& file)
 {
-  if (ubxMessage.navPvt.fixType < 3) return;
-
   const uint32_t year = ubxMessage.navPvt.year;
   const uint8_t month = ubxMessage.navPvt.month;
   const uint8_t day = ubxMessage.navPvt.day;
@@ -80,10 +78,11 @@ void sbp_write_frame(File& file)
   sbp_frame.Cog = ubxMessage.navPvt.heading / 1000;
 
   sbp_frame.SVIDCnt = ubxMessage.navPvt.numSV;
+  const uint32_t numSV = 0xFFFFFFFF;
   sbp_frame.SVIDList =
-    (sbp_frame.SVIDCnt == 0) ? 0 :
-    (sbp_frame.SVIDCnt >= 32) ? 0xFFFFFFFF :
-    ((1UL << sbp_frame.SVIDCnt) - 1);
+    (ubxMessage.navPvt.numSV >= 32) ? 0xFFFFFFFF :
+    (ubxMessage.navPvt.numSV == 0) ? 0 :
+    (numSV >> (32 - ubxMessage.navPvt.numSV));
 
   sbp_frame.HDOP = HDOP;
   sbp_frame.ClmbRte = -ubxMessage.navPvt.velD / 10;

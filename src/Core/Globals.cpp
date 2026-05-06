@@ -28,7 +28,7 @@ char Ublox_type[20] = "Ublox unknown...";
 int  last_gps_msg    = 0;
 int  nav_pvt_message = 0;
 int  nav_sat_message = 0;
-int  old_message     = 0;
+int  old_message     = -1;
 int  msgType         = 0;
 
 // ============================================================================

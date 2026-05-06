@@ -11,13 +11,11 @@
 // GPS_speed
 // Distance-based average speed calculator (100m / 250m / 500m / 1852m)
 //
-// UNIT MODEL (Speedreader-aligned):
-// - Sample 0 initializes state ONLY (no distance contribution)
-// - Distance integration starts at sample 1
-// - Distance: mm per sample (_gSpeed / sample_rate)
-// - Speed samples: cm/s → knots BEFORE averaging
-// - Averaging: FLOAT knots
-// - Padding allowed for incomplete windows
+// UNIT MODEL (RP6 / Speedreader-aligned):
+// - _gSpeed is raw mm/s.
+// - Window distance uses the legacy scaled target:
+//     meters * 1000 * sample_rate
+// - Stored speeds remain mm/s. Display/export code converts to knots.
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
@@ -31,92 +29,47 @@ GPS_speed::GPS_speed(int afstand) : m_set_distance(afstand){}
 // -----------------------------------------------------------------------------
 double GPS_speed::Update_distance(int actual_run)
 {
-  // Target distance in mm (meters → mm)
-  m_Set_Distance = m_set_distance * 1000;
+  m_Set_Distance = m_set_distance * 1000 * systemInfo.sample_rate;
 
-  // ---------------------------------------------------------------------------
-  // Sample 0 = state init only (Speedreader behaviour)
-  // ---------------------------------------------------------------------------
   if(index_GPS == 0){
-    m_distance = 0.0;
-    m_index    = 1;      // distance window starts at sample 1
+    m_distance = 0;
+    m_index    = 0;
     m_sample   = 0;
     old_run    = actual_run;
     return m_max_speed;
   }
 
-  // ---------------------------------------------------------------------------
-  // Distance integration
-  // _gSpeed is mm/s → convert to mm per sample
-  // ---------------------------------------------------------------------------
-  m_distance += _gSpeed[index_GPS % BUFFER_SIZE] / systemInfo.sample_rate;
+  m_distance += _gSpeed[index_GPS % BUFFER_SIZE];
 
-  // Overflow safety
   if((index_GPS - m_index) >= BUFFER_SIZE){
-    m_distance = 0.0;
+    m_distance = 0;
     m_index    = index_GPS;
   }
 
-  // ---------------------------------------------------------------------------
-  // Slide distance window
-  // ---------------------------------------------------------------------------
   if(m_distance > m_Set_Distance){
     while(m_distance > m_Set_Distance && (index_GPS - m_index) < BUFFER_SIZE){
-      m_distance     -= _gSpeed[m_index % BUFFER_SIZE] / systemInfo.sample_rate;
+      m_distance     -= _gSpeed[m_index % BUFFER_SIZE];
       m_distance_alfa = m_distance;
       m_index++;
     }
     m_index--;
-    m_distance += _gSpeed[m_index % BUFFER_SIZE] / systemInfo.sample_rate;
+    m_distance += _gSpeed[m_index % BUFFER_SIZE];
   }
 
-  // Sample count (distance-bearing samples only)
   m_sample = index_GPS - m_index + 1;
   if(m_sample <= 0) return m_max_speed;
 
-  // ---------------------------------------------------------------------------
-  // SBP-style averaging: cm/s → knots → average → padded
-  // ---------------------------------------------------------------------------
-  double speed_kn = 0.0;
-  double alfa_kn  = 0.0;
-
-  if(m_Set_Distance > 0){
-    double sum_kn = 0.0;
-
-    for(int i = m_index; i <= index_GPS; i++){
-      int k = i % BUFFER_SIZE;
-      sum_kn += (double)_sogCms[k] * CMPS_TO_KNOTS;
-    }
-
-    double avg_kn = sum_kn / m_sample;
-
-    double completion = (double)m_distance / (double)m_Set_Distance;
-    if(completion > 1.0) completion = 1.0;
-
-    speed_kn = avg_kn * completion;
+  if(m_distance < m_Set_Distance || m_sample >= BUFFER_SIZE){
+    m_speed = 0.0;
+  }else{
+    m_speed = (double)m_distance / (double)m_sample;
   }
 
-  // ---------------------------------------------------------------------------
-  // Alpha variant (same rule, excludes anchor sample)
-  // ---------------------------------------------------------------------------
-  if((index_GPS - m_index) > 0 && m_Set_Distance > 0){
-    double sum_kn = 0.0;
-
-    for(int i = m_index + 1; i <= index_GPS; i++){
-      int k = i % BUFFER_SIZE;
-      sum_kn += (double)_sogCms[k] * CMPS_TO_KNOTS;
-    }
-
-    double avg_kn = sum_kn / (index_GPS - m_index);
-
-    double completion = (double)m_distance / (double)m_Set_Distance;
-    if(completion > 1.0) completion = 1.0;
-
-    alfa_kn = avg_kn * completion;
+  if(m_speed == 0.0 || (index_GPS - m_index) <= 0){
+    m_speed_alfa = 0.0;
+  }else{
+    m_speed_alfa = (double)m_distance_alfa / (double)(index_GPS - m_index);
   }
-
-  m_speed      = speed_kn;
-  m_speed_alfa = alfa_kn;
 
   // ---------------------------------------------------------------------------
   // New best speed → CAPTURE GEOMETRY WINDOW

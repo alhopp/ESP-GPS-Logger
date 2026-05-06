@@ -6,7 +6,7 @@
 // Time-window based speed statistics (2s, 10s, 1h)
 //
 // UNITS
-// - All speeds are KNOTS
+// - All speeds are mm/s. Display/export code converts to knots.
 //
 // RESPONSIBILITIES
 // - Rolling window averages (SBP-aligned)
@@ -23,29 +23,37 @@ class GPS_time {
 public:
   explicit GPS_time(int tijdvenster);
 
-  // ---------------- per-run (10s only) ----------------
-  float best_10s_per_run[32];   // best 10s per completed run
+  // ---------------- per-run / rolling state ----------------
+  float best_10s_per_run[32];   // compatibility export for RTC/GeoJSON
+  float speed_run[42];          // RP6 bar-graph run speeds
   int   run_count;              // highest run index seen
+  int   speed_run_counter;
 
   // Update statistics for the current run
-  // Returns session-level best for this window (knots)
+  // Returns session-level best for this window (mm/s)
   float Update_speed(int actual_run);
 
   // Reset all rolling / ranked state (new session)
   void Reset_stats();
 
   // ---------------- session-level ----------------
-  double s_max_speed;        // best speed of entire session (knots)
-  double avg_5runs;          // avg of best 5 × 10s (knots, 10s only)
+  double s_max_speed;        // best speed of entire session (mm/s)
+  double avg_5runs;          // avg of best 5 x 10s (mm/s, 10s only)
+  double avg_s;              // current rolling average (mm/s)
+  double avg_s_sum;          // rolling sum backing avg_s
 
   // ---------------- ranked results ----------------
-  double avg_speed[10];      // top-10 session speeds (knots)
+  double avg_speed[10];      // top-10 session speeds (mm/s)
   double display_speed[10];  // sorted copy for UI
 
   // ---------------- metadata ----------------------
   uint8_t time_hour[10];
   uint8_t time_min [10];
   uint8_t time_sec [10];
+  uint8_t Mean_cno[10];
+  uint8_t Max_cno[10];
+  uint8_t Min_cno[10];
+  uint8_t Mean_numSat[10];
   int     this_run [10];
 
   // ---------------- configuration -----------------
@@ -57,13 +65,16 @@ public:
 
 private:
   int old_run;
+  int reset_display_last_run;
 };
 
 // ---------------------------------------------------------------------------
 // Global instances (API preserved)
 // ---------------------------------------------------------------------------
 extern GPS_time S2;     // 2-second window (session best)
+extern GPS_time s2;     // 2-second resettable stats/display window
 extern GPS_time S10;    // 10-second window
+extern GPS_time s10;    // 10-second resettable stats/display window
 extern GPS_time S1800;  // 30-minute window (if used)
 extern GPS_time S3600;  // 1-hour window
 

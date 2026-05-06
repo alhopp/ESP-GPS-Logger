@@ -5,18 +5,21 @@
 //
 // Run + jibe detection (AUTHORITATIVE)
 //
-// - Detects straight sailing
+// - Matches RP6 New_run_detection()
 // - Detects standstill + delayed restart
-// - Detects jibe via heading deviation
+// - Detects jibe via heading deviation from 15s mean heading
 // - Maintains monotonically increasing run_id
 //
 // Units:
 // - heading : degrees
-// - speed   : knots
+// - speed   : mm/s, normally S2.avg_s
 // ============================================================================
 
 // Update run state (call once per GPS sample)
-void gps_run_update(float heading_deg, float speed_kn);
+void gps_run_update(float heading_deg, float speed_mmps);
+
+// Reset persistent detector state at the start of a new logging session.
+void gps_run_reset();
 
 // ---------------- lifecycle queries ----------------
 

@@ -47,9 +47,8 @@ static inline double closure_dist2(int a, int b)
   const double lat1 = _lat[b];
   const double lon1 = _long[b];
 
-  const double latm = 0.5 * (lat0 + lat1);
   const double dlat = lat1 - lat0;
-  const double dlon = (lon1 - lon0) * cos(DEG2RAD * latm);
+  const double dlon = (lon1 - lon0) * cos(DEG2RAD * lat1);
 
   const double k = 111195.0; // meters / degree
   return (dlat*dlat + dlon*dlon) * k * k;
@@ -88,15 +87,17 @@ float Alfa_speed::Update_Alfa(const GPS_speed& M)
   if(alfa_counter == 0)
     return alfa_speed_max;
 
-  static int old_run = -1;
-
   const int exit  = index_GPS;
   const int entry = M.m_index + 1;
 
   // ---------------------------------------------------------------------------
   // Geometry + speed eligibility
   // ---------------------------------------------------------------------------
-  if(entry >= 0 && exit > entry && M.m_speed_alfa > 0.0)
+  if(entry >= 0 &&
+     exit > entry &&
+     M.m_speed_alfa > 0.0 &&
+     _sampleGood[entry % BUFFER_SIZE] &&
+     _sampleGood[exit % BUFFER_SIZE])
   {
     const int entryA = entry % BUFFER_ALFA;
     const int exitA  = exit  % BUFFER_ALFA;
@@ -116,7 +117,7 @@ float Alfa_speed::Update_Alfa(const GPS_speed& M)
         alpha_start = entry;
         alpha_end   = exit;
 
-        real_distance[0] = (int)(sqrt(d2) + 0.5);
+        real_distance[0] = (int)d2;
 
         getLocalTime(&tmstruct,0);
         time_hour[0] = tmstruct.tm_hour;
@@ -134,7 +135,7 @@ float Alfa_speed::Update_Alfa(const GPS_speed& M)
   // ---------------------------------------------------------------------------
   // FINALISE ON RUN CHANGE (RP6 / Speedreader-compatible)
   // ---------------------------------------------------------------------------
-  if(run_count != old_run)
+  if(run_count != old_run_count)
   {
     sort_run_results(
       avg_speed,
@@ -152,7 +153,7 @@ float Alfa_speed::Update_Alfa(const GPS_speed& M)
     alfa_speed_max = 0.0;
   }
 
-  old_run = run_count;
+  old_run_count = run_count;
 
   display_max_speed =
     (alfa_speed_max > avg_speed[9]) ? alfa_speed_max : avg_speed[9];
@@ -165,9 +166,20 @@ float Alfa_speed::Update_Alfa(const GPS_speed& M)
 // -----------------------------------------------------------------------------
 void Alfa_speed::Reset_stats()
 {
-  for(int i=0;i<10;i++) avg_speed[i] = 0.0;
+  for(int i=0;i<10;i++) {
+    avg_speed[i] = 0.0;
+    real_distance[i] = 0;
+    time_hour[i] = 0;
+    time_min[i] = 0;
+    time_sec[i] = 0;
+    this_run[i] = 0;
+    message_nr[i] = 0;
+    alfa_distance[i] = 0;
+  }
   alfa_speed     = 0.0;
   alfa_speed_max = 0.0;
+  display_max_speed = 0.0f;
+  old_run_count = -1;
 }
 
 // -----------------------------------------------------------------------------

@@ -29,9 +29,7 @@
 // ============================================================================
 
 // Human-readable chip name for UI / logs
-inline const char* gpsChip(int longname) {
-  return longname ? "u-blox M10" : "M10";
-}
+const char* gpsChip(int longname);
 
 // ============================================================================
 // UART
@@ -158,6 +156,11 @@ struct UBXMessage {
   NAV_DOP     navDOP;
   NAV_SAT_HDR navSatHdr;
   sVs_NAV_SAT navSat[UBX_MAX_SVS];
+  NAV_ACK     navAck;
+  NAV_NACK    navNack;
+  NAV_ID      ubxId;
+  MON_GNSS    monGNSS;
+  MON_VER     monVER;
   uint8_t     navSatCount;
   _ubxMsgType lastMsgType;
 };

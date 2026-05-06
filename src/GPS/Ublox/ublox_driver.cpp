@@ -51,6 +51,15 @@ UBXMessage ubxMessage = {};
 // -----------------------------------------------------------------------------
 HardwareSerial UbloxSerial(2);
 
+const char* gpsChip(int longname)
+{
+    const char hw = ubxMessage.monVER.hwVersion[3];
+    if (hw == '8') return longname ? "M8" : "M8";
+    if (hw == '9') return longname ? "M9" : "M9";
+    if (hw == 'A') return longname ? "M10" : "M10";
+    return longname ? "u-blox unknown" : "?";
+}
+
 
 // -----------------------------------------------------------------------------
 // ubloxSerialInit

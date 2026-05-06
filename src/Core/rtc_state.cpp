@@ -97,7 +97,7 @@ void rtc_snapshot_stats()
   // -------------------------------------------------------------------------
   // 2 second (session best)
   // -------------------------------------------------------------------------
-  RTC_max_2s_knots = S2.s_max_speed;
+  RTC_max_2s_knots = S2.s_max_speed * MMPS_TO_KNOTS;
   Serial.printf("2s max          : %.3f kn\n", RTC_max_2s_knots);
 
   // -------------------------------------------------------------------------
@@ -126,7 +126,7 @@ void rtc_snapshot_stats()
   Serial.println("10s best (top 5 runs):");
 
   for(int i = 0; i < cnt; i++){
-    const float v = tmp[n - 1 - i];
+    const float v = tmp[n - 1 - i] * MMPS_TO_KNOTS;
     sum5 += v;
 
     switch(i){
@@ -146,9 +146,9 @@ void rtc_snapshot_stats()
   // -------------------------------------------------------------------------
   // Mile / Alpha / 1 hour
   // -------------------------------------------------------------------------
-  RTC_mile_knots = M1852.avg_speed[9];
-  RTC_alp_knots  = A500.avg_speed[9];
-  RTC_1h_knots   = S3600.s_max_speed;
+  RTC_mile_knots = M1852.avg_speed[9] * MMPS_TO_KNOTS;
+  RTC_alp_knots  = A500.avg_speed[9] * MMPS_TO_KNOTS;
+  RTC_1h_knots   = S3600.s_max_speed * MMPS_TO_KNOTS;
 
   Serial.printf("NM (1852m)      : %.3f kn\n", RTC_mile_knots);
   Serial.printf("Alpha 500       : %.3f kn\n", RTC_alp_knots);
@@ -157,7 +157,7 @@ void rtc_snapshot_stats()
   // -------------------------------------------------------------------------
   // Distance travelled
   // -------------------------------------------------------------------------
-  RTC_distance = total_distance * 0.00001f;   // cm → km
+  RTC_distance = total_distance * 0.000001f;   // mm -> km
   Serial.printf("Distance        : %.3f km\n", RTC_distance);
 
   Serial.println("====================================================\n");

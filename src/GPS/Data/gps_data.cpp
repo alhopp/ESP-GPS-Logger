@@ -19,9 +19,9 @@
 //        ├─ _gSpeed[]   → gps_distance_speed / gps_time_speed / gps_alpha_speed
 //        ├─ _sogCms[]   → SBP-parity per-sample speed (cm/s)
 //        ├─ _lat/_long  → gps_alpha_speed / gps_track / geometry
-//        ├─ _distCm[]   → cumulative distance (cm) for Alpha windows
+//        ├─ _distCm[]   → cumulative distance snapshot (cm) for exports
 //        ├─ distances   → session / run / alfa accumulation
-//        └─ _secSpeed[] → long time-window averages
+//        └─ _secSpeed[] → 1-second averaged speed (mm/s)
 //
 // This file deliberately contains NO analysis logic.
 // It only stores, accumulates, and resets shared state.
@@ -31,12 +31,10 @@
 #include "Core/Definitions.h"
 #include "Core/Globals.h"
 #include "Core/system_info.h"
-#include <algorithm>
 
 #include "GPS/Data/gps_data.h"
-#include "GPS/Metrics/gps_distance_speed.h"
-#include "GPS/Metrics/gps_alpha_speed.h"
-#include "GPS/Geometry/gps_geometry.h"
+
+#include <math.h>
 
 // ============================================================================
 // Global GPS buffers (single source of truth)
@@ -44,7 +42,8 @@
 
 uint16_t _gSpeed [BUFFER_SIZE];   // Doppler speed per sample (mm/s)
 uint16_t _sogCms [BUFFER_SIZE];   // SBP-parity speed per sample (cm/s)
-uint16_t _secSpeed[BUFFER_SIZE];  // 1-second averaged speed (cm/s)
+uint16_t _secSpeed[BUFFER_SIZE];  // 1-second averaged speed (mm/s)
+bool     _sampleGood[BUFFER_SIZE];
 
 uint32_t _distCm [BUFFER_SIZE];   // cumulative sailed distance (cm) per sample
 
@@ -55,7 +54,7 @@ int      index_GPS = -1;          // NAV-PVT sample index
 int      index_sec = -1;          // 1-second buffer index
 
 int      alfa_counter;            // Jibe counter (shared run/alpha state)
-float    total_distance = 0.0f;   // Session distance (cm)
+float    total_distance = 0.0f;   // Session distance (mm)
 
 
 volatile int alpha_gybe_index = -1;
@@ -78,6 +77,55 @@ int sec_to_gps_index[BUFFER_SIZE] = {0};
 
 GPS_data::GPS_data(){ index_GPS = 0; }
 
+namespace {
+constexpr float MIN_VALID_COORD = 0.000001f;
+constexpr float BAD_JUMP_MIN_M = 50.0f;
+constexpr float BAD_JUMP_MARGIN_M = 20.0f;
+constexpr float BAD_JUMP_SPEED_MULT = 3.0f;
+
+bool have_last_good_position = false;
+float last_good_lat = 0.0f;
+float last_good_lon = 0.0f;
+
+float distanceMeters(float lat0, float lon0, float lat1, float lon1)
+{
+    const float dlat = lat1 - lat0;
+    const float dlon = (lon1 - lon0) * cosf((lat0 + lat1) * 0.5f * DEG2RAD);
+    return sqrtf(dlat * dlat + dlon * dlon) * 111195.0f;
+}
+
+bool sampleQualityOk(float latitude, float longitude, uint32_t gSpeed)
+{
+    if (ubxMessage.navPvt.fixType < 3) return false;
+    if (ubxMessage.navPvt.numSV < FILTER_MIN_SATS) return false;
+    if ((ubxMessage.navPvt.sAcc * 0.001f) >= FILTER_MAX_sACC) return false;
+    if (gSpeed > (uint32_t)MAX_GPS_SPEED_OK * 1000U) return false;
+    if (fabsf(latitude) < MIN_VALID_COORD && fabsf(longitude) < MIN_VALID_COORD) return false;
+
+    if (have_last_good_position) {
+        const float sr = systemInfo.sample_rate > 0 ? (float)systemInfo.sample_rate : 5.0f;
+        const float expected_m = (float)gSpeed * 0.001f / sr;
+        const float max_jump_m = fmaxf(BAD_JUMP_MIN_M, expected_m * BAD_JUMP_SPEED_MULT + BAD_JUMP_MARGIN_M);
+        if (distanceMeters(last_good_lat, last_good_lon, latitude, longitude) > max_jump_m) {
+            return false;
+        }
+    }
+
+    return true;
+}
+}
+
+void gps_data_reset_quality_state()
+{
+    have_last_good_position = false;
+    last_good_lat = 0.0f;
+    last_good_lon = 0.0f;
+
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        _sampleGood[i] = false;
+    }
+}
+
 // -----------------------------------------------------------------------------
 // push_data
 //
@@ -89,117 +137,62 @@ void GPS_data::push_data(float latitude,float longitude,uint32_t gSpeed)
     index_GPS++;
 
     const int i = index_GPS % BUFFER_SIZE;
+    const bool good_sample = sampleQualityOk(latitude, longitude, gSpeed);
+
+    if (!good_sample) {
+        gSpeed = 0;
+        if (have_last_good_position) {
+            latitude = last_good_lat;
+            longitude = last_good_lon;
+        }
+    } else {
+        have_last_good_position = true;
+        last_good_lat = latitude;
+        last_good_lon = longitude;
+    }
 
     // -------------------------------------------------------------------------
     // Raw circular buffers
     // -------------------------------------------------------------------------
     _gSpeed [i] = gSpeed;
     _sogCms [i] = (uint16_t)(gSpeed * 0.1f); // mm/s → cm/s (SBP parity)
+    _sampleGood[i] = good_sample;
     _lat    [index_GPS % BUFFER_ALFA] = latitude;
     _long   [index_GPS % BUFFER_ALFA] = longitude;
 
     // -------------------------------------------------------------------------
-    // Distance accumulation (quality-gated, SBP style, cm)
+    // Distance accumulation (quality-gated, RP6/Speedreader unit model, mm)
     // -------------------------------------------------------------------------
-    if(ubxMessage.navPvt.numSV >= FILTER_MIN_SATS &&
-       (ubxMessage.navPvt.sAcc * 0.001f) < FILTER_MAX_sACC)
+    if(good_sample)
     {
-        const float cmps = (float)gSpeed * 0.1f;                 // cm/s
-        const float d_cm = cmps / systemInfo.sample_rate;        // cm per sample
+        const float d_mm = (float)gSpeed / systemInfo.sample_rate; // mm per sample
 
-        total_distance += d_cm;   // session
-        run_distance   += d_cm;   // run
-        alfa_distance  += d_cm;   // alpha
+        total_distance += d_mm;   // session
+        run_distance   += d_mm;   // run
+        alfa_distance  += d_mm;   // alpha
     }
 
     // -------------------------------------------------------------------------
     // Cumulative distance snapshot (ALWAYS written)
     // Used by Alpha for (exit - entry) distance diffing
     // -------------------------------------------------------------------------
-    _distCm[i] = (uint32_t)(total_distance + 0.5f);
+    _distCm[i] = (uint32_t)((total_distance * 0.1f) + 0.5f);
 
     // -------------------------------------------------------------------------
     // Build 1-second averaged speed buffer
     // -------------------------------------------------------------------------
-    static uint32_t acc_cm = 0;
-    acc_cm += _sogCms[i];
+    static uint32_t acc_mmps = 0;
+    acc_mmps += _gSpeed[i];
 
     if((index_GPS % systemInfo.sample_rate) == 0){
         index_sec++;
-        _secSpeed[index_sec % BUFFER_SIZE] = acc_cm / systemInfo.sample_rate;
+        _secSpeed[index_sec % BUFFER_SIZE] = acc_mmps / systemInfo.sample_rate;
 
         // map this 1Hz bucket → the GPS sample index it corresponds to
         sec_to_gps_index[index_sec % BUFFER_SIZE] = index_GPS;
 
-        acc_cm = 0;
+        acc_mmps = 0;
     }
 
 }
 
-// ============================================================================
-// GPS_SAT_info
-// ============================================================================
-
-GPS_SAT_info::GPS_SAT_info(){ index_SAT_info = 0; }
-
-void GPS_SAT_info::push_SAT_info(const NAV_SAT_HDR&,
-                                 const sVs_NAV_SAT* sats,
-                                 uint8_t count)
-{
-    mean_cno=0; min_cno=0xFF; max_cno=0; nr_sats=0;
-
-    for(uint8_t i=0;i<count;i++){
-        if(sats[i].flags & 0x08){
-            mean_cno += sats[i].cno;
-            min_cno   = std::min(min_cno,(uint32_t)sats[i].cno);
-            max_cno   = std::max(max_cno,(uint32_t)sats[i].cno);
-            nr_sats++;
-        }
-    }
-
-    if(!nr_sats){ index_SAT_info++; return; }
-
-    mean_cno /= nr_sats;
-    int idx = index_SAT_info % NAV_SAT_BUFFER;
-
-    sat_info.Mean_cno[idx] = mean_cno;
-    sat_info.Max_cno [idx] = max_cno;
-    sat_info.Min_cno [idx] = min_cno;
-    sat_info.numSV   [idx] = nr_sats;
-
-    if(index_SAT_info > NAV_SAT_BUFFER){
-        mean_cno=max_cno=min_cno=nr_sats=0;
-        for(int i=0;i<NAV_SAT_BUFFER;i++){
-            int j=(index_SAT_info-NAV_SAT_BUFFER+i)%NAV_SAT_BUFFER;
-            mean_cno += sat_info.Mean_cno[j];
-            max_cno  += sat_info.Max_cno [j];
-            min_cno  += sat_info.Min_cno [j];
-            nr_sats  += sat_info.numSV   [j];
-        }
-        sat_info.Mean_mean_cno = mean_cno / NAV_SAT_BUFFER;
-        sat_info.Mean_max_cno  = max_cno  / NAV_SAT_BUFFER;
-        sat_info.Mean_min_cno  = min_cno  / NAV_SAT_BUFFER;
-        sat_info.Mean_numSV    = nr_sats  / NAV_SAT_BUFFER;
-    }
-
-    index_SAT_info++;
-}
-
-// ============================================================================
-// Session reset
-// ============================================================================
-void reset_session_stats()
-{
-    total_distance=0; Ublox.run_distance=0; Ublox.alfa_distance=0;
-    run_count=0; old_run_count=0; alfa_counter=0;
-
-    S2.Reset_stats();   s2.Reset_stats();
-    S10.Reset_stats();  s10.Reset_stats();
-    S1800.Reset_stats(); S3600.Reset_stats();
-    A250.Reset_stats(); A500.Reset_stats(); a500.Reset_stats();
-
-    M100.m_distance=M250.m_distance=M500.m_distance=M1852.m_distance=0;
-    M100.m_index   =M250.m_index   =M500.m_index   =M1852.m_index   =0;
-
-    nav_pvt_message=0; old_message=0;
-}

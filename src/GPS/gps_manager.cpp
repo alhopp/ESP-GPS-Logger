@@ -20,16 +20,25 @@ int Time_Set_OK = 0;
 namespace {
 bool probeGps(uint32_t baud)
 {
+  UbloxSerial.end();
+  delay(20);
   UbloxSerial.begin(baud, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
   delay(120);
 
-  // Send MON-VER poll. Do not drain RX here; processGPS() consumes bytes later.
-  UbloxSerial.write(ubx::poll::mon_ver, sizeof(ubx::poll::mon_ver));
-  UbloxSerial.flush();
+  while (UbloxSerial.available()) {
+    UbloxSerial.read();
+  }
+
+  sendUbx(ubx::poll::mon_ver);
 
   const uint32_t start = millis();
-  while (millis() - start < 300) {
-    if (UbloxSerial.available() > 0) {
+  while (millis() - start < 1000) {
+    if (processGPS() == MT_MON_VER &&
+        (ubxMessage.monVER.hwVersion[3] == '8' ||
+         ubxMessage.monVER.hwVersion[3] == '9' ||
+         ubxMessage.monVER.hwVersion[3] == 'A')) {
+      LOG_GPS("Probe", "GPS responded @%lu baud hw=%s",
+              (unsigned long)baud, ubxMessage.monVER.hwVersion);
       return true;
     }
     delay(1);
@@ -46,12 +55,9 @@ bool initGPS()
   gps_power_on();
   delay(100);
 
-  UbloxSerial.end();
-  delay(20);
-  UbloxSerial.begin(38400, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
-  delay(100);
-
-  if (!probeGps(38400)) {
+  if (!probeGps(38400) &&
+      !probeGps(9600) &&
+      !probeGps(115200)) {
     LOG_GPS("Init", "no GPS response");
     gps_power_off();
     return false;

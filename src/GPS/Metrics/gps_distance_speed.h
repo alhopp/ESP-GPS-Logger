@@ -11,13 +11,13 @@
 //   - Alpha speed support (via m_speed_alfa)
 //
 // UNIT MODEL:
-//   - Distance integration : mm per sample (_gSpeed / sample_rate)
-//   - Speed samples        : cm/s → knots BEFORE averaging
+//   - Distance integration : RP6 raw sum target (_gSpeed * sample_rate)
+//   - Speed samples        : mm/s
 //   - Sample 0             : state init ONLY (no distance contribution)
 //   - Padding allowed for incomplete windows
 //
 // DATA SOURCE:
-//   - Global GPS ring buffers (_gSpeed, _sogCms, index_GPS)
+//   - Global GPS ring buffers (_gSpeed, index_GPS)
 //
 // OWNERSHIP:
 //   - Each GPS_speed instance owns *one* distance window
@@ -33,12 +33,12 @@ public:
   // Update distance window using latest GPS sample
   //
   // actual_run = current run counter
-  // Returns    = session-level best speed for this window (KNOTS)
+  // Returns    = session-level best speed for this window (mm/s)
   // -------------------------------------------------------------------------
   double Update_distance(int actual_run);
 
   // -------------------------------------------------------------------------
-  // Live calculation state (KNOTS)
+  // Live calculation state (mm/s)
   // -------------------------------------------------------------------------
   double m_speed       = 0.0;   // Avg speed over full distance window
   double m_speed_alfa  = 0.0;   // Shortened distance avg (used by Alpha)
@@ -50,7 +50,7 @@ public:
   double  avg_speed[10]     = {};   // Persistent top speeds
   double  display_speed[10] = {};   // Working copy for UI sorting
 
-  int     m_Distance[10] = {};      // Distance accumulated for each entry (mm)
+  int     m_Distance[10] = {};      // Legacy scaled distance accumulator
   uint8_t time_hour[10]  = {};
   uint8_t time_min[10]   = {};
   uint8_t time_sec[10]   = {};

@@ -1,4 +1,5 @@
 #include "GPS/Data/gps_data.h"
+#include "GPS/Data/gps_satellite_quality.h"
 
 #include "GPS/Metrics/gps_alpha_speed.h"
 #include "GPS/Metrics/gps_distance_speed.h"
