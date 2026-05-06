@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 // boot_manager.h
 //
 // Early boot sequence:
@@ -12,7 +12,7 @@
 //
 // Returns a BootResult describing whether boot may continue.
 // This module does NOT change system mode or make UI decisions.
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 enum BootResult : uint8_t {
   BOOT_OK = 0,
@@ -20,7 +20,7 @@ enum BootResult : uint8_t {
   BOOT_AFTER_RESET
 };
 
-// Run early boot checks and initialise core boot-time hardware
+// Run early boot checks and initialise core boot-time hardware.
 BootResult initBoot();
 
 // Optional: fetch a human-readable reason for the last non-OK boot result.

@@ -1,10 +1,10 @@
 // files.js
-// Outlook-style file list with date grouping + swipe delete
+// Outlook-style file list with date grouping + swipe delete.
 
-let swipeBound = false;   // Files-tab local state
+let swipeBound = false;   // Files-tab local state.
 
 // -----------------------------------------------------------------------------
-// Helpers — filename → date
+// Helpers: filename -> date
 // -----------------------------------------------------------------------------
 function parseDateKey(name){
   // Expect: BBBC2C_YYYYMMDD_HHMMSS.ext
@@ -31,7 +31,7 @@ async function loadFiles(fileList, sdInfo){
   if(!fileList || !sdInfo) return;
 
   fileList.innerHTML = "";
-  sdInfo.textContent = "Scanning…";
+  sdInfo.textContent = "Scanning...";
 
   try{
     const r = await fetch("/api/files",{ cache:"no-store" });
@@ -40,15 +40,12 @@ async function loadFiles(fileList, sdInfo){
     const j = await r.json();
     if(!j.ok) throw new Error("no sd");
 
-    // ---------------- Group files by date ----------------
     const groups = {};
-
     j.files.forEach(f=>{
       const dateKey = parseDateKey(f.name);
       (groups[dateKey] ||= []).push(f);
     });
 
-    // ---------------- Render groups (newest first) ----------------
     Object.keys(groups)
       .sort((a,b)=>b.localeCompare(a))
       .forEach(date=>{
@@ -63,9 +60,9 @@ async function loadFiles(fileList, sdInfo){
             <div class="file-row file-swipe"
                  data-name="${f.name}"
                  data-date="${date}">
-              <div class="file-delete">🗑</div>
+              <div class="file-delete">&#128465;</div>
               <div class="file-swipe-inner">
-                <div class="file-icon">📄</div>
+                <div class="file-icon">&#128196;</div>
                 <div class="file-text">
                   <div class="file-name">${f.name}</div>
                   <div class="file-size">${(f.size/1024).toFixed(1)} KB</div>
@@ -103,7 +100,6 @@ function enableSwipe(container, fileList, sdInfo){
       `/api/download?file=${encodeURIComponent(name)}&t=${Date.now()}`);
   };
 
-  // ---------------- Touch start ----------------
   container.addEventListener("touchstart", e=>{
     const del = e.target.closest(".file-delete");
     if(del){
@@ -123,7 +119,7 @@ function enableSwipe(container, fileList, sdInfo){
 
       r.remove();
 
-      // Remove date header if no files remain for that date
+      // Remove date header if no files remain for that date.
       if(!fileList.querySelector(`.file-row[data-date="${date}"]`)){
         const h = fileList.querySelector(`.file-date[data-date="${date}"]`);
         h && h.remove();
@@ -132,7 +128,7 @@ function enableSwipe(container, fileList, sdInfo){
       sdInfo && (sdInfo.textContent =
         `${fileList.querySelectorAll(".file-row").length} files`);
 
-      // 🔁 refresh map sessions if map already running
+      // Refresh map sessions if map is already running.
       if(window.MapSessions?._started){
         MapSessions.reload();
       }
@@ -150,7 +146,6 @@ function enableSwipe(container, fileList, sdInfo){
     sw = true;
   }, { passive:false });
 
-  // ---------------- Touch move ----------------
   container.addEventListener("touchmove", e=>{
     if(!sw) return;
 
@@ -163,7 +158,6 @@ function enableSwipe(container, fileList, sdInfo){
     }
   }, { passive:false });
 
-  // ---------------- Touch end ----------------
   container.addEventListener("touchend", ()=>{
     if(!sw) return;
     sw = false;
@@ -171,7 +165,6 @@ function enableSwipe(container, fileList, sdInfo){
     row.classList.toggle("show-delete", dx < -36);
   }, { passive:true });
 
-  // ---------------- Click (download only) ----------------
   container.addEventListener("click", e=>{
     const r = e.target.closest(".file-swipe");
     if(!r) return;

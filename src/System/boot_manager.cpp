@@ -1,9 +1,9 @@
-// -----------------------------------------------------------------------------
+// ============================================================================
 // boot_manager.cpp
 //
 // Deterministic early-boot initialisation.
 // This module reports whether boot may continue; it does not change system mode.
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 #include "System/boot_manager.h"
 
@@ -37,6 +37,8 @@ void initSerial()
 
 void sampleBattery()
 {
+  // Throw away the first ADC read after boot, then keep the existing project
+  // scale factor so low-battery behaviour stays unchanged.
   analogRead(BATTERY_ADC_PIN);
   delay(5);
 
@@ -48,6 +50,8 @@ void sampleBattery()
 
 void resetTimebase()
 {
+  // Start from a deterministic zero timebase. GPS/NTP code sets real time later
+  // after valid data is available.
   timeval tv = {};
   settimeofday(&tv, nullptr);
 }

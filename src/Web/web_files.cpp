@@ -14,33 +14,44 @@
 #include <FS.h>
 
 #include "Storage/storage_manager.h"
+#include "Web/web_json.h"
 
-// -----------------------------------------------------------------------------
-// Helpers (local)
-// -----------------------------------------------------------------------------
+namespace {
+constexpr size_t FILE_LIST_JSON_BYTES = 8192;
 
-// Return filename portion of a path (caller must copy if needed)
-static const char* basenameOnly(const char* path)
+// Return filename portion of a path. Callers must copy it before the owning
+// File/String goes out of scope.
+const char* basenameOnly(const char* path)
 {
   if (!path) return nullptr;
   const char* p = strrchr(path, '/');
   return p ? p + 1 : path;
 }
 
-// Validate log filename + extension, reject paths
-static bool isValidLogFile(const char* name)
+bool isAllowedLogExtension(const char* ext)
+{
+  return !strcasecmp(ext, ".txt") ||
+         !strcasecmp(ext, ".sbp") ||
+         !strcasecmp(ext, ".ubx") ||
+         !strcasecmp(ext, ".geojson");
+}
+
+// Validate log filename + extension, reject paths.
+bool isValidLogFile(const char* name)
 {
   if (!name || !*name) return false;
   if (strchr(name, '/') || strchr(name, '\\')) return false;
 
   const char* ext = strrchr(name, '.');
-  if (!ext) return false;
-
-  return !strcasecmp(ext, ".txt")  ||
-         !strcasecmp(ext, ".sbp")  ||
-         !strcasecmp(ext, ".ubx")  ||
-         !strcasecmp(ext, ".geojson");
+  return ext && isAllowedLogExtension(ext);
 }
+
+void sendJsonOk(WebServer& server, bool ok)
+{
+  server.send(200, "application/json", ok ? "{\"ok\":true}" : "{\"ok\":false}");
+}
+} // namespace
+
 // -----------------------------------------------------------------------------
 // Endpoint registration
 // -----------------------------------------------------------------------------
@@ -53,15 +64,21 @@ void registerFileEndpoints(WebServer &server)
   // ---------------------------------------------------------------------------
   server.on("/api/files", HTTP_GET, [&] {
 
-    DynamicJsonDocument j(8192);
+    DynamicJsonDocument j(FILE_LIST_JSON_BYTES);
     j["ok"] = true;
     JsonArray files = j.createNestedArray("files");
+
+    if (!storage_logs_dir_ready()) {
+      j["ok"] = false;
+      web_send_json(server, j);
+      return;
+    }
 
     fs::FS& storage = storage_sd_fs();
     File dir = storage.open("/logs");
     if (!dir || !dir.isDirectory()) {
       j["ok"] = false;
-      server.send(200, "application/json", j.as<String>());
+      web_send_json(server, j);
       return;
     }
 
@@ -79,7 +96,7 @@ void registerFileEndpoints(WebServer &server)
       file = dir.openNextFile();
     }
 
-    server.send(200, "application/json", j.as<String>());
+    web_send_json(server, j);
   });
 
   // ---------------------------------------------------------------------------
@@ -88,7 +105,7 @@ void registerFileEndpoints(WebServer &server)
   // ---------------------------------------------------------------------------
   server.on("/api/download", HTTP_GET, [&] {
 
-    if (!storage_sd_available() || !server.hasArg("file")) { server.send(400); return; }
+    if (!storage_on() || !server.hasArg("file")) { server.send(400); return; }
 
     String file = server.arg("file");
 
@@ -125,8 +142,8 @@ void registerFileEndpoints(WebServer &server)
   // ---------------------------------------------------------------------------
   server.on("/api/file", HTTP_DELETE, [&] {
 
-    if (!storage_sd_available() || !server.hasArg("plain")) {
-      server.send(200, "application/json", "{\"ok\":false}");
+    if (!storage_on() || !server.hasArg("plain")) {
+      sendJsonOk(server, false);
       return;
     }
 
@@ -145,8 +162,6 @@ void registerFileEndpoints(WebServer &server)
     char path[128];
     snprintf(path, sizeof(path), "/logs/%s", base);
 
-    bool ok = storage_sd_fs().remove(path);
-    server.send(200, "application/json",
-                ok ? "{\"ok\":true}" : "{\"ok\":false}");
+    sendJsonOk(server, storage_sd_fs().remove(path));
   });
 }

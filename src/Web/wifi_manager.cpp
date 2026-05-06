@@ -12,6 +12,7 @@
 #include <WiFi.h>
 
 #include "Core/build_config.h"
+#include "Core/log.h"
 #include "Config/config_types.h"
 #include "Runtime/display_redraw.h"
 
@@ -34,11 +35,11 @@ static bool apActive = false;
 // STA retry control
 // -----------------------------------------------------------------------------
 
-static unsigned long lastStaAttempt = 0;
+static uint32_t lastStaAttempt = 0;
 static int staAttempts = 0;
 
-#define STA_RETRY_INTERVAL_MS 3000
-#define STA_MAX_ATTEMPTS 10
+static constexpr uint32_t STA_RETRY_INTERVAL_MS = 3000;
+static constexpr int STA_MAX_ATTEMPTS = 10;
 
 // -----------------------------------------------------------------------------
 // UI state
@@ -92,14 +93,14 @@ static void start_sta()
 #if DEV_FORCE_WIFI
   const char *ssid = DEV_SSID;
   const char *pass = DEV_PASS;
-  Serial.println("[WIFI] DEV FORCE STA");
+  LOG_WIFI("STA", "DEV FORCE");
 #else
   const char *ssid = config.phone_ssid;
   const char *pass = config.phone_pass;
 #endif
 
   wifi_set_ui_state(WIFI_UI_TRYING);
-  Serial.printf("[WIFI] STA connect: %s\n", ssid);
+  LOG_WIFI("STA", "connect %s", ssid);
 
   WiFi.disconnect(true, true);
   delay(100);
@@ -112,13 +113,13 @@ static void start_sta()
   lastStaAttempt = millis();
   staAttempts++;
 
-  unsigned long t0 = millis();
+  const uint32_t t0 = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 3000) {
     delay(100);
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("[WIFI] Connected IP=%s\n", WiFi.localIP().toString().c_str());
+    LOG_WIFI("STA", "connected IP=%s", WiFi.localIP().toString().c_str());
     wifi_set_ui_state(WIFI_UI_CONNECTED);
 
     if (MDNS.begin("gps")) {
@@ -127,7 +128,7 @@ static void start_sta()
 
     webserver_start();
   } else {
-    Serial.println("[WIFI] STA not connected");
+    LOG_WIFI("STA", "not connected");
     wifi_set_ui_state(WIFI_UI_FAILED);
   }
 }
@@ -140,7 +141,7 @@ static void start_ap()
 {
   if (apActive) return;
 
-  Serial.println("[WIFI] Starting AP provisioning mode");
+  LOG_WIFI("AP", "starting provisioning mode");
 
   WiFi.disconnect(true, true);
   delay(100);
@@ -148,7 +149,7 @@ static void start_ap()
   WiFi.mode(WIFI_AP);
   WiFi.softAP("GPS-Setup");
 
-  Serial.printf("[WIFI] AP IP=%s\n", WiFi.softAPIP().toString().c_str());
+  LOG_WIFI("AP", "IP=%s", WiFi.softAPIP().toString().c_str());
 
   apActive = true;
   wifi_set_ui_state(WIFI_UI_AP);
@@ -168,7 +169,7 @@ void wifi_init()
   apActive = false;
 
   if (!have_phone_wifi()) {
-    Serial.println("[WIFI] No phone Wi-Fi, AP immediately");
+    LOG_WIFI("Init", "no phone Wi-Fi, AP immediately");
     start_ap();
     return;
   }
@@ -190,7 +191,7 @@ void wifi_stop()
   apActive = false;
   wifi_set_ui_state(WIFI_UI_OFF);
 
-  Serial.println("[WIFI] Wi-Fi stopped");
+  LOG_WIFI("Stop", "Wi-Fi stopped");
 }
 
 void wifi_loop()
@@ -201,18 +202,18 @@ void wifi_loop()
 
   if (staAttempts >= STA_MAX_ATTEMPTS) {
     if (build_dev_wifi_enabled()) {
-      Serial.println("[WIFI] DEV MODE: staying in STA retry loop");
+      LOG_WIFI("STA", "DEV retry loop");
       staAttempts = 0;
       return;
     }
 
-    Serial.println("[WIFI] STA failed, AP fallback");
+    LOG_WIFI("STA", "failed, AP fallback");
     start_ap();
     return;
   }
 
   if (millis() - lastStaAttempt > STA_RETRY_INTERVAL_MS) {
-    Serial.printf("[WIFI] STA retry %d/%d\n", staAttempts + 1, STA_MAX_ATTEMPTS);
+    LOG_WIFI("STA", "retry %d/%d", staAttempts + 1, STA_MAX_ATTEMPTS);
     start_sta();
   }
 }
