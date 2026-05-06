@@ -19,6 +19,7 @@
 
 #include "Core/Globals.h"
 #include "Core/system_info.h"
+#include "GPS/gps_runtime_state.h"
 
 #include <Arduino.h>
 #include <math.h>

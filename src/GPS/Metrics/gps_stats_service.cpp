@@ -3,6 +3,7 @@
 #include "Core/Globals.h"
 #include "GPS/Data/gps_data.h"
 #include "GPS/Data/gps_runtime_instances.h"
+#include "GPS/gps_runtime_state.h"
 #include "GPS/Metrics/gps_alpha_speed.h"
 #include "GPS/Metrics/gps_run_detector.h"
 #include "GPS/Metrics/gps_distance_speed.h"
@@ -16,12 +17,13 @@
 namespace {
 bool have_last_good_heading = false;
 float last_good_heading = 0.0f;
+int last_processed_nav_pvt_message = -1;
 
 bool isDuplicateNavPvt()
 {
-  if (nav_pvt_message == old_message) return true;
+  if (nav_pvt_message == last_processed_nav_pvt_message) return true;
 
-  old_message = nav_pvt_message;
+  last_processed_nav_pvt_message = nav_pvt_message;
   return false;
 }
 
@@ -86,6 +88,7 @@ void gps_stats_service_reset()
 {
   have_last_good_heading = false;
   last_good_heading = 0.0f;
+  last_processed_nav_pvt_message = -1;
 }
 
 void gps_stats_update(const GpsFix& fix)

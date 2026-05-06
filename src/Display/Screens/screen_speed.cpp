@@ -17,6 +17,7 @@
 
 #include "Core/Globals.h"
 #include "Display/E_paper.h"
+#include "GPS/gps_runtime_state.h"
 #include "Fonts.h"
 #include "GPS/gps_config.h"
 

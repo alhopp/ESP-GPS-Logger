@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "Core/Globals.h"
+#include "GPS/gps_runtime_state.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "Core/system_mode.h"
 #include "Logging/logging_session.h"
@@ -40,8 +41,6 @@ void gpsTask(void *parameter)
       vTaskDelay(pdMS_TO_TICKS(IDLE_DELAY_MS));
       continue;
     }
-
-    wdt_task0 = millis();
 
     if (gps_source_next_message() == MT_NAV_PVT) {
       processGpsFix(gps_fix_from_ubx());
@@ -90,7 +89,6 @@ void noteGpsSignalReady(const GpsFix& fix)
       fix.speedAccuracy < MAX_Sacc_FIRST_FIX &&
       fix.validDateTime) {
     GPS_Signal_OK = true;
-    first_fix_GPS = millis() / 1000;
     gps_logging_policy_note_signal_ready(millis());
   }
 }

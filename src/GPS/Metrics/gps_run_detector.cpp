@@ -22,6 +22,8 @@ constexpr int JIBE_COURSE_DEVIATION_MIN = 50;   // degrees
 float old_heading = 0.0f;
 float delta_heading_local = 0.0f;
 float heading = 0.0f;
+float mean_heading = 0.0f;
+float heading_snapshot = 0.0f;
 uint32_t delay_counter = 0;
 int run_counter = 0;
 bool velocity_0 = false;
@@ -46,8 +48,8 @@ void gps_run_reset()
   run_started_flag = false;
   run_ended_flag = false;
   last_jibe_idx = -1;
-  Mean_heading = 0.0f;
-  heading_SD = 0.0f;
+  mean_heading = 0.0f;
+  heading_snapshot = 0.0f;
 }
 
 void gps_run_update(float actual_heading, float s2_speed_mmps)
@@ -68,9 +70,9 @@ void gps_run_update(float actual_heading, float s2_speed_mmps)
   const int course_deviation_min = JIBE_COURSE_DEVIATION_MIN;
   const int time_delay_new_run = TIME_DELAY_NEW_RUN;
 
-  heading_SD = heading;
-  Mean_heading =
-    Mean_heading * (mean_heading_time * sample_rate - 1) / (mean_heading_time * sample_rate) +
+  heading_snapshot = heading;
+  mean_heading =
+    mean_heading * (mean_heading_time * sample_rate - 1) / (mean_heading_time * sample_rate) +
     heading / (mean_heading_time * sample_rate);
 
   if (s2_speed_mmps > speed_detection_min) velocity_5 = true;
@@ -82,12 +84,12 @@ void gps_run_update(float actual_heading, float s2_speed_mmps)
     delay_counter = (time_delay_new_run - 1) * sample_rate;
   }
 
-  if ((fabsf(Mean_heading - heading) < straight_course_max) &&
+  if ((fabsf(mean_heading - heading) < straight_course_max) &&
       (s2_speed_mmps > speed_detection_min)) {
     straight_course = true;
   }
 
-  if ((fabsf(Mean_heading - heading) > course_deviation_min) && straight_course) {
+  if ((fabsf(mean_heading - heading) > course_deviation_min) && straight_course) {
     straight_course = false;
     delay_counter = 0;
     alfa_counter++;

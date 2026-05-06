@@ -5,6 +5,7 @@
 #include "Core/system_info.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "Core/Globals.h"
+#include "GPS/gps_runtime_state.h"
 #include <time.h>
 
 // -----------------------------------------------------------------------------

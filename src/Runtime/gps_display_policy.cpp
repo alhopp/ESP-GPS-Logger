@@ -4,6 +4,7 @@
 
 #include "Core/Globals.h"
 #include "Core/system_mode.h"
+#include "GPS/gps_runtime_state.h"
 #include "Display/display_geometry.h"
 #include "Runtime/display_redraw.h"
 

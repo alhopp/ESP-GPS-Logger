@@ -5,6 +5,7 @@
 #include "Config/config_types.h"
 #include "Core/Globals.h"
 #include "GPS/Data/gps_session_reset.h"
+#include "GPS/gps_runtime_state.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "Logging/logging_session.h"
 
@@ -35,9 +36,6 @@ bool gps_logging_policy_maybe_start_session(const GpsFix& fix)
   }
 
   if (!logging_session_begin(fix)) return false;
-
-  Shut_down_Save_session = true;
-  start_logging_millis = millis();
 
   reset_session_stats();
   return true;

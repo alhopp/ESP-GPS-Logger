@@ -4,6 +4,7 @@
 #include <WiFi.h>
 
 #include "Storage/storage_manager.h"
+#include "GPS/gps_runtime_state.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "GPS/Hardware/gps_manager.h"
 #include "Core/Globals.h"

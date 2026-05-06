@@ -12,6 +12,7 @@
 #include "Core/Globals.h"
 #include "GPS/Data/gps_data.h"
 #include "GPS/Data/gps_runtime_instances.h"
+#include "GPS/gps_runtime_state.h"
 #include "GPS/Metrics/gps_run_detector.h"
 #include "GPS/Metrics/gps_stats_service.h"
 
@@ -72,5 +73,4 @@ void reset_session_stats()
 
   // Duplicate NAV-PVT suppression should restart cleanly with the session.
   nav_pvt_message = 0;
-  old_message = -1;
 }
