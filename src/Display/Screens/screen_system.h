@@ -19,7 +19,8 @@
 // Ownership:
 // - task_display controls refresh / paging
 // - system_mode controls which screen is active
-// - screen_system_common.* owns private shared drawing helpers
+// - screen_system_common.* owns magnet affordance drawing
+// - ui_* helpers own reusable screen drawing primitives
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------

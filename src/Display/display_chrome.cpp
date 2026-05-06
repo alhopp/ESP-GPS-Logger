@@ -14,9 +14,9 @@
 
 #include <Arduino.h>
 
+#include "Display/display_battery.h"
 #include "Display/E_paper.h"
 #include "Fonts.h"
-#include "Core/battery_config.h"
 #include "Core/Globals.h"
 #include "Core/Rtc/rtc_battery_state.h"
 #include "Core/Rtc/rtc_time_state.h"
@@ -26,12 +26,6 @@ namespace {
 constexpr int INFO_BAR_ROW_OFFSET = 2;
 
 char timeNow[8];
-
-float batteryPercent()
-{
-  const float percent = 100.0f * (1.0f - (VOLTAGE_100 - RTC_voltage_bat) / (VOLTAGE_100 - VOLTAGE_0));
-  return constrain(percent, 0.0f, 100.0f);
-}
 
 bool updateTime()
 {
@@ -54,7 +48,7 @@ void drawBattery(int uiOffset)
   display.setCursor(uiOffset + 146, display.height() - INFO_BAR_ROW_OFFSET);
   display.print(RTC_voltage_bat + 0.04, 1);
   display.print("V ");
-  display.print(static_cast<int>(batteryPercent()));
+  display.print(static_cast<int>(displayBatteryPercent(RTC_voltage_bat)));
   display.print("%");
 }
 

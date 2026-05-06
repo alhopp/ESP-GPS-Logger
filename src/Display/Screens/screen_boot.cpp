@@ -3,6 +3,7 @@
 #include "Core/Rtc/rtc_battery_state.h"
 #include "Display/E_paper.h"
 #include "Display/Screens/screen_system_common.h"
+#include "Display/Screens/ui_text.h"
 #include "Fonts.h"
 #include "Fonts/BitmapSurfbuddies.h"
 #include "Layout.h"

@@ -42,6 +42,28 @@ namespace {
     return 24 * (10 - i);
   }
 
+  void drawLabelValueRow(int row, const char* label, float value, int decimals = 2) {
+    constexpr int VALUE_COL = 150;
+
+    const int y = Layout::ROW18(row);
+    display.setFont(Fonts::Body12);
+    display.setCursor(ui_offset, y);
+    display.print(label);
+
+    display.setCursor(VALUE_COL, y);
+    display.setFont(Fonts::Body18);
+    display.print(value, decimals);
+  }
+
+  void drawInlineValue(int x, int y, const char* label, float value, int decimals) {
+    display.setFont(Fonts::Body12);
+    display.setCursor(x, y);
+    display.print(label);
+
+    display.setFont(Fonts::Body18);
+    display.print(value, decimals);
+  }
+
   // ---------------------------------------------------------
   // Shared helpers (templated – works with double/float arrays)
   // ---------------------------------------------------------
@@ -142,14 +164,18 @@ namespace {
 
     display.setFont(Fonts::Mono12);
     for (int i = 0; i < ROWS; i++) {
-      display.setCursor(col1, row[i]); display.print(leftLbl[i]);
-      display.setCursor(col3, row[i]); display.print(rightLbl[i]);
+      display.setCursor(col1, row[i]);
+      display.print(leftLbl[i]);
+      display.setCursor(col3, row[i]);
+      display.print(rightLbl[i]);
     }
 
     display.setFont(Fonts::Body12);
     for (int i = 0; i < ROWS; i++) {
-      display.setCursor(col2, row[i]); display.println(leftVal[i], 2);
-      display.setCursor(col4, row[i]); display.println(rightVal[i], (i == 2) ? 0 : 2);
+      display.setCursor(col2, row[i]);
+      display.println(leftVal[i], 2);
+      display.setCursor(col4, row[i]);
+      display.println(rightVal[i], (i == 2) ? 0 : 2);
     }
 
     float prv = cal(S10.s_max_speed);
@@ -169,28 +195,16 @@ namespace {
  * Existing primitives (kept as-is, just fixed)
  * ========================================================= */
 
- void Stats_4lines(
+void Stats_4lines(
   const char* m1, const char* m2,
   const char* m3, const char* m4,
   float v1, float v2, float v3, float v4
 ) {
-  constexpr int VALUE_COL = 150;
-
-  display.setFont(Fonts::Body12);
-
   const char* labels[4] = { m1, m2, m3, m4 };
   const float values[4] = { v1, v2, v3, v4 };
 
   for (int i = 0; i < 4; ++i) {
-    int y = Layout::ROW18(i + 1);
-
-    display.setCursor(ui_offset, y);
-    display.print(labels[i]);
-
-    display.setCursor(VALUE_COL, y);
-    display.setFont(Fonts::Body18);
-    display.print(values[i], 2);
-    display.setFont(Fonts::Body12);
+    drawLabelValueRow(i + 1, labels[i], values[i]);
   }
 }
 
@@ -202,22 +216,9 @@ void Stats_2s_3_lines(
   float v2,
   float v3
 ) {
-  // Top row: 2s info
-  display.setFont(Fonts::Body12);
-  display.setCursor(ui_offset, Layout::ROW18(1));
-  display.print("2l: ");
+  drawInlineValue(ui_offset, Layout::ROW18(1), "2l: ", S2.display_last_run * MMPS_TO_KNOTS, 1);
+  drawInlineValue(ui_offset + 120, Layout::ROW18(1), "2s: ", S2.display_speed[9] * MMPS_TO_KNOTS, 1);
 
-  display.setFont(Fonts::Body18);
-  display.print(S2.display_last_run * MMPS_TO_KNOTS, 1);
-
-  display.setFont(Fonts::Body12);
-  display.setCursor(ui_offset + 120, Layout::ROW18(1));
-  display.print("2s: ");
-
-  display.setFont(Fonts::Body18);
-  display.print(S2.display_speed[9] * MMPS_TO_KNOTS, 1);
-
-  // Remaining rows
   display.setFont(Fonts::Body12);
 
   display.setCursor(ui_offset, Layout::ROW18(2));
