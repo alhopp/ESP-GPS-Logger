@@ -1,25 +1,31 @@
-// -----------------------------------------------------------------------------
+// ============================================================================
 // storage_manager.cpp
-// ESP32 storage manager:
+//
+// ESP32 filesystem manager:
 // - LittleFS = always-on control/config storage
-// - SD_MMC   = removable/high-volume data logging storage
-// -----------------------------------------------------------------------------
+// - SD_MMC   = removable/high-volume logging storage
+//
+// This module owns mount/unmount state. Other modules can open files, but they
+// should not call LittleFS.begin(), SD_MMC.begin(), or SD_MMC.end() directly.
+// ============================================================================
 
 #include "Storage/storage_manager.h"
 
-#include <SD_MMC.h>
 #include <LittleFS.h>
+#include <SD_MMC.h>
 
 #include "Core/board_pins.h"
 #include "Core/log.h"
 
 namespace {
 
-// Hardware-fixed SD configuration.
+// Hardware-fixed SD configuration. 1-bit mode is safer for this board wiring
+// and avoids the wider SD bus pins.
 constexpr const char* SD_MMC_MOUNTPOINT = "/sdcard";
 constexpr bool SD_MMC_1BIT_MODE = true;
 
-// Internal storage state
+// Internal storage state. sd_detected records whether the card/bus has ever
+// passed mount during this boot; sd_mounted records current bus state.
 bool littlefs_available = false;
 bool sd_detected = false;
 bool sd_mounted = false;
@@ -33,11 +39,6 @@ void logSDStats();
 
 }
 
-// -----------------------------------------------------------------------------
-// Init both filesystems:
-// - LittleFS is mounted first for config/control plane
-// - SD_MMC is then mounted for logging/data plane
-// -----------------------------------------------------------------------------
 void initStorage()
 {
   LOG_STORAGE("Init", "start");
@@ -78,8 +79,7 @@ void initStorage()
 bool storage_on()
 {
   if (!storage_sd_available()) return false;
-  if (!mountSD_MMC()) return false;
-  return true;
+  return mountSD_MMC();
 }
 
 // Unmount SD_MMC cleanly.
@@ -110,11 +110,14 @@ bool storage_logs_dir_ready()
   if (!storage_on()) return false;
 
   fs::FS& fs = storage_sd_fs();
-  if (!fs.exists("/logs")) {
-    return fs.mkdir("/logs");
+  if (fs.exists("/logs")) return true;
+
+  if (!fs.mkdir("/logs")) {
+    LOG_ERROR("STORAGE", "mkdir /logs failed");
+    return false;
   }
 
-  return true;
+  return fs.exists("/logs");
 }
 
 bool storage_is_shutting_down()
@@ -132,10 +135,10 @@ void storage_end_shutdown()
   shutting_down = false;
 }
 
-// Mount SD_MMC in 1-bit safe mode.
-// DAT0 gets a pull-up preflight to improve bring-up reliability.
 namespace {
 
+// Mount SD_MMC in 1-bit safe mode. DAT0 gets a pull-up preflight to improve
+// bring-up reliability when the card/eMMC is not already driving the line.
 bool mountSD_MMC()
 {
   if (sd_mounted) return true;
@@ -152,6 +155,7 @@ bool mountSD_MMC()
   }
 
   sd_mounted = true;
+  sd_detected = true;
   return true;
 }
 
@@ -178,8 +182,7 @@ bool quickIOTest(fs::FS& fs, const char* path)
   f.println("ok");
   f.flush();
   f.close();
-  fs.remove(path);
-  return true;
+  return fs.remove(path);
 }
 
 // Log SD card capacity/usage in MB.
