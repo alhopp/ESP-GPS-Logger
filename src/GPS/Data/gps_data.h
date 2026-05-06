@@ -1,6 +1,9 @@
 #pragma once
 #include <stdint.h>
 
+// Shared GPS buffers and counters.
+// gps_data.cpp owns the storage; metric modules read these legacy-compatible
+// arrays to compute distance, time-window, run, and alpha results.
 
 // Define constants
 // -----------------------------------------------------------------------------

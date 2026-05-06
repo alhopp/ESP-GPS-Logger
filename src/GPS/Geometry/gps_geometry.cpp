@@ -1,6 +1,10 @@
 #include "GPS/Geometry/gps_geometry.h"
 #include <math.h>
 
+// Small-distance geometry helpers used by the run and alpha calculators.
+// These functions intentionally use the same planar approximations as the
+// legacy/RP6 math so the statistics stay comparable with Speedreader.
+
 // -----------------------------------------------------------------------------
 // Local geometry constants (meters per degree)
 // -----------------------------------------------------------------------------

@@ -1,5 +1,9 @@
 #pragma once
 
+// GPS geometry primitives used by metric calculators.
+// All coordinates are decimal degrees; distances returned by these helpers are
+// meters using the legacy short-range planar approximation.
+
 // -----------------------------------------------------------------------------
 // afstandPunten
 //

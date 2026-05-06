@@ -1,5 +1,8 @@
-
 #include "GPS/Metrics/gps_result_sort.h"
+
+// Legacy-compatible sort helpers.
+// The metric arrays keep related metadata in parallel arrays, so these routines
+// swap every associated field whenever a speed/result value moves.
 
 void sort_display(double a[],int size){
   for(int i=0; i<(size-1); i++) {

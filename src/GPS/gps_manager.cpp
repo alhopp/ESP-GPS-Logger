@@ -2,6 +2,8 @@
 // gps_manager.cpp
 //
 // GPS startup orchestration for ESP32 + u-blox.
+// Owns power-on, baud probing, and receiver configuration. Runtime sample
+// parsing continues through gps_source_next_message().
 // ============================================================================
 
 #include "GPS/gps_manager.h"

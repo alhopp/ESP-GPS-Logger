@@ -1,6 +1,10 @@
 #include "GPS/Ublox/ublox_driver.h"
 #include "Core/Definitions.h"
 
+// Streaming UBX frame parser.
+// It reads bytes from UbloxSerial, validates checksums, and copies payloads into
+// the global ubxMessage union owned by ublox_driver.cpp.
+
 // -----------------------------------------------------------------------------
 // classifyMessage
 //

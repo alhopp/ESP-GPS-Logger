@@ -1,5 +1,9 @@
 #include "GPS/Data/gps_satellite_quality.h"
 
+// Rolling NAV-SAT C/N0 and satellite-count metadata.
+// These values annotate stats/diagnostics; NAV-PVT acceptance is handled by
+// gps_sample_quality instead.
+
 #include <algorithm>
 
 #include "GPS/Ublox/ublox_driver.h"

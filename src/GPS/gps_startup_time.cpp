@@ -1,5 +1,8 @@
 #include "GPS/gps_startup_time.h"
 
+// Sends RTC-cached time to the GPS as a warm-start hint.
+// System time is still set later from real NAV-PVT GPS time.
+
 #include <Arduino.h>
 #include <string.h>
 

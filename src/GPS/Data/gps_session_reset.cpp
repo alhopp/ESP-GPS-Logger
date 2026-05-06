@@ -1,5 +1,9 @@
 #include "GPS/Data/gps_session_reset.h"
 
+// Central reset point for the GPS statistics graph.
+// Keeping this together prevents old run/alpha/window state leaking into a new
+// session after sleep, config changes, or manual restart.
+
 #include "Core/Globals.h"
 #include "GPS/Data/gps_data.h"
 #include "GPS/Metrics/gps_alpha_speed.h"

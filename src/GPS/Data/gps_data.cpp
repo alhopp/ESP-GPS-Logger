@@ -33,8 +33,7 @@
 #include "Core/system_info.h"
 
 #include "GPS/Data/gps_data.h"
-
-#include <math.h>
+#include "GPS/Data/gps_sample_quality.h"
 
 // ============================================================================
 // Global GPS buffers (single source of truth)
@@ -77,49 +76,9 @@ int sec_to_gps_index[BUFFER_SIZE] = {0};
 
 GPS_data::GPS_data(){ index_GPS = 0; }
 
-namespace {
-constexpr float MIN_VALID_COORD = 0.000001f;
-constexpr float BAD_JUMP_MIN_M = 50.0f;
-constexpr float BAD_JUMP_MARGIN_M = 20.0f;
-constexpr float BAD_JUMP_SPEED_MULT = 3.0f;
-
-bool have_last_good_position = false;
-float last_good_lat = 0.0f;
-float last_good_lon = 0.0f;
-
-float distanceMeters(float lat0, float lon0, float lat1, float lon1)
-{
-    const float dlat = lat1 - lat0;
-    const float dlon = (lon1 - lon0) * cosf((lat0 + lat1) * 0.5f * DEG2RAD);
-    return sqrtf(dlat * dlat + dlon * dlon) * 111195.0f;
-}
-
-bool sampleQualityOk(float latitude, float longitude, uint32_t gSpeed)
-{
-    if (ubxMessage.navPvt.fixType < 3) return false;
-    if (ubxMessage.navPvt.numSV < FILTER_MIN_SATS) return false;
-    if ((ubxMessage.navPvt.sAcc * 0.001f) >= FILTER_MAX_sACC) return false;
-    if (gSpeed > (uint32_t)MAX_GPS_SPEED_OK * 1000U) return false;
-    if (fabsf(latitude) < MIN_VALID_COORD && fabsf(longitude) < MIN_VALID_COORD) return false;
-
-    if (have_last_good_position) {
-        const float sr = systemInfo.sample_rate > 0 ? (float)systemInfo.sample_rate : 5.0f;
-        const float expected_m = (float)gSpeed * 0.001f / sr;
-        const float max_jump_m = fmaxf(BAD_JUMP_MIN_M, expected_m * BAD_JUMP_SPEED_MULT + BAD_JUMP_MARGIN_M);
-        if (distanceMeters(last_good_lat, last_good_lon, latitude, longitude) > max_jump_m) {
-            return false;
-        }
-    }
-
-    return true;
-}
-}
-
 void gps_data_reset_quality_state()
 {
-    have_last_good_position = false;
-    last_good_lat = 0.0f;
-    last_good_lon = 0.0f;
+    gps_sample_quality_reset();
 
     for (int i = 0; i < BUFFER_SIZE; i++) {
         _sampleGood[i] = false;
@@ -137,33 +96,26 @@ void GPS_data::push_data(float latitude,float longitude,uint32_t gSpeed)
     index_GPS++;
 
     const int i = index_GPS % BUFFER_SIZE;
-    const bool good_sample = sampleQualityOk(latitude, longitude, gSpeed);
+    const GpsSampleQualityResult quality =
+        gps_sample_quality_filter(latitude, longitude, gSpeed);
 
-    if (!good_sample) {
-        gSpeed = 0;
-        if (have_last_good_position) {
-            latitude = last_good_lat;
-            longitude = last_good_lon;
-        }
-    } else {
-        have_last_good_position = true;
-        last_good_lat = latitude;
-        last_good_lon = longitude;
-    }
+    latitude = quality.latitude;
+    longitude = quality.longitude;
+    gSpeed = quality.gSpeed;
 
     // -------------------------------------------------------------------------
     // Raw circular buffers
     // -------------------------------------------------------------------------
     _gSpeed [i] = gSpeed;
     _sogCms [i] = (uint16_t)(gSpeed * 0.1f); // mm/s → cm/s (SBP parity)
-    _sampleGood[i] = good_sample;
+    _sampleGood[i] = quality.good;
     _lat    [index_GPS % BUFFER_ALFA] = latitude;
     _long   [index_GPS % BUFFER_ALFA] = longitude;
 
     // -------------------------------------------------------------------------
     // Distance accumulation (quality-gated, RP6/Speedreader unit model, mm)
     // -------------------------------------------------------------------------
-    if(good_sample)
+    if(quality.good)
     {
         const float d_mm = (float)gSpeed / systemInfo.sample_rate; // mm per sample
 

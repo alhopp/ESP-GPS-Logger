@@ -8,6 +8,10 @@
 #include "Core/system_info.h"
 #include "GPS/Data/gps_data.h"
 
+// Detects Speedreader-style runs and jibes from heading stability plus 2s speed.
+// The rest of the metric code consumes the resulting run number and jibe index;
+// this module owns only that detector state.
+
 namespace {
 constexpr int SPEED_DETECTION_MIN = 4000;       // mm/s
 constexpr int STANDSTILL_DETECTION_MAX = 1000;  // mm/s

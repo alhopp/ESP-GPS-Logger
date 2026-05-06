@@ -4,6 +4,10 @@
 #include "Core/Globals.h"
 #include "Config/config_types.h"
 
+// u-blox receiver configuration and time sync.
+// This file owns command sequencing and GPS-derived system time updates; the
+// streaming parser stays in ublox_parser.cpp.
+
 // -----------------------------------------------------------------------------
 // Set_GPS_Time
 //

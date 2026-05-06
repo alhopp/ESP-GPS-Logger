@@ -1,5 +1,10 @@
 #pragma once
 
+// Normalized GPS fix view used by the rest of the firmware.
+//
+// UBX NAV-PVT is a binary protocol struct with u-blox units. GpsFix converts
+// the fields application code needs into clearer units and flags.
+
 #include <Arduino.h>
 #include <time.h>
 

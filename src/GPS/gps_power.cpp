@@ -1,5 +1,8 @@
 #include "GPS/gps_power.h"
 
+// Board-specific GPS power enable pins.
+// Keep this file hardware-only: no UBX config, parsing, logging, or UI policy.
+
 #include <Arduino.h>
 #include <driver/gpio.h>
 #include <driver/rtc_io.h>

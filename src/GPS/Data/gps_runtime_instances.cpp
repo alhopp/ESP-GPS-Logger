@@ -1,4 +1,9 @@
 #include "GPS/Data/gps_data.h"
+
+// Owns the global GPS/statistics objects used by the firmware.
+// This preserves the RP6 global-object model while keeping construction out of
+// headers and avoiding hidden duplicate instances.
+
 #include "GPS/Data/gps_satellite_quality.h"
 
 #include "GPS/Metrics/gps_alpha_speed.h"
