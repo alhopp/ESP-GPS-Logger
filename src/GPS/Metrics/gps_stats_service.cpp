@@ -4,6 +4,7 @@
 #include "GPS/Data/gps_data.h"
 #include "GPS/Data/gps_runtime_instances.h"
 #include "GPS/gps_runtime_state.h"
+#include "GPS/Metrics/gps_alpha_guidance.h"
 #include "GPS/Metrics/gps_alpha_speed.h"
 #include "GPS/Metrics/gps_run_detector.h"
 #include "GPS/Metrics/gps_distance_speed.h"
@@ -81,6 +82,7 @@ void updateAlphaWindows()
 {
   alpha_250m.Update_Alfa(speed_250m);
   alpha_500m.Update_Alfa(speed_500m);
+  gps_alpha_guidance_update();
 }
 }
 

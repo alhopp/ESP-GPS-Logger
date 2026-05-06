@@ -3,13 +3,14 @@
 #include <Arduino.h>
 
 #include "Core/log.h"
+#include "Core/battery_config.h"
 #include "Config/config_types.h"
 
 void config_set_defaults()
 {
   LOG_CONFIG("Defaults", "Applying defaults");
 
-  config.cal_bat = 1.75f;
+  config.cal_bat = BATTERY_ADC_MV_PER_COUNT_DEFAULT;
   config.shutdown_voltage = 3.2f;
   config.track_distance = 1852;
   config.bar_length = 1852;

@@ -11,14 +11,11 @@
 #include <sys/time.h>
 
 #include "Display/E_paper.h"
-#include "Core/battery_config.h"
-#include "Core/board_pins.h"
+#include "Core/Battery/battery_monitor.h"
 #include "Core/log.h"
 #include "Core/Globals.h"
-#include "Core/Rtc/rtc_battery_state.h"
 
 namespace {
-constexpr float BAT_SCALE = 5.0f;
 constexpr uint32_t SERIAL_WAIT_MS = 400;
 
 const char* s_failReason = nullptr;
@@ -33,19 +30,6 @@ void initSerial()
   }
 
   LOG_BOOT("Init", "starting");
-}
-
-void sampleBattery()
-{
-  // Throw away the first ADC read after boot, then keep the existing project
-  // scale factor so low-battery behaviour stays unchanged.
-  analogRead(BATTERY_ADC_PIN);
-  delay(5);
-
-  analog_mean = analogRead(BATTERY_ADC_PIN);
-  RTC_voltage_bat = analog_mean * BAT_SCALE;
-
-  LOG_BOOT("Battery", "%.2f V", RTC_voltage_bat);
 }
 
 void resetTimebase()
@@ -64,7 +48,7 @@ void initEarlyDisplay()
 
 BootResult checkFatalBootConditions()
 {
-  if (RTC_voltage_bat < RTC_minimum_voltage_bat) {
+  if (battery_is_low()) {
     LOG_BOOT("Shutdown", "low battery");
     s_failReason = "Shut down Low Bat!";
     return BOOT_LOW_BATTERY;
@@ -85,7 +69,7 @@ BootResult initBoot()
   s_failReason = nullptr;
 
   initSerial();
-  sampleBattery();
+  battery_sample();
   resetTimebase();
   initEarlyDisplay();
 

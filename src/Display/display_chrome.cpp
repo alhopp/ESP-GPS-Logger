@@ -14,6 +14,7 @@
 
 #include <Arduino.h>
 
+#include "Core/Battery/battery_monitor.h"
 #include "Display/display_battery.h"
 #include "Display/E_paper.h"
 #include "Fonts.h"
@@ -46,7 +47,7 @@ void drawBattery(int uiOffset)
 
   display.setFont(Fonts::Body9);
   display.setCursor(uiOffset + 146, display.height() - INFO_BAR_ROW_OFFSET);
-  display.print(RTC_voltage_bat + 0.04, 1);
+  display.print(battery_display_voltage(RTC_voltage_bat), 1);
   display.print("V ");
   display.print(static_cast<int>(displayBatteryPercent(RTC_voltage_bat)));
   display.print("%");

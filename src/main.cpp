@@ -19,6 +19,7 @@
 // --- System / input ----------------------------------------------------------
 #include "Core/sleep_control.h"
 #include "Core/system_mode.h"
+#include "Core/Battery/battery_monitor.h"
 #include "Core/magnet_input.h"
 #include "Core/log.h"
 #include "Core/Globals.h"
@@ -31,6 +32,7 @@ void initSubsystems()
 {
   initStorage();
   initConfig();
+  battery_sample();
   initMagnet();
 }
 
