@@ -25,6 +25,9 @@ bool storage_off();
 // Availability/status flags.
 bool storage_sd_available();
 bool storage_littlefs_available();
+uint32_t storage_sd_total_mb();
+uint32_t storage_sd_used_mb();
+uint32_t storage_sd_free_mb();
 
 // Returns the SD_MMC filesystem object. Call storage_on() or
 // storage_logs_dir_ready() first unless the current system mode already did it.

@@ -4,7 +4,9 @@
 #include <WiFi.h>
 
 #include "Config/config_manager.h"
+#include "Core/build_config.h"
 #include "Core/system_info.h"
+#include "Storage/storage_manager.h"
 #include "Web/web_json.h"
 
 namespace {
@@ -29,12 +31,18 @@ void registerConfigApi(WebServer& server)
     system["gnss_mode"] = systemInfo.gnss_mode;
     system["dynamic_model"] = systemInfo.dynamic_model;
     system["sample_rate"] = systemInfo.sample_rate;
-    system["storage_mb"] = systemInfo.storage_mb;
+    system["storage_mb"] = storage_sd_total_mb();
+    system["storage_used_mb"] = storage_sd_used_mb();
+    system["storage_free_mb"] = storage_sd_free_mb();
+    system["storage_detected"] = storage_sd_available();
     system["software_version"] = systemInfo.software_version;
     system["display"] = systemInfo.display;
-    system["cpu_freq"] = systemInfo.cpu_freq;
+    system["cpu_freq"] = getCpuFrequencyMhz();
     system["speed_units"] = systemInfo.speed_units;
     system["cal_speed"] = systemInfo.cal_speed;
+    system["simulator"] = build_gps_simulator_enabled();
+    system["dev_wifi"] = build_dev_wifi_enabled();
+    system["logging_enabled"] = LOG_ENABLED != 0;
 
     JsonObject configJ = j.createNestedObject("config");
     configJ["timezone"] = config.timezone;

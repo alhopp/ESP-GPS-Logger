@@ -103,6 +103,28 @@ bool storage_littlefs_available()
   return littlefs_available;
 }
 
+uint32_t storage_sd_total_mb()
+{
+  if (!sd_detected) return 0;
+  return static_cast<uint32_t>(SD_MMC.totalBytes() / (1024ULL * 1024ULL));
+}
+
+uint32_t storage_sd_used_mb()
+{
+  if (!sd_detected) return 0;
+  return static_cast<uint32_t>(SD_MMC.usedBytes() / (1024ULL * 1024ULL));
+}
+
+uint32_t storage_sd_free_mb()
+{
+  if (!sd_detected) return 0;
+
+  const uint64_t total = SD_MMC.totalBytes();
+  const uint64_t used = SD_MMC.usedBytes();
+  const uint64_t freeb = total > used ? total - used : 0;
+  return static_cast<uint32_t>(freeb / (1024ULL * 1024ULL));
+}
+
 fs::FS& storage_sd_fs()
 {
   return static_cast<fs::FS&>(SD_MMC);
