@@ -19,12 +19,13 @@ void gps_logging_policy_note_signal_ready(uint32_t nowMs)
   timeWaitStartMs = nowMs;
 }
 
-void gps_logging_policy_maybe_start_session(const GpsFix& fix)
+bool gps_logging_policy_maybe_start_session(const GpsFix& fix)
 {
-  if (!GPS_Signal_OK || logging_session_active()) return;
+  if (!GPS_Signal_OK) return false;
+  if (logging_session_active()) return true;
 
   if (!Time_Set_OK) {
-    if (!fix.validDateTime && millis() - timeWaitStartMs <= TIME_SYNC_WAIT_MS) return;
+    if (!fix.validDateTime && millis() - timeWaitStartMs <= TIME_SYNC_WAIT_MS) return false;
 
     if (fix.validDateTime) {
       Set_GPS_Time(config.timezone);
@@ -33,10 +34,11 @@ void gps_logging_policy_maybe_start_session(const GpsFix& fix)
     Time_Set_OK = true;
   }
 
-  if (!logging_session_begin(fix)) return;
+  if (!logging_session_begin(fix)) return false;
 
   Shut_down_Save_session = true;
   start_logging_millis = millis();
 
   reset_session_stats();
+  return true;
 }

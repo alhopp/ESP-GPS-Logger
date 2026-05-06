@@ -23,7 +23,7 @@ bool gpsTaskShouldRun();
 void processGpsFix(const GpsFix& fix);
 void processGpsMessage(const GpsFix& fix);
 void noteGpsSignalReady(const GpsFix& fix);
-void maybeEnterLoggingMode();
+void maybeEnterLoggingMode(bool sessionActive);
 void updateSessionStats(const GpsFix& fix);
 }
 
@@ -76,8 +76,8 @@ void processGpsMessage(const GpsFix& fix)
   last_gps_msg = millis();
 
   noteGpsSignalReady(fix);
-  maybeEnterLoggingMode();
-  gps_logging_policy_maybe_start_session(fix);
+  const bool sessionActive = gps_logging_policy_maybe_start_session(fix);
+  maybeEnterLoggingMode(sessionActive);
   updateSessionStats(fix);
 }
 
@@ -94,9 +94,9 @@ void noteGpsSignalReady(const GpsFix& fix)
   }
 }
 
-void maybeEnterLoggingMode()
+void maybeEnterLoggingMode(bool sessionActive)
 {
-  if (GPS_Signal_OK && getMode() == MODE_WAIT_SATS) {
+  if (sessionActive && getMode() == MODE_WAIT_SATS) {
     setMode(MODE_LOGGING);
   }
 }

@@ -9,4 +9,6 @@
 // the session can begin yet and performs the existing time-sync gate.
 
 void gps_logging_policy_note_signal_ready(uint32_t nowMs);
-void gps_logging_policy_maybe_start_session(const GpsFix& fix);
+
+// Returns true once a logging session is active.
+bool gps_logging_policy_maybe_start_session(const GpsFix& fix);

@@ -15,6 +15,7 @@
 
 #include "Core/Definitions.h"
 #include "Core/rtc_state.h"
+#include "GPS/Hardware/gps_manager.h"
 #include "GPS/Metrics/gps_alpha_speed.h"
 #include "GPS/Hardware/gps_power.h"
 #include "Storage/storage_manager.h"
@@ -25,6 +26,7 @@
 
 namespace {
 volatile SystemMode currentMode = MODE_BOOT;
+volatile bool enterModeFailed = false;
 
 void requestModeRedraw()
 {
@@ -72,11 +74,22 @@ void exitSleep()
   LOG_SYS("MODE", "EXIT SLEEP");
 }
 
-void runExitActions(SystemMode oldMode)
+void exitWaitSats(SystemMode newMode)
+{
+  if (newMode != MODE_LOGGING) {
+    gps_power_off();
+  }
+}
+
+void runExitActions(SystemMode oldMode, SystemMode newMode)
 {
   switch (oldMode) {
     case MODE_LOGGING:
       exitLogging();
+      break;
+
+    case MODE_WAIT_SATS:
+      exitWaitSats(newMode);
       break;
 
     case MODE_CONFIG:
@@ -89,7 +102,6 @@ void runExitActions(SystemMode oldMode)
 
     case MODE_BOOT:
     case MODE_IDLE:
-    case MODE_WAIT_SATS:
     case MODE_ERROR:
     default:
       break;
@@ -98,14 +110,27 @@ void runExitActions(SystemMode oldMode)
 
 void enterLogging()
 {
-  LOG_SYS("MODE", "ENTER LOGGING, Wi-Fi OFF");
+  LOG_SYS("MODE", "ENTER LOGGING, GPS already active, Wi-Fi OFF");
 
   storage_end_shutdown();
 
   wifi_stop();
-  gps_power_on();
 
   ensureStorageReady("LOGGING");
+}
+
+void enterWaitSats()
+{
+  LOG_SYS("MODE", "ENTER WAIT_SATS, GPS ON");
+
+  storage_end_shutdown();
+  wifi_stop();
+  ensureStorageReady("WAIT_SATS");
+
+  if (!initGPS()) {
+    LOG_ERROR("GPS", "init failed entering WAIT_SATS");
+    enterModeFailed = true;
+  }
 }
 
 void enterConfig()
@@ -140,6 +165,10 @@ void enterSleep()
 void runEnterActions(SystemMode newMode)
 {
   switch (newMode) {
+    case MODE_WAIT_SATS:
+      enterWaitSats();
+      break;
+
     case MODE_LOGGING:
       enterLogging();
       break;
@@ -154,7 +183,6 @@ void runEnterActions(SystemMode newMode)
 
     case MODE_BOOT:
     case MODE_IDLE:
-    case MODE_WAIT_SATS:
     case MODE_ERROR:
     default:
       break;
@@ -206,10 +234,17 @@ void setMode(SystemMode newMode)
           modeToString(oldMode),
           modeToString(newMode));
 
-  runExitActions(oldMode);
+  enterModeFailed = false;
+
+  runExitActions(oldMode, newMode);
 
   currentMode = newMode;
   requestModeRedraw();
 
   runEnterActions(newMode);
+
+  if (enterModeFailed && currentMode == newMode) {
+    currentMode = MODE_IDLE;
+    requestModeRedraw();
+  }
 }
