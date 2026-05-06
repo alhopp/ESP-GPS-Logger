@@ -65,9 +65,10 @@ async function loadFiles(fileList, sdInfo){
 
         groups[date].forEach(f=>{
           const downloadName = f.sbp_name || f.name;
+          const displayName = f.sbp_name || f.name;
           const details = f.sbp_name
-            ? `SBP ${fileSizeKb(f.sbp_size)} | Map ${fileSizeKb(f.size)}`
-            : `Map ${fileSizeKb(f.size)}`;
+            ? `Download SBP ${fileSizeKb(f.sbp_size)} | Map preview ${fileSizeKb(f.size)}`
+            : `Map preview only ${fileSizeKb(f.size)}`;
 
           fileList.insertAdjacentHTML("beforeend",`
             <div class="file-row file-swipe"
@@ -78,7 +79,7 @@ async function loadFiles(fileList, sdInfo){
               <div class="file-swipe-inner">
                 <div class="file-icon">&#128196;</div>
                 <div class="file-text">
-                  <div class="file-name">${sessionTitle(f.name)}</div>
+                  <div class="file-name">${sessionTitle(displayName)}</div>
                   <div class="file-size">${details}</div>
                 </div>
               </div>
