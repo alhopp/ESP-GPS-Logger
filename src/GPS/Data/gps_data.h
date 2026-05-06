@@ -51,7 +51,7 @@ extern int sec_to_gps_index[BUFFER_SIZE];
 // Notes:
 // - Ground speed is expected in mm/s (Doppler-based)
 // - Buffer indexing and sample timing are handled internally
-// - Higher-level calculations are performed by GPS_speed, GPS_time, etc.
+// - Higher-level calculations are performed by GPS_distance_speed, GPS_time_speed, etc.
 // -----------------------------------------------------------------------------
 
 extern float total_distance;   // session distance (mm)

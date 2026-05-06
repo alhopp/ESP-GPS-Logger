@@ -48,7 +48,7 @@ void printRunStartDebug()
 
 void snapshotBest2s()
 {
-  RTC_max_2s_knots = S2.s_max_speed * MMPS_TO_KNOTS;
+  RTC_max_2s_knots = speed_2s.s_max_speed * MMPS_TO_KNOTS;
   Serial.printf("2s max          : %.3f kn\n", RTC_max_2s_knots);
 }
 
@@ -56,9 +56,9 @@ int collectSortedRun10s(double results[], int maxResults)
 {
   int count = 0;
 
-  for (int run = 1; run <= S10.run_count && run < maxResults; run++) {
-    if (S10.best_10s_per_run[run] > 0) {
-      results[count++] = S10.best_10s_per_run[run];
+  for (int run = 1; run <= speed_10s.run_count && run < maxResults; run++) {
+    if (speed_10s.best_10s_per_run[run] > 0) {
+      results[count++] = speed_10s.best_10s_per_run[run];
     }
   }
 
@@ -130,9 +130,9 @@ void snapshotTopRun10s()
 
 void snapshotSpecialSpeeds()
 {
-  RTC_mile_knots = M1852.avg_speed[9] * MMPS_TO_KNOTS;
-  RTC_alp_knots = A500.avg_speed[9] * MMPS_TO_KNOTS;
-  RTC_1h_knots = S3600.s_max_speed * MMPS_TO_KNOTS;
+  RTC_mile_knots = speed_nm.avg_speed[9] * MMPS_TO_KNOTS;
+  RTC_alp_knots = alpha_500m.avg_speed[9] * MMPS_TO_KNOTS;
+  RTC_1h_knots = speed_1h.s_max_speed * MMPS_TO_KNOTS;
 
   Serial.printf("NM (1852m)      : %.3f kn\n", RTC_mile_knots);
   Serial.printf("Alpha 500       : %.3f kn\n", RTC_alp_knots);

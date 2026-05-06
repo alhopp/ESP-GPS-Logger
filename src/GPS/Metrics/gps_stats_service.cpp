@@ -46,7 +46,7 @@ void updateHeadingForRunDetection(const GpsFix& fix, bool sample_good)
 void updateRunDetection(bool sample_good)
 {
   if (sample_good || have_last_good_heading) {
-    gps_run_update(last_good_heading, S2.avg_s);
+    gps_run_update(last_good_heading, speed_2s.avg_s);
   }
 
   run_count = gps_run_current();
@@ -60,27 +60,24 @@ void updateRunDetection(bool sample_good)
 
 void updateDistanceWindows()
 {
-  M100.Update_distance(run_count);
-  M250.Update_distance(run_count);
-  M500.Update_distance(run_count);
-  M1852.Update_distance(run_count);
+  speed_100m.Update_distance(run_count);
+  speed_250m.Update_distance(run_count);
+  speed_500m.Update_distance(run_count);
+  speed_nm.Update_distance(run_count);
 }
 
 void updateTimeWindows()
 {
-  S2.Update_speed(run_count);
-  s2.Update_speed(run_count);
-  S10.Update_speed(run_count);
-  s10.Update_speed(run_count);
-  S1800.Update_speed(run_count);
-  S3600.Update_speed(run_count);
+  speed_2s.Update_speed(run_count);
+  speed_10s.Update_speed(run_count);
+  speed_30min.Update_speed(run_count);
+  speed_1h.Update_speed(run_count);
 }
 
 void updateAlphaWindows()
 {
-  A250.Update_Alfa(M250);
-  A500.Update_Alfa(M500);
-  a500.Update_Alfa(M500);
+  alpha_250m.Update_Alfa(speed_250m);
+  alpha_500m.Update_Alfa(speed_500m);
 }
 }
 
@@ -95,7 +92,7 @@ void gps_stats_update(const GpsFix& fix)
   if (isDuplicateNavPvt()) return;
 
   // RP6 update order:
-  // ingest/filter sample -> run detection using previous S2.avg_s
+  // ingest/filter sample -> run detection using previous speed_2s.avg_s
   // -> distance windows -> time windows -> alpha windows.
   ingestSample(fix);
 

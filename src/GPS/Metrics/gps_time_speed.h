@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 // ============================================================================
-// GPS_time
+// GPS_time_speed
 // Time-window based speed statistics (2s, 10s, 1h)
 //
 // UNITS
@@ -19,9 +19,9 @@
 // - Geometry window indices for GeoJSON generation
 // ============================================================================
 
-class GPS_time {
+class GPS_time_speed {
 public:
-  explicit GPS_time(int tijdvenster);
+  explicit GPS_time_speed(int tijdvenster);
 
   // ---------------- per-run / rolling state ----------------
   float best_10s_per_run[32];   // compatibility export for RTC/GeoJSON
@@ -71,12 +71,10 @@ private:
 // ---------------------------------------------------------------------------
 // Global instances (API preserved)
 // ---------------------------------------------------------------------------
-extern GPS_time S2;     // 2-second window (session best)
-extern GPS_time s2;     // 2-second resettable stats/display window
-extern GPS_time S10;    // 10-second window
-extern GPS_time s10;    // 10-second resettable stats/display window
-extern GPS_time S1800;  // 30-minute window (if used)
-extern GPS_time S3600;  // 1-hour window
+extern GPS_time_speed speed_2s;     // 2-second window (session best)
+extern GPS_time_speed speed_10s;    // 10-second window
+extern GPS_time_speed speed_30min;  // 30-minute window (if used)
+extern GPS_time_speed speed_1h;  // 1-hour window
 
 // ============================================================================
 // Geometry window exports (USED BY STORAGE / GEOJSON)

@@ -10,7 +10,7 @@
 #include <time.h>
 
 // ============================================================================
-// GPS_time
+// GPS_time_speed
 //
 // Time-window speed engine for GPS data.
 //
@@ -71,10 +71,10 @@ static inline int wrap_gps(int i){
 
 
 // -----------------------------------------------------------------------------
-GPS_time::GPS_time(int tijdvenster) : time_window(tijdvenster){ Reset_stats(); }
+GPS_time_speed::GPS_time_speed(int tijdvenster) : time_window(tijdvenster){ Reset_stats(); }
 
 // -----------------------------------------------------------------------------
-void GPS_time::Reset_stats()
+void GPS_time_speed::Reset_stats()
 {
   for(int i=0;i<10;i++){
     avg_speed[i]=0;
@@ -112,7 +112,7 @@ void GPS_time::Reset_stats()
 }
 
 // -----------------------------------------------------------------------------
-float GPS_time::Update_speed(int actual_run)
+float GPS_time_speed::Update_speed(int actual_run)
 {
   if(actual_run > run_count && actual_run < 32) run_count = actual_run;
 

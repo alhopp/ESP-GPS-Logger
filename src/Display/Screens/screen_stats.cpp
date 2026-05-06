@@ -32,21 +32,21 @@ void drawStats6Table()
   const int col4 = ui_offset + 182;
 
   const float leftVal[ROWS] = {
-    statsKnots(S10.avg_5runs),
-    statsKnots(S10.display_speed[9]),
-    statsKnots(S10.display_speed[8]),
-    statsKnots(S10.display_speed[7]),
-    statsKnots(S10.display_speed[6]),
-    statsKnots(S10.display_speed[5])
+    statsKnots(speed_10s.avg_5runs),
+    statsKnots(speed_10s.display_speed[9]),
+    statsKnots(speed_10s.display_speed[8]),
+    statsKnots(speed_10s.display_speed[7]),
+    statsKnots(speed_10s.display_speed[6]),
+    statsKnots(speed_10s.display_speed[5])
   };
 
   const float rightVal[ROWS] = {
-    statsKnots(S2.display_speed[9]),
-    statsKnots(S10.s_max_speed),
+    statsKnots(speed_2s.display_speed[9]),
+    statsKnots(speed_10s.s_max_speed),
     static_cast<float>(total_distance) * 1e-6f,
-    statsKnots(A500.avg_speed[9]),
-    statsKnots(M500.display_speed[9]),
-    statsKnots(M1852.display_speed[9])
+    statsKnots(alpha_500m.avg_speed[9]),
+    statsKnots(speed_500m.display_speed[9]),
+    statsKnots(speed_nm.display_speed[9])
   };
 
   const char* leftLbl[ROWS] = { "AV:", "R1:", "R2:", "R3:", "R4:", "R5:" };
@@ -68,7 +68,7 @@ void drawStats6Table()
     display.println(rightVal[i], (i == 2) ? 0 : 2);
   }
 
-  const float previous = statsKnots(S10.s_max_speed);
+  const float previous = statsKnots(speed_10s.s_max_speed);
   int line = row[ROWS - 1];
   for (int i = 1; i < ROWS; i++) {
     if (previous > leftVal[i]) {
@@ -106,8 +106,8 @@ void drawStats2s3Lines(
   float v2,
   float v3
 ) {
-  statsDrawInlineValue(ui_offset, Layout::ROW18(1), "2l: ", statsKnots(S2.display_last_run), 1);
-  statsDrawInlineValue(ui_offset + 120, Layout::ROW18(1), "2s: ", statsKnots(S2.display_speed[9]), 1);
+  statsDrawInlineValue(ui_offset, Layout::ROW18(1), "2l: ", statsKnots(speed_2s.display_last_run), 1);
+  statsDrawInlineValue(ui_offset + 120, Layout::ROW18(1), "2s: ", statsKnots(speed_2s.display_speed[9]), 1);
 
   display.setFont(Fonts::Body12);
 
@@ -139,9 +139,9 @@ void draw_STATS(uint8_t page)
     case 1:
       drawStats2s3Lines(
         "10sF: ", "10sS: ", "AVG:  ",
-        statsKnots(S10.display_speed[9]),
-        statsKnots(S10.display_speed[5]),
-        statsKnots(S10.avg_5runs)
+        statsKnots(speed_10s.display_speed[9]),
+        statsKnots(speed_10s.display_speed[5]),
+        statsKnots(speed_10s.avg_5runs)
       );
       break;
 
@@ -151,9 +151,9 @@ void draw_STATS(uint8_t page)
       drawStats4Lines(
         "Dist: ", "1852m: ", toggle ? "3600s: " : "1800s: ", "Alfa: ",
         total_distance / 1000,
-        statsKnots(M1852.display_speed[9]),
-        statsKnots(toggle ? S3600.display_max_speed : S1800.display_max_speed),
-        statsKnots(A500.avg_speed[9])
+        statsKnots(speed_nm.display_speed[9]),
+        statsKnots(toggle ? speed_1h.display_max_speed : speed_30min.display_max_speed),
+        statsKnots(alpha_500m.avg_speed[9])
       );
 
       toggle = !toggle;
@@ -163,10 +163,10 @@ void draw_STATS(uint8_t page)
     case 3:
       drawStats4Lines(
         "100m:", "250m:", "500m:", "Alfa:",
-        statsKnots(M100.display_speed[9]),
-        statsKnots(M250.display_speed[9]),
-        statsKnots(M500.display_speed[9]),
-        statsKnots(A500.avg_speed[9])
+        statsKnots(speed_100m.display_speed[9]),
+        statsKnots(speed_250m.display_speed[9]),
+        statsKnots(speed_500m.display_speed[9]),
+        statsKnots(alpha_500m.avg_speed[9])
       );
       break;
 
@@ -175,13 +175,13 @@ void draw_STATS(uint8_t page)
       display.setCursor(ui_offset, Layout::ROW18(1));
       display.print("10s Avg: ");
       display.setFont(Fonts::Body18);
-      display.println(statsKnots(S10.avg_5runs), 2);
+      display.println(statsKnots(speed_10s.avg_5runs), 2);
 
-      statsDrawDualRows(ui_offset, "", 'R', S10.display_speed, 'R', S10.display_speed);
+      statsDrawDualRows(ui_offset, "", 'R', speed_10s.display_speed, 'R', speed_10s.display_speed);
       break;
 
     case 5:
-      statsDrawDualRows(ui_offset, "Last Alfa stats ! ", 'A', A500.avg_speed, 'A', A500.avg_speed);
+      statsDrawDualRows(ui_offset, "Last Alfa stats ! ", 'A', alpha_500m.avg_speed, 'A', alpha_500m.avg_speed);
       break;
 
     case 6:
@@ -192,23 +192,23 @@ void draw_STATS(uint8_t page)
       break;
 
     case 8:
-      statsDrawTimedList(ui_offset, "500 ", M500, M500.avg_speed);
+      statsDrawTimedList(ui_offset, "500 ", speed_500m, speed_500m.avg_speed);
       break;
 
     case 9:
-      statsDrawTimedList(ui_offset, "Run ", S10, S10.avg_speed);
+      statsDrawTimedList(ui_offset, "Run ", speed_10s, speed_10s.avg_speed);
       break;
 
     case 10:
-      statsDrawTimedList(ui_offset, "2s ", S2, S2.avg_speed);
+      statsDrawTimedList(ui_offset, "2s ", speed_2s, speed_2s.avg_speed);
       break;
 
     case 11:
       drawStats2s3Lines(
         "10sLast: ", "10sBest: ", "AVG :  ",
-        statsKnots(S10.display_last_run),
-        statsKnots(S10.display_speed[9]),
-        statsKnots(S10.avg_5runs)
+        statsKnots(speed_10s.display_last_run),
+        statsKnots(speed_10s.display_speed[9]),
+        statsKnots(speed_10s.avg_5runs)
       );
       break;
 

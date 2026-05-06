@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 // ============================================================================
-// GPS_speed
+// GPS_distance_speed
 // Distance-based average speed calculator (Speedreader-aligned)
 //
 // USED FOR:
@@ -20,14 +20,14 @@
 //   - Global GPS ring buffers (_gSpeed, index_GPS)
 //
 // OWNERSHIP:
-//   - Each GPS_speed instance owns *one* distance window
+//   - Each GPS_distance_speed instance owns *one* distance window
 //   - Geometry export is owned by the instance that wins
 // ============================================================================
 
-class GPS_speed {
+class GPS_distance_speed {
 public:
   // afstand = distance window in meters (e.g. 100 / 250 / 500 / 1852)
-  explicit GPS_speed(int afstand);
+  explicit GPS_distance_speed(int afstand);
 
   // -------------------------------------------------------------------------
   // Update distance window using latest GPS sample
@@ -87,7 +87,7 @@ extern int win_nm_end;
 // ============================================================================
 // Global distance window instances (API preserved)
 // ============================================================================
-extern GPS_speed M100;     // 100 m
-extern GPS_speed M250;     // 250 m
-extern GPS_speed M500;     // 500 m
-extern GPS_speed M1852;    // 1 nautical mile
+extern GPS_distance_speed speed_100m;     // 100 m
+extern GPS_distance_speed speed_250m;     // 250 m
+extern GPS_distance_speed speed_500m;     // 500 m
+extern GPS_distance_speed speed_nm;    // 1 nautical mile

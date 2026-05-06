@@ -53,7 +53,7 @@ void stopLoggingStorage()
 
 void exitLogging()
 {
-  A500.Finalise_Run();
+  alpha_500m.Finalise_Run();
   rtc_snapshot_stats();
 
   beginStorageShutdown();

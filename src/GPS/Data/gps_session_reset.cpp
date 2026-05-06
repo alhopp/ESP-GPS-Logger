@@ -24,18 +24,15 @@ void reset_session_stats()
   gps_stats_service_reset();
   gps_data_reset_quality_state();
 
-  S2.Reset_stats();
-  s2.Reset_stats();
-  S10.Reset_stats();
-  s10.Reset_stats();
-  S1800.Reset_stats();
-  S3600.Reset_stats();
-  A250.Reset_stats();
-  A500.Reset_stats();
-  a500.Reset_stats();
+  speed_2s.Reset_stats();
+  speed_10s.Reset_stats();
+  speed_30min.Reset_stats();
+  speed_1h.Reset_stats();
+  alpha_250m.Reset_stats();
+  alpha_500m.Reset_stats();
 
-  GPS_speed* distance_windows[] = { &M100, &M250, &M500, &M1852 };
-  for (GPS_speed* w : distance_windows) {
+  GPS_distance_speed* distance_windows[] = { &speed_100m, &speed_250m, &speed_500m, &speed_nm };
+  for (GPS_distance_speed* w : distance_windows) {
     w->m_speed = 0.0;
     w->m_speed_alfa = 0.0;
     w->m_max_speed = 0.0;

@@ -1,10 +1,10 @@
 // ============================================================================
 // gps_alpha_speed.cpp
 //
-// Alpha 500 — LEGACY-COMPATIBLE IMPLEMENTATION (M500-driven)
+// Alpha 500 — LEGACY-COMPATIBLE IMPLEMENTATION (speed_500m-driven)
 //
 // Behaviour (matches legacy Speedreader logic):
-// - Uses distance-based GPS_speed integrator for 500m window
+// - Uses distance-based GPS_distance_speed integrator for 500m window
 // - Entry = (M.m_index + 1)
 // - Exit  = current index_GPS
 // - Closure < alfa_radius (50 m)
@@ -82,7 +82,7 @@ Alfa_speed::Alfa_speed(int alfa_radius)
 // -----------------------------------------------------------------------------
 // Update_Alfa (LEGACY / Speedreader-aligned)
 // -----------------------------------------------------------------------------
-float Alfa_speed::Update_Alfa(const GPS_speed& M)
+float Alfa_speed::Update_Alfa(const GPS_distance_speed& M)
 {
   if(alfa_counter == 0)
     return alfa_speed_max;

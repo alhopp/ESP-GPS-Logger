@@ -8,7 +8,7 @@
 #include <time.h>
 
 // -----------------------------------------------------------------------------
-// GPS_speed
+// GPS_distance_speed
 // Distance-based average speed calculator (100m / 250m / 500m / 1852m)
 //
 // UNIT MODEL (RP6 / Speedreader-aligned):
@@ -24,10 +24,10 @@
 int win_nm_start = -1;
 int win_nm_end   = -1;
 
-GPS_speed::GPS_speed(int afstand) : m_set_distance(afstand){}
+GPS_distance_speed::GPS_distance_speed(int afstand) : m_set_distance(afstand){}
 
 // -----------------------------------------------------------------------------
-double GPS_speed::Update_distance(int actual_run)
+double GPS_distance_speed::Update_distance(int actual_run)
 {
   m_Set_Distance = m_set_distance * 1000 * systemInfo.sample_rate;
 

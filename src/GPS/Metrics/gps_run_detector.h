@@ -12,7 +12,7 @@
 //
 // Units:
 // - heading : degrees
-// - speed   : mm/s, normally S2.avg_s
+// - speed   : mm/s, normally speed_2s.avg_s
 // ============================================================================
 
 // Update run state (call once per GPS sample)

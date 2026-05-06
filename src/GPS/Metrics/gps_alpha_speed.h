@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-class GPS_speed;
+class GPS_distance_speed;
 
 // ============================================================================
 // Alfa_speed
@@ -14,7 +14,7 @@ class GPS_speed;
 //   circular radius (typically 50 m)
 //
 // How it works:
-// - Uses an existing GPS_speed instance for distance-based speed
+// - Uses an existing GPS_distance_speed instance for distance-based speed
 // - Computes straight-line distance between current point and window start
 // - If distance² < alfa_radius² → valid ALFA
 //
@@ -40,7 +40,7 @@ public:
   Alfa_speed(int alfa_radius);
 
   // Update ALFA calculation using distance-based speed window
-  float Update_Alfa(const GPS_speed& M);
+  float Update_Alfa(const GPS_distance_speed& M);
 
   // Reset all stored ALFA statistics
   void Reset_stats(void);
@@ -83,9 +83,8 @@ private:
 // ---------------------------------------------------------------------------
 // Global ALFA windows (unchanged API)
 // ---------------------------------------------------------------------------
-extern Alfa_speed A250;
-extern Alfa_speed A500;
-extern Alfa_speed a500;
+extern Alfa_speed alpha_250m;
+extern Alfa_speed alpha_500m;
 extern float alfa_exit;
 
 
@@ -94,22 +93,22 @@ extern float alfa_exit;
 // Alpha indicator helper
 //
 // Computes the perpendicular distance of the current position relative to
-// the alpha reference line defined by two GPS_speed windows (typically 250 m
+// the alpha reference line defined by two GPS_distance_speed windows (typically 250 m
 // and 100 m before the jibe).
 //
 // Used to determine whether the current position still lies within the
 // allowed alpha corridor (e.g. ≤ 50 m).
 //
 // Parameters:
-// - M250 : GPS_speed instance for 250 m window
-// - M100 : GPS_speed instance for 100 m window
+// - speed_250m : GPS_distance_speed instance for 250 m window
+// - speed_100m : GPS_distance_speed instance for 100 m window
 // - actual_heading : current course heading (degrees)
 //
 // Returns:
 // - Signed perpendicular distance in meters
 // -----------------------------------------------------------------------------
-float Alfa_indicator(GPS_speed M250,
-                     GPS_speed M100,
+float Alfa_indicator(GPS_distance_speed speed_250m,
+                     GPS_distance_speed speed_100m,
                      float actual_heading);
 
 
