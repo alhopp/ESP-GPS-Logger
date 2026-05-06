@@ -15,7 +15,7 @@
 #include "Core/board_pins.h"
 #include "Core/log.h"
 #include "Core/Globals.h"
-#include "Core/rtc_state.h"
+#include "Core/Rtc/rtc_battery_state.h"
 
 namespace {
 constexpr float BAT_SCALE = 5.0f;

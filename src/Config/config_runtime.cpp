@@ -4,7 +4,7 @@
 
 #include "Core/log.h"
 #include "Core/Globals.h"
-#include "Core/rtc_state.h"
+#include "Core/Rtc/rtc_battery_state.h"
 #include "Config/config_types.h"
 
 void config_apply_runtime()

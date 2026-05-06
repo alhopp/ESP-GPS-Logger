@@ -20,7 +20,8 @@
 
 #include "Storage/storage_manager.h"
 #include "Web/wifi_manager.h"
-#include "Core/rtc_state.h"
+#include "Core/Rtc/rtc_battery_state.h"
+#include "Core/Rtc/rtc_session_stats.h"
 
 #include "Core/magnet_input.h"
 #include "Core/system_mode.h"

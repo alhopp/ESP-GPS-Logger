@@ -7,7 +7,7 @@
 #include <string.h>
 
 #include "Core/log.h"
-#include "Core/rtc_state.h"
+#include "Core/Rtc/rtc_time_state.h"
 #include "GPS/Ublox/ublox_driver.h"
 
 namespace {

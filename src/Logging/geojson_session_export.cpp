@@ -1,7 +1,7 @@
 #include "Logging/geojson_session_export.h"
 
 #include "Core/log.h"
-#include "Core/rtc_state.h"
+#include "Core/Rtc/rtc_session_stats.h"
 #include "Core/system_info.h"
 #include "GPS/Data/gps_data.h"
 #include "GPS/Metrics/gps_alpha_speed.h"

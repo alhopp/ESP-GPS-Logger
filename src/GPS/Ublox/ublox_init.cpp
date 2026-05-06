@@ -1,6 +1,5 @@
 #include "GPS/Ublox/ublox_driver.h"
 #include "Core/log.h"
-#include "Core/rtc_state.h"
 #include "Core/Globals.h"
 #include "Config/config_types.h"
 
