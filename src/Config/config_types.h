@@ -30,7 +30,6 @@ struct Config
   bool timezone_DST;
 
   // Logging
-  bool logTXT;
   bool logUBX;
   bool logUBX_nav_sat;
   bool logSBP;
@@ -44,8 +43,6 @@ struct Config
   char Sleep_info2[32];
 
   // Wi-Fi credentials
-  char home_ssid[32] = "";
-  char home_pass[64] = "";
   char phone_ssid[32] = "";
   char phone_pass[64] = "";
 
@@ -67,4 +64,3 @@ struct Config
 };
 
 extern Config config;
-

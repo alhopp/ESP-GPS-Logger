@@ -5,20 +5,17 @@
 
 #include "Config/config_manager.h"
 #include "Core/system_info.h"
+#include "Web/web_json.h"
 
 namespace {
-void sendJson(WebServer& server, JsonDocument& doc)
-{
-  String out;
-  serializeJson(doc, out);
-  server.send(200, "application/json", out);
-}
+constexpr size_t CONFIG_GET_JSON_BYTES = 3072;
+constexpr size_t CONFIG_POST_JSON_BYTES = 2048;
 }
 
 void registerConfigApi(WebServer& server)
 {
   server.on("/api/config", HTTP_GET, [&server] {
-    DynamicJsonDocument j(3072);
+    DynamicJsonDocument j(CONFIG_GET_JSON_BYTES);
 
     JsonObject wifi = j.createNestedObject("wifi");
     wifi["connected"] = WiFi.status() == WL_CONNECTED;
@@ -63,11 +60,11 @@ void registerConfigApi(WebServer& server)
     stats["h1"] = config.stat_1h;
     stats["distance"] = config.stat_distance;
 
-    sendJson(server, j);
+    web_send_json(server, j);
   });
 
   server.on("/api/config", HTTP_POST, [&server] {
-    DynamicJsonDocument j(2048);
+    DynamicJsonDocument j(CONFIG_POST_JSON_BYTES);
     if (deserializeJson(j, server.arg("plain"))) {
       server.send(400, "text/plain", "Bad JSON");
       return;

@@ -30,9 +30,6 @@ void config_set_defaults()
   strlcpy(config.Sleep_info1, "", sizeof(config.Sleep_info1));
   strlcpy(config.Sleep_info2, "", sizeof(config.Sleep_info2));
 
-  strlcpy(config.home_ssid, "", sizeof(config.home_ssid));
-  strlcpy(config.home_pass, "", sizeof(config.home_pass));
-
   strlcpy(config.phone_ssid, "", sizeof(config.phone_ssid));
   strlcpy(config.phone_pass, "", sizeof(config.phone_pass));
 }

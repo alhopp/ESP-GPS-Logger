@@ -31,10 +31,6 @@ void config_dump()
   Serial.print("[CONFIG ] Sleep_info2      = "); Serial.println(config.Sleep_info2);
 
   Serial.println("[CONFIG ] Wi-Fi");
-  Serial.print("[CONFIG ]   home_ssid      = ");
-  Serial.println(config.home_ssid[0] ? config.home_ssid : "(not set)");
-  Serial.print("[CONFIG ]   home_pass      = ");
-  Serial.println(config.home_pass[0] ? "***" : "(not set)");
   Serial.print("[CONFIG ]   phone_ssid     = ");
   Serial.println(config.phone_ssid[0] ? config.phone_ssid : "(not set)");
   Serial.print("[CONFIG ]   phone_pass     = ");

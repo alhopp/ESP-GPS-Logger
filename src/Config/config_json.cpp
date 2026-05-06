@@ -39,12 +39,6 @@ bool config_load_json(File& file)
   }
 
   const char* s;
-  if ((s = doc["home_ssid"]) && s[0]) {
-    strlcpy(config.home_ssid, s, sizeof(config.home_ssid));
-  }
-  if ((s = doc["home_pass"]) && s[0]) {
-    strlcpy(config.home_pass, s, sizeof(config.home_pass));
-  }
   if ((s = doc["phone_ssid"]) && s[0]) {
     strlcpy(config.phone_ssid, s, sizeof(config.phone_ssid));
   }
@@ -80,8 +74,6 @@ void config_write_json(File& file)
   doc["Sleep_info1"] = config.Sleep_info1;
   doc["Sleep_info2"] = config.Sleep_info2;
 
-  if (config.home_ssid[0]) doc["home_ssid"] = config.home_ssid;
-  if (config.home_pass[0]) doc["home_pass"] = config.home_pass;
   if (config.phone_ssid[0]) doc["phone_ssid"] = config.phone_ssid;
   if (config.phone_pass[0]) doc["phone_pass"] = config.phone_pass;
 

@@ -10,15 +10,7 @@
 #include "Core/build_config.h"
 #include "Core/system_mode.h"
 #include "Logging/logging_session.h"
-
-namespace {
-void sendJson(WebServer& server, JsonDocument& doc)
-{
-  String out;
-  serializeJson(doc, out);
-  server.send(200, "application/json", out);
-}
-}
+#include "Web/web_json.h"
 
 void registerStatusApi(WebServer& server)
 {
@@ -27,7 +19,7 @@ void registerStatusApi(WebServer& server)
     j["connected"] = WiFi.status() == WL_CONNECTED;
     j["ssid"] = WiFi.SSID();
     j["ip"] = WiFi.localIP().toString();
-    sendJson(server, j);
+    web_send_json(server, j);
   });
 
   server.on("/api/status", HTTP_GET, [&server] {
@@ -44,6 +36,6 @@ void registerStatusApi(WebServer& server)
     j["storage_shutting_down"] = storage_is_shutting_down();
     j["simulator"] = build_gps_simulator_enabled();
     j["wifi_connected"] = WiFi.status() == WL_CONNECTED;
-    sendJson(server, j);
+    web_send_json(server, j);
   });
 }

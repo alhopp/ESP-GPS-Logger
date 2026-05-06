@@ -143,6 +143,23 @@ addEventListener("load", async ()=>{
   };
 
   els.saveBtn?.addEventListener("click",()=>saveConfig(els));
+  els.phone_pass?.addEventListener("focus",()=>{
+    if(els.phone_pass.value === "********"){
+      els.phone_pass.value = "";
+      els.phone_pass.dataset.editingPlaceholder = "1";
+    }
+  });
+  els.phone_pass?.addEventListener("input",()=>{
+    els.phone_pass.dataset.passwordTouched = "1";
+  });
+  els.phone_pass?.addEventListener("blur",()=>{
+    if(els.phone_pass.dataset.editingPlaceholder === "1" &&
+       els.phone_pass.dataset.passwordTouched !== "1" &&
+       !els.phone_pass.value){
+      els.phone_pass.value = "********";
+    }
+    els.phone_pass.dataset.editingPlaceholder = "0";
+  });
 
   // ---------------------------------------------------------------------------
   // Splash: fade logo in once decoded

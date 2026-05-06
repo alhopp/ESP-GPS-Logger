@@ -13,6 +13,13 @@ const PASSWORD_PLACEHOLDER = "********";
  * ------------------------------------------------------------------------- */
 function setVal(el,v){ if(el){ el._loading=true; el.value=v??""; el._loading=false; } }
 function setChk(el,v){ if(el){ el._loading=true; el.checked=!!v; el._loading=false; } }
+function setPasswordPlaceholder(el,hasPassword){
+  if(!el) return;
+  el._loading = true;
+  el.value = hasPassword ? PASSWORD_PLACEHOLDER : "";
+  el.dataset.passwordTouched = "0";
+  el._loading = false;
+}
 
 /* ---------------------------------------------------------------------------
  * Load configuration
@@ -35,7 +42,7 @@ window.loadConfig = async function loadConfig(els){
     /* ---------- Wi-Fi ---------- */
     if (c.wifi) {
       setVal(els.phone_ssid, c.wifi.phone_ssid);
-      setVal(els.phone_pass, c.wifi.phone_pass_set ? PASSWORD_PLACEHOLDER : "");
+      setPasswordPlaceholder(els.phone_pass, c.wifi.phone_pass_set);
     }
 
 
@@ -85,7 +92,8 @@ window.saveConfig = async function saveConfig(els){
     }
   };
 
-  if(phonePass && phonePass !== PASSWORD_PLACEHOLDER){
+  const phonePassTouched = els.phone_pass?.dataset.passwordTouched === "1";
+  if(phonePassTouched || (phonePass && phonePass !== PASSWORD_PLACEHOLDER)){
     payload.wifi.phone_pass = phonePass;
   }
 
