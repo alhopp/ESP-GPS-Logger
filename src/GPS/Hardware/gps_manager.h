@@ -6,9 +6,23 @@
 // baud rate, apply u-blox configuration, and optionally inject RTC time for a
 // warm start. Runtime parsing and statistics live in separate GPS modules.
 
+enum class GpsLifecycleState {
+  Off,
+  Starting,
+  Ready,
+  Failed
+};
+
 // Bring up GPS.
 //
 // Returns:
 // - true  = GPS responded and is alive
 // - false = no GPS detected
 bool initGPS();
+
+// Power down GPS and mark the lifecycle state as Off.
+void gps_shutdown();
+
+// Current lifecycle state for diagnostics and future UI/status reporting.
+GpsLifecycleState gps_lifecycle_state();
+const char* gps_lifecycle_state_name();

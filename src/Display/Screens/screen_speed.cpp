@@ -21,6 +21,7 @@
 #include "Display/E_paper.h"       // Physical e-paper display instance
 #include "Fonts.h"                 // Font definitions
 #include "Core/Globals.h"               // Global runtime values
+#include "GPS/gps_config.h"
 
 // -----------------------------------------------------------------------------
 // Local UI state Layout constants

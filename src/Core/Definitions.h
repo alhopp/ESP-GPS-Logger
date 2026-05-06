@@ -11,11 +11,6 @@
 // ============================================================================
 
 // ---------------------------------------------------------------------------
-// Timing / run detection
-// ---------------------------------------------------------------------------
-constexpr int TIME_DELAY_NEW_RUN = 10;
-
-// ---------------------------------------------------------------------------
 // Battery / voltage calibration
 // ---------------------------------------------------------------------------
 constexpr float CALIBRATION_BAT_V      = 1.7f;
@@ -33,22 +28,9 @@ constexpr int WDT_TIMEOUT         = 120;   // seconds
 constexpr int MAX_COUNT_WDT_TASK0 = 10;
 
 // ---------------------------------------------------------------------------
-// GPS quality thresholds (policy, not protocol)
-// ---------------------------------------------------------------------------
-constexpr int MIN_numSV_FIRST_FIX    = 5;
-constexpr int MAX_Sacc_FIRST_FIX     = 2;
-
-constexpr int MIN_numSV_GPS_SPEED_OK = 4;
-constexpr int MAX_Sacc_GPS_SPEED_OK  = 1;
-constexpr int MAX_GPS_SPEED_OK       = 40;   // m/s
-
-// ---------------------------------------------------------------------------
 // Calibration / unit helpers
 // ---------------------------------------------------------------------------
 constexpr int   STARTVALUE_HIGHEST_READ = 1800;
-constexpr int   NO_M10_GPS              = 0;
-constexpr double MMPS_TO_KNOTS = 0.0019438444924406;
-constexpr double CMPS_TO_KNOTS = 0.019438444924406;
 
 // ---------------------------------------------------------------------------
 // Logging

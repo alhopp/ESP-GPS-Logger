@@ -3,10 +3,10 @@
 #include <Arduino.h>
 #include <math.h>
 
-#include "Core/Definitions.h"
 #include "Core/Globals.h"
 #include "Core/system_info.h"
 #include "GPS/Data/gps_data.h"
+#include "GPS/gps_config.h"
 
 // Detects Speedreader-style runs and jibes from heading stability plus 2s speed.
 // The rest of the metric code consumes the resulting run number and jibe index;

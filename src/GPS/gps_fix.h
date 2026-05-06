@@ -8,7 +8,7 @@
 #include <Arduino.h>
 #include <time.h>
 
-#include "Core/Definitions.h"
+#include "GPS/gps_config.h"
 #include "GPS/Ublox/ublox_driver.h"
 
 struct GpsFix {

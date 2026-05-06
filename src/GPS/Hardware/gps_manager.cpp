@@ -20,6 +20,13 @@ tm tmstruct{};
 int Time_Set_OK = 0;
 
 namespace {
+GpsLifecycleState lifecycleState = GpsLifecycleState::Off;
+
+void setLifecycleState(GpsLifecycleState state)
+{
+  lifecycleState = state;
+}
+
 bool probeGps(uint32_t baud)
 {
   UbloxSerial.end();
@@ -53,6 +60,7 @@ bool probeGps(uint32_t baud)
 bool initGPS()
 {
   LOG_GPS("Init", "starting");
+  setLifecycleState(GpsLifecycleState::Starting);
 
   gps_power_on();
   delay(100);
@@ -62,6 +70,7 @@ bool initGPS()
       !probeGps(115200)) {
     LOG_GPS("Init", "no GPS response");
     gps_power_off();
+    setLifecycleState(GpsLifecycleState::Failed);
     return false;
   }
 
@@ -69,5 +78,28 @@ bool initGPS()
   gps_send_time_from_rtc();
 
   LOG_GPS("Init", "GPS ready");
+  setLifecycleState(GpsLifecycleState::Ready);
   return true;
+}
+
+void gps_shutdown()
+{
+  gps_power_off();
+  setLifecycleState(GpsLifecycleState::Off);
+}
+
+GpsLifecycleState gps_lifecycle_state()
+{
+  return lifecycleState;
+}
+
+const char* gps_lifecycle_state_name()
+{
+  switch (lifecycleState) {
+    case GpsLifecycleState::Off:      return "Off";
+    case GpsLifecycleState::Starting: return "Starting";
+    case GpsLifecycleState::Ready:    return "Ready";
+    case GpsLifecycleState::Failed:   return "Failed";
+    default:                          return "?";
+  }
 }

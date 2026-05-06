@@ -5,9 +5,9 @@
 
 #include <math.h>
 
-#include "Core/Definitions.h"
 #include "Core/system_info.h"
 #include "GPS/Data/gps_data.h"
+#include "GPS/gps_config.h"
 #include "GPS/Ublox/ublox_driver.h"
 
 namespace {

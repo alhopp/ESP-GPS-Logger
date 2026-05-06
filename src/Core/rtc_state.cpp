@@ -2,6 +2,7 @@
 #include "Core/Definitions.h"
 
 #include "GPS/Data/gps_data.h"
+#include "GPS/gps_config.h"
 #include "GPS/Metrics/gps_distance_speed.h"
 #include "GPS/Metrics/gps_alpha_speed.h"
 #include "GPS/Metrics/gps_time_speed.h"

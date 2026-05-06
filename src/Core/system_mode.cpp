@@ -17,7 +17,6 @@
 #include "Core/rtc_state.h"
 #include "GPS/Hardware/gps_manager.h"
 #include "GPS/Metrics/gps_alpha_speed.h"
-#include "GPS/Hardware/gps_power.h"
 #include "Storage/storage_manager.h"
 #include "Logging/logging_session.h"
 #include "Runtime/display_redraw.h"
@@ -77,7 +76,8 @@ void exitSleep()
 void exitWaitSats(SystemMode newMode)
 {
   if (newMode != MODE_LOGGING) {
-    gps_power_off();
+    gps_shutdown();
+    storage_off();
   }
 }
 
@@ -129,6 +129,7 @@ void enterWaitSats()
 
   if (!initGPS()) {
     LOG_ERROR("GPS", "init failed entering WAIT_SATS");
+    storage_off();
     enterModeFailed = true;
   }
 }
@@ -139,7 +140,7 @@ void enterConfig()
 
   LOG_SYS("MODE", "ENTER CONFIG");
 
-  gps_power_off();
+  gps_shutdown();
 
   ensureStorageReady("CONFIG");
 
@@ -158,8 +159,7 @@ void enterSleep()
   LOG_SYS("MODE", "ENTER SLEEP");
 
   wifi_stop();
-  gps_power_off();
-  storage_off();
+  gps_shutdown();
 }
 
 void runEnterActions(SystemMode newMode)
