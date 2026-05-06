@@ -8,6 +8,7 @@ window.MapView = {
   map:null,
   baseTrack:null,
   overlay:null,
+  defaultOverlays:{},
   dot:null,
   _r:null,
   _overlays:{},
@@ -37,9 +38,15 @@ window.MapView = {
     // -----------------------------------------------------------------------
     this.map.createPane("basePane");
     this.map.createPane("overlayPane");
+    this.map.createPane("overlay10Pane");
+    this.map.createPane("overlayAlphaPane");
+    this.map.createPane("overlay2Pane");
 
     this.map.getPane("basePane").style.zIndex    = 400;
     this.map.getPane("overlayPane").style.zIndex = 450;
+    this.map.getPane("overlay10Pane").style.zIndex = 460;
+    this.map.getPane("overlayAlphaPane").style.zIndex = 470;
+    this.map.getPane("overlay2Pane").style.zIndex = 480;
 
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/" +
@@ -159,6 +166,10 @@ window.MapView = {
         });
       }
 
+      this.showOverlay("10s", { pinned:true, pane:"overlay10Pane", color:"#ff9500", weight:5 });
+      this.showOverlay("alpha", { pinned:true, pane:"overlayAlphaPane", color:"#34c759", weight:6 });
+      this.showOverlay("2s", { pinned:true, pane:"overlay2Pane", color:"#ff3b30", weight:7 });
+
       setTimeout(()=>this.map.invalidateSize(true),50);
     })
     .catch(e=>console.warn("[Map] GeoJSON failed",e));
@@ -168,8 +179,18 @@ window.MapView = {
 // -------------------------------------------------------------------------
 // showOverlay() — draw one performance slice on top
 // -------------------------------------------------------------------------
-showOverlay(mode){
-  if(this.overlay){
+showOverlay(mode, options={}){
+  const pinned = !!options.pinned;
+  const pane = options.pane || "overlayPane";
+  const color = options.color || "#ff3b30";
+  const weight = options.weight || 6;
+
+  if(pinned){
+    if(this.defaultOverlays[mode]){
+      this.map.removeLayer(this.defaultOverlays[mode]);
+      this.defaultOverlays[mode] = null;
+    }
+  }else if(this.overlay){
     this.map.removeLayer(this.overlay);
     this.overlay = null;
   }
@@ -177,18 +198,21 @@ showOverlay(mode){
   const list = this._overlays?.[mode];
   if(!list || !list.length) return;
 
-  this.overlay = L.geoJSON(
+  const layer = L.geoJSON(
     {
       type:"FeatureCollection",
       features:list
     },
     {
-      pane:"overlayPane",
+      pane,
       renderer:this._r,
       coordsToLatLng:c=>L.latLng(c[1],c[0]),
-      style:{ color:"#ff3b30", weight:6, opacity:1 }
+      style:{ color, weight, opacity:1 }
     }
   ).addTo(this.map);
+
+  if(pinned) this.defaultOverlays[mode] = layer;
+  else this.overlay = layer;
 },
 
 
@@ -196,6 +220,10 @@ showOverlay(mode){
   clear(){
     if(this.baseTrack){ this.map.removeLayer(this.baseTrack); this.baseTrack=null; }
     if(this.overlay){ this.map.removeLayer(this.overlay); this.overlay=null; }
+    Object.keys(this.defaultOverlays).forEach(k=>{
+      if(this.defaultOverlays[k]) this.map.removeLayer(this.defaultOverlays[k]);
+    });
+    this.defaultOverlays = {};
     if(this.dot){ this.map.removeLayer(this.dot); this.dot=null; }
     this._overlays = {};
   }

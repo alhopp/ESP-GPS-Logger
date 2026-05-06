@@ -5,61 +5,61 @@
 #include "Core/system_info.h"
 #include "GPS/Data/gps_data.h"
 #include "GPS/Data/gps_runtime_instances.h"
+#include "GPS/gps_config.h"
 #include "GPS/Metrics/gps_alpha_speed.h"
 #include "GPS/Metrics/gps_distance_speed.h"
 #include "GPS/Metrics/gps_time_speed.h"
 #include "Logging/geojson_writer.h"
 
 namespace {
-bool validGpsIndex(int i)
+bool validGpsIndex(int gpsIndex)
 {
-  return i >= 0 && i < BUFFER_SIZE;
+  return gpsIndex >= 0 &&
+         gpsIndex <= index_GPS &&
+         (index_GPS - gpsIndex) < BUFFER_ALFA;
 }
 
-int wrapGpsIndex(int i)
+int gpsPositionSlot(int gpsIndex)
 {
-  i %= BUFFER_SIZE;
-  if (i < 0) i += BUFFER_SIZE;
-  return i;
+  int slot = gpsIndex % BUFFER_ALFA;
+  if (slot < 0) slot += BUFFER_ALFA;
+  return slot;
 }
 
-void addGpsPointIfValid(int idx)
+void addGpsPointIfValid(int gpsIndex)
 {
-  if (validGpsIndex(idx)) {
-    geojson_add_point(_lat[idx], _long[idx]);
+  if (validGpsIndex(gpsIndex)) {
+    const int slot = gpsPositionSlot(gpsIndex);
+    geojson_add_point(_lat[slot], _long[slot]);
   }
 }
 
 void addRingWindow1Hz(int startGpsIdx, int seconds)
 {
   for (int s = 0; s < seconds; s++) {
-    int idx = wrapGpsIndex(startGpsIdx + s * systemInfo.sample_rate);
-    addGpsPointIfValid(idx);
+    addGpsPointIfValid(startGpsIdx + s * systemInfo.sample_rate);
   }
 }
 
 void addRingRange1Hz(int start, int end)
 {
-  int idx = start;
-  int step = 0;
+  if (start < 0 || end < start) return;
 
-  for (int guard = 0; guard < BUFFER_SIZE; guard++) {
+  int step = 0;
+  for (int idx = start; idx <= end && idx <= index_GPS; idx++, step++) {
     if (step % systemInfo.sample_rate == 0) {
       addGpsPointIfValid(idx);
     }
-
-    if (idx == end) break;
-
-    idx = wrapGpsIndex(idx + 1);
-    step++;
   }
 }
 
 void attachSessionStats()
 {
+  const float alphaKnotsFromBest = alpha_best_speed_mmps * MMPS_TO_KNOTS;
+
   GeoJSONStats s {
     .nm = RTC_mile_knots,
-    .alpha = RTC_alp_knots,
+    .alpha = RTC_alp_knots > alphaKnotsFromBest ? RTC_alp_knots : alphaKnotsFromBest,
     .h1 = RTC_1h_knots,
     .max = RTC_max_2s_knots,
     .avg10 = RTC_avg_10s_knots,

@@ -24,8 +24,8 @@
 // - Inputs: raw GPS speed buffers (_gSpeed[], _secSpeed[])
 // - Outputs: mm/s; display/export code converts to knots
 // - Outputs: best speeds + window start/end indices
-// - index_GPS is a ring index into BUFFER_SIZE
-// - Exported windows are ring ranges and must be iterated wrap-safe
+// - index_GPS is a monotonic GPS sample counter
+// - Exported windows are absolute GPS sample ranges
 //
 // ROLE
 // - Numbers are computed here
@@ -60,16 +60,6 @@ int win_10s_top5_count    = 0;
 float best_10s_per_run[32];
 int   win_10s_start_run[32];
 int   win_10s_end_run  [32];
-
-
-// -----------------------------------------------------------------------------
-// Small helper: wrap any int to ring [0..BUFFER_SIZE-1]
-// -----------------------------------------------------------------------------
-static inline int wrap_gps(int i){
-  i %= BUFFER_SIZE;
-  if(i < 0) i += BUFFER_SIZE;
-  return i;
-}
 
 
 // -----------------------------------------------------------------------------
@@ -128,7 +118,7 @@ float GPS_time_speed::Update_speed(int actual_run)
     if(s_max_speed < avg_s){
       s_max_speed = avg_s;
 
-      const int start = wrap_gps(index_GPS - samples + 1);
+      const int start = index_GPS - samples + 1;
       if(time_window == 2){ win_2s_start = start; win_2s_end = index_GPS; }
       if(time_window == 10){ win_10s_start = start; win_10s_end = index_GPS; }
 

@@ -112,5 +112,5 @@ float Alfa_indicator(GPS_distance_speed speed_250m,
 // ---------------------------------------------------------------------------
 extern int alpha_start;
 extern int alpha_end;
-
+extern float alpha_best_speed_mmps;
 

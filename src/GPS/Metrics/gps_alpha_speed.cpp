@@ -31,6 +31,7 @@
 // -----------------------------------------------------------------------------
 int alpha_start = -1;
 int alpha_end   = -1;
+float alpha_best_speed_mmps = 0.0f;
 
 // -----------------------------------------------------------------------------
 // External shared state
@@ -111,9 +112,15 @@ float Alfa_speed::Update_Alfa(const GPS_distance_speed& M)
         alfa_speed_max = speed;
         alfa_speed     = speed;
 
-        // ---- CAPTURE ALPHA GEOMETRY WINDOW ----
-        alpha_start = entry;
-        alpha_end   = exit;
+        // Capture the session-best alpha geometry for GeoJSON/map export.
+        // alfa_speed_max resets each run, so using it alone would let a later
+        // slower run overwrite the overlay while the final stat still shows the
+        // true best alpha from avg_speed[].
+        if (speed > alpha_best_speed_mmps) {
+          alpha_best_speed_mmps = speed;
+          alpha_start = entry;
+          alpha_end   = exit;
+        }
 
         real_distance[0] = (int)d2;
 
@@ -178,6 +185,9 @@ void Alfa_speed::Reset_stats()
   alfa_speed_max = 0.0;
   display_max_speed = 0.0f;
   old_run_count = -1;
+  alpha_best_speed_mmps = 0.0f;
+  alpha_start = -1;
+  alpha_end = -1;
 }
 
 // -----------------------------------------------------------------------------

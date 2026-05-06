@@ -134,7 +134,15 @@ void snapshotTopRun10s()
 void snapshotSpecialSpeeds()
 {
   RTC_mile_knots = speed_nm.avg_speed[9] * MMPS_TO_KNOTS;
-  RTC_alp_knots = alpha_500m.avg_speed[9] * MMPS_TO_KNOTS;
+
+  // The map/export alpha geometry is captured as a session-best candidate while
+  // riding. Use it as a fallback so the final number matches the green alpha
+  // segment even if the ranked alpha array has not retained that candidate.
+  const float rankedAlphaMmps = alpha_500m.avg_speed[9];
+  const float bestAlphaMmps =
+      rankedAlphaMmps > alpha_best_speed_mmps ? rankedAlphaMmps : alpha_best_speed_mmps;
+  RTC_alp_knots = bestAlphaMmps * MMPS_TO_KNOTS;
+
   RTC_1h_knots = speed_1h.s_max_speed * MMPS_TO_KNOTS;
 
   Serial.printf("NM (1852m)      : %.3f kn\n", RTC_mile_knots);
