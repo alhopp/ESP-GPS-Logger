@@ -12,7 +12,7 @@
 #include "System/boot_manager.h"
 #include "Config/config_manager.h"
 #include "System/watchdog_manager.h"
-#include "GPS/gps_manager.h"
+#include "GPS/Hardware/gps_manager.h"
 
 // --- Tasks ------------------------------------------------------------------
 #include "Runtime/task_runtime.h"

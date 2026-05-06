@@ -1,4 +1,4 @@
-#include "GPS/gps_startup_time.h"
+#include "GPS/Hardware/gps_startup_time.h"
 
 // Sends RTC-cached time to the GPS as a warm-start hint.
 // System time is still set later from real NAV-PVT GPS time.

@@ -6,15 +6,15 @@
 // parsing continues through gps_source_next_message().
 // ============================================================================
 
-#include "GPS/gps_manager.h"
+#include "GPS/Hardware/gps_manager.h"
 
 #include <Arduino.h>
 
 #include "Core/board_pins.h"
 #include "Core/Definitions.h"
 #include "GPS/Ublox/ublox_driver.h"
-#include "GPS/gps_power.h"
-#include "GPS/gps_startup_time.h"
+#include "GPS/Hardware/gps_power.h"
+#include "GPS/Hardware/gps_startup_time.h"
 
 tm tmstruct{};
 int Time_Set_OK = 0;

@@ -1,4 +1,4 @@
-#include "GPS/gps_power.h"
+#include "GPS/Hardware/gps_power.h"
 
 // Board-specific GPS power enable pins.
 // Keep this file hardware-only: no UBX config, parsing, logging, or UI policy.

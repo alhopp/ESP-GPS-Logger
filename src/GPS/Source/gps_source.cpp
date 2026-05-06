@@ -1,9 +1,9 @@
-#include "GPS/gps_source.h"
+#include "GPS/Source/gps_source.h"
 
 // Single switch point between real u-blox input and the compile-time simulator.
 // Runtime code calls this instead of knowing which GPS source is active.
 
-#include "GPS/gps_simulator.h"
+#include "GPS/Source/gps_simulator.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "Core/build_config.h"
 

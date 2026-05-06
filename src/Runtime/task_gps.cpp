@@ -9,7 +9,7 @@
 #include "Runtime/task_gps.h"
 
 #include "GPS/gps_fix.h"
-#include "GPS/gps_source.h"
+#include "GPS/Source/gps_source.h"
 #include "GPS/Metrics/gps_stats_service.h"
 
 // -----------------------------------------------------------------------------

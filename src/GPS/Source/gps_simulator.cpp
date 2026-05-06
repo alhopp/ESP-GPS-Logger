@@ -13,7 +13,7 @@
 // - Clean geometry (no drift, no spirals)
 // -----------------------------------------------------------------------------
 
-#include "GPS/gps_simulator.h"
+#include "GPS/Source/gps_simulator.h"
 #include "GPS/Ublox/ublox_driver.h"
 
 #include <Arduino.h>
