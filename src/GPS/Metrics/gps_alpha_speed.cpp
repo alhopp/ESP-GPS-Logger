@@ -84,9 +84,6 @@ Alfa_speed::Alfa_speed(int alfa_radius)
 // -----------------------------------------------------------------------------
 float Alfa_speed::Update_Alfa(const GPS_distance_speed& M)
 {
-  if(alfa_counter == 0)
-    return alfa_speed_max;
-
   const int exit  = index_GPS;
   const int entry = M.m_index + 1;
 
