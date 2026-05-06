@@ -2,11 +2,14 @@
 
 #include <Arduino.h>
 
+#include "Core/build_config.h"
+
 // Serial logging helpers with fixed-width tags for readable boot/runtime logs.
 
 constexpr int LOG_TAG_W = 7;
 constexpr int LOG_ITEM_W = 12;
 
+#if LOG_ENABLED
 #define LOG_FMT(tag, item, fmt, ...)                                      \
   do {                                                                    \
     Serial.printf("[%-*s] %-*s : " fmt "\n",                              \
@@ -14,6 +17,9 @@ constexpr int LOG_ITEM_W = 12;
                   LOG_ITEM_W, item,                                       \
                   ##__VA_ARGS__);                                         \
   } while (0)
+#else
+#define LOG_FMT(tag, item, fmt, ...) do { } while (0)
+#endif
 
 #define LOG_BOOT(item, fmt, ...)     LOG_FMT("BOOT",    item, fmt, ##__VA_ARGS__)
 #define LOG_STORAGE(item, fmt, ...)  LOG_FMT("STORAGE", item, fmt, ##__VA_ARGS__)
