@@ -8,7 +8,7 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Web/api_config.h"
 #include "Web/api_status.h"
 #include "Web/web_files.h"

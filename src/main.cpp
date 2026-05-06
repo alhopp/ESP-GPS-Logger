@@ -20,7 +20,7 @@
 #include "Core/sleep_control.h"
 #include "Core/system_mode.h"
 #include "Core/magnet_input.h"
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Core/Globals.h"
 
 // --- Local config ------------------------------------------------------------

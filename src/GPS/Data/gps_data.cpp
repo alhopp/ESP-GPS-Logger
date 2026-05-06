@@ -28,7 +28,7 @@
 // ============================================================================
 
 #include "GPS/Ublox/ublox_driver.h"
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Core/Globals.h"
 #include "Core/system_info.h"
 

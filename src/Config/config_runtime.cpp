@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Core/Globals.h"
 #include "Core/rtc_state.h"
 #include "Config/config_types.h"

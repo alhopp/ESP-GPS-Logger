@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include <time.h>
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "GPS/Data/gps_data.h"
 #include "GPS/Data/gps_satellite_quality.h"
 

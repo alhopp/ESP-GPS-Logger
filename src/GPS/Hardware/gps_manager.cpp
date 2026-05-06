@@ -11,7 +11,7 @@
 #include <Arduino.h>
 
 #include "Core/board_pins.h"
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "GPS/Hardware/gps_power.h"
 #include "GPS/Hardware/gps_startup_time.h"

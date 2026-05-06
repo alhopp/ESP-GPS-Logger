@@ -1,5 +1,7 @@
 #include "Core/rtc_state.h"
-#include "Core/Definitions.h"
+#include "Core/battery_config.h"
+#include "Core/log.h"
+#include "Core/rtc_defaults.h"
 
 #include "GPS/Data/gps_data.h"
 #include "GPS/gps_config.h"

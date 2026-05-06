@@ -18,7 +18,7 @@
 
 #include "esp_task_wdt.h"
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 
 #include "Core/sleep_control.h"
 #include "Core/system_mode.h"

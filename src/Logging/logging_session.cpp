@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Core/Globals.h"
 #include "Logging/geojson_writer.h"
 #include "Logging/logging_session_files.h"

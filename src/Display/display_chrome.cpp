@@ -16,7 +16,7 @@
 
 #include "Display/E_paper.h"
 #include "Fonts.h"
-#include "Core/Definitions.h"
+#include "Core/battery_config.h"
 #include "Core/Globals.h"
 #include "Core/rtc_state.h"
 #include "GPS/Ublox/ublox_driver.h"

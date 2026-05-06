@@ -11,7 +11,7 @@
 
 #include <Arduino.h>
 #include "Core/Globals.h"
-#include "Core/Definitions.h"
+#include "Core/log.h"
 
 // ============================================================================
 // SYSTEM / NETWORK STATE

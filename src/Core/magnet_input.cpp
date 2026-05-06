@@ -2,7 +2,7 @@
 
 #include "Core/input_pins.h"
 #include "Core/magnet_input.h"
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Core/system_mode.h"
 #include "Core/Globals.h"
 

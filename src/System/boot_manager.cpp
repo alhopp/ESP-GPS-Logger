@@ -11,8 +11,9 @@
 #include <sys/time.h>
 
 #include "Display/E_paper.h"
+#include "Core/battery_config.h"
 #include "Core/board_pins.h"
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Core/Globals.h"
 #include "Core/rtc_state.h"
 

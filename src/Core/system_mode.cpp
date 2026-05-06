@@ -13,7 +13,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Core/rtc_state.h"
 #include "GPS/Hardware/gps_manager.h"
 #include "GPS/Metrics/gps_alpha_speed.h"

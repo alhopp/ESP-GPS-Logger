@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Config/config_types.h"
 
 void config_set_defaults()

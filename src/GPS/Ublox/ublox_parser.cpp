@@ -1,5 +1,5 @@
 #include "GPS/Ublox/ublox_driver.h"
-#include "Core/Definitions.h"
+#include "Core/log.h"
 
 // Streaming UBX frame parser.
 // It reads bytes from UbloxSerial, validates checksums, and copies payloads into

@@ -1,5 +1,5 @@
 #include "GPS/Ublox/ublox_driver.h"
-#include "Core/Definitions.h"
+#include "Core/log.h"
 
 
 // ============================================================================
@@ -43,7 +43,7 @@ UBXMessage ubxMessage = {};
 //   • Uses HardwareSerial port 2 (UART2)
 //   • Baud rate is fixed to 38400 after GPS init
 //   • UBX-only protocol (NMEA disabled during Init_ubloxM10())
-//   • RX/TX pins are defined centrally in Core/Definitions.h
+//   • RX/TX pins are defined centrally in Core/board_pins.h
 //
 // IMPORTANT:
 //   • "UART1" in u-blox documentation refers to the GPS module’s UART,

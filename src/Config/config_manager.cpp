@@ -8,7 +8,7 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Config/config_defaults.h"
 #include "Config/config_dump.h"
 #include "Config/config_json.h"

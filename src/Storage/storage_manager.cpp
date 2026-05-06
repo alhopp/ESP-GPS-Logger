@@ -11,7 +11,7 @@
 #include <LittleFS.h>
 
 #include "Core/board_pins.h"
-#include "Core/Definitions.h"
+#include "Core/log.h"
 
 namespace {
 

@@ -4,7 +4,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Runtime/task_display.h"
 #include "Runtime/task_gps.h"
 

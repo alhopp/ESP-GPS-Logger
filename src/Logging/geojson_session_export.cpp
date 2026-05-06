@@ -1,6 +1,6 @@
 #include "Logging/geojson_session_export.h"
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Core/rtc_state.h"
 #include "Core/system_info.h"
 #include "GPS/Data/gps_data.h"

@@ -7,7 +7,7 @@
 #include <FS.h>
 #include <esp_system.h>
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Core/Globals.h"
 #include "Logging/geojson_writer.h"
 #include "Logging/sbp_writer.h"

@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-#include "Core/Definitions.h"
+#include "Core/log.h"
 #include "Config/config_types.h"
 
 bool config_load_json(File& file)
