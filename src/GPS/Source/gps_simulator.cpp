@@ -84,40 +84,55 @@ static bool sim_initialised = false;
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
-static float randf(float a,float b){
-  return a + (b-a)*(float(rand())/RAND_MAX);
+static float randf(float a, float b)
+{
+  return a + (b - a) * (float(rand()) / RAND_MAX);
 }
 
-static float clampf(float v,float lo,float hi){
+static float clampf(float v, float lo, float hi)
+{
   return v < lo ? lo : (v > hi ? hi : v);
 }
 
-static void ramp_speed(){
+static void ramp_speed()
+{
   const float max_d = SPEED_RAMP_MPS2 * SIM_DT;
   const float diff  = target_mps - speed_mps;
   speed_mps += clampf(diff, -max_d, max_d);
 }
 
-static float m_to_deg_lat(float m){ return m / 111111.0f; }
-static float m_to_deg_lon(float m,float lat){
+static float m_to_deg_lat(float m)
+{
+  return m / 111111.0f;
+}
+
+static float m_to_deg_lon(float m, float lat)
+{
   return m / (111111.0f * cos(lat * DEG_TO_RAD));
 }
 
 // UTC carry
-static inline void utc_add_one_second(){
+static inline void utc_add_one_second()
+{
   auto &p = ubxMessage.navPvt;
-  if(++p.sec < 60) return; p.sec = 0;
-  if(++p.min < 60) return; p.min = 0;
-  if(++p.hour < 24) return; p.hour = 0;
-  if(++p.day <= 28) return; p.day = 1;
-  if(++p.month <= 12) return; p.month = 1;
+  if (++p.sec < 60) return;
+  p.sec = 0;
+  if (++p.min < 60) return;
+  p.min = 0;
+  if (++p.hour < 24) return;
+  p.hour = 0;
+  if (++p.day <= 28) return;
+  p.day = 1;
+  if (++p.month <= 12) return;
+  p.month = 1;
   p.year++;
 }
 
 // -----------------------------------------------------------------------------
 // Init
 // -----------------------------------------------------------------------------
-void gps_simulator_init(){
+void gps_simulator_init()
+{
   sim_initialised = true;
   srand(esp_random());
 
@@ -143,12 +158,13 @@ void gps_simulator_init(){
 // -----------------------------------------------------------------------------
 // Step
 // -----------------------------------------------------------------------------
-int gps_simulator_step(){
-  if(!sim_initialised) gps_simulator_init();
+int gps_simulator_step()
+{
+  if (!sim_initialised) gps_simulator_init();
 
   static uint32_t last_emit_ms = 0;
   const uint32_t now = millis();
-  if(now - last_emit_ms < SIM_RATE_MS) return MT_NONE;
+  if (now - last_emit_ms < SIM_RATE_MS) return MT_NONE;
   last_emit_ms += SIM_RATE_MS;
   sim_ms       += SIM_RATE_MS;
 
@@ -161,7 +177,7 @@ int gps_simulator_step(){
   // ---------------------------------------------------------------------------
   // Satellite acquisition
   // ---------------------------------------------------------------------------
-  if(sat_count < 10 && now - last_sat_ms >= 1500){
+  if (sat_count < 10 && now - last_sat_ms >= 1500) {
     sat_count++;
     last_sat_ms = now;
   }
@@ -172,8 +188,8 @@ int gps_simulator_step(){
   // ---------------------------------------------------------------------------
   // Time init + carry
   // ---------------------------------------------------------------------------
-  if(ubxMessage.navPvt.fixType >= 3){
-    if(!time_init){
+  if (ubxMessage.navPvt.fixType >= 3) {
+    if (!time_init) {
       ubxMessage.navPvt.year  = 2026;
       ubxMessage.navPvt.month = rand()%12 + 1;
       ubxMessage.navPvt.day   = rand()%28 + 1;
@@ -184,8 +200,8 @@ int gps_simulator_step(){
       last_sec_tick = sim_ms / 1000;
       time_init = true;
     }
-    else if(sim_ms/1000 != last_sec_tick){
-      last_sec_tick = sim_ms/1000;
+    else if (sim_ms / 1000 != last_sec_tick) {
+      last_sec_tick = sim_ms / 1000;
       utc_add_one_second();
     }
   }
@@ -193,7 +209,7 @@ int gps_simulator_step(){
   // ---------------------------------------------------------------------------
   // No fix → static
   // ---------------------------------------------------------------------------
-  if(ubxMessage.navPvt.fixType < 3){
+  if (ubxMessage.navPvt.fixType < 3) {
     ubxMessage.navPvt.lat     = lat * 1e7;
     ubxMessage.navPvt.lon     = lon * 1e7;
     ubxMessage.navPvt.gSpeed  = 0;
@@ -204,10 +220,10 @@ int gps_simulator_step(){
   // ---------------------------------------------------------------------------
   // Motion
   // ---------------------------------------------------------------------------
-  if(mode == STRAIGHT){
+  if (mode == STRAIGHT) {
     // Wind-like speed variation
     wind_phase += TWO_PI * SIM_DT / WIND_OSC_PERIOD_S;
-    if(wind_phase > TWO_PI) wind_phase -= TWO_PI;
+    if (wind_phase > TWO_PI) wind_phase -= TWO_PI;
 
     const float wind_mps =
       sinf(wind_phase) * STRAIGHT_WIND_AMPL_KTS * KNOTS_TO_MPS;
@@ -221,13 +237,13 @@ int gps_simulator_step(){
 
   ramp_speed();
 
-  if(mode == STRAIGHT){
+  if (mode == STRAIGHT) {
     straight_dist += speed_mps * SIM_DT;
 
     lat += m_to_deg_lat(speed_mps * SIM_DT * cos(heading_deg * DEG_TO_RAD));
     lon += m_to_deg_lon(speed_mps * SIM_DT * sin(heading_deg * DEG_TO_RAD), lat);
 
-    if(straight_dist >= STRAIGHT_LEN_M){
+    if (straight_dist >= STRAIGHT_LEN_M) {
       straight_dist = 0.0f;
       mode = TURN;
 
@@ -248,7 +264,7 @@ int gps_simulator_step(){
   else { // TURN
     turn_phi += speed_mps / TURN_RADIUS_M * SIM_DT;
 
-    if(turn_phi >= TURN_ANGLE_RAD){
+    if (turn_phi >= TURN_ANGLE_RAD) {
       turn_phi = TURN_ANGLE_RAD;
       mode = STRAIGHT;
 
@@ -273,7 +289,7 @@ int gps_simulator_step(){
       turn_dir_n * cos(turn_phi) - turn_nrm_n * sin(turn_phi)
     ) * RAD_TO_DEG;
 
-    if(heading_deg < 0) heading_deg += 360.0f;
+    if (heading_deg < 0) heading_deg += 360.0f;
   }
 
   // ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 #include "GPS/Metrics/gps_time_speed.h"
 #include "GPS/Data/gps_data.h"
+#include "GPS/Data/gps_runtime_instances.h"
 #include "GPS/Data/gps_satellite_quality.h"
 #include "GPS/Metrics/gps_result_sort.h"
 

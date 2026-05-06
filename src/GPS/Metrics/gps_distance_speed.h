@@ -84,10 +84,3 @@ private:
 extern int win_nm_start;
 extern int win_nm_end;
 
-// ============================================================================
-// Global distance window instances (API preserved)
-// ============================================================================
-extern GPS_distance_speed speed_100m;     // 100 m
-extern GPS_distance_speed speed_250m;     // 250 m
-extern GPS_distance_speed speed_500m;     // 500 m
-extern GPS_distance_speed speed_nm;    // 1 nautical mile

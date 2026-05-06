@@ -66,14 +66,6 @@ private:
   int reset_display_last_run;
 };
 
-// ---------------------------------------------------------------------------
-// Global instances (API preserved)
-// ---------------------------------------------------------------------------
-extern GPS_time_speed speed_2s;     // 2-second window (session best)
-extern GPS_time_speed speed_10s;    // 10-second window
-extern GPS_time_speed speed_30min;  // 30-minute window (if used)
-extern GPS_time_speed speed_1h;  // 1-hour window
-
 // ============================================================================
 // Geometry window exports (USED BY STORAGE / GEOJSON)
 // All indices are GPS sample indices unless stated otherwise.

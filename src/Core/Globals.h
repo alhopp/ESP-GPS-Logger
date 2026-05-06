@@ -3,8 +3,6 @@
 #include <Arduino.h>
 #include <time.h>
 #include "Core/log.h"
-#include "GPS/Data/gps_data.h"
-#include "GPS/Data/gps_satellite_quality.h"
 
 
 // ============================================================================
@@ -81,8 +79,5 @@ extern int wdt_task1;
 // ============================================================================
 extern bool Shut_down_Save_session;
 extern bool reset_boot;
-extern GPS_data      Ublox;
-extern GPS_SAT_info  Ublox_Sat;
-
 extern volatile bool woke_from_sleep;
 

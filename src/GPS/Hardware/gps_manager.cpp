@@ -29,11 +29,14 @@ void setLifecycleState(GpsLifecycleState state)
 
 bool probeGps(uint32_t baud)
 {
+  // Try one baud rate at a time. Some receivers may boot at their configured
+  // rate, while factory/default units can appear at 9600.
   UbloxSerial.end();
   delay(20);
   UbloxSerial.begin(baud, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN);
   delay(120);
 
+  // Drop any stale bytes before asking for MON-VER.
   while (UbloxSerial.available()) {
     UbloxSerial.read();
   }
@@ -62,6 +65,8 @@ bool initGPS()
   LOG_GPS("Init", "starting");
   setLifecycleState(GpsLifecycleState::Starting);
 
+  // Power is managed once here. Runtime code should read messages only; it
+  // should not attempt a second bring-up.
   gps_power_on();
   delay(100);
 

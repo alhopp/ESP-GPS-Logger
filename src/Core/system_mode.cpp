@@ -15,8 +15,8 @@
 
 #include "Core/log.h"
 #include "Core/Rtc/rtc_session_stats.h"
+#include "GPS/Data/gps_runtime_instances.h"
 #include "GPS/Hardware/gps_manager.h"
-#include "GPS/Metrics/gps_alpha_speed.h"
 #include "Storage/storage_manager.h"
 #include "Logging/logging_session.h"
 #include "Runtime/display_redraw.h"

@@ -4,9 +4,7 @@
 #include "Display/E_paper.h"
 #include "Display/Screens/screen_stats_common.h"
 #include "Fonts.h"
-#include "GPS/Metrics/gps_alpha_speed.h"
-#include "GPS/Metrics/gps_distance_speed.h"
-#include "GPS/Metrics/gps_time_speed.h"
+#include "GPS/Data/gps_runtime_instances.h"
 #include "Layout.h"
 
 static int ui_offset = 0;

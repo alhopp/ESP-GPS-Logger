@@ -80,11 +80,6 @@ private:
 };
 
 
-// ---------------------------------------------------------------------------
-// Global ALFA windows (unchanged API)
-// ---------------------------------------------------------------------------
-extern Alfa_speed alpha_250m;
-extern Alfa_speed alpha_500m;
 extern float alfa_exit;
 
 

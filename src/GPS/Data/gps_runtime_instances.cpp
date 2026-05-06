@@ -1,29 +1,33 @@
-#include "GPS/Data/gps_data.h"
+#include "GPS/Data/gps_runtime_instances.h"
 
-// Owns the global GPS/statistics objects used by the firmware.
-// This preserves the RP6 global-object model while keeping construction out of
-// headers and avoiding hidden duplicate instances.
+// ============================================================================
+// GPS runtime object definitions
+//
+// This file is the single owner of the shared GPS data and metric calculators.
+// Keeping construction here avoids duplicate global instances and makes the
+// firmware's metric pipeline easy to find:
+//
+//   NAV-PVT sample -> Ublox rings -> metric calculators -> display/storage
+// ============================================================================
 
-#include "GPS/Data/gps_satellite_quality.h"
+// Raw sample rings and satellite-quality aggregation.
+GPS_data     Ublox;
+GPS_SAT_info Ublox_Sat;
 
-#include "GPS/Metrics/gps_alpha_speed.h"
-#include "GPS/Metrics/gps_distance_speed.h"
-#include "GPS/Metrics/gps_time_speed.h"
+// Distance-window speed calculators. Constructor argument is the target window
+// distance in meters.
+GPS_distance_speed speed_100m(100);
+GPS_distance_speed speed_250m(250);
+GPS_distance_speed speed_500m(500);
+GPS_distance_speed speed_nm(1852);      // 1 nautical mile.
 
-// Global GPS runtime instances, constructed once for the firmware lifetime.
+// Time-window speed calculators. Constructor argument is the window length in
+// seconds.
+GPS_time_speed speed_2s(2);
+GPS_time_speed speed_10s(10);
+GPS_time_speed speed_30min(1800);       // 30 minutes.
+GPS_time_speed speed_1h(3600);          // 60 minutes.
 
-GPS_data     Ublox;       // Circular buffers + distance accumulation
-GPS_SAT_info Ublox_Sat;   // NAV-SAT signal quality statistics
-
-GPS_distance_speed speed_100m (100);
-GPS_distance_speed speed_250m (250);
-GPS_distance_speed speed_500m (500);
-GPS_distance_speed speed_nm(1852);    // 1 nautical mile
-
-GPS_time_speed speed_2s    (2);
-GPS_time_speed speed_10s   (10);
-GPS_time_speed speed_30min (1800);    // 30-minute window
-GPS_time_speed speed_1h (3600);    // 60-minute window
-
+// Alpha calculators. Constructor argument is the closure radius in meters.
 Alfa_speed alpha_250m(50);
 Alfa_speed alpha_500m(50);
