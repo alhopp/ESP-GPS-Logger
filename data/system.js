@@ -22,7 +22,6 @@ window.SystemTab = (function(){
     setText($("sys_sample_rate"),   system.sample_rate ? system.sample_rate+" Hz" : null);
     setText($("sys_dynamic_model"), system.dynamic_model);
     setText($("sys_speed_units"),   system.speed_units);
-    setText($("sys_cal_speed"),     system.cal_speed);
     setText($("sys_display"),       system.display);
     setText($("sys_storage"),       storageText);
     setText($("sys_storage_used"),  storageUsedText);

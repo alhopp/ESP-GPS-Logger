@@ -70,12 +70,12 @@ window.MapView = {
     this.map.fitBounds(b,{
       padding:[30,30],
       animate:false,
-      maxZoom:17
+      maxZoom:16
     });
 
     const z = this.map.getZoom();
-    if(z > this.map.options.maxZoom) this.map.setZoom(this.map.options.maxZoom);
-    if(z < this.map.options.minZoom) this.map.setZoom(this.map.options.minZoom);
+    if(z > 16) this.map.setZoom(16);
+    if(z < 13) this.map.setZoom(13);
 
     if(meta){
       console.log("[Map] bounds", meta);
