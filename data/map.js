@@ -145,6 +145,7 @@ window.MapView = {
       // ---- stats only live on base track ----
       const stats = base?.properties?.stats;
       updateStatsUI(stats);
+      StatsGraph.setSession(base, this._overlays, stats);
 
       // ---- draw base track (grey) ----
       if(base){
@@ -226,6 +227,7 @@ showOverlay(mode, options={}){
     this.defaultOverlays = {};
     if(this.dot){ this.map.removeLayer(this.dot); this.dot=null; }
     this._overlays = {};
+    StatsGraph.clear();
   }
 };
 
@@ -348,6 +350,7 @@ bindGestures(){
 
 function showStats(){
   $("sessionCard").classList.add("stats");
+  StatsGraph.draw();
 }
 
 function hideStats(){
@@ -382,11 +385,193 @@ function updateStatsUI(stats){
   set("map_stat_distance", stats.distance?.toFixed(3) ?? "–");
 }
 
+const StatsGraph = {
+  base:null,
+  overlays:{},
+  stats:null,
+  chart:null,
+  mode:"alpha",
+  graphModes:new Set(["2s","10s","alpha","nm","1h","distance"]),
+
+  setSession(base, overlays, stats){
+    this.base = base || null;
+    this.overlays = overlays || {};
+    this.stats = stats || null;
+    this.select(this.mode, { keepCollapsed:true });
+  },
+
+  clear(){
+    this.base = null;
+    this.overlays = {};
+    this.stats = null;
+    this.drawEmpty("No session data");
+  },
+
+  select(mode, options={}){
+    if(!this.canGraph(mode)) return;
+
+    this.mode = mode || "alpha";
+    document.querySelectorAll(".stat").forEach(el=>{
+      el.classList.toggle("selected", el.dataset.mode === this.mode);
+    });
+    if(!options.keepCollapsed) showStats();
+    this.draw();
+  },
+
+  canGraph(mode){
+    return this.graphModes.has(mode);
+  },
+
+  draw(){
+    const el = $("statsGraph");
+    if(!el) return;
+
+    const series = this.seriesForMode(this.mode);
+    if(!series.points.length){
+      this.drawEmpty(`No ${this.labelForMode(this.mode)} graph data`);
+      return;
+    }
+
+    if(typeof uPlot === "undefined"){
+      this.drawEmpty("Graph library missing");
+      return;
+    }
+
+    const parentRect = el.parentElement?.getBoundingClientRect();
+    const width = Math.max(220, Math.round(el.clientWidth || parentRect?.width || 0));
+    const height = Math.max(160, Math.round(el.clientHeight || parentRect?.height || 0));
+
+    this.destroyChart();
+    el.textContent = "";
+
+    const x = series.points.map(p=>p.x);
+    const y = series.points.map(p=>p.y);
+
+    this.chart = new uPlot({
+      width,
+      height,
+      padding:[8, 26, 22, 18],
+      legend:{show:false},
+      cursor:{show:true, x:false, y:false},
+      scales:{x:{time:false}},
+      axes:[
+        {
+          stroke:"#5b6b82",
+          grid:{show:false},
+          ticks:{show:false},
+          values:(u, vals)=>vals.map(v=>v === 0 ? "start" : v === x[x.length - 1] ? "finish" : "")
+        },
+        {
+          stroke:"#5b6b82",
+          grid:{stroke:"rgba(91,107,130,.22)", width:1},
+          values:(u, vals)=>vals.map(v=>v.toFixed(1))
+        }
+      ],
+      series:[
+        {},
+        {
+          label:series.unit,
+          stroke:"#1e88e5",
+          width:3,
+          points:{show:false}
+        }
+      ]
+    }, [x,y], el);
+  },
+
+  drawEmpty(text){
+    const el = $("statsGraph");
+    if(!el) return;
+    this.destroyChart();
+    el.textContent = text;
+  },
+
+  seriesForMode(mode){
+    if(mode === "distance"){
+      return {
+        label:this.labelForMode(mode),
+        unit:"km",
+        points:this.cumulativeDistance(this.coordsOf(this.base))
+      };
+    }
+
+    const features = this.overlays?.[mode] || [];
+    const coords = features.length ? this.coordsOf(features[0]) : this.coordsOf(this.base);
+    return {
+      label:this.labelForMode(mode),
+      unit:"kt",
+      points:this.speedSeries(coords)
+    };
+  },
+
+  coordsOf(feature){
+    const coords = feature?.geometry?.coordinates || [];
+    return coords
+      .map(c=>({ lon:Number(c[0]), lat:Number(c[1]) }))
+      .filter(p=>
+        Number.isFinite(p.lat) &&
+        Number.isFinite(p.lon) &&
+        Math.abs(p.lat) <= 90 &&
+        Math.abs(p.lon) <= 180 &&
+        (Math.abs(p.lat) >= 0.001 || Math.abs(p.lon) >= 0.001)
+      );
+  },
+
+  speedSeries(coords){
+    const points = [];
+    for(let i=1;i<coords.length;i++){
+      const meters = this.distanceMeters(coords[i-1], coords[i]);
+      points.push({ x:i, y:meters * 1.943844 });
+    }
+    return points;
+  },
+
+  cumulativeDistance(coords){
+    const points = [];
+    let meters = 0;
+    for(let i=1;i<coords.length;i++){
+      meters += this.distanceMeters(coords[i-1], coords[i]);
+      points.push({ x:i, y:meters / 1000 });
+    }
+    return points;
+  },
+
+  distanceMeters(a,b){
+    const rad = Math.PI / 180;
+    const lat = ((a.lat + b.lat) * 0.5) * rad;
+    const dlat = b.lat - a.lat;
+    const dlon = (b.lon - a.lon) * Math.cos(lat);
+    return Math.sqrt(dlat*dlat + dlon*dlon) * 111195;
+  },
+
+  labelForMode(mode){
+    return ({
+      "2s":"2 seconds",
+      "10s":"5 x 10 seconds",
+      alpha:"Alpha",
+      nm:"Nautical mile",
+      "1h":"1 hour",
+      distance:"Distance"
+    })[mode] || mode;
+  },
+
+  destroyChart(){
+    if(this.chart){
+      this.chart.destroy();
+      this.chart = null;
+    }
+  }
+};
+
+window.addEventListener("resize",()=>StatsGraph.draw());
+
 
 document.querySelectorAll(".stat").forEach(stat=>{
   stat.addEventListener("click", ()=>{
     const mode = stat.dataset.mode;
-    if(mode) MapView.showOverlay(mode);
+    if(!mode) return;
+    MapView.showOverlay(mode);
+    StatsGraph.select(mode);
   });
 });
 

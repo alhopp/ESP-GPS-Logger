@@ -1,8 +1,8 @@
 /* ================= GLOBAL / FOUNDATION ================= */
 
 /* Splash */
-#splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#fff;opacity:1;transition:opacity .4s ease;will-change:opacity;transform:translateZ(0);touch-action:none}
-#splash img{width:200px;max-width:70%;display:block;opacity:0;transform:scale(.96);transition:opacity .3s ease,transform .3s ease}
+#splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#fff;opacity:1;transition:opacity .18s ease;will-change:opacity;transform:translateZ(0);touch-action:none}
+#splash img{width:200px;max-width:70%;display:block;opacity:0;transform:scale(.98);transition:opacity .14s ease,transform .14s ease}
 #splash.ready img{opacity:1;transform:scale(1)}
 #splash.hide{opacity:0;pointer-events:none}
 @media(prefers-reduced-motion:reduce){#splash,#splash img{transition:none;transform:none}}

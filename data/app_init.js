@@ -193,6 +193,6 @@ addEventListener("load", async ()=>{
   setTimeout(()=>{
     if(!splash) return;
     splash.classList.add("hide");
-    setTimeout(()=>splash.remove(),500);
-  },2000);
+    setTimeout(()=>splash.remove(),220);
+  },650);
 });
