@@ -1,7 +1,7 @@
 // ============================================================================
 // main.cpp
 // - System entry point
-// - Boot → init subsystems → start RTOS tasks → enter idle mode
+// - Boot, init subsystems, start RTOS tasks, then enter idle mode
 // - loop() acts only as a lightweight supervisor
 // ============================================================================
 
@@ -64,7 +64,7 @@ void setup() {
     return;
   }
 
-  // Init order matters: storage → config → GPS → input
+  // Init order matters: storage, config, battery sample, input
   initSubsystems();
 
   // Start runtime tasks
