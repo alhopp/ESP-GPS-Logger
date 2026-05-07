@@ -20,6 +20,7 @@
 #include "GPS/Data/gps_data.h"
 #include "Core/system_info.h"
 #include "GPS/Data/gps_sample_quality.h"
+#include "GPS/gps_runtime_state.h"
 
 // ============================================================================
 // Shared GPS buffers
@@ -28,6 +29,7 @@
 uint16_t _gSpeed[BUFFER_SIZE];    // Doppler speed per GPS sample, mm/s.
 uint16_t _sogCms[BUFFER_SIZE];    // Same speed in cm/s for SBP-style output.
 uint16_t _secSpeed[BUFFER_SIZE];  // 1-second averaged speed, mm/s.
+int      _sbpIndex[BUFFER_SIZE];  // 1-based SBP frame index for this sample.
 bool     _sampleGood[BUFFER_SIZE];// False means speed was zeroed and position may be held.
 
 float _lat[BUFFER_ALFA];          // Latitude ring buffer, decimal degrees.
@@ -69,15 +71,24 @@ int safeSampleRate()
   return systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
 }
 
+uint32_t sbpQuantizedSpeedMmps(uint32_t speedMmps)
+{
+  return (speedMmps / 10U) * 10U;
+}
+
 // Store the filtered/sanitized sample into the buffers consumed by all metric
 // modules. gps_sample_quality_filter() may have zeroed speed and reused the
-// previous good position before we get here.
+// previous good position before we get here. Speeds are quantized to the SBP
+// cm/s value so logged stats match Speedreader's SBP input.
 void storeSample(int gpsIdx,
                  int alphaIdx,
                  const GpsSampleQualityResult& sample)
 {
-  _gSpeed[gpsIdx] = sample.gSpeed;
-  _sogCms[gpsIdx] = static_cast<uint16_t>(sample.gSpeed * 0.1f);
+  const uint32_t speedMmps = sbpQuantizedSpeedMmps(sample.gSpeed);
+
+  _gSpeed[gpsIdx] = speedMmps;
+  _sogCms[gpsIdx] = static_cast<uint16_t>(speedMmps / 10U);
+  _sbpIndex[gpsIdx] = 0;
   _sampleGood[gpsIdx] = sample.good;
 
   _lat[alphaIdx] = sample.latitude;
@@ -92,7 +103,7 @@ void accumulateDistanceIfGood(const GpsSampleQualityResult& sample,
 {
   if (!sample.good) return;
 
-  const float distanceMm = static_cast<float>(sample.gSpeed) / safeSampleRate();
+  const float distanceMm = static_cast<float>(sbpQuantizedSpeedMmps(sample.gSpeed)) / safeSampleRate();
 
   total_distance += distanceMm;
   runDistance += distanceMm;
@@ -135,8 +146,17 @@ void gps_data_reset_quality_state()
   gps_sample_quality_reset();
 
   for (int i = 0; i < BUFFER_SIZE; i++) {
+    _gSpeed[i] = 0;
+    _sogCms[i] = 0;
+    _secSpeed[i] = 0;
+    _sbpIndex[i] = 0;
     _sampleGood[i] = false;
+    sec_to_gps_index[i] = 0;
   }
+
+  index_GPS = 0;
+  index_sec = -1;
+  second_speed_sum_mmps = 0;
 }
 
 void GPS_data::push_data(float latitude, float longitude, uint32_t gSpeed)

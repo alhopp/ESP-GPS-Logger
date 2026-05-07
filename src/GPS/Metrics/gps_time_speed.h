@@ -24,7 +24,8 @@ public:
   explicit GPS_time_speed(int tijdvenster);
 
   // ---------------- per-run / rolling state ----------------
-  float best_10s_per_run[32];   // compatibility export for RTC/GeoJSON
+  double best_10s_per_run[32];  // compatibility export for RTC/GeoJSON
+  uint32_t best_10s_sum_cms_per_run[32];
   int   run_count;              // highest run index seen
 
   // Update statistics for the current run
@@ -74,6 +75,7 @@ private:
 
 // ---- 2s window start (GPS index domain) ----
 extern int win_2s_start;
+extern int win_2s_sbp_start;
 
 // ---- 1h window (SECOND index domain) --
 extern int win_1h_start_sec;
@@ -85,6 +87,10 @@ extern int sec_to_gps_index[];
 
 extern int win_10s_top5_start[5];
 extern int win_10s_top5_count;
+extern double win_10s_top5_speed[5];
+extern int win_10s_top5_sbp_start[5];
+extern uint32_t win_2s_sum_cms;
+extern uint32_t win_10s_top5_sum_cms[5];
 
 // Rebuild GeoJSON/export top-5 10s windows from the best 10s result of each run.
 // This enforces the Speedreader/RP6 rule: at most one 10s result per run.

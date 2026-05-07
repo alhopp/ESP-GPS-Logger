@@ -6,8 +6,6 @@
 #include "Config/config_types.h"
 
 namespace {
-uint32_t last_sbp_iTOW = 0;
-
 void checksumUpdate(uint8_t byte, uint8_t& ckA, uint8_t& ckB)
 {
   ckA += byte;
@@ -48,19 +46,11 @@ bool sbpLoggingReady(File& file)
   return file;
 }
 
-bool sbpItowChanged()
-{
-  const uint32_t itow = ubxMessage.navPvt.iTOW;
-  if (itow == last_sbp_iTOW) return false;
-
-  last_sbp_iTOW = itow;
-  return true;
-}
 }
 
 void logging_raw_writers_reset()
 {
-  last_sbp_iTOW = 0;
+  sbp_writer_reset();
 }
 
 void logging_raw_writers_write_ubx(File& ubxfile)
@@ -86,7 +76,6 @@ void logging_raw_writers_write_ubx(File& ubxfile)
 void logging_raw_writers_write_sbp(File& sbpfile)
 {
   if (!sbpLoggingReady(sbpfile)) return;
-  if (!sbpItowChanged()) return;
 
   sbp_write_frame(sbpfile);
 }

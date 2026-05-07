@@ -34,6 +34,7 @@ desktop.ini
 *.bak
 *.swp
 .reference/
+dev_sbp_logs/
 
 # ===============================
 # Credentials / secrets (safety)

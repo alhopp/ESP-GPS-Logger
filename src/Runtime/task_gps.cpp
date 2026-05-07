@@ -74,13 +74,13 @@ bool gpsTaskShouldRun()
 
 void processGpsFix(const GpsFix& fix)
 {
+  if (logging_session_active()) nav_pvt_message++;
+
   processGpsMessage(fix);
 
   if (logging_session_active() && GPS_Signal_OK) {
     logging_session_write_fix(fix, getMode() == MODE_LOGGING);
   }
-
-  if (logging_session_active()) nav_pvt_message++;
 
   gps_display_policy_update(fix);
 }

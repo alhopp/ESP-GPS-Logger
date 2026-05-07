@@ -48,3 +48,5 @@ private:
 extern int alpha_start;
 extern int alpha_end;
 extern float alpha_best_speed_mmps;
+extern float alpha_best_closure_m;
+extern int alpha_best_distance_m;

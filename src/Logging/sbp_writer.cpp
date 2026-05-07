@@ -1,5 +1,6 @@
 #include "Logging/sbp_writer.h"
 #include "GPS/Ublox/ublox_driver.h"
+#include "GPS/Data/gps_data.h"
 #include "Core/Globals.h"
 
 namespace {
@@ -31,12 +32,25 @@ struct SBP_frame { // 32 bytes
 SBP_Header sbp_header = {30, 0xA0, 0xA2, 30, 0xFD, "ESP-GPS,0,unknown,unknown"};
 
 SBP_frame sbp_frame;
+int sbp_frame_count = 0;
 
 uint8_t scaledByte(uint32_t value, uint32_t divisor)
 {
   uint32_t scaled = value / divisor;
   if (scaled > 255) scaled = 255;
   return static_cast<uint8_t>(scaled);
+}
+
+uint16_t currentStatsSogCms()
+{
+  if (index_GPS < 0) return static_cast<uint16_t>(ubxMessage.navPvt.gSpeed / 10);
+  return _sogCms[index_GPS % BUFFER_SIZE];
+}
+
+void stampCurrentSampleWithSbpRow()
+{
+  if (index_GPS < 0) return;
+  _sbpIndex[index_GPS % BUFFER_SIZE] = sbp_frame_count;
 }
 }
 
@@ -47,6 +61,11 @@ void sbp_write_header(File& file)
   }
 
   file.write((uint8_t*)&sbp_header, 64);
+}
+
+void sbp_writer_reset()
+{
+  sbp_frame_count = 0;
 }
 
 void sbp_write_frame(File& file)
@@ -74,7 +93,7 @@ void sbp_write_frame(File& file)
   sbp_frame.Lat = ubxMessage.navPvt.lat;
   sbp_frame.Lon = ubxMessage.navPvt.lon;
   sbp_frame.AltCM = ubxMessage.navPvt.hMSL / 10;
-  sbp_frame.Sog = ubxMessage.navPvt.gSpeed / 10;          // stored in cm/sec in sbp file
+  sbp_frame.Sog = currentStatsSogCms();                    // stored in cm/sec in sbp file
   sbp_frame.Cog = ubxMessage.navPvt.heading / 1000;
 
   sbp_frame.SVIDCnt = ubxMessage.navPvt.numSV;
@@ -89,5 +108,8 @@ void sbp_write_frame(File& file)
   sbp_frame.sdop = sdop;
   sbp_frame.vsdop = vsdop;
 
-  file.write((uint8_t*)&sbp_frame, 32);
+  if (file.write((uint8_t*)&sbp_frame, 32) == 32) {
+    sbp_frame_count++;
+    stampCurrentSampleWithSbpRow();
+  }
 }

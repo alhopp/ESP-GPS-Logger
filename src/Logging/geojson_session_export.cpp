@@ -216,8 +216,8 @@ void attachGraphSeries(const char* sbpPath)
   const int s2Count = readGpsSpeedGraph(
     sbpPath,
     graph2s,
-    win_2s_start,
-    win_2s_start >= 0 ? win_2s_start + (2 * systemInfo.sample_rate) - 1 : -1
+    win_2s_sbp_start,
+    win_2s_sbp_start >= 1 ? win_2s_sbp_start + (2 * systemInfo.sample_rate) - 1 : -1
   );
 
   const int s10SeriesCount = win_10s_top5_count > 5 ? 5 : win_10s_top5_count;
@@ -228,8 +228,8 @@ void attachGraphSeries(const char* sbpPath)
     graph10sCount[i] = readGpsSpeedGraph(
       sbpPath,
       graph10s[i],
-      win_10s_top5_start[i],
-      win_10s_top5_start[i] >= 0 ? win_10s_top5_start[i] + (10 * systemInfo.sample_rate) - 1 : -1
+      win_10s_top5_sbp_start[i],
+      win_10s_top5_sbp_start[i] >= 1 ? win_10s_top5_sbp_start[i] + (10 * systemInfo.sample_rate) - 1 : -1
     );
   }
 
@@ -321,10 +321,10 @@ void addOneHourFeature(const char* sbpPath)
 
 void addDerivedFeatures(const char* sbpPath)
 {
-  addWindowFeature(sbpPath, "2s", win_2s_start, 2);
+  addWindowFeature(sbpPath, "2s", win_2s_sbp_start, 2);
 
   for (int i = 0; i < win_10s_top5_count; i++) {
-    addWindowFeature(sbpPath, "10s", win_10s_top5_start[i], 10);
+    addWindowFeature(sbpPath, "10s", win_10s_top5_sbp_start[i], 10);
   }
 
   addRangeFeature(sbpPath, "alpha", alpha_start, alpha_end);

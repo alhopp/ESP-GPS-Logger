@@ -8,12 +8,21 @@
 #include "GPS/gps_runtime_state.h"
 #include <time.h>
 
+namespace {
+constexpr double SPEED_TIE_EPS_MMPS = 1.0;
+
+bool isMeaningfullyFaster(double candidate, double best)
+{
+  return candidate > best + SPEED_TIE_EPS_MMPS;
+}
+}
+
 // -----------------------------------------------------------------------------
 // GPS_distance_speed
 // Distance-based average speed calculator (100m / 250m / 500m / 1852m)
 //
 // UNIT MODEL (RP6 / Speedreader-aligned):
-// - _gSpeed is raw mm/s.
+// - _gSpeed is SBP-quantized mm/s.
 // - Window distance uses the legacy scaled target:
 //     meters * 1000 * sample_rate
 // - Stored speeds remain mm/s. Display/export code converts to knots.
@@ -75,7 +84,7 @@ double GPS_distance_speed::Update_distance(int actual_run)
   // ---------------------------------------------------------------------------
   // New best speed → CAPTURE GEOMETRY WINDOW
   // ---------------------------------------------------------------------------
-  if((m_max_speed == 0.0 && m_speed > 0.0) || m_speed > m_max_speed){
+  if((m_max_speed == 0.0 && m_speed > 0.0) || isMeaningfullyFaster(m_speed, m_max_speed)){
     m_max_speed = m_speed;
 
     // ---- Capture NM geometry window (1852 m only) ----

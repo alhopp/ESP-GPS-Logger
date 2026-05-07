@@ -31,7 +31,7 @@ static constexpr uint32_t SIM_RATE_MS     = 200;
 static constexpr float    KNOTS_TO_MPS    = 0.514444f;
 
 static constexpr float STRAIGHT_MIN_KTS   = 30.0f;
-static constexpr float STRAIGHT_MAX_KTS   = 40.0f;
+static constexpr float STRAIGHT_MAX_KTS   = 42.0f;
 static constexpr float TURN_MIN_KTS       = 15.0f;
 static constexpr float TURN_MAX_KTS       = 20.0f;
 
@@ -42,7 +42,11 @@ static constexpr float TURN_ANGLE_RAD     = 180.0f * DEG_TO_RAD;
 
 // Speed texture
 static constexpr float STRAIGHT_WIND_AMPL_KTS = 2.5f;   // ± knots
-static constexpr float WIND_OSC_PERIOD_S     = 10.0f;  // seconds
+static constexpr float WIND_OSC_PERIOD_S     = 13.0f;  // seconds
+static constexpr float GUST_AMPL_KTS         = 0.9f;   // knots
+static constexpr float GUST_OSC_PERIOD_S     = 4.6f;   // seconds
+static constexpr float RIPPLE_AMPL_KTS       = 0.22f;  // knots
+static constexpr float RIPPLE_OSC_PERIOD_S   = 1.7f;   // seconds
 
 // -----------------------------------------------------------------------------
 // State
@@ -61,6 +65,8 @@ static float target_mps  = 0.0f;
 static float straight_dist     = 0.0f;
 static float straight_base_mps = 0.0f;
 static float wind_phase        = 0.0f;
+static float gust_phase        = 0.0f;
+static float ripple_phase      = 0.0f;
 
 // Turn geometry
 static float turn_phi        = 0.0f;
@@ -145,12 +151,14 @@ void gps_simulator_init()
   mode            = STRAIGHT;
   straight_dist   = 0.0f;
   wind_phase      = randf(0, TWO_PI);
+  gust_phase      = randf(0, TWO_PI);
+  ripple_phase    = randf(0, TWO_PI);
 
   heading_deg     = 45.0f;
   speed_mps       = 0.0f;
 
   straight_base_mps =
-    randf(STRAIGHT_MIN_KTS, STRAIGHT_MAX_KTS) * KNOTS_TO_MPS;
+    randf(33.0f, 38.5f) * KNOTS_TO_MPS;
   target_mps = straight_base_mps;
 
   sim_ms        = 0;
@@ -233,15 +241,24 @@ int gps_simulator_step()
   // Motion
   // ---------------------------------------------------------------------------
   if (mode == STRAIGHT) {
-    // Wind-like speed variation
+    // Wind-like speed variation. Multi-frequency texture avoids long clipped
+    // plateaus, which makes Speedreader window comparison more useful.
     wind_phase += TWO_PI * SIM_DT / WIND_OSC_PERIOD_S;
     if (wind_phase > TWO_PI) wind_phase -= TWO_PI;
+    gust_phase += TWO_PI * SIM_DT / GUST_OSC_PERIOD_S;
+    if (gust_phase > TWO_PI) gust_phase -= TWO_PI;
+    ripple_phase += TWO_PI * SIM_DT / RIPPLE_OSC_PERIOD_S;
+    if (ripple_phase > TWO_PI) ripple_phase -= TWO_PI;
 
     const float wind_mps =
       sinf(wind_phase) * STRAIGHT_WIND_AMPL_KTS * KNOTS_TO_MPS;
+    const float gust_mps =
+      sinf(gust_phase + 0.7f * sinf(wind_phase)) * GUST_AMPL_KTS * KNOTS_TO_MPS;
+    const float ripple_mps =
+      sinf(ripple_phase) * RIPPLE_AMPL_KTS * KNOTS_TO_MPS;
 
     target_mps = clampf(
-      straight_base_mps + wind_mps,
+      straight_base_mps + wind_mps + gust_mps + ripple_mps,
       STRAIGHT_MIN_KTS * KNOTS_TO_MPS,
       STRAIGHT_MAX_KTS * KNOTS_TO_MPS
     );
@@ -281,7 +298,7 @@ int gps_simulator_step()
       mode = STRAIGHT;
 
       straight_base_mps =
-        randf(STRAIGHT_MIN_KTS, STRAIGHT_MAX_KTS) * KNOTS_TO_MPS;
+        randf(33.0f, 38.5f) * KNOTS_TO_MPS;
 
       target_mps = straight_base_mps;
       heading_deg = fmodf(heading_deg + TURN_ANGLE_RAD * RAD_TO_DEG, 360.0f);

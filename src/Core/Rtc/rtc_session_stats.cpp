@@ -1,6 +1,7 @@
 #include "Core/Rtc/rtc_session_stats.h"
 
 #include "Core/log.h"
+#include "Core/system_info.h"
 
 #include "GPS/Data/gps_data.h"
 #include "GPS/Data/gps_runtime_instances.h"
@@ -28,6 +29,21 @@ RTC_DATA_ATTR float RTC_R5_10s = 0.0f;
 namespace {
 int last_printed_run = -1;
 
+int sampleRate()
+{
+  return systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
+}
+
+void printSbpRange(const char* label, int first, int last)
+{
+  if (first < 0 || last < first) {
+    Serial.printf("%-15s : n/a\n", label);
+    return;
+  }
+
+  Serial.printf("%-15s : %d -> %d\n", label, first, last);
+}
+
 void printSnapshotHeader()
 {
   Serial.println("\n================ RTC SNAPSHOT STATS ================");
@@ -51,23 +67,6 @@ void snapshotBest2s()
 {
   RTC_max_2s_knots = speed_2s.s_max_speed * MMPS_TO_KNOTS;
   Serial.printf("2s max          : %.3f kn\n", RTC_max_2s_knots);
-}
-
-int collectSortedRun10s(double results[], int maxResults)
-{
-  int count = 0;
-
-  for (int run = 1; run <= speed_10s.run_count && run < maxResults; run++) {
-    if (speed_10s.best_10s_per_run[run] > 0) {
-      results[count++] = speed_10s.best_10s_per_run[run];
-    }
-  }
-
-  if (count > 1) {
-    sort_display(results, count);
-  }
-
-  return count;
 }
 
 void clearTopRun10sSlots()
@@ -111,9 +110,6 @@ void snapshotTopRun10s()
 {
   gps_time_speed_rebuild_10s_top5_per_run();
 
-  double runResults[32];
-  const int resultCount = collectSortedRun10s(runResults, 32);
-
   clearTopRun10sSlots();
 
   double topSumKnots = 0.0;
@@ -121,9 +117,8 @@ void snapshotTopRun10s()
   Serial.println("10s best (top 5 runs):");
 
   for (int rank = 0; rank < 5; rank++) {
-    const int resultIndex = resultCount - 1 - rank;
     const float valueKnots =
-        resultIndex >= 0 ? runResults[resultIndex] * MMPS_TO_KNOTS : 0.0f;
+        rank < win_10s_top5_count ? win_10s_top5_speed[rank] * MMPS_TO_KNOTS : 0.0f;
 
     topSumKnots += valueKnots;
     storeTopRun10sSlot(rank, valueKnots);
@@ -132,6 +127,42 @@ void snapshotTopRun10s()
   RTC_avg_10s_knots = topSumKnots / 5.0f;
   Serial.printf("Run count       : %d\n", speed_10s.run_count);
   Serial.printf("10s avg (best 5): %.3f kn\n", RTC_avg_10s_knots);
+}
+
+void printStatSbpWindows()
+{
+  const int rate = sampleRate();
+
+  Serial.println();
+  Serial.println("SBP windows (first -> last point):");
+
+  printSbpRange("2s", win_2s_sbp_start, win_2s_sbp_start >= 1 ? win_2s_sbp_start + (2 * rate) - 1 : -1);
+
+  for (int i = 0; i < 5; i++) {
+    char label[12];
+    snprintf(label, sizeof(label), "10s #%d", i + 1);
+    printSbpRange(
+      label,
+      win_10s_top5_sbp_start[i],
+      win_10s_top5_sbp_start[i] >= 1 ? win_10s_top5_sbp_start[i] + (10 * rate) - 1 : -1
+    );
+  }
+
+  printSbpRange("NM", win_nm_start, win_nm_end);
+  printSbpRange("Alpha", alpha_start, alpha_end);
+  if (alpha_start >= 0 && alpha_end >= alpha_start) {
+    Serial.printf("%-15s : %.3f kn, %dm path, %.1fm closure\n",
+                  "Alpha detail",
+                  alpha_best_speed_mmps * MMPS_TO_KNOTS,
+                  alpha_best_distance_m,
+                  alpha_best_closure_m);
+  }
+
+  const int h1StartGps = win_1h_start_sec >= 0 ? (win_1h_start_sec * rate) + 1 : -1;
+  const int h1EndGps = win_1h_end_sec >= 0 ? (win_1h_end_sec + 1) * rate : -1;
+  printSbpRange("1 hour", h1StartGps, h1EndGps);
+
+  printSbpRange("Distance", index_GPS > 0 ? 1 : -1, index_GPS);
 }
 
 double bestDistanceSpeedMmps(const GPS_distance_speed& window)
@@ -191,6 +222,7 @@ void rtc_snapshot_stats()
   snapshotTopRun10s();
   snapshotSpecialSpeeds();
   snapshotDistance();
+  printStatSbpWindows();
   printFinalScreenValues();
   printSnapshotFooter();
 }

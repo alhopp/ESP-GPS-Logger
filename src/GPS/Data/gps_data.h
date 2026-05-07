@@ -28,8 +28,9 @@ constexpr int FILTER_MAX_sACC = 2;    // Maximum speed accuracy, m/s.
 // High-rate GPS sample rings
 // ----------------------------------------------------------------------------
 
-extern uint16_t _gSpeed[BUFFER_SIZE];      // Doppler speed per GPS sample, mm/s.
+extern uint16_t _gSpeed[BUFFER_SIZE];      // SBP-quantized Doppler speed, mm/s.
 extern uint16_t _sogCms[BUFFER_SIZE];      // Same speed in cm/s for SBP output.
+extern int      _sbpIndex[BUFFER_SIZE];    // 1-based SBP frame index for sample.
 extern bool     _sampleGood[BUFFER_SIZE];  // False means sanitized/held sample.
 
 extern float _lat[BUFFER_ALFA];            // Latitude, decimal degrees.

@@ -32,6 +32,8 @@
 int alpha_start = -1;
 int alpha_end   = -1;
 float alpha_best_speed_mmps = 0.0f;
+float alpha_best_closure_m = 0.0f;
+int alpha_best_distance_m = 0;
 
 // -----------------------------------------------------------------------------
 // External shared state
@@ -42,6 +44,15 @@ extern int alfa_counter;
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
+namespace {
+constexpr double SPEED_TIE_EPS_MMPS = 1.0;
+
+bool isMeaningfullyFaster(double candidate, double best)
+{
+  return candidate > best + SPEED_TIE_EPS_MMPS;
+}
+}
+
 static inline double closure_dist2(int a, int b)
 {
   const double lat0 = _lat[a];
@@ -107,7 +118,7 @@ float Alfa_speed::Update_Alfa(const GPS_distance_speed& M)
     {
       const float speed = (float)M.m_speed_alfa;
 
-      if(speed > alfa_speed_max)
+      if(isMeaningfullyFaster(speed, alfa_speed_max))
       {
         alfa_speed_max = speed;
         alfa_speed     = speed;
@@ -116,10 +127,12 @@ float Alfa_speed::Update_Alfa(const GPS_distance_speed& M)
         // alfa_speed_max resets each run, so using it alone would let a later
         // slower run overwrite the overlay while the final stat still shows the
         // true best alpha from avg_speed[].
-        if (speed > alpha_best_speed_mmps) {
+        if (isMeaningfullyFaster(speed, alpha_best_speed_mmps)) {
           alpha_best_speed_mmps = speed;
           alpha_start = entry;
           alpha_end   = exit;
+          alpha_best_closure_m = sqrt(d2);
+          alpha_best_distance_m = (int)(M.m_distance_alfa / systemInfo.sample_rate / 1000);
         }
 
         real_distance[0] = (int)d2;
@@ -186,6 +199,8 @@ void Alfa_speed::Reset_stats()
   display_max_speed = 0.0f;
   old_run_count = -1;
   alpha_best_speed_mmps = 0.0f;
+  alpha_best_closure_m = 0.0f;
+  alpha_best_distance_m = 0;
   alpha_start = -1;
   alpha_end = -1;
 }

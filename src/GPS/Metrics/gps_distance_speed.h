@@ -11,7 +11,7 @@
 //   - Alpha speed support (via m_speed_alfa)
 //
 // UNIT MODEL:
-//   - Distance integration : RP6 raw sum target (_gSpeed * sample_rate)
+//   - Distance integration : RP6 sum target (_gSpeed * sample_rate)
 //   - Speed samples        : mm/s
 //   - Sample 0             : state init ONLY (no distance contribution)
 //   - Padding allowed for incomplete windows
