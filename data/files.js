@@ -113,8 +113,7 @@ async function loadFiles(fileList, sdInfo){
         });
       });
 
-    sdInfo.textContent =
-      `${fileList.querySelectorAll(".file-row").length} files`;
+    sdInfo.textContent = "";
 
   }catch(e){
     updateLogsTitle(null, null);
@@ -166,8 +165,7 @@ function enableSwipe(container, fileList, sdInfo){
         h && h.remove();
       }
 
-      sdInfo && (sdInfo.textContent =
-        `${fileList.querySelectorAll(".file-row").length} files`);
+      sdInfo && (sdInfo.textContent = "");
 
       // Refresh map sessions if map is already running.
       if(window.MapSessions?._started){

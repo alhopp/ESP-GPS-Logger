@@ -36,9 +36,11 @@ static bool mdnsStarted = false;
 // -----------------------------------------------------------------------------
 
 static uint32_t lastStaAttempt = 0;
+static uint32_t lastStaConnected = 0;
 static int staAttempts = 0;
 
 static constexpr uint32_t STA_RETRY_INTERVAL_MS = 3000;
+static constexpr uint32_t STA_LOST_GRACE_MS = 5000;
 static constexpr int STA_MAX_ATTEMPTS = 10;
 
 // -----------------------------------------------------------------------------
@@ -101,6 +103,8 @@ bool wifi_effective_phone_password_set()
 static void mark_sta_connected()
 {
   LOG_WIFI("STA", "connected IP=%s", WiFi.localIP().toString().c_str());
+  lastStaConnected = millis();
+  staAttempts = 0;
   wifi_set_ui_state(WIFI_UI_CONNECTED);
 
   if (!mdnsStarted && MDNS.begin("gps")) {
@@ -213,7 +217,20 @@ void wifi_loop()
   if (wifi_sta_connected()) {
     if (wifiUiState != WIFI_UI_CONNECTED) {
       mark_sta_connected();
+    } else {
+      lastStaConnected = millis();
     }
+    return;
+  }
+
+  if (wifiUiState == WIFI_UI_CONNECTED) {
+    LOG_WIFI("STA", "connection lost, waiting");
+    wifi_set_ui_state(WIFI_UI_TRYING);
+    lastStaAttempt = millis();
+    return;
+  }
+
+  if (lastStaConnected && millis() - lastStaConnected <= STA_LOST_GRACE_MS) {
     return;
   }
 

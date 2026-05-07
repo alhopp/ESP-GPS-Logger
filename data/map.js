@@ -484,7 +484,7 @@ const StatsGraph = {
     this.chart = new uPlot({
       width,
       height,
-      padding:[8, 38, 22, 10],
+      padding:[2, 38, 16, 8],
       legend:{show:false},
       cursor:{show:true, x:false, y:false},
       scales:{x:{time:false}},
