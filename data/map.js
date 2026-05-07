@@ -190,8 +190,6 @@ showOverlay(mode, options={}){
   const color = options.color || style.color;
   const weight = options.weight || style.weight;
 
-  if(!pinned && this.defaultOverlays[mode]) return;
-
   if(pinned){
     if(this.defaultOverlays[mode]){
       this.map.removeLayer(this.defaultOverlays[mode]);
@@ -201,6 +199,8 @@ showOverlay(mode, options={}){
     this.map.removeLayer(this.overlay);
     this.overlay = null;
   }
+
+  if(!pinned && this.defaultOverlays[mode]) return;
 
   const list = this._overlays?.[mode];
   if(!list || !list.length) return;
@@ -552,12 +552,13 @@ const StatsGraph = {
   drawInfo(series){
     const el = $("statsInfo");
     if(!el) return;
+    el.classList.toggle("ten-sec-info", this.mode === "10s");
 
     const pills = [];
     if(this.mode === "10s"){
       series.sets.forEach((set,i)=>{
         const avg = this.avg(set.points);
-        pills.push(`<span class="stat-info-pill" style="border-color:${set.color}">${i + 1}: ${avg.toFixed(2)} kt</span>`);
+        pills.push(`<span class="stat-info-pill stat-info-box" style="border-color:${set.color}"><b>${i + 1}</b><span>${avg.toFixed(2)}</span></span>`);
       });
     }else{
       const points = series.sets[0]?.points || [];
