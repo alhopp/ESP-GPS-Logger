@@ -443,6 +443,7 @@ const StatsGraph = {
     const height = Math.max(160, Math.round(el.clientHeight || parentRect?.height || 0));
 
     this.destroyChart();
+    el.classList.remove("empty");
     el.textContent = "";
 
     const x = series.points.map(p=>p.x);
@@ -452,7 +453,7 @@ const StatsGraph = {
     this.chart = new uPlot({
       width,
       height,
-      padding:[8, 26, 22, 18],
+      padding:[8, 38, 22, 10],
       legend:{show:false},
       cursor:{show:true, x:false, y:false},
       scales:{x:{time:false}},
@@ -486,6 +487,7 @@ const StatsGraph = {
     const el = $("statsGraph");
     if(!el) return;
     this.destroyChart();
+    el.classList.add("empty");
     el.textContent = text;
   },
 
@@ -511,21 +513,39 @@ const StatsGraph = {
     if(mode === "2s"){
       return { max:2, ticks:[
         { value:0, label:"0s" },
-        { value:1, label:"1s" },
+        { value:0.2, label:".2" },
+        { value:0.4, label:".4" },
+        { value:0.6, label:".6" },
+        { value:0.8, label:".8" },
+        { value:1.0, label:"1s" },
+        { value:1.2, label:"1.2" },
+        { value:1.4, label:"1.4" },
+        { value:1.6, label:"1.6" },
+        { value:1.8, label:"1.8" },
         { value:2, label:"2s" }
       ]};
     }
     if(mode === "10s"){
       return { max:10, ticks:[
         { value:0, label:"0s" },
+        { value:1, label:"1" },
+        { value:2, label:"2" },
+        { value:3, label:"3" },
+        { value:4, label:"4" },
         { value:5, label:"5s" },
+        { value:6, label:"6" },
+        { value:7, label:"7" },
+        { value:8, label:"8" },
+        { value:9, label:"9" },
         { value:10, label:"10s" }
       ]};
     }
     if(mode === "1h"){
       return { max:60, ticks:[
         { value:0, label:"0" },
+        { value:15, label:"15" },
         { value:30, label:"30 min" },
+        { value:45, label:"45" },
         { value:60, label:"60 min" }
       ]};
     }
