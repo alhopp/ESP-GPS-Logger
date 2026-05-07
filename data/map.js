@@ -556,10 +556,12 @@ const StatsGraph = {
 
     const pills = [];
     if(this.mode === "10s"){
-      series.sets.forEach((set,i)=>{
+      for(let i = 0; i < 5; i++){
+        const set = series.sets[i] || { color:this.colors[i % this.colors.length], points:[] };
         const avg = this.avg(set.points);
-        pills.push(`<span class="stat-info-pill stat-info-box" style="border-color:${set.color}"><b>${i + 1}</b><span>${avg.toFixed(2)}</span></span>`);
-      });
+        const value = Number.isFinite(avg) ? avg : 0;
+        pills.push(`<span class="stat-info-pill stat-info-box" style="border-color:${set.color}"><b>${i + 1}</b><span>${value.toFixed(2)}</span></span>`);
+      }
     }else{
       const points = series.sets[0]?.points || [];
       const min = this.min(points);

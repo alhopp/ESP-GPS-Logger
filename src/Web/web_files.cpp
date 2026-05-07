@@ -107,6 +107,8 @@ void registerFileEndpoints(WebServer &server)
 
     DynamicJsonDocument j(FILE_LIST_JSON_BYTES);
     j["ok"] = true;
+    j["storage_used_mb"] = storage_sd_used_mb();
+    j["storage_free_mb"] = storage_sd_free_mb();
     JsonArray files = j.createNestedArray("files");
 
     if (!storage_logs_dir_ready()) {

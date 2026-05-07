@@ -41,6 +41,19 @@ function fileSizeKb(size){
   return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
+function updateLogsTitle(usedMb, freeMb){
+  const el = document.getElementById("logsTitle");
+  if(!el) return;
+
+  const used = Number(usedMb);
+  const free = Number(freeMb);
+  if(Number.isFinite(used) && Number.isFinite(free)){
+    el.textContent = `Logs - ${used} MB used / ${free} MB free`;
+  }else{
+    el.textContent = "Logs";
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Load file list from device SD (grouped by date like Outlook)
 // -----------------------------------------------------------------------------
@@ -56,6 +69,7 @@ async function loadFiles(fileList, sdInfo){
 
     const j = await r.json();
     if(!j.ok) throw new Error("no sd");
+    updateLogsTitle(j.storage_used_mb, j.storage_free_mb);
 
     const groups = {};
     j.files.forEach(f=>{
@@ -103,6 +117,7 @@ async function loadFiles(fileList, sdInfo){
       `${fileList.querySelectorAll(".file-row").length} files`;
 
   }catch(e){
+    updateLogsTitle(null, null);
     sdInfo.textContent = "SD not available";
     console.warn("Files API unavailable", e);
   }

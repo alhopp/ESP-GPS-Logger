@@ -1,4 +1,5 @@
 #include "Core/system_info.h"
+#include "build_version.h"
 
 const SystemInfo systemInfo = {
   "u-blox NEO-M10",                // gnss_module
@@ -8,7 +9,7 @@ const SystemInfo systemInfo = {
 
   128,                             // storage_mb
 
-  "2026.02.14",                     // software_version
+  GPS_SOFTWARE_VERSION,              // software_version
   "LilyGO T5 B74",                 // display
   80,                              // cpu_freq
 
