@@ -7,10 +7,15 @@ let swipeBound = false;   // Files-tab local state.
 // Helpers: filename -> date
 // -----------------------------------------------------------------------------
 function parseDateKey(name){
-  // Expect: BBBC2C_YYYYMMDD_HHMMSS.ext
-  const m = name.match(/_(\d{4})(\d{2})(\d{2})_/);
-  if(!m) return "unknown";
-  return `${m[1]}-${m[2]}-${m[3]}`; // YYYY-MM-DD
+  // New: YYYY-MM-DD_S01_BBBC2C.ext
+  let m = name.match(/^(\d{4})-(\d{2})-(\d{2})_/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+
+  // Legacy: BBBC2C_YYYYMMDD_HHMMSS.ext
+  m = name.match(/_(\d{4})(\d{2})(\d{2})_/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+
+  return "unknown";
 }
 
 function formatDateLabel(key){
@@ -29,7 +34,11 @@ function sessionTitle(name){
 }
 
 function fileSizeKb(size){
-  return `${((size || 0)/1024).toFixed(1)} KB`;
+  const bytes = size || 0;
+  if(bytes >= 1024 * 1024){
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
 // -----------------------------------------------------------------------------

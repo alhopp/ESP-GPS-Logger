@@ -11,8 +11,10 @@
 
 namespace {
 constexpr uint32_t TIME_SYNC_WAIT_MS = 15000UL;
+constexpr uint32_t SESSION_BEGIN_RETRY_MS = 250UL;
 
 uint32_t timeWaitStartMs = 0;
+uint32_t lastSessionBeginAttemptMs = 0;
 }
 
 void gps_logging_policy_note_signal_ready(uint32_t nowMs)
@@ -34,6 +36,10 @@ bool gps_logging_policy_maybe_start_session(const GpsFix& fix)
 
     Time_Set_OK = true;
   }
+
+  const uint32_t now = millis();
+  if (now - lastSessionBeginAttemptMs < SESSION_BEGIN_RETRY_MS) return false;
+  lastSessionBeginAttemptMs = now;
 
   if (!logging_session_begin(fix)) return false;
 

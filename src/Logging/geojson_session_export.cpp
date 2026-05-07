@@ -34,11 +34,14 @@ struct SBPFrame {
 } __attribute__((packed));
 
 float graph2s[GRAPH_MAX_POINTS];
-float graph10s[GRAPH_MAX_POINTS];
+float graph10s[5][GRAPH_MAX_POINTS];
+int graph10sCount[5];
 float graphAlpha[GRAPH_MAX_POINTS];
 float graphNm[GRAPH_MAX_POINTS];
 float graph1h[GRAPH_MAX_POINTS];
 float graphDistance[GRAPH_MAX_POINTS];
+float graph1hMinutes = 0.0f;
+float graphSessionMinutes = 0.0f;
 
 double frameLat(const SBPFrame& frame)
 {
@@ -135,6 +138,7 @@ int readGpsSpeedGraph(const char* sbpPath, float* out, int startGpsIdx, int endG
 
 int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int endSecIdx)
 {
+  graph1hMinutes = 0.0f;
   if (!out || startSecIdx < 0 || endSecIdx < startSecIdx) return 0;
 
   const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
@@ -152,6 +156,7 @@ int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int e
   int count = 0;
   uint32_t sumCms = 0;
   int samplesInSecond = 0;
+  int secondsRead = 0;
 
   while (readFrame(file, frame) && count < GRAPH_MAX_POINTS) {
     if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx) {
@@ -166,6 +171,7 @@ int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int e
         sumCms = 0;
         samplesInSecond = 0;
         secIndex++;
+        secondsRead++;
       }
     }
     if (gpsIndex > endGpsIdx) break;
@@ -173,11 +179,13 @@ int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int e
   }
 
   file.close();
+  graph1hMinutes = secondsRead / 60.0f;
   return count;
 }
 
 int readSessionSpeedGraph(const char* sbpPath)
 {
+  graphSessionMinutes = 0.0f;
   File file;
   if (!openSbp(file, sbpPath)) return 0;
 
@@ -199,6 +207,7 @@ int readSessionSpeedGraph(const char* sbpPath)
   }
 
   file.close();
+  graphSessionMinutes = (gpsIndex - 1) / static_cast<float>(sampleRate) / 60.0f;
   return count;
 }
 
@@ -211,12 +220,18 @@ void attachGraphSeries(const char* sbpPath)
     win_2s_start >= 0 ? win_2s_start + (2 * systemInfo.sample_rate) - 1 : -1
   );
 
-  const int s10Count = readGpsSpeedGraph(
-    sbpPath,
-    graph10s,
-    win_10s_top5_count > 0 ? win_10s_top5_start[0] : -1,
-    win_10s_top5_count > 0 ? win_10s_top5_start[0] + (10 * systemInfo.sample_rate) - 1 : -1
-  );
+  const int s10SeriesCount = win_10s_top5_count > 5 ? 5 : win_10s_top5_count;
+  for (int i = 0; i < 5; i++) {
+    graph10sCount[i] = 0;
+  }
+  for (int i = 0; i < s10SeriesCount; i++) {
+    graph10sCount[i] = readGpsSpeedGraph(
+      sbpPath,
+      graph10s[i],
+      win_10s_top5_start[i],
+      win_10s_top5_start[i] >= 0 ? win_10s_top5_start[i] + (10 * systemInfo.sample_rate) - 1 : -1
+    );
+  }
 
   const int alphaCount = readGpsSpeedGraph(sbpPath, graphAlpha, alpha_start, alpha_end);
   const int nmCount = readGpsSpeedGraph(sbpPath, graphNm, win_nm_start, win_nm_end);
@@ -224,12 +239,19 @@ void attachGraphSeries(const char* sbpPath)
   const int distanceCount = readSessionSpeedGraph(sbpPath);
 
   GeoJSONGraphs graphs {
-    .s2 = { graph2s, s2Count },
-    .s10 = { graph10s, s10Count },
-    .alpha = { graphAlpha, alphaCount },
-    .nm = { graphNm, nmCount },
-    .h1 = { graph1h, h1Count },
-    .distance = { graphDistance, distanceCount }
+    .s2 = { graph2s, s2Count, 2.0f, "s" },
+    .s10 = {
+      { graph10s[0], graph10sCount[0], 10.0f, "s" },
+      { graph10s[1], graph10sCount[1], 10.0f, "s" },
+      { graph10s[2], graph10sCount[2], 10.0f, "s" },
+      { graph10s[3], graph10sCount[3], 10.0f, "s" },
+      { graph10s[4], graph10sCount[4], 10.0f, "s" }
+    },
+    .s10Count = s10SeriesCount,
+    .alpha = { graphAlpha, alphaCount, 500.0f, "m" },
+    .nm = { graphNm, nmCount, 1852.0f, "m" },
+    .h1 = { graph1h, h1Count, graph1hMinutes, "min" },
+    .distance = { graphDistance, distanceCount, graphSessionMinutes, "min" }
   };
 
   geojson_set_graphs(graphs);

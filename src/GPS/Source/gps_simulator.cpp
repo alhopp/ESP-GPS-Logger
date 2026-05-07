@@ -22,6 +22,10 @@
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
+#ifndef GPS_SIM_SPEEDUP
+#define GPS_SIM_SPEEDUP 1
+#endif
+
 static constexpr float    SIM_DT          = 0.2f;     // 5 Hz
 static constexpr uint32_t SIM_RATE_MS     = 200;
 static constexpr float    KNOTS_TO_MPS    = 0.514444f;
@@ -80,6 +84,8 @@ static uint32_t last_sec_tick = 0;
 
 // Init guard
 static bool sim_initialised = false;
+static uint32_t last_wall_ms = 0;
+static float emit_credit = 0.0f;
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -148,11 +154,13 @@ void gps_simulator_init()
   target_mps = straight_base_mps;
 
   sim_ms        = 0;
-  sat_count     = 0;
+  sat_count     = 10;
   last_sat_ms   = millis();
 
   time_init     = false;
   last_sec_tick = 0;
+  last_wall_ms  = millis();
+  emit_credit   = 0.0f;
 }
 
 // -----------------------------------------------------------------------------
@@ -162,10 +170,14 @@ int gps_simulator_step()
 {
   if (!sim_initialised) gps_simulator_init();
 
-  static uint32_t last_emit_ms = 0;
   const uint32_t now = millis();
-  if (now - last_emit_ms < SIM_RATE_MS) return MT_NONE;
-  last_emit_ms += SIM_RATE_MS;
+  const uint32_t elapsed_ms = now - last_wall_ms;
+  last_wall_ms = now;
+
+  emit_credit += (elapsed_ms * static_cast<float>(GPS_SIM_SPEEDUP)) / SIM_RATE_MS;
+  if (emit_credit < 1.0f) return MT_NONE;
+  emit_credit -= 1.0f;
+
   sim_ms       += SIM_RATE_MS;
 
   // ---------------------------------------------------------------------------

@@ -24,8 +24,11 @@
 #include "Web/wifi_manager.h"
 
 namespace {
+constexpr uint32_t IDLE_AUTO_SLEEP_MS = 30000;
+
 volatile SystemMode currentMode = MODE_BOOT;
 volatile bool enterModeFailed = false;
+uint32_t modeEnteredAtMs = 0;
 
 void requestModeRedraw()
 {
@@ -212,6 +215,13 @@ const char* modeToString(SystemMode mode)
 
 void systemModeLoop()
 {
+  if (getMode() == MODE_IDLE) {
+    if (millis() - modeEnteredAtMs >= IDLE_AUTO_SLEEP_MS) {
+      setMode(MODE_SLEEP);
+    }
+    return;
+  }
+
   if (getMode() != MODE_CONFIG) return;
 
   wifi_loop();
@@ -240,13 +250,21 @@ void setMode(SystemMode newMode)
 
   runExitActions(oldMode, newMode);
 
+  if (newMode == MODE_WAIT_SATS ||
+      newMode == MODE_LOGGING ||
+      newMode == MODE_CONFIG) {
+    storage_end_shutdown();
+  }
+
   currentMode = newMode;
+  modeEnteredAtMs = millis();
   requestModeRedraw();
 
   runEnterActions(newMode);
 
   if (enterModeFailed && currentMode == newMode) {
     currentMode = MODE_IDLE;
+    modeEnteredAtMs = millis();
     requestModeRedraw();
   }
 }

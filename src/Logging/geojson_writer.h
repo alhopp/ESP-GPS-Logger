@@ -32,11 +32,14 @@ void geojson_set_stats(const GeoJSONStats& s);
 struct GeoJSONGraphSeries {
   const float* values;
   int count;
+  float xMax;
+  const char* xUnit;
 };
 
 struct GeoJSONGraphs {
   GeoJSONGraphSeries s2;
-  GeoJSONGraphSeries s10;
+  GeoJSONGraphSeries s10[5];
+  int s10Count;
   GeoJSONGraphSeries alpha;
   GeoJSONGraphSeries nm;
   GeoJSONGraphSeries h1;

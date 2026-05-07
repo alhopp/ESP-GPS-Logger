@@ -14,8 +14,8 @@
 // -----------------------------------------------------------------------------
 namespace {
 constexpr uint32_t HALL_STABLE_MS = 20;
-constexpr uint32_t SLEEP_HOLD_MS  = 300;
-constexpr uint32_t WIFI_HOLD_MS   = 2000;
+constexpr uint32_t SHORT_PRESS_MIN_MS = 300;
+constexpr uint32_t WIFI_HOLD_MS = 2000;
 constexpr uint32_t BOOT_IGNORE_MS = 1500;
 }
 
@@ -25,6 +25,7 @@ constexpr uint32_t BOOT_IGNORE_MS = 1500;
 static uint32_t bootTime = 0;
 static uint32_t pressTime = 0;
 static bool     longHandled = false;
+static bool     sleepOnRelease = false;
 static bool     waitingForRelease = false;
 
 // -----------------------------------------------------------------------------
@@ -44,6 +45,7 @@ void initMagnet()
     waitingForRelease = true;
     pressTime = 0;
     longHandled = false;
+    sleepOnRelease = false;
   }
 }
 
@@ -112,6 +114,7 @@ void magnet_poll()
   if (active && !prevActive) {
     pressTime = now;
     longHandled = false;
+    sleepOnRelease = false;
   }
 
   // ---------------------------------------------------------------------------
@@ -119,35 +122,50 @@ void magnet_poll()
   // ---------------------------------------------------------------------------
   if (active && !longHandled && (now - pressTime >= WIFI_HOLD_MS)) {
     longHandled = true;
-    if (getMode() == MODE_IDLE) setMode(MODE_CONFIG);
+    switch (getMode()) {
+      case MODE_IDLE:
+        setMode(MODE_CONFIG);
+        break;
+
+      case MODE_LOGGING:
+      case MODE_WAIT_SATS:
+        sleepOnRelease = true;
+        break;
+
+      default:
+        break;
+    }
   }
 
   // Release → short press action or config exit
-if (!active && prevActive && !longHandled) {
+  if (!active && prevActive && longHandled && sleepOnRelease) {
+    sleepOnRelease = false;
+    setMode(MODE_SLEEP);
+  }
+
+  if (!active && prevActive && !longHandled) {
     const uint32_t held = now - pressTime;
 
-    if (held >= SLEEP_HOLD_MS) {
-        switch (getMode()) {
-            case MODE_IDLE:
-                setMode(MODE_WAIT_SATS);   // start logging
-                break;
+    if (held >= SHORT_PRESS_MIN_MS) {
+      switch (getMode()) {
+        case MODE_IDLE:
+          setMode(MODE_WAIT_SATS);   // start logging
+          break;
 
-            case MODE_LOGGING:
-            case MODE_WAIT_SATS:
-                setMode(MODE_SLEEP);       // stop logging
-                break;
+        case MODE_LOGGING:
+        case MODE_WAIT_SATS:
+          setMode(MODE_SLEEP);       // stop logging
+          break;
 
-            case MODE_CONFIG:
-                setMode(MODE_IDLE);        // exit config mode
-                break;
+        case MODE_CONFIG:
+          setMode(MODE_IDLE);        // exit config mode
+          break;
 
-            default:
-                break;
-        }
+        default:
+          break;
+      }
     }
-}
-
-
+  }
 
   prevActive = active;
 }

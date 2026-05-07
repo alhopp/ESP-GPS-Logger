@@ -366,7 +366,7 @@ bindGestures(){
 
 function showStats(){
   $("sessionCard").classList.add("stats");
-  StatsGraph.draw();
+  StatsGraph.scheduleDraw();
 }
 
 function hideStats(){
@@ -406,8 +406,10 @@ const StatsGraph = {
   overlays:{},
   stats:null,
   chart:null,
+  drawTimer:null,
   mode:"alpha",
   graphModes:new Set(["2s","10s","alpha","nm","1h","distance"]),
+  colors:["#1e88e5","#ff9500","#34c759","#af52de","#ff3b30"],
 
   setSession(base, overlays, stats){
     this.base = base || null;
@@ -431,11 +433,23 @@ const StatsGraph = {
       el.classList.toggle("selected", el.dataset.mode === this.mode);
     });
     if(!options.keepCollapsed) showStats();
-    this.draw();
+    this.scheduleDraw();
   },
 
   canGraph(mode){
     return this.graphModes.has(mode);
+  },
+
+  scheduleDraw(){
+    if(this.drawTimer){
+      clearTimeout(this.drawTimer);
+      this.drawTimer = null;
+    }
+
+    requestAnimationFrame(()=>{
+      this.draw();
+      this.drawTimer = setTimeout(()=>this.draw(), 340);
+    });
   },
 
   draw(){
@@ -443,7 +457,7 @@ const StatsGraph = {
     if(!el) return;
 
     const series = this.seriesForMode(this.mode);
-    if(!series.points.length){
+    if(!series.sets.length || !series.sets[0].points.length){
       this.drawEmpty(`No ${this.labelForMode(this.mode)} graph data`);
       return;
     }
@@ -456,14 +470,15 @@ const StatsGraph = {
     const parentRect = el.parentElement?.getBoundingClientRect();
     const width = Math.max(220, Math.round(el.clientWidth || parentRect?.width || 0));
     const height = Math.max(160, Math.round(el.clientHeight || parentRect?.height || 0));
+    if(!width || !height) return;
 
     this.destroyChart();
     el.classList.remove("empty");
     delete el.dataset.empty;
     el.textContent = "";
 
-    const x = series.points.map(p=>p.x);
-    const y = series.points.map(p=>p.y);
+    const x = series.sets[0].points.map(p=>p.x);
+    const ys = series.sets.map(set=>set.points.map(p=>p.y));
     const xTicks = series.xTicks || [];
 
     this.chart = new uPlot({
@@ -489,36 +504,89 @@ const StatsGraph = {
       ],
       series:[
         {},
-        {
-          label:series.unit,
-          stroke:"#1e88e5",
-          width:3,
+        ...series.sets.map((set,i)=>({
+          label:set.label || series.unit,
+          stroke:set.color || this.colors[i % this.colors.length],
+          width:this.mode === "10s" ? 2 : 3,
           points:{show:false}
-        }
+        }))
       ]
-    }, [x,y], el);
+    }, [x,...ys], el);
+
+    this.drawInfo(series);
   },
 
   drawEmpty(text){
     const el = $("statsGraph");
+    const info = $("statsInfo");
     if(!el) return;
     this.destroyChart();
     el.classList.add("empty");
     el.dataset.empty = text;
     el.textContent = "";
+    if(info) info.innerHTML = "";
   },
 
   seriesForMode(mode){
     const values = this.base?.properties?.graphs?.[mode] || [];
-    const axis = this.xAxisForMode(mode, values.length);
+    const meta = this.base?.properties?.graph_meta?.[mode] || {};
+    const rawSets = Array.isArray(values?.[0]) ? values : [values];
+    const axis = this.xAxisForMode(mode, rawSets[0]?.length || 0, meta);
+    const sets = rawSets
+      .map((set,i)=>({
+        label:mode === "10s" ? `${i + 1}` : this.labelForMode(mode),
+        color:this.colors[i % this.colors.length],
+        points:(set || [])
+          .map((v,idx)=>({ x:this.xForIndex(idx, set.length, axis.max), y:Number(v) }))
+          .filter(p=>Number.isFinite(p.y))
+      }))
+      .filter(set=>set.points.length);
     return {
       label:this.labelForMode(mode),
       unit:"kt",
       xTicks:axis.ticks,
-      points:values
-        .map((v,i)=>({ x:this.xForIndex(i, values.length, axis.max), y:Number(v) }))
-        .filter(p=>Number.isFinite(p.y))
+      sets
     };
+  },
+
+  drawInfo(series){
+    const el = $("statsInfo");
+    if(!el) return;
+
+    const pills = [];
+    if(this.mode === "10s"){
+      series.sets.forEach((set,i)=>{
+        const avg = this.avg(set.points);
+        pills.push(`<span class="stat-info-pill" style="border-color:${set.color}">${i + 1}: ${avg.toFixed(2)} kt</span>`);
+      });
+    }else{
+      const points = series.sets[0]?.points || [];
+      const min = this.min(points);
+      const max = this.max(points);
+      if(Number.isFinite(min)) pills.push(`<span class="stat-info-pill">Min ${min.toFixed(2)} kt</span>`);
+      if(Number.isFinite(max)) pills.push(`<span class="stat-info-pill">Max ${max.toFixed(2)} kt</span>`);
+    }
+
+    el.innerHTML = pills.join("");
+  },
+
+  values(points){
+    return points.map(p=>p.y).filter(Number.isFinite);
+  },
+
+  min(points){
+    const vals = this.values(points);
+    return vals.length ? Math.min(...vals) : NaN;
+  },
+
+  max(points){
+    const vals = this.values(points);
+    return vals.length ? Math.max(...vals) : NaN;
+  },
+
+  avg(points){
+    const vals = this.values(points);
+    return vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : NaN;
   },
 
   xForIndex(index, count, max){
@@ -526,39 +594,52 @@ const StatsGraph = {
     return (index / (count - 1)) * max;
   },
 
-  xAxisForMode(mode, count){
+  xAxisForMode(mode, count, meta={}){
+    const metaMax = Number(meta.xMax);
+    const max = Number.isFinite(metaMax) && metaMax > 0 ? metaMax : null;
+
     if(mode === "2s"){
-      return { max:2, ticks:[
-        { value:0, label:"0s" },
-        { value:0.2, label:".2" },
-        { value:0.4, label:".4" },
-        { value:0.6, label:".6" },
-        { value:0.8, label:".8" },
-        { value:1.0, label:"1s" },
-        { value:1.2, label:"1.2" },
-        { value:1.4, label:"1.4" },
-        { value:1.6, label:"1.6" },
-        { value:1.8, label:"1.8" },
-        { value:2, label:"2s" }
-      ]};
+      return this.secondAxis(max || 2, 0.2);
     }
     if(mode === "10s"){
-      return { max:10, ticks:[
-        { value:0, label:"0s" },
-        { value:1, label:"1" },
-        { value:2, label:"2" },
-        { value:3, label:"3" },
-        { value:4, label:"4" },
-        { value:5, label:"5s" },
-        { value:6, label:"6" },
-        { value:7, label:"7" },
-        { value:8, label:"8" },
-        { value:9, label:"9" },
-        { value:10, label:"10s" }
-      ]};
+      return this.secondAxis(max || 10, 1);
     }
     if(mode === "1h"){
-      return { max:60, ticks:[
+      return this.minuteAxis(max || 60, true);
+    }
+    if(mode === "nm"){
+      return this.metreAxis(max || 1852);
+    }
+    if(mode === "alpha"){
+      return this.metreAxis(max || 500);
+    }
+    if(mode === "distance"){
+      return this.minuteAxis(max || Math.max(1, count - 1), false);
+    }
+    return { max:Math.max(1, count - 1), ticks:[] };
+  },
+
+  secondAxis(max, step){
+    const ticks = [];
+    const end = Number(max.toFixed(3));
+    for(let v=0; v<end - 0.0001; v+=step){
+      const value = Number(v.toFixed(3));
+      ticks.push({ value, label:this.secondLabel(value, false) });
+    }
+    ticks.push({ value:end, label:this.secondLabel(end, true) });
+    return { max:end, ticks };
+  },
+
+  secondLabel(value, forceUnit){
+    if(value === 0) return "0s";
+    if(forceUnit || Number.isInteger(value)) return `${this.trimNumber(value)}s`;
+    return this.trimNumber(value).replace(/^0/, "");
+  },
+
+  minuteAxis(max, preferHourTicks){
+    const end = Number(max.toFixed(3));
+    if(preferHourTicks && end >= 60){
+      return { max:end, ticks:[
         { value:0, label:"0" },
         { value:15, label:"15" },
         { value:30, label:"30 min" },
@@ -566,28 +647,31 @@ const StatsGraph = {
         { value:60, label:"60 min" }
       ]};
     }
-    if(mode === "nm"){
-      return { max:1852, ticks:[
-        { value:0, label:"0m" },
-        { value:926, label:"926m" },
-        { value:1852, label:"1852m" }
-      ]};
-    }
-    if(mode === "alpha"){
-      return { max:500, ticks:[
-        { value:0, label:"0m" },
-        { value:250, label:"250m" },
-        { value:500, label:"500m" }
-      ]};
-    }
-    if(mode === "distance"){
-      return { max:100, ticks:[
-        { value:0, label:"start" },
-        { value:50, label:"50%" },
-        { value:100, label:"finish" }
-      ]};
-    }
-    return { max:Math.max(1, count - 1), ticks:[] };
+    const mid = Number((end / 2).toFixed(3));
+    return { max:end, ticks:[
+      { value:0, label:"0" },
+      { value:mid, label:this.minuteLabel(mid) },
+      { value:end, label:this.minuteLabel(end) }
+    ]};
+  },
+
+  minuteLabel(value){
+    if(value < 1) return `${Math.round(value * 60)}s`;
+    return `${this.trimNumber(value)} min`;
+  },
+
+  metreAxis(max){
+    const end = Math.round(max);
+    const mid = Math.round(end / 2);
+    return { max:end, ticks:[
+      { value:0, label:"0m" },
+      { value:mid, label:`${mid}m` },
+      { value:end, label:`${end}m` }
+    ]};
+  },
+
+  trimNumber(value){
+    return Number(value.toFixed(1)).toString();
   },
 
   xLabelForValue(value, ticks){
@@ -614,7 +698,7 @@ const StatsGraph = {
   }
 };
 
-window.addEventListener("resize",()=>StatsGraph.draw());
+window.addEventListener("resize",()=>StatsGraph.scheduleDraw());
 
 
 document.querySelectorAll(".stat").forEach(stat=>{

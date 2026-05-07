@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include "Core/build_config.h"
 #include "Core/Globals.h"
 #include "GPS/gps_runtime_state.h"
 #include "GPS/Ublox/ublox_driver.h"
@@ -20,6 +21,9 @@
 namespace {
 constexpr uint32_t IDLE_DELAY_MS = 200;
 constexpr uint32_t POLL_DELAY_MS = 5;
+#if GPS_SIMULATOR
+constexpr int GPS_SIM_BURST_LIMIT = 16;
+#endif
 
 bool gpsTaskShouldRun();
 void processGpsFix(const GpsFix& fix);
@@ -42,9 +46,16 @@ void gpsTask(void *parameter)
       continue;
     }
 
+#if GPS_SIMULATOR
+    for (int i = 0; i < GPS_SIM_BURST_LIMIT; i++) {
+      if (gps_source_next_message() != MT_NAV_PVT) break;
+      processGpsFix(gps_fix_from_ubx());
+    }
+#else
     if (gps_source_next_message() == MT_NAV_PVT) {
       processGpsFix(gps_fix_from_ubx());
     }
+#endif
 
     vTaskDelay(pdMS_TO_TICKS(POLL_DELAY_MS));
   }

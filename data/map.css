@@ -177,6 +177,27 @@ section#map.a~footer{display:none}
   position:relative;
 }
 
+#statsInfo{
+  flex:0 0 46px;
+  padding:2px 14px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  flex-wrap:wrap;
+  color:#25364a;
+  font-size:12px;
+  font-weight:700;
+}
+
+.stat-info-pill{
+  background:rgba(244,247,251,.82);
+  border:1px solid rgba(91,107,130,.22);
+  border-radius:999px;
+  padding:4px 8px;
+  white-space:nowrap;
+}
+
 #statsGraph.empty{
   align-items:stretch;
   justify-content:stretch;

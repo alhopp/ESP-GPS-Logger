@@ -157,13 +157,43 @@ void writeGraphSeries(const char* name, const GeoJSONGraphSeries& series)
   geoFile.print("]");
 }
 
+void writeGraphSeriesList(const char* name, const GeoJSONGraphSeries* series, int count)
+{
+  geoFile.print("\"");
+  geoFile.print(name);
+  geoFile.print("\":[");
+
+  for (int i = 0; i < count; i++) {
+    if (i) geoFile.print(",");
+    geoFile.print("[");
+    for (int j = 0; j < series[i].count; j++) {
+      if (j) geoFile.print(",");
+      geoFile.print(series[i].values[j], 2);
+    }
+    geoFile.print("]");
+  }
+
+  geoFile.print("]");
+}
+
+void writeGraphMetaSeries(const char* name, const GeoJSONGraphSeries& series)
+{
+  geoFile.print("\"");
+  geoFile.print(name);
+  geoFile.print("\":{\"xMax\":");
+  geoFile.print(series.xMax, 3);
+  geoFile.print(",\"xUnit\":\"");
+  geoFile.print(series.xUnit ? series.xUnit : "");
+  geoFile.print("\"}");
+}
+
 void writeGraphs()
 {
   geoFile.println(",");
   geoFile.println("\"graphs\":{");
   writeGraphSeries("2s", graphs.s2);
   geoFile.println(",");
-  writeGraphSeries("10s", graphs.s10);
+  writeGraphSeriesList("10s", graphs.s10, graphs.s10Count);
   geoFile.println(",");
   writeGraphSeries("alpha", graphs.alpha);
   geoFile.println(",");
@@ -172,6 +202,22 @@ void writeGraphs()
   writeGraphSeries("1h", graphs.h1);
   geoFile.println(",");
   writeGraphSeries("distance", graphs.distance);
+  geoFile.println();
+  geoFile.print("},");
+
+  geoFile.println();
+  geoFile.println("\"graph_meta\":{");
+  writeGraphMetaSeries("2s", graphs.s2);
+  geoFile.println(",");
+  writeGraphMetaSeries("10s", graphs.s10Count > 0 ? graphs.s10[0] : graphs.s2);
+  geoFile.println(",");
+  writeGraphMetaSeries("alpha", graphs.alpha);
+  geoFile.println(",");
+  writeGraphMetaSeries("nm", graphs.nm);
+  geoFile.println(",");
+  writeGraphMetaSeries("1h", graphs.h1);
+  geoFile.println(",");
+  writeGraphMetaSeries("distance", graphs.distance);
   geoFile.println();
   geoFile.print("}");
 }
