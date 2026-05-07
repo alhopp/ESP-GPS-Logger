@@ -1,3 +1,3 @@
 #pragma once
 
-void geojson_session_export_finalize();
+bool geojson_session_export_finalize(const char* sbpPath, const char* geojsonPath);

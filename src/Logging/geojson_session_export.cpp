@@ -1,56 +1,76 @@
 #include "Logging/geojson_session_export.h"
 
+#include <Arduino.h>
+
 #include "Core/log.h"
 #include "Core/Rtc/rtc_session_stats.h"
 #include "Core/system_info.h"
 #include "GPS/Data/gps_data.h"
-#include "GPS/Data/gps_runtime_instances.h"
 #include "GPS/gps_config.h"
 #include "GPS/Metrics/gps_alpha_speed.h"
 #include "GPS/Metrics/gps_distance_speed.h"
 #include "GPS/Metrics/gps_time_speed.h"
 #include "Logging/geojson_writer.h"
+#include "Storage/storage_manager.h"
 
 namespace {
-bool validGpsIndex(int gpsIndex)
+constexpr int SBP_HEADER_SIZE = 64;
+constexpr int GRAPH_MAX_POINTS = 240;
+
+struct SBPFrame {
+  uint8_t  HDOP;
+  uint8_t  SVIDCnt;
+  uint16_t UtcSec;
+  uint32_t date_time_UTC_packed;
+  uint32_t SVIDList;
+  int32_t  Lat;
+  int32_t  Lon;
+  int32_t  AltCM;
+  uint16_t Sog;
+  uint16_t Cog;
+  int16_t  ClmbRte;
+  uint8_t  sdop;
+  uint8_t  vsdop;
+} __attribute__((packed));
+
+float graph2s[GRAPH_MAX_POINTS];
+float graph10s[GRAPH_MAX_POINTS];
+float graphAlpha[GRAPH_MAX_POINTS];
+float graphNm[GRAPH_MAX_POINTS];
+float graph1h[GRAPH_MAX_POINTS];
+float graphDistance[GRAPH_MAX_POINTS];
+
+double frameLat(const SBPFrame& frame)
 {
-  return gpsIndex >= 0 &&
-         gpsIndex <= index_GPS &&
-         (index_GPS - gpsIndex) < BUFFER_ALFA;
+  return frame.Lat * 0.0000001;
 }
 
-int gpsPositionSlot(int gpsIndex)
+double frameLon(const SBPFrame& frame)
 {
-  int slot = gpsIndex % BUFFER_ALFA;
-  if (slot < 0) slot += BUFFER_ALFA;
-  return slot;
+  return frame.Lon * 0.0000001;
 }
 
-void addGpsPointIfValid(int gpsIndex)
+float frameKnots(const SBPFrame& frame)
 {
-  if (validGpsIndex(gpsIndex)) {
-    const int slot = gpsPositionSlot(gpsIndex);
-    geojson_add_point(_lat[slot], _long[slot]);
+  return static_cast<float>(frame.Sog) * 10.0f * MMPS_TO_KNOTS;
+}
+
+bool openSbp(File& file, const char* sbpPath)
+{
+  fs::FS& storage = storage_sd_fs();
+  file = storage.open(sbpPath, FILE_READ);
+  if (!file) return false;
+  if (file.size() <= SBP_HEADER_SIZE) {
+    file.close();
+    return false;
   }
+  file.seek(SBP_HEADER_SIZE);
+  return true;
 }
 
-void addRingWindow1Hz(int startGpsIdx, int seconds)
+bool readFrame(File& file, SBPFrame& frame)
 {
-  for (int s = 0; s < seconds; s++) {
-    addGpsPointIfValid(startGpsIdx + s * systemInfo.sample_rate);
-  }
-}
-
-void addRingRange1Hz(int start, int end)
-{
-  if (start < 0 || end < start) return;
-
-  int step = 0;
-  for (int idx = start; idx <= end && idx <= index_GPS; idx++, step++) {
-    if (step % systemInfo.sample_rate == 0) {
-      addGpsPointIfValid(idx);
-    }
-  }
+  return file.read(reinterpret_cast<uint8_t*>(&frame), sizeof(frame)) == sizeof(frame);
 }
 
 void attachSessionStats()
@@ -69,56 +89,262 @@ void attachSessionStats()
   geojson_set_stats(s);
 }
 
-void addWindowFeature(const char* mode, int startGpsIdx, int seconds)
+void compressGraph(float* values, int& count, int& strideSamples)
 {
-  geojson_begin_feature(mode);
-  addRingWindow1Hz(startGpsIdx, seconds);
-  geojson_end_feature();
-}
-
-void addRangeFeature(const char* mode, int startGpsIdx, int endGpsIdx)
-{
-  geojson_begin_feature(mode);
-  addRingRange1Hz(startGpsIdx, endGpsIdx);
-  geojson_end_feature();
-}
-
-void addDerivedFeatures()
-{
-  if (win_2s_start >= 0) {
-    addWindowFeature("2s", win_2s_start, 2);
+  int write = 0;
+  for (int read = 0; read < count; read += 2) {
+    values[write++] = values[read];
   }
+  count = write;
+  strideSamples *= 2;
+}
+
+void appendCompactGraphPoint(float* values, int& count, int& strideSamples, float value)
+{
+  if (count >= GRAPH_MAX_POINTS) {
+    compressGraph(values, count, strideSamples);
+  }
+  values[count++] = value;
+}
+
+int readGpsSpeedGraph(const char* sbpPath, float* out, int startGpsIdx, int endGpsIdx)
+{
+  if (!out || startGpsIdx < 0 || endGpsIdx < startGpsIdx) return 0;
+
+  const int samples = endGpsIdx - startGpsIdx + 1;
+  const int step = samples > GRAPH_MAX_POINTS ? (samples + GRAPH_MAX_POINTS - 1) / GRAPH_MAX_POINTS : 1;
+
+  File file;
+  if (!openSbp(file, sbpPath)) return 0;
+
+  SBPFrame frame;
+  int gpsIndex = 1;
+  int count = 0;
+  while (readFrame(file, frame) && count < GRAPH_MAX_POINTS) {
+    if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx &&
+        ((gpsIndex - startGpsIdx) % step) == 0) {
+      out[count++] = frameKnots(frame);
+    }
+    if (gpsIndex > endGpsIdx) break;
+    gpsIndex++;
+  }
+
+  file.close();
+  return count;
+}
+
+int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int endSecIdx)
+{
+  if (!out || startSecIdx < 0 || endSecIdx < startSecIdx) return 0;
+
+  const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
+  const int startGpsIdx = (startSecIdx * sampleRate) + 1;
+  const int endGpsIdx = (endSecIdx + 1) * sampleRate;
+  const int seconds = endSecIdx - startSecIdx + 1;
+  const int secStep = seconds > GRAPH_MAX_POINTS ? (seconds + GRAPH_MAX_POINTS - 1) / GRAPH_MAX_POINTS : 1;
+
+  File file;
+  if (!openSbp(file, sbpPath)) return 0;
+
+  SBPFrame frame;
+  int gpsIndex = 1;
+  int secIndex = startSecIdx;
+  int count = 0;
+  uint32_t sumCms = 0;
+  int samplesInSecond = 0;
+
+  while (readFrame(file, frame) && count < GRAPH_MAX_POINTS) {
+    if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx) {
+      sumCms += frame.Sog;
+      samplesInSecond++;
+
+      if (samplesInSecond >= sampleRate) {
+        if (((secIndex - startSecIdx) % secStep) == 0) {
+          const float avgMmps = (static_cast<float>(sumCms) * 10.0f) / sampleRate;
+          out[count++] = avgMmps * MMPS_TO_KNOTS;
+        }
+        sumCms = 0;
+        samplesInSecond = 0;
+        secIndex++;
+      }
+    }
+    if (gpsIndex > endGpsIdx) break;
+    gpsIndex++;
+  }
+
+  file.close();
+  return count;
+}
+
+int readSessionSpeedGraph(const char* sbpPath)
+{
+  File file;
+  if (!openSbp(file, sbpPath)) return 0;
+
+  const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
+  int count = 0;
+  int strideSamples = sampleRate * 5;
+  if (strideSamples < 1) strideSamples = 1;
+  int nextSample = 1;
+  int gpsIndex = 1;
+
+  SBPFrame frame;
+  while (readFrame(file, frame)) {
+    if (gpsIndex >= nextSample) {
+      appendCompactGraphPoint(graphDistance, count, strideSamples, frameKnots(frame));
+      nextSample = gpsIndex + strideSamples;
+    }
+
+    gpsIndex++;
+  }
+
+  file.close();
+  return count;
+}
+
+void attachGraphSeries(const char* sbpPath)
+{
+  const int s2Count = readGpsSpeedGraph(
+    sbpPath,
+    graph2s,
+    win_2s_start,
+    win_2s_start >= 0 ? win_2s_start + (2 * systemInfo.sample_rate) - 1 : -1
+  );
+
+  const int s10Count = readGpsSpeedGraph(
+    sbpPath,
+    graph10s,
+    win_10s_top5_count > 0 ? win_10s_top5_start[0] : -1,
+    win_10s_top5_count > 0 ? win_10s_top5_start[0] + (10 * systemInfo.sample_rate) - 1 : -1
+  );
+
+  const int alphaCount = readGpsSpeedGraph(sbpPath, graphAlpha, alpha_start, alpha_end);
+  const int nmCount = readGpsSpeedGraph(sbpPath, graphNm, win_nm_start, win_nm_end);
+  const int h1Count = readSecondSpeedGraph(sbpPath, graph1h, win_1h_start_sec, win_1h_end_sec);
+  const int distanceCount = readSessionSpeedGraph(sbpPath);
+
+  GeoJSONGraphs graphs {
+    .s2 = { graph2s, s2Count },
+    .s10 = { graph10s, s10Count },
+    .alpha = { graphAlpha, alphaCount },
+    .nm = { graphNm, nmCount },
+    .h1 = { graph1h, h1Count },
+    .distance = { graphDistance, distanceCount }
+  };
+
+  geojson_set_graphs(graphs);
+}
+
+void addSbpRangePoints(const char* sbpPath, int startGpsIdx, int endGpsIdx, int step)
+{
+  if (startGpsIdx < 0 || endGpsIdx < startGpsIdx) return;
+  if (step < 1) step = 1;
+
+  File file;
+  if (!openSbp(file, sbpPath)) return;
+
+  SBPFrame frame;
+  int gpsIndex = 1;
+  while (readFrame(file, frame)) {
+    if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx &&
+        ((gpsIndex - startGpsIdx) % step) == 0) {
+      geojson_add_point(frameLat(frame), frameLon(frame));
+    }
+    if (gpsIndex > endGpsIdx) break;
+    gpsIndex++;
+  }
+
+  file.close();
+}
+
+void addWindowFeature(const char* sbpPath, const char* mode, int startGpsIdx, int seconds)
+{
+  if (startGpsIdx < 0) return;
+
+  const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
+  geojson_begin_feature(mode);
+  addSbpRangePoints(sbpPath, startGpsIdx, startGpsIdx + (seconds * sampleRate) - 1, sampleRate);
+  geojson_end_feature();
+}
+
+void addRangeFeature(const char* sbpPath, const char* mode, int startGpsIdx, int endGpsIdx)
+{
+  if (startGpsIdx < 0 || endGpsIdx < startGpsIdx) return;
+
+  const int samples = endGpsIdx - startGpsIdx + 1;
+  int step = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
+  if (samples / step > GRAPH_MAX_POINTS) {
+    step = (samples + GRAPH_MAX_POINTS - 1) / GRAPH_MAX_POINTS;
+  }
+
+  geojson_begin_feature(mode);
+  addSbpRangePoints(sbpPath, startGpsIdx, endGpsIdx, step);
+  geojson_end_feature();
+}
+
+void addOneHourFeature(const char* sbpPath)
+{
+  if (win_1h_start_sec < 0 || win_1h_end_sec <= win_1h_start_sec) return;
+
+  const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
+  const int startGpsIdx = (win_1h_start_sec + 1) * sampleRate;
+  const int endGpsIdx = (win_1h_end_sec + 1) * sampleRate;
+  const int seconds = win_1h_end_sec - win_1h_start_sec + 1;
+  int secStep = seconds > GRAPH_MAX_POINTS ? (seconds + GRAPH_MAX_POINTS - 1) / GRAPH_MAX_POINTS : 1;
+
+  geojson_begin_feature("1h");
+  addSbpRangePoints(sbpPath, startGpsIdx, endGpsIdx, secStep * sampleRate);
+  geojson_end_feature();
+}
+
+void addDerivedFeatures(const char* sbpPath)
+{
+  addWindowFeature(sbpPath, "2s", win_2s_start, 2);
 
   for (int i = 0; i < win_10s_top5_count; i++) {
-    int s = win_10s_top5_start[i];
-    if (s < 0) continue;
-
-    addWindowFeature("10s", s, 10);
+    addWindowFeature(sbpPath, "10s", win_10s_top5_start[i], 10);
   }
 
-  if (alpha_start >= 0 && alpha_end >= 0) {
-    addRangeFeature("alpha", alpha_start, alpha_end);
-  }
-
-  if (win_nm_start >= 0 && win_nm_end >= 0) {
-    addRangeFeature("nm", win_nm_start, win_nm_end);
-  }
-
-  if (win_1h_start_sec >= 0 && win_1h_end_sec > win_1h_start_sec) {
-    geojson_begin_feature("1h");
-    for (int s = win_1h_start_sec; s <= win_1h_end_sec; s++) {
-      int idx = sec_to_gps_index[s];
-      addGpsPointIfValid(idx);
-    }
-    geojson_end_feature();
-  }
-}
+  addRangeFeature(sbpPath, "alpha", alpha_start, alpha_end);
+  addRangeFeature(sbpPath, "nm", win_nm_start, win_nm_end);
+  addOneHourFeature(sbpPath);
 }
 
-void geojson_session_export_finalize()
+bool addBaseTrackFromSbp(const char* sbpPath)
 {
+  File file;
+  if (!openSbp(file, sbpPath)) return false;
+
+  SBPFrame frame;
+  while (readFrame(file, frame)) {
+    geojson_add_track_point(frameLat(frame), frameLon(frame));
+  }
+
+  file.close();
+  return true;
+}
+}
+
+bool geojson_session_export_finalize(const char* sbpPath, const char* geojsonPath)
+{
+  if (!sbpPath || !geojsonPath) return false;
+
+  if (!geojson_begin(geojsonPath)) {
+    LOG_ERROR("STORAGE", "GeoJSON open failed");
+    return false;
+  }
+
+  geojson_begin_feature("track");
+  if (!addBaseTrackFromSbp(sbpPath)) {
+    geojson_end_feature();
+    geojson_end();
+    return false;
+  }
+
   attachSessionStats();
+  attachGraphSeries(sbpPath);
   geojson_end_feature();
-  addDerivedFeatures();
+  addDerivedFeatures(sbpPath);
   geojson_end();
+  return true;
 }

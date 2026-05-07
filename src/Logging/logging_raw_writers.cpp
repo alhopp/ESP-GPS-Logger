@@ -45,7 +45,7 @@ void writeUbxFrame(File& file, uint8_t cls, uint8_t id, const uint8_t* payload, 
 
 bool sbpLoggingReady(File& file)
 {
-  return config.logSBP && file;
+  return file;
 }
 
 bool sbpItowChanged()

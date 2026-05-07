@@ -38,6 +38,7 @@ window.loadConfig = async function loadConfig(els){
     /* ---------- Logging ---------- */
     setChk(els.logUBX, c.logging?.logUBX);
     setChk(els.logSBP, c.logging?.logSBP);
+    if (els.logSBP) els.logSBP.disabled = true;
 
     /* ---------- Wi-Fi ---------- */
     if (c.wifi) {
@@ -77,7 +78,7 @@ window.saveConfig = async function saveConfig(els){
       },
     logging:{
       logUBX:!!els.logUBX?.checked,
-      logSBP:!!els.logSBP?.checked
+      logSBP:true
     },
     wifi:{
       phone_ssid: els.phone_ssid?.value ?? ""
@@ -113,7 +114,7 @@ window.saveConfig = async function saveConfig(els){
  * ------------------------------------------------------------------------- */
 const infoTexts={
   performance:"Toggle performance screen types for session analysis.",
-  logging:"Select raw GNSS formats to log (UBX / SBP).",
+  logging:"SBP is always logged because GeoJSON is generated from it. UBX is optional.",
   sleep:"Text shown on device screen while sleeping."
 };
 

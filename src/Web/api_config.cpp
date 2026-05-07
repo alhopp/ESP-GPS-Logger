@@ -59,7 +59,7 @@ void registerConfigApi(WebServer& server)
 
     JsonObject logging = j.createNestedObject("logging");
     logging["logUBX"] = config.logUBX;
-    logging["logSBP"] = config.logSBP;
+    logging["logSBP"] = true;
 
     JsonObject ui = j.createNestedObject("ui");
     ui["Sleep_info1"] = config.Sleep_info1;
@@ -95,7 +95,7 @@ void registerConfigApi(WebServer& server)
 
     if (j["logging"]) {
       if (j["logging"]["logUBX"] != nullptr) config.logUBX = j["logging"]["logUBX"];
-      if (j["logging"]["logSBP"] != nullptr) config.logSBP = j["logging"]["logSBP"];
+      config.logSBP = true;
     }
 
     if (j["stats"]) {

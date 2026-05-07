@@ -18,7 +18,7 @@ bool config_load_json(File& file)
   config.shutdown_voltage = doc["shutdown_voltage"] | config.shutdown_voltage;
 
   config.logUBX = doc["logUBX"] | config.logUBX;
-  config.logSBP = doc["logSBP"] | config.logSBP;
+  config.logSBP = true;
   config.timezone = doc["timezone"] | config.timezone;
   config.timezone_DST = doc["timezone_DST"] | config.timezone_DST;
 
@@ -55,7 +55,7 @@ void config_write_json(File& file)
   doc["shutdown_voltage"] = config.shutdown_voltage;
 
   doc["logUBX"] = config.logUBX;
-  doc["logSBP"] = config.logSBP;
+  doc["logSBP"] = true;
 
   doc["timezone"] = config.timezone;
   doc["timezone_DST"] = config.timezone_DST;

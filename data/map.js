@@ -266,6 +266,7 @@ window.MapSessions = {
 
     if(!this.files.length){
       MapView.clear();
+      updateStatsUI(null);
       $("sessionTitle").textContent = "No sessions";
       $("sessionMeta").textContent  = "";
       return;
@@ -373,7 +374,7 @@ function updateStatsUI(stats){
     [
       "map_stat_2s","map_stat_10s","map_stat_alpha",
       "map_stat_nm","map_stat_1h","map_stat_distance"
-    ].forEach(id=>set(id,"–"));
+    ].forEach(id=>set(id,"00.000"));
     return;
   }
 
@@ -446,6 +447,7 @@ const StatsGraph = {
 
     const x = series.points.map(p=>p.x);
     const y = series.points.map(p=>p.y);
+    const xTicks = series.xTicks || [];
 
     this.chart = new uPlot({
       width,
@@ -459,7 +461,8 @@ const StatsGraph = {
           stroke:"#5b6b82",
           grid:{show:false},
           ticks:{show:false},
-          values:(u, vals)=>vals.map(v=>v === 0 ? "start" : v === x[x.length - 1] ? "finish" : "")
+          splits:()=>xTicks.map(t=>t.value),
+          values:(u, vals)=>vals.map(v=>this.xLabelForValue(v, xTicks))
         },
         {
           stroke:"#5b6b82",
@@ -487,61 +490,72 @@ const StatsGraph = {
   },
 
   seriesForMode(mode){
-    if(mode === "distance"){
-      return {
-        label:this.labelForMode(mode),
-        unit:"km",
-        points:this.cumulativeDistance(this.coordsOf(this.base))
-      };
-    }
-
-    const features = this.overlays?.[mode] || [];
-    const coords = features.length ? this.coordsOf(features[0]) : this.coordsOf(this.base);
+    const values = this.base?.properties?.graphs?.[mode] || [];
+    const axis = this.xAxisForMode(mode, values.length);
     return {
       label:this.labelForMode(mode),
       unit:"kt",
-      points:this.speedSeries(coords)
+      xTicks:axis.ticks,
+      points:values
+        .map((v,i)=>({ x:this.xForIndex(i, values.length, axis.max), y:Number(v) }))
+        .filter(p=>Number.isFinite(p.y))
     };
   },
 
-  coordsOf(feature){
-    const coords = feature?.geometry?.coordinates || [];
-    return coords
-      .map(c=>({ lon:Number(c[0]), lat:Number(c[1]) }))
-      .filter(p=>
-        Number.isFinite(p.lat) &&
-        Number.isFinite(p.lon) &&
-        Math.abs(p.lat) <= 90 &&
-        Math.abs(p.lon) <= 180 &&
-        (Math.abs(p.lat) >= 0.001 || Math.abs(p.lon) >= 0.001)
-      );
+  xForIndex(index, count, max){
+    if(count <= 1) return 0;
+    return (index / (count - 1)) * max;
   },
 
-  speedSeries(coords){
-    const points = [];
-    for(let i=1;i<coords.length;i++){
-      const meters = this.distanceMeters(coords[i-1], coords[i]);
-      points.push({ x:i, y:meters * 1.943844 });
+  xAxisForMode(mode, count){
+    if(mode === "2s"){
+      return { max:2, ticks:[
+        { value:0, label:"0s" },
+        { value:1, label:"1s" },
+        { value:2, label:"2s" }
+      ]};
     }
-    return points;
-  },
-
-  cumulativeDistance(coords){
-    const points = [];
-    let meters = 0;
-    for(let i=1;i<coords.length;i++){
-      meters += this.distanceMeters(coords[i-1], coords[i]);
-      points.push({ x:i, y:meters / 1000 });
+    if(mode === "10s"){
+      return { max:10, ticks:[
+        { value:0, label:"0s" },
+        { value:5, label:"5s" },
+        { value:10, label:"10s" }
+      ]};
     }
-    return points;
+    if(mode === "1h"){
+      return { max:60, ticks:[
+        { value:0, label:"0" },
+        { value:30, label:"30 min" },
+        { value:60, label:"60 min" }
+      ]};
+    }
+    if(mode === "nm"){
+      return { max:1852, ticks:[
+        { value:0, label:"0m" },
+        { value:926, label:"926m" },
+        { value:1852, label:"1852m" }
+      ]};
+    }
+    if(mode === "alpha"){
+      return { max:500, ticks:[
+        { value:0, label:"0m" },
+        { value:250, label:"250m" },
+        { value:500, label:"500m" }
+      ]};
+    }
+    if(mode === "distance"){
+      return { max:100, ticks:[
+        { value:0, label:"start" },
+        { value:50, label:"50%" },
+        { value:100, label:"finish" }
+      ]};
+    }
+    return { max:Math.max(1, count - 1), ticks:[] };
   },
 
-  distanceMeters(a,b){
-    const rad = Math.PI / 180;
-    const lat = ((a.lat + b.lat) * 0.5) * rad;
-    const dlat = b.lat - a.lat;
-    const dlon = (b.lon - a.lon) * Math.cos(lat);
-    return Math.sqrt(dlat*dlat + dlon*dlon) * 111195;
+  xLabelForValue(value, ticks){
+    const tick = ticks.find(t=>Math.abs(value - t.value) < 0.001);
+    return tick ? tick.label : "";
   },
 
   labelForMode(mode){

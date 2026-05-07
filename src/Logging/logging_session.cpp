@@ -4,13 +4,11 @@
 
 #include "Core/log.h"
 #include "Core/Globals.h"
-#include "Logging/geojson_writer.h"
 #include "Logging/logging_session_files.h"
 #include "Storage/storage_manager.h"
 
 namespace {
 bool session_active = false;
-uint32_t last_geojson_ms = 0;
 }
 
 bool logging_session_begin(const GpsFix& firstFix)
@@ -28,7 +26,6 @@ bool logging_session_begin(const GpsFix& firstFix)
   }
 
   session_active = true;
-  last_geojson_ms = 0;
   LOG_STORAGE("Session", "started sats=%u lat=%.6f lon=%.6f",
               firstFix.satellites, firstFix.lat, firstFix.lon);
   return true;
@@ -39,14 +36,8 @@ void logging_session_write_fix(const GpsFix& fix, bool writeLiveTrack)
   if (!session_active) return;
 
   logging_session_files_write_raw();
-
-  if (!writeLiveTrack) return;
-
-  const uint32_t now = millis();
-  if (now - last_geojson_ms >= 1000) {
-    last_geojson_ms = now;
-    geojson_add_point(fix.lat, fix.lon);
-  }
+  (void)fix;
+  (void)writeLiveTrack;
 }
 
 void logging_session_end()

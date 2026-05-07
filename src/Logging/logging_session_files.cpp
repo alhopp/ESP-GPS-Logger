@@ -9,7 +9,6 @@
 
 #include "Core/log.h"
 #include "Core/Globals.h"
-#include "Logging/geojson_writer.h"
 #include "Logging/sbp_writer.h"
 #include "Logging/geojson_session_export.h"
 #include "Logging/logging_raw_writers.h"
@@ -20,6 +19,8 @@
 namespace {
 File ubxfile;
 File sbpfile;
+char activeSbpPath[128];
+char activeGeoPath[128];
 
 void buildSessionBase(char* base, size_t baseSize)
 {
@@ -73,6 +74,8 @@ bool logging_session_files_open()
 
   fs::FS& storage = storage_sd_fs();
   logging_raw_writers_reset();
+  activeSbpPath[0] = '\0';
+  activeGeoPath[0] = '\0';
 
   char base[96];
   char filenameUBX[128];
@@ -93,28 +96,20 @@ bool logging_session_files_open()
     }
   }
 
-  if (config.logSBP) {
-    sbpfile = storage.open(filenameSBP, FILE_WRITE);
-    if (!sbpfile) {
-      LOG_ERROR("STORAGE", "SBP open failed");
-      closeFile(ubxfile);
-      closeFile(sbpfile);
-      return false;
-    }
-
-    if (sbpfile.size() == 0) {
-      sbp_write_header(sbpfile);
-    }
-  }
-
-  if (!geojson_begin(filenameGEO)) {
-    LOG_ERROR("STORAGE", "GeoJSON open failed");
+  sbpfile = storage.open(filenameSBP, FILE_WRITE);
+  if (!sbpfile) {
+    LOG_ERROR("STORAGE", "SBP open failed");
     closeFile(ubxfile);
     closeFile(sbpfile);
     return false;
   }
 
-  geojson_begin_feature("track");
+  if (sbpfile.size() == 0) {
+    sbp_write_header(sbpfile);
+  }
+
+  strlcpy(activeSbpPath, filenameSBP, sizeof(activeSbpPath));
+  strlcpy(activeGeoPath, filenameGEO, sizeof(activeGeoPath));
 
   LOG_STORAGE("LOG", "Session started %s", base);
   return true;
@@ -132,10 +127,18 @@ void logging_session_files_close()
 {
   Serial.println("[STORAGE] logging_session_files_close()");
 
-  geojson_session_export_finalize();
+  closeFile(sbpfile);
+
+  if (activeSbpPath[0] != '\0' && activeGeoPath[0] != '\0') {
+    if (!geojson_session_export_finalize(activeSbpPath, activeGeoPath)) {
+      LOG_ERROR("STORAGE", "GeoJSON export failed");
+    }
+  }
 
   closeFile(ubxfile);
   closeFile(sbpfile);
+  activeSbpPath[0] = '\0';
+  activeGeoPath[0] = '\0';
 
   Serial.println("[STORAGE] files closed");
 }
