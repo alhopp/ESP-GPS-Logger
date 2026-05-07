@@ -136,6 +136,7 @@ void registerFileEndpoints(WebServer &server)
           strlcpy(baseCopy, base, sizeof(baseCopy));
 
           const size_t size = file.size();
+          const time_t modified = file.getLastWrite();
           file.close();
 
           if (size == 0) {
@@ -146,6 +147,7 @@ void registerFileEndpoints(WebServer &server)
             JsonObject o = files.createNestedObject();
             o["name"] = String(baseCopy);
             o["size"] = size;
+            o["mtime"] = static_cast<uint32_t>(modified);
 
             char sbpPath[128];
             buildPairedPath(sbpPath, sizeof(sbpPath), baseCopy, ".sbp");

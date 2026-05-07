@@ -261,7 +261,7 @@ window.MapSessions = {
 
     this.files = j.files
       .filter(f=>f.name.endsWith(".geojson"))
-      .sort((a,b)=>b.name.localeCompare(a.name));
+      .sort(compareSessionFiles);
 
     if(!this.files.length) return;
 
@@ -277,7 +277,7 @@ window.MapSessions = {
 
     this.files = j.files
       .filter(f=>f.name.endsWith(".geojson"))
-      .sort((a,b)=>b.name.localeCompare(a.name));
+      .sort(compareSessionFiles);
 
     if(!this.files.length){
       MapView.clear();
@@ -305,7 +305,7 @@ window.MapSessions = {
     $("sessionMeta").textContent  = displayName.replace(/\.(geojson|sbp|ubx|txt)$/i,"");
 
     MapView.clear();
-    MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}`);
+    MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}&t=${Date.now()}`);
   },
 
   prev(){ if(this.index < this.files.length-1){ this.index++; this.loadCurrent(); } },
@@ -698,6 +698,15 @@ const StatsGraph = {
     }
   }
 };
+
+function compareSessionFiles(a,b){
+  const am = Number(a.mtime || 0);
+  const bm = Number(b.mtime || 0);
+  if(am || bm){
+    if(bm !== am) return bm - am;
+  }
+  return b.name.localeCompare(a.name);
+}
 
 window.addEventListener("resize",()=>StatsGraph.scheduleDraw());
 
