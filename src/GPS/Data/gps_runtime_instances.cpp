@@ -25,9 +25,7 @@ GPS_distance_speed speed_nm(1852);      // 1 nautical mile.
 // seconds.
 GPS_time_speed speed_2s(2);
 GPS_time_speed speed_10s(10);
-GPS_time_speed speed_30min(1800);       // 30 minutes.
 GPS_time_speed speed_1h(3600);          // 60 minutes.
 
 // Alpha calculators. Constructor argument is the closure radius in meters.
-Alfa_speed alpha_250m(50);
 Alfa_speed alpha_500m(50);

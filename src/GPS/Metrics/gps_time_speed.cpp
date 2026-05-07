@@ -39,10 +39,6 @@
 // Geometry window exports (SESSION BEST — kept for backward compatibility)
 // -----------------------------------------------------------------------------
 int win_2s_start  = -1;
-int win_2s_end    = -1;
-
-int win_10s_start = -1;
-int win_10s_end   = -1;
 
 int win_1h_start_sec = -1;
 int win_1h_end_sec   = -1;
@@ -51,7 +47,6 @@ int win_1h_end_sec   = -1;
 // Top-5 10s geometry exports (Speedreader style)
 // -----------------------------------------------------------------------------
 int win_10s_top5_start[5] = { -1, -1, -1, -1, -1 };
-int win_10s_top5_end  [5] = { -1, -1, -1, -1, -1 };
 int win_10s_top5_count    = 0;
 
 // -----------------------------------------------------------------------------
@@ -59,7 +54,6 @@ int win_10s_top5_count    = 0;
 // -----------------------------------------------------------------------------
 float best_10s_per_run[32];
 int   win_10s_start_run[32];
-int   win_10s_end_run  [32];
 
 
 // -----------------------------------------------------------------------------
@@ -93,10 +87,9 @@ void GPS_time_speed::Reset_stats()
   for(int i=0;i<32;i++){
     best_10s_per_run[i]=0.0f;
     win_10s_start_run[i]=-1;
-    win_10s_end_run  [i]=-1;
   }
 
-  for(int i=0;i<5;i++){ win_10s_top5_start[i]=-1; win_10s_top5_end[i]=-1; }
+  for(int i=0;i<5;i++){ win_10s_top5_start[i]=-1; }
   win_10s_top5_count=0;
 }
 
@@ -119,8 +112,7 @@ float GPS_time_speed::Update_speed(int actual_run)
       s_max_speed = avg_s;
 
       const int start = index_GPS - samples + 1;
-      if(time_window == 2){ win_2s_start = start; win_2s_end = index_GPS; }
-      if(time_window == 10){ win_10s_start = start; win_10s_end = index_GPS; }
+      if(time_window == 2){ win_2s_start = start; }
 
       getLocalTime(&tmstruct,0);
       time_hour[0]=tmstruct.tm_hour;
@@ -136,7 +128,6 @@ float GPS_time_speed::Update_speed(int actual_run)
       if(time_window == 10 && actual_run > 0 && actual_run < 32){
         best_10s_per_run[actual_run] = s_max_speed;
         win_10s_start_run[actual_run] = start;
-        win_10s_end_run[actual_run] = index_GPS;
       }
 
       for(int i=0;i<10;i++) display_speed[i]=avg_speed[i];
@@ -185,8 +176,7 @@ float GPS_time_speed::Update_speed(int actual_run)
 
     for(int r=1;r<=run_count;r++){
       if(best_10s_per_run[r] > 0.0f &&
-         win_10s_start_run[r] >= 0 &&
-         win_10s_end_run[r]   >= 0){
+         win_10s_start_run[r] >= 0){
         runs[rn].run = r;
         runs[rn].spd = best_10s_per_run[r];
         rn++;
@@ -199,14 +189,13 @@ float GPS_time_speed::Update_speed(int actual_run)
         if(runs[i].spd > runs[j].spd){ Run10s t=runs[i]; runs[i]=runs[j]; runs[j]=t; }
 
     // fill exported arrays (fast, stable, no heap)
-    for(int i=0;i<5;i++){ win_10s_top5_start[i]=-1; win_10s_top5_end[i]=-1; }
+    for(int i=0;i<5;i++){ win_10s_top5_start[i]=-1; }
     win_10s_top5_count = 0;
 
     for(int i=rn-1;i>=0 && win_10s_top5_count<5;i--){
       int r = runs[i].run;
       int k = win_10s_top5_count++;
       win_10s_top5_start[k] = win_10s_start_run[r];
-      win_10s_top5_end  [k] = win_10s_end_run  [r];
     }
 
     old_run = actual_run;

@@ -72,13 +72,8 @@ private:
 // A value of -1 means "not valid / not available".
 // ============================================================================
 
-// ---- 2s window (GPS index domain) ----
+// ---- 2s window start (GPS index domain) ----
 extern int win_2s_start;
-extern int win_2s_end;
-
-// ---- 10s window (GPS index domain) ---
-extern int win_10s_start;
-extern int win_10s_end;
 
 // ---- 1h window (SECOND index domain) --
 extern int win_1h_start_sec;
@@ -89,5 +84,4 @@ extern int sec_to_gps_index[];
 
 
 extern int win_10s_top5_start[5];
-extern int win_10s_top5_end[5];
 extern int win_10s_top5_count;

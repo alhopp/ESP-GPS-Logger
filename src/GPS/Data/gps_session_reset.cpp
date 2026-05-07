@@ -61,9 +61,7 @@ void reset_session_stats()
   // Time and alpha classes own their own reset routines.
   speed_2s.Reset_stats();
   speed_10s.Reset_stats();
-  speed_30min.Reset_stats();
   speed_1h.Reset_stats();
-  alpha_250m.Reset_stats();
   alpha_500m.Reset_stats();
 
   // Distance windows still expose their live arrays directly for legacy RP6

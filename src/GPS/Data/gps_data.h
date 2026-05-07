@@ -66,7 +66,6 @@ public:
 
   float run_distance;   // Distance since current run started, mm.
   float alfa_distance;  // Distance since alpha/jibe reference reset, mm.
-  float delta_dist;     // Legacy field; currently not updated by gps_data.cpp.
 
   // Ingest one NAV-PVT sample into the shared rings.
   // latitude/longitude are decimal degrees; gSpeed is Doppler speed in mm/s.

@@ -31,10 +31,7 @@ extern GPS_distance_speed speed_nm;
 // Time-window speed calculators.
 extern GPS_time_speed speed_2s;
 extern GPS_time_speed speed_10s;
-extern GPS_time_speed speed_30min;
 extern GPS_time_speed speed_1h;
 
-// Alpha calculators. The current display/storage path uses alpha_500m, while
-// alpha_250m is kept because the RP6 calculation model updates both windows.
-extern Alfa_speed alpha_250m;
+// Alpha calculator. Uses the 500 m distance window with a 50 m closure radius.
 extern Alfa_speed alpha_500m;

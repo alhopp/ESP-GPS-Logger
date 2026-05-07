@@ -74,13 +74,11 @@ void updateTimeWindows()
 {
   speed_2s.Update_speed(run_count);
   speed_10s.Update_speed(run_count);
-  speed_30min.Update_speed(run_count);
   speed_1h.Update_speed(run_count);
 }
 
 void updateAlphaWindows()
 {
-  alpha_250m.Update_Alfa(speed_250m);
   alpha_500m.Update_Alfa(speed_500m);
   gps_alpha_guidance_update();
 }
