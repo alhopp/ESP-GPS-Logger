@@ -4,7 +4,6 @@
 #include <math.h>
 
 #include "Core/Globals.h"
-#include "Core/log.h"
 #include "Core/system_info.h"
 #include "GPS/Data/gps_data.h"
 #include "GPS/gps_config.h"
@@ -125,7 +124,6 @@ void gps_run_update(float actual_heading, float s2_speed_mmps)
     run_counter++;
     run_started_flag = true;
     delay_counter++;
-    LOG_GPS("RUN", "count=%d", run_counter);
   }
 }
 

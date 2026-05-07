@@ -130,6 +130,7 @@ void snapshotTopRun10s()
   }
 
   RTC_avg_10s_knots = topSumKnots / 5.0f;
+  Serial.printf("Run count       : %d\n", speed_10s.run_count);
   Serial.printf("10s avg (best 5): %.3f kn\n", RTC_avg_10s_knots);
 }
 
