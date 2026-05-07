@@ -109,6 +109,8 @@ void storeTopRun10sSlot(int rank, float valueKnots)
 
 void snapshotTopRun10s()
 {
+  gps_time_speed_rebuild_10s_top5_per_run();
+
   double runResults[32];
   const int resultCount = collectSortedRun10s(runResults, 32);
 
@@ -131,9 +133,20 @@ void snapshotTopRun10s()
   Serial.printf("10s avg (best 5): %.3f kn\n", RTC_avg_10s_knots);
 }
 
+double bestDistanceSpeedMmps(const GPS_distance_speed& window)
+{
+  double best = window.m_max_speed;
+
+  for (int i = 0; i < 10; i++) {
+    if (window.avg_speed[i] > best) best = window.avg_speed[i];
+  }
+
+  return best;
+}
+
 void snapshotSpecialSpeeds()
 {
-  RTC_mile_knots = speed_nm.avg_speed[9] * MMPS_TO_KNOTS;
+  RTC_mile_knots = bestDistanceSpeedMmps(speed_nm) * MMPS_TO_KNOTS;
 
   // The map/export alpha geometry is captured as a session-best candidate while
   // riding. Use it as a fallback so the final number matches the green alpha

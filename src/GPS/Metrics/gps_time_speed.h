@@ -85,3 +85,7 @@ extern int sec_to_gps_index[];
 
 extern int win_10s_top5_start[5];
 extern int win_10s_top5_count;
+
+// Rebuild GeoJSON/export top-5 10s windows from the best 10s result of each run.
+// This enforces the Speedreader/RP6 rule: at most one 10s result per run.
+void gps_time_speed_rebuild_10s_top5_per_run();

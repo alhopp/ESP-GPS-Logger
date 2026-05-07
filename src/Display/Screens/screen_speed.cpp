@@ -67,10 +67,10 @@ void drawAlphaHelper()
 
 void drawSavingSession()
 {
-  drawCenteredText("ESP-GPS", Layout::ROW9(2), Fonts::Body12);
-  drawCenteredText("Saving session", Layout::ROW9(4), Fonts::Body12);
-  drawCenteredText("Building map file", Layout::ROW9(6), Fonts::Body9);
-  drawCenteredText("Please wait", Layout::ROW9(8), Fonts::Body9);
+  drawCenteredText("ESP-GPS", 20, Fonts::Body12);
+  drawCenteredText("Saving session", 50, Fonts::Body12);
+  drawCenteredText("Building map file", 78, Fonts::Body9);
+  drawCenteredText("Please wait", 102, Fonts::Body9);
 }
 }
 

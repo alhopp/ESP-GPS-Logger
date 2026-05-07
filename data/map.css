@@ -193,8 +193,8 @@ section#map.a~footer{display:none}
 #statsInfo.ten-sec-info{
   flex-wrap:nowrap;
   justify-content:space-between;
-  gap:6px;
-  padding:2px 10px 10px;
+  gap:7px;
+  padding:1px 8px 9px;
 }
 
 .stat-info-pill{
@@ -208,9 +208,9 @@ section#map.a~footer{display:none}
 .stat-info-box{
   flex:1 1 0;
   min-width:0;
-  max-width:66px;
-  height:40px;
-  padding:5px 6px;
+  max-width:70px;
+  height:44px;
+  padding:6px 7px;
   border-width:2px;
   border-radius:7px;
   display:flex;
@@ -221,13 +221,13 @@ section#map.a~footer{display:none}
 }
 
 .stat-info-box b{
-  font-size:11px;
+  font-size:12px;
   color:#5b6b82;
 }
 
 .stat-info-box span{
   margin-top:2px;
-  font-size:14px;
+  font-size:15px;
   color:#000;
 }
 

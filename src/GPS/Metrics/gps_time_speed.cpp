@@ -74,25 +74,9 @@ void sortTop10sWindows()
   }
 }
 
-bool windowsOverlap(int aStart, int bStart, int samples)
-{
-  return aStart < bStart + samples && bStart < aStart + samples;
-}
-
-void updateTop10sWindows(int start, float speed, int samples)
+void addTop10sRunWindow(int start, float speed)
 {
   if (start < 0 || speed <= 0.0f) return;
-
-  for (int i = 0; i < win_10s_top5_count; i++) {
-    if (windowsOverlap(start, win_10s_top5_start[i], samples)) {
-      if (speed > win_10s_top5_speed[i]) {
-        win_10s_top5_speed[i] = speed;
-        win_10s_top5_start[i] = start;
-        sortTop10sWindows();
-      }
-      return;
-    }
-  }
 
   if (win_10s_top5_count < 5) {
     const int idx = win_10s_top5_count++;
@@ -108,6 +92,20 @@ void updateTop10sWindows(int start, float speed, int samples)
   win_10s_top5_start[4] = start;
   sortTop10sWindows();
 }
+}
+
+void gps_time_speed_rebuild_10s_top5_per_run()
+{
+  for (int i = 0; i < 5; i++) {
+    win_10s_top5_start[i] = -1;
+    win_10s_top5_speed[i] = 0.0f;
+  }
+  win_10s_top5_count = 0;
+
+  const int maxRun = speed_10s.run_count < 32 ? speed_10s.run_count : 31;
+  for (int run = 1; run <= maxRun; run++) {
+    addTop10sRunWindow(win_10s_start_run[run], speed_10s.best_10s_per_run[run]);
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -161,11 +159,6 @@ float GPS_time_speed::Update_speed(int actual_run)
 
     if(index_GPS >= samples){
       avg_s_sum -= _gSpeed[(index_GPS - samples) % BUFFER_SIZE];
-    }
-
-    if(time_window == 10){
-      const int start = index_GPS - samples + 1;
-      updateTop10sWindows(start, avg_s, samples);
     }
 
     avg_s = avg_s_sum / time_window / systemInfo.sample_rate;
