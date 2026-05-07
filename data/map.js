@@ -566,8 +566,8 @@ const StatsGraph = {
       const points = series.sets[0]?.points || [];
       const min = this.min(points);
       const max = this.max(points);
-      if(Number.isFinite(min)) pills.push(`<span class="stat-info-pill">Min ${min.toFixed(2)} kt</span>`);
-      if(Number.isFinite(max)) pills.push(`<span class="stat-info-pill">Max ${max.toFixed(2)} kt</span>`);
+      if(Number.isFinite(min)) pills.push(`<span class="stat-info-pill">Min ${min.toFixed(2)}</span>`);
+      if(Number.isFinite(max)) pills.push(`<span class="stat-info-pill">Max ${max.toFixed(2)}</span>`);
     }
 
     el.innerHTML = pills.join("");

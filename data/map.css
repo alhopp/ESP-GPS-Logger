@@ -24,7 +24,7 @@ section#map .card{
 }
 section#map.a~footer{display:none}
 
-#map{position:relative;height:100svh;overflow:hidden}
+#map{position:relative;overflow:hidden}
 .map-card,#mapView{width:100%;height:100%}
 
 /* ---------------------------------------------------------------------------
