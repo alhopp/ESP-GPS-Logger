@@ -1,14 +1,12 @@
 #include "Logging/logging_raw_writers.h"
 
 #include "Core/Globals.h"
-#include "GPS/gps_runtime_state.h"
 #include "Logging/sbp_writer.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "Config/config_types.h"
 
 namespace {
 uint32_t last_sbp_iTOW = 0;
-int last_nav_sat_message = 0;
 
 void checksumUpdate(uint8_t byte, uint8_t& ckA, uint8_t& ckB)
 {
@@ -45,29 +43,6 @@ void writeUbxFrame(File& file, uint8_t cls, uint8_t id, const uint8_t* payload, 
   file.write(ckB);
 }
 
-void writeNavSatIfUpdated(File& file)
-{
-  if (nav_sat_message == last_nav_sat_message) return;
-
-  last_nav_sat_message = nav_sat_message;
-
-  const uint16_t payloadSize =
-    sizeof(ubxMessage.navSatHdr.iTOW) +
-    sizeof(ubxMessage.navSatHdr.version) +
-    sizeof(ubxMessage.navSatHdr.numSvs) +
-    sizeof(ubxMessage.navSatHdr.r1) +
-    sizeof(ubxMessage.navSatHdr.r2) +
-    (uint16_t)ubxMessage.navSatCount * sizeof(ubxMessage.navSat[0]);
-
-  writeUbxFrame(
-    file,
-    0x01,
-    0x35,
-    reinterpret_cast<const uint8_t*>(&ubxMessage.navSatHdr.iTOW),
-    payloadSize
-  );
-}
-
 bool sbpLoggingReady(File& file)
 {
   return config.logSBP && file;
@@ -86,7 +61,6 @@ bool sbpItowChanged()
 void logging_raw_writers_reset()
 {
   last_sbp_iTOW = 0;
-  last_nav_sat_message = 0;
 }
 
 void logging_raw_writers_write_ubx(File& ubxfile)
@@ -99,10 +73,6 @@ void logging_raw_writers_write_ubx(File& ubxfile)
       reinterpret_cast<const uint8_t*>(&ubxMessage.navPvt),
       sizeof(ubxMessage.navPvt)
     );
-    writeNavSatIfUpdated(ubxfile);
-  }
-
-  if (config.logUBX_nav_sat && ubxfile) {
     writeUbxFrame(
       ubxfile,
       0x01,

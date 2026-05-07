@@ -1,7 +1,6 @@
 #include "GPS/Ublox/ublox_driver.h"
 #include "Core/log.h"
 #include "Core/Globals.h"
-#include "Config/config_types.h"
 
 // u-blox receiver configuration and time sync.
 // This file owns command sequencing and GPS-derived system time updates; the
@@ -64,7 +63,7 @@ bool Set_GPS_Time(float time_offset)
 //   • GPS + GLONASS + GALILEO + BEIDOU(B1C) enabled
 //   • Motion model set to SEA
 //   • Navigation rate fixed at 5 Hz
-//   • NAV-PVT and NAV-DOP enabled (NAV-SAT optional)
+//   • NAV-PVT and NAV-DOP enabled
 //   • Diagnostic metadata polled (MON-VER, MON-GNSS, UID)
 //   • ESP32 UART restarted and synchronised at 38400 baud
 //
@@ -120,12 +119,6 @@ void Init_ubloxM10(void)
     LOG_GPS("MSG", "Enable NAV-DOP");
     sendUbx(ubx::msg::nav_dop);
     delay(WAIT_MS);
-
-    if (config.logUBX && config.logUBX_nav_sat) {
-        LOG_GPS("MSG", "Enable NAV-SAT");
-        sendUbx(ubx::msg::nav_sat);
-        delay(WAIT_MS);
-    }
 
     // ---------------------------------------------------------------------
     // 6. Poll diagnostic / identity information

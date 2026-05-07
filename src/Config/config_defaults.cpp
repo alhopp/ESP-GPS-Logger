@@ -23,7 +23,6 @@ void config_set_defaults()
   config.timezone_DST = DEFAULT_TIMEZONE_DST;
 
   config.logUBX = false;
-  config.logUBX_nav_sat = false;
   config.logSBP = true;
 
   config.stat_alpha = true;

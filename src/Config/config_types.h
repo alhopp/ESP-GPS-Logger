@@ -22,7 +22,6 @@ struct Config
 
   // Logging
   bool logUBX;
-  bool logUBX_nav_sat;
   bool logSBP;
 
   // Identification / filenames
