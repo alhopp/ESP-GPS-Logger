@@ -12,12 +12,10 @@ void config_dump()
 
   Serial.print("[CONFIG ] cal_bat          = "); Serial.println(config.cal_bat);
   Serial.print("[CONFIG ] shutdown_voltage = "); Serial.println(config.shutdown_voltage);
-  Serial.print("[CONFIG ] bar_length       = "); Serial.println(config.bar_length);
   Serial.print("[CONFIG ] logUBX           = "); Serial.println(config.logUBX);
   Serial.print("[CONFIG ] logSBP           = "); Serial.println(config.logSBP);
   Serial.print("[CONFIG ] timezone         = "); Serial.println(config.timezone);
   Serial.print("[CONFIG ] timezone_DST     = "); Serial.println(config.timezone_DST);
-  Serial.print("[CONFIG ] track_distance   = "); Serial.println(config.track_distance);
 
   Serial.println("[CONFIG ] Performance screens");
   Serial.print("[CONFIG ]   2s             = "); Serial.println(config.stat_2s);

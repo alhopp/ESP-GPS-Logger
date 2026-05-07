@@ -12,8 +12,6 @@ void config_set_defaults()
 
   config.cal_bat = BATTERY_ADC_MV_PER_COUNT_DEFAULT;
   config.shutdown_voltage = 3.2f;
-  config.track_distance = 1852;
-  config.bar_length = 1852;
 
   config.timezone = 1.0f;
   config.timezone_DST = 1;

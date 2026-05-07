@@ -24,6 +24,11 @@ void wifi_loop();
 // Display-facing state for the config/status screen.
 WifiUiState wifi_get_ui_state();
 
+// SSID/password status that the firmware will actually use for STA mode.
+// In dev builds this reflects the forced dev hotspot, not the saved config.
+const char* wifi_effective_phone_ssid();
+bool wifi_effective_phone_password_set();
+
 // True when either STA or AP networking is active.
 bool wifi_net_active();
 

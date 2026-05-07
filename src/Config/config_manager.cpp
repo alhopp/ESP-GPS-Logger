@@ -14,7 +14,6 @@
 #include "Config/config_json.h"
 #include "Config/config_manager.h"
 #include "Config/config_runtime.h"
-#include "Config/config_validation.h"
 
 namespace {
 constexpr const char* CONFIG_FILE = "/config.txt";
@@ -39,7 +38,6 @@ void initConfig()
     config_write_json(f);
     f.close();
 
-    config_validate();
     config_apply_runtime();
     config_dump();
     return;
@@ -49,7 +47,6 @@ void initConfig()
   if (!f) {
     LOG_ERROR("CONFIG", "Failed to open config.txt");
     config_set_defaults();
-    config_validate();
     config_apply_runtime();
     config_dump();
     return;
@@ -69,7 +66,6 @@ void initConfig()
     f.close();
   }
 
-  config_validate();
   config_apply_runtime();
 
   LOG_CONFIG("Init", "Configuration loaded");
@@ -78,8 +74,6 @@ void initConfig()
 
 void saveConfig()
 {
-  config_validate();
-
   File f = LittleFS.open(CONFIG_FILE, FILE_WRITE);
   if (!f) {
     LOG_ERROR("CONFIG", "Cannot save config");

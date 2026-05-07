@@ -5,7 +5,6 @@
 // - Web server only runs when network stack is UP
 // ============================================================================
 
-#include "Web/web_server.h"
 #include "Web/wifi_manager.h"
 
 #include <ESPmDNS.h>
@@ -78,11 +77,36 @@ static bool wifi_ap_active()
 
 static bool have_phone_wifi()
 {
-  if (build_dev_wifi_enabled()) {
-    return true;
-  }
+  return wifi_effective_phone_ssid()[0];
+}
 
-  return config.phone_ssid[0];
+const char* wifi_effective_phone_ssid()
+{
+#if DEV_FORCE_WIFI
+  return DEV_SSID;
+#else
+  return config.phone_ssid;
+#endif
+}
+
+bool wifi_effective_phone_password_set()
+{
+#if DEV_FORCE_WIFI
+  return DEV_PASS[0];
+#else
+  return config.phone_pass[0];
+#endif
+}
+
+static void mark_sta_connected()
+{
+  LOG_WIFI("STA", "connected IP=%s", WiFi.localIP().toString().c_str());
+  wifi_set_ui_state(WIFI_UI_CONNECTED);
+
+  if (!mdnsStarted && MDNS.begin("gps")) {
+    MDNS.addService("http", "tcp", 80);
+    mdnsStarted = true;
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -93,8 +117,7 @@ static void start_sta()
 {
   if (wifi_sta_connected()) {
     LOG_WIFI("STA", "already connected IP=%s", WiFi.localIP().toString().c_str());
-    wifi_set_ui_state(WIFI_UI_CONNECTED);
-    webserver_start();
+    mark_sta_connected();
     return;
   }
 
@@ -120,26 +143,6 @@ static void start_sta()
 
   lastStaAttempt = millis();
   staAttempts++;
-
-  const uint32_t t0 = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 3000) {
-    delay(100);
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    LOG_WIFI("STA", "connected IP=%s", WiFi.localIP().toString().c_str());
-    wifi_set_ui_state(WIFI_UI_CONNECTED);
-
-    if (!mdnsStarted && MDNS.begin("gps")) {
-      MDNS.addService("http", "tcp", 80);
-      mdnsStarted = true;
-    }
-
-    webserver_start();
-  } else {
-    LOG_WIFI("STA", "not connected");
-    wifi_set_ui_state(WIFI_UI_FAILED);
-  }
 }
 
 // -----------------------------------------------------------------------------
@@ -162,8 +165,6 @@ static void start_ap()
 
   apActive = true;
   wifi_set_ui_state(WIFI_UI_AP);
-
-  webserver_start();
 }
 
 // -----------------------------------------------------------------------------
@@ -190,8 +191,6 @@ void wifi_stop()
 {
   if (!wifiStarted) return;
 
-  webserver_stop();
-
   WiFi.disconnect(true);
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
@@ -211,7 +210,17 @@ void wifi_loop()
 {
   if (!wifiStarted) return;
   if (apActive) return;
-  if (wifi_sta_connected()) return;
+  if (wifi_sta_connected()) {
+    if (wifiUiState != WIFI_UI_CONNECTED) {
+      mark_sta_connected();
+    }
+    return;
+  }
+
+  if (millis() - lastStaAttempt <= STA_RETRY_INTERVAL_MS) return;
+
+  LOG_WIFI("STA", "not connected");
+  wifi_set_ui_state(WIFI_UI_FAILED);
 
   if (staAttempts >= STA_MAX_ATTEMPTS) {
     if (build_dev_wifi_enabled()) {
@@ -225,10 +234,8 @@ void wifi_loop()
     return;
   }
 
-  if (millis() - lastStaAttempt > STA_RETRY_INTERVAL_MS) {
-    LOG_WIFI("STA", "retry %d/%d", staAttempts + 1, STA_MAX_ATTEMPTS);
-    start_sta();
-  }
+  LOG_WIFI("STA", "retry %d/%d", staAttempts + 1, STA_MAX_ATTEMPTS);
+  start_sta();
 }
 
 // -----------------------------------------------------------------------------

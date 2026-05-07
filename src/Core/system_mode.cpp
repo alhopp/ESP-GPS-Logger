@@ -64,6 +64,7 @@ void exitConfig()
 {
   LOG_SYS("MODE", "EXIT CONFIG");
 
+  webserver_stop();
   wifi_stop();
   storage_off();
 }
@@ -216,6 +217,7 @@ void systemModeLoop()
   wifi_loop();
 
   if (wifi_net_active()) {
+    webserver_start();
     webserver_loop();
   }
 }

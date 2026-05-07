@@ -30,6 +30,10 @@ window.SystemTab = (function(){
     setText($("sys_simulator"),     yesNo(system.simulator));
     setText($("sys_dev_wifi"),      yesNo(system.dev_wifi));
     setText($("sys_logging"),       yesNo(system.logging_enabled));
+    setText($("sys_wifi_status"),   system.wifi_connected ? "Connected" : "Not connected");
+    setText($("sys_wifi_ssid"),     system.wifi_ssid);
+    setText($("sys_wifi_ip"),       system.wifi_ip);
+    setText($("sys_wifi_phone"),    system.wifi_phone_ssid);
   }
 
   return { load };

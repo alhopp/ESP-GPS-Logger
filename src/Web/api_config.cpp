@@ -8,6 +8,7 @@
 #include "Core/system_info.h"
 #include "Storage/storage_manager.h"
 #include "Web/web_json.h"
+#include "Web/wifi_manager.h"
 
 namespace {
 constexpr size_t CONFIG_GET_JSON_BYTES = 3072;
@@ -23,8 +24,9 @@ void registerConfigApi(WebServer& server)
     wifi["connected"] = WiFi.status() == WL_CONNECTED;
     wifi["ssid"] = WiFi.isConnected() ? WiFi.SSID() : "";
     wifi["ip"] = WiFi.isConnected() ? WiFi.localIP().toString() : "";
-    wifi["phone_ssid"] = config.phone_ssid;
-    wifi["phone_pass_set"] = config.phone_pass[0] ? true : false;
+    wifi["phone_ssid"] = wifi_effective_phone_ssid();
+    wifi["saved_phone_ssid"] = config.phone_ssid;
+    wifi["phone_pass_set"] = wifi_effective_phone_password_set();
 
     JsonObject system = j.createNestedObject("system");
     system["gnss_module"] = systemInfo.gnss_module;
@@ -43,6 +45,10 @@ void registerConfigApi(WebServer& server)
     system["simulator"] = build_gps_simulator_enabled();
     system["dev_wifi"] = build_dev_wifi_enabled();
     system["logging_enabled"] = LOG_ENABLED != 0;
+    system["wifi_connected"] = WiFi.status() == WL_CONNECTED;
+    system["wifi_ssid"] = WiFi.isConnected() ? WiFi.SSID() : "";
+    system["wifi_ip"] = WiFi.isConnected() ? WiFi.localIP().toString() : "";
+    system["wifi_phone_ssid"] = wifi_effective_phone_ssid();
 
     JsonObject configJ = j.createNestedObject("config");
     configJ["timezone"] = config.timezone;
@@ -56,7 +62,6 @@ void registerConfigApi(WebServer& server)
     logging["logSBP"] = config.logSBP;
 
     JsonObject ui = j.createNestedObject("ui");
-    ui["bar_length"] = config.bar_length;
     ui["Sleep_info1"] = config.Sleep_info1;
     ui["Sleep_info2"] = config.Sleep_info2;
 

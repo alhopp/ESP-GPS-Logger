@@ -16,13 +16,11 @@ bool config_load_json(File& file)
 
   config.cal_bat = doc["cal_bat"] | config.cal_bat;
   config.shutdown_voltage = doc["shutdown_voltage"] | config.shutdown_voltage;
-  config.bar_length = doc["bar_length"] | config.bar_length;
 
   config.logUBX = doc["logUBX"] | config.logUBX;
   config.logSBP = doc["logSBP"] | config.logSBP;
   config.timezone = doc["timezone"] | config.timezone;
   config.timezone_DST = doc["timezone_DST"] | config.timezone_DST;
-  config.track_distance = doc["track_distance"] | config.track_distance;
 
   config.stat_2s = doc["stat_2s"] | config.stat_2s;
   config.stat_10s = doc["stat_10s"] | config.stat_10s;
@@ -55,14 +53,12 @@ void config_write_json(File& file)
 
   doc["cal_bat"] = config.cal_bat;
   doc["shutdown_voltage"] = config.shutdown_voltage;
-  doc["bar_length"] = config.bar_length;
 
   doc["logUBX"] = config.logUBX;
   doc["logSBP"] = config.logSBP;
 
   doc["timezone"] = config.timezone;
   doc["timezone_DST"] = config.timezone_DST;
-  doc["track_distance"] = config.track_distance;
 
   doc["stat_2s"] = config.stat_2s;
   doc["stat_10s"] = config.stat_10s;
