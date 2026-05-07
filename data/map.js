@@ -38,15 +38,17 @@ window.MapView = {
     // -----------------------------------------------------------------------
     this.map.createPane("basePane");
     this.map.createPane("overlayPane");
-    this.map.createPane("overlay10Pane");
+    this.map.createPane("overlayNmPane");
     this.map.createPane("overlayAlphaPane");
+    this.map.createPane("overlay10Pane");
     this.map.createPane("overlay2Pane");
 
     this.map.getPane("basePane").style.zIndex    = 400;
     this.map.getPane("overlayPane").style.zIndex = 450;
-    this.map.getPane("overlay10Pane").style.zIndex = 460;
-    this.map.getPane("overlayAlphaPane").style.zIndex = 470;
-    this.map.getPane("overlay2Pane").style.zIndex = 480;
+    this.map.getPane("overlayNmPane").style.zIndex = 455;
+    this.map.getPane("overlayAlphaPane").style.zIndex = 460;
+    this.map.getPane("overlay10Pane").style.zIndex = 465;
+    this.map.getPane("overlay2Pane").style.zIndex = 470;
 
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/" +
@@ -167,9 +169,10 @@ window.MapView = {
         });
       }
 
-      this.showOverlay("10s", { pinned:true, pane:"overlay10Pane", color:"#ff9500", weight:5 });
-      this.showOverlay("alpha", { pinned:true, pane:"overlayAlphaPane", color:"#34c759", weight:6 });
-      this.showOverlay("2s", { pinned:true, pane:"overlay2Pane", color:"#ff3b30", weight:7 });
+      this.showOverlay("nm", { pinned:true });
+      this.showOverlay("alpha", { pinned:true });
+      this.showOverlay("10s", { pinned:true });
+      this.showOverlay("2s", { pinned:true });
 
       setTimeout(()=>this.map.invalidateSize(true),50);
     })
@@ -182,9 +185,12 @@ window.MapView = {
 // -------------------------------------------------------------------------
 showOverlay(mode, options={}){
   const pinned = !!options.pinned;
-  const pane = options.pane || "overlayPane";
-  const color = options.color || "#ff3b30";
-  const weight = options.weight || 6;
+  const style = this.overlayStyle(mode);
+  const pane = options.pane || style.pane;
+  const color = options.color || style.color;
+  const weight = options.weight || style.weight;
+
+  if(!pinned && this.defaultOverlays[mode]) return;
 
   if(pinned){
     if(this.defaultOverlays[mode]){
@@ -214,6 +220,15 @@ showOverlay(mode, options={}){
 
   if(pinned) this.defaultOverlays[mode] = layer;
   else this.overlay = layer;
+},
+
+overlayStyle(mode){
+  return ({
+    nm:{ pane:"overlayNmPane", color:"#007aff", weight:4 },
+    alpha:{ pane:"overlayAlphaPane", color:"#34c759", weight:5 },
+    "10s":{ pane:"overlay10Pane", color:"#ff9500", weight:6 },
+    "2s":{ pane:"overlay2Pane", color:"#ff3b30", weight:7 }
+  })[mode] || { pane:"overlayPane", color:"#af52de", weight:5 };
 },
 
 
@@ -444,6 +459,7 @@ const StatsGraph = {
 
     this.destroyChart();
     el.classList.remove("empty");
+    delete el.dataset.empty;
     el.textContent = "";
 
     const x = series.points.map(p=>p.x);
@@ -488,7 +504,8 @@ const StatsGraph = {
     if(!el) return;
     this.destroyChart();
     el.classList.add("empty");
-    el.textContent = text;
+    el.dataset.empty = text;
+    el.textContent = "";
   },
 
   seriesForMode(mode){

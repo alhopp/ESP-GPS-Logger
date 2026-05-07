@@ -174,15 +174,26 @@ section#map.a~footer{display:none}
   display:flex;
   align-items:stretch;
   justify-content:stretch;
+  position:relative;
 }
 
 #statsGraph.empty{
+  align-items:stretch;
+  justify-content:stretch;
+}
+
+#statsGraph.empty::before{
+  content:attr(data-empty);
+  position:absolute;
+  inset:0;
+  display:flex;
   align-items:center;
   justify-content:center;
-  text-align:center;
   padding:0 24px 24px;
+  text-align:center;
   font-size:20px;
   font-weight:700;
+  color:#5b6b82;
 }
 
 #statsGraph .uplot{
