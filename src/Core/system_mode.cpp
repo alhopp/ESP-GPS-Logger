@@ -38,6 +38,7 @@ void requestModeRedraw()
 void beginStorageShutdown()
 {
   storage_begin_shutdown();
+  screen_request_redraw();
   vTaskDelay(pdMS_TO_TICKS(20));
 }
 

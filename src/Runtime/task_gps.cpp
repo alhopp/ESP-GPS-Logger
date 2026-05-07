@@ -14,6 +14,7 @@
 #include "GPS/gps_config.h"
 #include "GPS/Source/gps_source.h"
 #include "GPS/Metrics/gps_stats_service.h"
+#include "Storage/storage_manager.h"
 
 // -----------------------------------------------------------------------------
 // GPS task state
@@ -65,6 +66,8 @@ namespace {
 
 bool gpsTaskShouldRun()
 {
+  if (storage_is_shutting_down()) return false;
+
   const SystemMode mode = getMode();
   return mode == MODE_LOGGING || mode == MODE_WAIT_SATS;
 }

@@ -17,10 +17,13 @@
 
 #include "Core/Globals.h"
 #include "Display/E_paper.h"
+#include "Display/Screens/ui_text.h"
 #include "GPS/gps_runtime_state.h"
 #include "Fonts.h"
 #include "GPS/gps_config.h"
 #include "GPS/Metrics/gps_alpha_guidance.h"
+#include "Layout.h"
+#include "Storage/storage_manager.h"
 
 namespace {
 constexpr int UI_OFFSET = 0;
@@ -61,10 +64,23 @@ void drawAlphaHelper()
   display.print(helper.alphaSpeedKnots, 1);
   display.print(" kt");
 }
+
+void drawSavingSession()
+{
+  drawCenteredText("ESP-GPS", Layout::ROW9(2), Fonts::Body12);
+  drawCenteredText("Saving session", Layout::ROW9(4), Fonts::Body12);
+  drawCenteredText("Building map file", Layout::ROW9(6), Fonts::Body9);
+  drawCenteredText("Please wait", Layout::ROW9(8), Fonts::Body9);
+}
 }
 
 void draw_SPEED()
 {
+  if (storage_is_shutting_down()) {
+    drawSavingSession();
+    return;
+  }
+
   if (gps_alpha_guidance_state().active) {
     drawAlphaHelper();
     return;
