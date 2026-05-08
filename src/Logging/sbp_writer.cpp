@@ -68,6 +68,11 @@ void sbp_writer_reset()
   sbp_frame_count = 0;
 }
 
+int sbp_writer_frame_count()
+{
+  return sbp_frame_count;
+}
+
 void sbp_write_frame(File& file)
 {
   const uint32_t year = ubxMessage.navPvt.year;

@@ -21,6 +21,8 @@ void geojson_end();
 struct GeoJSONStats {
   float nm;
   float alpha;
+  float alphaDistance;
+  float alphaClosure;
   float h1;
   float max;
   float avg10;

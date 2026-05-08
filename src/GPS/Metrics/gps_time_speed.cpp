@@ -51,6 +51,7 @@ int win_2s_sbp_start = -1;
 int win_10s_top5_start[5] = { -1, -1, -1, -1, -1 };
 int win_10s_top5_count    = 0;
 double win_10s_top5_speed[5] = {0, 0, 0, 0, 0};
+int win_10s_top5_run[5] = { -1, -1, -1, -1, -1 };
 int win_10s_top5_sbp_start[5] = { -1, -1, -1, -1, -1 };
 uint32_t win_2s_sum_cms = 0;
 uint32_t win_10s_top5_sum_cms[5] = {0, 0, 0, 0, 0};
@@ -58,16 +59,13 @@ uint32_t win_10s_top5_sum_cms[5] = {0, 0, 0, 0, 0};
 // -----------------------------------------------------------------------------
 // Per-run 10s storage
 // -----------------------------------------------------------------------------
-double best_10s_per_run[32];
-int   win_10s_start_run[32];
-int   win_10s_sbp_start_run[32];
+int   win_10s_start_run[MAX_10S_RUNS];
+int   win_10s_sbp_start_run[MAX_10S_RUNS];
 
 namespace {
-constexpr double SPEED_TIE_EPS_MMPS = 1.0;
-
 bool isMeaningfullyFaster(double candidate, double best)
 {
-  return candidate > best + SPEED_TIE_EPS_MMPS;
+  return candidate > best;
 }
 
 double sumRecentGpsSpeeds(int sampleCount)
@@ -106,6 +104,10 @@ void sortTop10sWindows()
         win_10s_top5_start[i] = win_10s_top5_start[j];
         win_10s_top5_start[j] = start;
 
+        const int run = win_10s_top5_run[i];
+        win_10s_top5_run[i] = win_10s_top5_run[j];
+        win_10s_top5_run[j] = run;
+
         const int sbpStart = win_10s_top5_sbp_start[i];
         win_10s_top5_sbp_start[i] = win_10s_top5_sbp_start[j];
         win_10s_top5_sbp_start[j] = sbpStart;
@@ -118,13 +120,14 @@ void sortTop10sWindows()
   }
 }
 
-void addTop10sRunWindow(int start, int sbpStart, uint32_t sumCms, double speed)
+void addTop10sRunWindow(int run, int start, int sbpStart, uint32_t sumCms, double speed)
 {
   if (start < 0 || speed <= 0.0f) return;
 
   if (win_10s_top5_count < 5) {
     const int idx = win_10s_top5_count++;
     win_10s_top5_speed[idx] = speed;
+    win_10s_top5_run[idx] = run;
     win_10s_top5_start[idx] = start;
     win_10s_top5_sbp_start[idx] = sbpStart;
     win_10s_top5_sum_cms[idx] = sumCms;
@@ -135,6 +138,7 @@ void addTop10sRunWindow(int start, int sbpStart, uint32_t sumCms, double speed)
   if (!isMeaningfullyFaster(speed, win_10s_top5_speed[4])) return;
 
   win_10s_top5_speed[4] = speed;
+  win_10s_top5_run[4] = run;
   win_10s_top5_start[4] = start;
   win_10s_top5_sbp_start[4] = sbpStart;
   win_10s_top5_sum_cms[4] = sumCms;
@@ -146,15 +150,19 @@ void gps_time_speed_rebuild_10s_top5_per_run()
 {
   for (int i = 0; i < 5; i++) {
     win_10s_top5_start[i] = -1;
+    win_10s_top5_run[i] = -1;
     win_10s_top5_sbp_start[i] = -1;
     win_10s_top5_speed[i] = 0.0f;
     win_10s_top5_sum_cms[i] = 0;
   }
   win_10s_top5_count = 0;
 
-  const int maxRun = speed_10s.run_count < 32 ? speed_10s.run_count : 31;
+  const int maxRun = speed_10s.run_count < MAX_10S_RUNS
+                       ? speed_10s.run_count
+                       : MAX_10S_RUNS - 1;
   for (int run = 1; run <= maxRun; run++) {
     addTop10sRunWindow(
+      run,
       win_10s_start_run[run],
       win_10s_sbp_start_run[run],
       speed_10s.best_10s_sum_cms_per_run[run],
@@ -191,7 +199,7 @@ void GPS_time_speed::Reset_stats()
   display_max_speed=0;
   display_last_run=0;
 
-  for(int i=0;i<32;i++){
+  for(int i=0;i<MAX_10S_RUNS;i++){
     best_10s_per_run[i]=0.0f;
     best_10s_sum_cms_per_run[i]=0;
     win_10s_start_run[i]=-1;
@@ -200,6 +208,7 @@ void GPS_time_speed::Reset_stats()
 
   for(int i=0;i<5;i++){
     win_10s_top5_start[i]=-1;
+    win_10s_top5_run[i]=-1;
     win_10s_top5_sbp_start[i]=-1;
     win_10s_top5_speed[i]=0.0f;
     win_10s_top5_sum_cms[i]=0;
@@ -212,13 +221,41 @@ void GPS_time_speed::Reset_stats()
 // -----------------------------------------------------------------------------
 float GPS_time_speed::Update_speed(int actual_run)
 {
-  if(actual_run > run_count && actual_run < 32) run_count = actual_run;
+  if(actual_run > run_count) run_count = actual_run;
 
   if(time_window * systemInfo.sample_rate < BUFFER_SIZE){
     const int samples = time_window * systemInfo.sample_rate;
     const bool fullWindowReady = index_GPS >= samples;
     const bool resetAtRunBoundary = time_window == 10;
     const int samplesToSum = fullWindowReady ? samples : index_GPS;
+
+    if(resetAtRunBoundary && (actual_run != old_run)){
+      if(this_run[0] == old_run){
+        sort_run(
+          avg_speed,
+          time_hour,
+          time_min,
+          time_sec,
+          Mean_cno,
+          Max_cno,
+          Min_cno,
+          Mean_numSat,
+          this_run,
+          10
+        );
+      }
+
+      avg_speed[0]=0;
+      s_max_speed=0;
+      avg_5runs=0;
+      for(int i=5;i<10;i++) avg_5runs += avg_speed[i];
+      avg_5runs /= 5;
+
+      for(int i=0;i<10;i++) display_speed[i]=avg_speed[i];
+      sort_display(display_speed,10);
+      display_max_speed = display_speed[9];
+      old_run = actual_run;
+    }
 
     avg_s_sum = sumRecentGpsSpeeds(samplesToSum);
     avg_s = avg_s_sum / time_window / systemInfo.sample_rate;
@@ -246,7 +283,7 @@ float GPS_time_speed::Update_speed(int actual_run)
       Min_cno[0]=Ublox_Sat.sat_info.Mean_min_cno;
       Mean_numSat[0]=Ublox_Sat.sat_info.Mean_numSV;
 
-      if(time_window == 10 && actual_run > 0 && actual_run < 32){
+      if(time_window == 10 && actual_run > 0 && actual_run < MAX_10S_RUNS){
         best_10s_per_run[actual_run] = s_max_speed;
         best_10s_sum_cms_per_run[actual_run] = sumCms;
         win_10s_start_run[actual_run] = start;
@@ -259,31 +296,6 @@ float GPS_time_speed::Update_speed(int actual_run)
       avg_5runs=0;
       for(int i=5;i<10;i++) avg_5runs += display_speed[i];
       avg_5runs /= 5;
-    }
-
-    if(resetAtRunBoundary && (actual_run != old_run) && (this_run[0] == old_run)){
-      sort_run(
-        avg_speed,
-        time_hour,
-        time_min,
-        time_sec,
-        Mean_cno,
-        Max_cno,
-        Min_cno,
-        Mean_numSat,
-        this_run,
-        10
-      );
-
-      avg_speed[0]=0;
-      s_max_speed=0;
-      avg_5runs=0;
-      for(int i=5;i<10;i++) avg_5runs += avg_speed[i];
-      avg_5runs /= 5;
-
-      for(int i=0;i<10;i++) display_speed[i]=avg_speed[i];
-      sort_display(display_speed,10);
-      display_max_speed = display_speed[9];
     }
 
     if((actual_run != reset_display_last_run) && (avg_s > 3000)){

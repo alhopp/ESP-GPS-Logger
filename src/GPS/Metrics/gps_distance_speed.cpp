@@ -9,11 +9,21 @@
 #include <time.h>
 
 namespace {
-constexpr double SPEED_TIE_EPS_MMPS = 1.0;
+double win_nm_best_speed = 0.0;
 
 bool isMeaningfullyFaster(double candidate, double best)
 {
-  return candidate > best + SPEED_TIE_EPS_MMPS;
+  return candidate > best;
+}
+
+int sbpStartForGpsIndex(int gpsIndex)
+{
+  if (gpsIndex < 1) return -1;
+
+  const int storedSbpIndex = _sbpIndex[gpsIndex % BUFFER_SIZE];
+  if (storedSbpIndex > 2) return storedSbpIndex - 2;
+
+  return gpsIndex > 2 ? gpsIndex - 2 : 1;
 }
 }
 
@@ -33,6 +43,13 @@ bool isMeaningfullyFaster(double candidate, double best)
 // -----------------------------------------------------------------------------
 int win_nm_start = -1;
 int win_nm_end   = -1;
+
+void gps_distance_speed_reset_session_windows()
+{
+  win_nm_start = -1;
+  win_nm_end = -1;
+  win_nm_best_speed = 0.0;
+}
 
 GPS_distance_speed::GPS_distance_speed(int afstand) : m_set_distance(afstand){}
 
@@ -88,9 +105,10 @@ double GPS_distance_speed::Update_distance(int actual_run)
     m_max_speed = m_speed;
 
     // ---- Capture NM geometry window (1852 m only) ----
-    if(m_set_distance == 1852){
-      win_nm_start = m_index;
-      win_nm_end   = index_GPS;
+    if(m_set_distance == 1852 && isMeaningfullyFaster(m_speed, win_nm_best_speed)){
+      win_nm_best_speed = m_speed;
+      win_nm_start = sbpStartForGpsIndex(m_index);
+      win_nm_end   = sbpStartForGpsIndex(index_GPS);
     }
 
     getLocalTime(&tmstruct,0);

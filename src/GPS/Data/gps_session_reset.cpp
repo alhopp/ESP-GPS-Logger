@@ -70,6 +70,7 @@ void reset_session_stats()
   for (GPS_distance_speed* w : distance_windows) {
     resetDistanceWindow(*w);
   }
+  gps_distance_speed_reset_session_windows();
 
   // Duplicate NAV-PVT suppression should restart cleanly with the session.
   nav_pvt_message = 0;

@@ -15,7 +15,7 @@ MMPS_TO_KNOTS = 0.0019438444924406
 
 def frame_speed_knots(frame: bytes) -> float:
     fields = SBP_FRAME.unpack(frame)
-    sog_cms = fields[9]
+    sog_cms = fields[8]
     return sog_cms * 10.0 * MMPS_TO_KNOTS
 
 
@@ -28,16 +28,20 @@ def find_latest_sbp() -> Path | None:
     return candidates[0] if candidates else None
 
 
-def read_edges(path: Path, edge_count: int) -> tuple[list[tuple[int, float]], list[tuple[int, float]]]:
+def frame_count(path: Path) -> int:
     size = path.stat().st_size
     payload = max(0, size - SBP_HEADER_SIZE)
-    frame_count = payload // SBP_FRAME.size
-    if frame_count <= 0:
+    return payload // SBP_FRAME.size
+
+
+def read_edges(path: Path, edge_count: int) -> tuple[list[tuple[int, float]], list[tuple[int, float]]]:
+    count = frame_count(path)
+    if count <= 0:
         return [], []
 
-    first_indexes = list(range(1, min(edge_count, frame_count) + 1))
-    last_start = max(1, frame_count - edge_count + 1)
-    last_indexes = list(range(last_start, frame_count + 1))
+    first_indexes = list(range(1, min(edge_count, count) + 1))
+    last_start = max(1, count - edge_count + 1)
+    last_indexes = list(range(last_start, count + 1))
 
     def read_rows(indexes: list[int]) -> list[tuple[int, float]]:
         rows = []
@@ -72,6 +76,7 @@ def main() -> int:
 
     first, last = read_edges(path, args.count)
     print(f"SBP: {path}")
+    print(f"frames: {frame_count(path)}")
     print_rows("first", first)
     print_rows("last", last)
     return 0

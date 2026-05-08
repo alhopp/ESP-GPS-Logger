@@ -19,13 +19,15 @@
 // - Geometry window indices for GeoJSON generation
 // ============================================================================
 
+constexpr int MAX_10S_RUNS = 128;
+
 class GPS_time_speed {
 public:
   explicit GPS_time_speed(int tijdvenster);
 
   // ---------------- per-run / rolling state ----------------
-  double best_10s_per_run[32];  // compatibility export for RTC/GeoJSON
-  uint32_t best_10s_sum_cms_per_run[32];
+  double best_10s_per_run[MAX_10S_RUNS];  // compatibility export for RTC/GeoJSON
+  uint32_t best_10s_sum_cms_per_run[MAX_10S_RUNS];
   int   run_count;              // highest run index seen
 
   // Update statistics for the current run
@@ -88,7 +90,9 @@ extern int sec_to_gps_index[];
 extern int win_10s_top5_start[5];
 extern int win_10s_top5_count;
 extern double win_10s_top5_speed[5];
+extern int win_10s_top5_run[5];
 extern int win_10s_top5_sbp_start[5];
+extern int win_10s_sbp_start_run[MAX_10S_RUNS];
 extern uint32_t win_2s_sum_cms;
 extern uint32_t win_10s_top5_sum_cms[5];
 

@@ -267,8 +267,8 @@ void printSbpDebugSamples(const char* sbpPath)
   );
 
   for (int i = 0; i < 5; i++) {
-    char label[12];
-    snprintf(label, sizeof(label), "10s #%d", i + 1);
+    char label[20];
+    snprintf(label, sizeof(label), "10s #%d R%d", i + 1, win_10s_top5_run[i]);
     printSbpSpeedRange(
       label,
       sbpPath,
@@ -278,8 +278,8 @@ void printSbpDebugSamples(const char* sbpPath)
     );
   }
 
-  printSbpSpeedEdges("Alpha", sbpPath, alpha_start, alpha_end, 5);
-  if (alpha_start >= 0 && alpha_end >= alpha_start) {
+  printSbpSpeedEdges("Alpha", sbpPath, alpha_sbp_start, alpha_sbp_end, 5);
+  if (alpha_sbp_start >= 0 && alpha_sbp_end >= alpha_sbp_start) {
     Serial.printf(
       "Alpha detail: %.3f kn, %dm path, %.1fm closure\n",
       alpha_best_speed_mmps * MMPS_TO_KNOTS,

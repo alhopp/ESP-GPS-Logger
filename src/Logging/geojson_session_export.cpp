@@ -83,6 +83,8 @@ void attachSessionStats()
   GeoJSONStats s {
     .nm = RTC_mile_knots,
     .alpha = RTC_alp_knots > alphaKnotsFromBest ? RTC_alp_knots : alphaKnotsFromBest,
+    .alphaDistance = static_cast<float>(alpha_best_distance_m),
+    .alphaClosure = alpha_best_closure_m,
     .h1 = RTC_1h_knots,
     .max = RTC_max_2s_knots,
     .avg10 = RTC_avg_10s_knots,
@@ -233,7 +235,7 @@ void attachGraphSeries(const char* sbpPath)
     );
   }
 
-  const int alphaCount = readGpsSpeedGraph(sbpPath, graphAlpha, alpha_start, alpha_end);
+  const int alphaCount = readGpsSpeedGraph(sbpPath, graphAlpha, alpha_sbp_start, alpha_sbp_end);
   const int nmCount = readGpsSpeedGraph(sbpPath, graphNm, win_nm_start, win_nm_end);
   const int h1Count = readSecondSpeedGraph(sbpPath, graph1h, win_1h_start_sec, win_1h_end_sec);
   const int distanceCount = readSessionSpeedGraph(sbpPath);
@@ -327,7 +329,7 @@ void addDerivedFeatures(const char* sbpPath)
     addWindowFeature(sbpPath, "10s", win_10s_top5_sbp_start[i], 10);
   }
 
-  addRangeFeature(sbpPath, "alpha", alpha_start, alpha_end);
+  addRangeFeature(sbpPath, "alpha", alpha_sbp_start, alpha_sbp_end);
   addRangeFeature(sbpPath, "nm", win_nm_start, win_nm_end);
   addOneHourFeature(sbpPath);
 }

@@ -47,6 +47,8 @@ private:
 // Geometry/stat export for the session-best Alpha 500.
 extern int alpha_start;
 extern int alpha_end;
+extern int alpha_sbp_start;
+extern int alpha_sbp_end;
 extern float alpha_best_speed_mmps;
 extern float alpha_best_closure_m;
 extern int alpha_best_distance_m;

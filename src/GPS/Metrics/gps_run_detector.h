@@ -36,3 +36,9 @@ bool gps_run_ended();
 
 // GPS sample index where last jibe occurred
 int  gps_run_last_jibe_index();
+
+// Diagnostic counters for RP6 parity checks.
+int gps_run_armed_count();
+int gps_run_jibe_count();
+int gps_run_standstill_restart_count();
+int gps_run_last_armed_index();

@@ -31,6 +31,8 @@
 // -----------------------------------------------------------------------------
 int alpha_start = -1;
 int alpha_end   = -1;
+int alpha_sbp_start = -1;
+int alpha_sbp_end   = -1;
 float alpha_best_speed_mmps = 0.0f;
 float alpha_best_closure_m = 0.0f;
 int alpha_best_distance_m = 0;
@@ -50,6 +52,16 @@ constexpr double SPEED_TIE_EPS_MMPS = 1.0;
 bool isMeaningfullyFaster(double candidate, double best)
 {
   return candidate > best + SPEED_TIE_EPS_MMPS;
+}
+
+int sbpStartForGpsIndex(int gpsIndex)
+{
+  if (gpsIndex < 1) return -1;
+
+  const int storedSbpIndex = _sbpIndex[gpsIndex % BUFFER_SIZE];
+  if (storedSbpIndex > 2) return storedSbpIndex - 2;
+
+  return gpsIndex > 2 ? gpsIndex - 2 : 1;
 }
 }
 
@@ -131,6 +143,8 @@ float Alfa_speed::Update_Alfa(const GPS_distance_speed& M)
           alpha_best_speed_mmps = speed;
           alpha_start = entry;
           alpha_end   = exit;
+          alpha_sbp_start = sbpStartForGpsIndex(entry);
+          alpha_sbp_end   = sbpStartForGpsIndex(exit);
           alpha_best_closure_m = sqrt(d2);
           alpha_best_distance_m = (int)(M.m_distance_alfa / systemInfo.sample_rate / 1000);
         }
@@ -203,6 +217,8 @@ void Alfa_speed::Reset_stats()
   alpha_best_distance_m = 0;
   alpha_start = -1;
   alpha_end = -1;
+  alpha_sbp_start = -1;
+  alpha_sbp_end = -1;
 }
 
 // -----------------------------------------------------------------------------

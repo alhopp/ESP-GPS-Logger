@@ -362,6 +362,12 @@ void geojson_end_feature()
     geoFile.print("\"alpha\":");
     geoFile.print(stats.alpha, 3);
     geoFile.println(",");
+    geoFile.print("\"alphaDistance\":");
+    geoFile.print(stats.alphaDistance, 1);
+    geoFile.println(",");
+    geoFile.print("\"alphaClosure\":");
+    geoFile.print(stats.alphaClosure, 1);
+    geoFile.println(",");
     geoFile.print("\"h1\":");
     geoFile.print(stats.h1, 3);
     geoFile.println(",");

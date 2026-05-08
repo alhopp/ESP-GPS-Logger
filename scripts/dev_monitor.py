@@ -4,11 +4,27 @@
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
 import subprocess
 import threading
 from pathlib import Path
 
 import dev_sbp_autosync
+
+
+def platformio_command() -> str:
+    command = shutil.which("pio")
+    if command:
+        return command
+
+    user_profile = os.environ.get("USERPROFILE")
+    if user_profile:
+      candidate = Path(user_profile) / ".platformio" / "penv" / "Scripts" / "pio.exe"
+      if candidate.exists():
+          return str(candidate)
+
+    return "pio"
 
 
 def main() -> int:
@@ -27,7 +43,7 @@ def main() -> int:
     sync_thread.start()
 
     print("[dev] starting PlatformIO monitor", flush=True)
-    return subprocess.call(["pio", "device", "monitor", "--baud", args.baud])
+    return subprocess.call([platformio_command(), "device", "monitor", "--baud", args.baud])
 
 
 if __name__ == "__main__":

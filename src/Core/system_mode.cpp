@@ -249,6 +249,10 @@ void setMode(SystemMode newMode)
 
   enterModeFailed = false;
 
+  if (oldMode == MODE_LOGGING) {
+    currentMode = newMode;
+  }
+
   runExitActions(oldMode, newMode);
 
   if (newMode == MODE_WAIT_SATS ||

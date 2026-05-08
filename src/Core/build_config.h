@@ -12,6 +12,10 @@
 #define LOG_ENABLED 1
 #endif
 
+#ifndef RUN_DETECTOR_DEBUG
+#define RUN_DETECTOR_DEBUG GPS_SIMULATOR
+#endif
+
 inline constexpr bool build_gps_simulator_enabled()
 {
   return GPS_SIMULATOR != 0;

@@ -84,3 +84,5 @@ private:
 extern int win_nm_start;
 extern int win_nm_end;
 
+void gps_distance_speed_reset_session_windows();
+
