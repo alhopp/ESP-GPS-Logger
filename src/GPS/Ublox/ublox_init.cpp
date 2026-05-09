@@ -1,6 +1,7 @@
-#include "GPS/Ublox/ublox_driver.h"
-#include "Core/log.h"
 #include "Core/Globals.h"
+#include "Core/build_config.h"
+#include "Core/log.h"
+#include "GPS/Ublox/ublox_driver.h"
 
 // u-blox receiver configuration and time sync.
 // This file owns command sequencing and GPS-derived system time updates; the
@@ -47,7 +48,9 @@ bool Set_GPS_Time(float time_offset)
     if (!getLocalTime(&verify)) return false;
     if (verify.tm_year + 1900 < 2023) return false;
 
+    #if !STATS_ONLY_SERIAL
     Serial.println("GPS Local Time set");
+    #endif
     return true;
 }
 

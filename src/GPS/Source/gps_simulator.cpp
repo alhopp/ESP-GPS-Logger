@@ -30,15 +30,24 @@ static constexpr float    SIM_DT          = 0.2f;     // 5 Hz
 static constexpr uint32_t SIM_RATE_MS     = 200;
 static constexpr float    KNOTS_TO_MPS    = 0.514444f;
 
-static constexpr float STRAIGHT_MIN_KTS   = 30.0f;
+static constexpr float STRAIGHT_MIN_KTS   = 28.0f;
 static constexpr float STRAIGHT_MAX_KTS   = 42.0f;
-static constexpr float TURN_MIN_KTS       = 15.0f;
-static constexpr float TURN_MAX_KTS       = 20.0f;
+static constexpr float TURN_MIN_KTS       = 5.0f;
+static constexpr float TURN_MAX_KTS       = 18.0f;
 
 static constexpr float SPEED_RAMP_MPS2    = 1.2f;     // accel/decel
-static constexpr float STRAIGHT_LEN_M     = 500.0f;
-static constexpr float TURN_RADIUS_M      = 24.0f;
-static constexpr float TURN_ANGLE_RAD     = 180.0f * DEG_TO_RAD;
+static constexpr float STRAIGHT_LEN_MIN_M = 420.0f;
+static constexpr float STRAIGHT_LEN_MAX_M = 780.0f;
+static constexpr float TURN_RADIUS_MIN_M  = 18.0f;
+static constexpr float TURN_RADIUS_MAX_M  = 44.0f;
+static constexpr float TURN_ANGLE_MIN_DEG = 150.0f;
+static constexpr float TURN_ANGLE_MAX_DEG = 208.0f;
+static constexpr float POST_TURN_MIN_S    = 3.0f;
+static constexpr float POST_TURN_MAX_S    = 12.0f;
+static constexpr float POST_TURN_MIN_KTS  = 4.0f;
+static constexpr float POST_TURN_MAX_KTS  = 12.0f;
+static constexpr float COURSE_WANDER_DEG  = 2.4f;
+static constexpr float COURSE_JITTER_DEG  = 0.55f;
 
 // Speed texture
 static constexpr float STRAIGHT_WIND_AMPL_KTS = 2.5f;   // ± knots
@@ -47,6 +56,8 @@ static constexpr float GUST_AMPL_KTS         = 0.9f;   // knots
 static constexpr float GUST_OSC_PERIOD_S     = 4.6f;   // seconds
 static constexpr float RIPPLE_AMPL_KTS       = 0.22f;  // knots
 static constexpr float RIPPLE_OSC_PERIOD_S   = 1.7f;   // seconds
+static constexpr float COURSE_WANDER_PERIOD_S = 24.0f;
+static constexpr float COURSE_JITTER_PERIOD_S = 3.7f;
 
 // -----------------------------------------------------------------------------
 // State
@@ -63,13 +74,21 @@ static float target_mps  = 0.0f;
 
 // Straight
 static float straight_dist     = 0.0f;
+static float straight_len_m    = 0.0f;
 static float straight_base_mps = 0.0f;
+static float leg_heading_deg   = 45.0f;
+static float recovery_time_s   = 0.0f;
+static float recovery_mps      = 0.0f;
 static float wind_phase        = 0.0f;
 static float gust_phase        = 0.0f;
 static float ripple_phase      = 0.0f;
+static float course_phase      = 0.0f;
+static float jitter_phase      = 0.0f;
 
 // Turn geometry
 static float turn_phi        = 0.0f;
+static float turn_radius_m   = 24.0f;
+static float turn_angle_rad  = 180.0f * DEG_TO_RAD;
 static float turn_center_lat = 0.0f;
 static float turn_center_lon = 0.0f;
 static float turn_dir_n      = 0.0f;
@@ -101,6 +120,13 @@ static float randf(float a, float b)
   return a + (b - a) * (float(rand()) / RAND_MAX);
 }
 
+static float normalize_deg(float deg)
+{
+  while (deg >= 360.0f) deg -= 360.0f;
+  while (deg < 0.0f) deg += 360.0f;
+  return deg;
+}
+
 static float clampf(float v, float lo, float hi)
 {
   return v < lo ? lo : (v > hi ? hi : v);
@@ -121,6 +147,26 @@ static float m_to_deg_lat(float m)
 static float m_to_deg_lon(float m, float lat)
 {
   return m / (111111.0f * cos(lat * DEG_TO_RAD));
+}
+
+static void choose_next_straight()
+{
+  straight_len_m = randf(STRAIGHT_LEN_MIN_M, STRAIGHT_LEN_MAX_M);
+  straight_base_mps = randf(31.0f, 39.0f) * KNOTS_TO_MPS;
+  recovery_time_s = randf(POST_TURN_MIN_S, POST_TURN_MAX_S);
+  recovery_mps = randf(POST_TURN_MIN_KTS, POST_TURN_MAX_KTS) * KNOTS_TO_MPS;
+  wind_phase = randf(0.0f, TWO_PI);
+  gust_phase = randf(0.0f, TWO_PI);
+  ripple_phase = randf(0.0f, TWO_PI);
+  course_phase = randf(0.0f, TWO_PI);
+  jitter_phase = randf(0.0f, TWO_PI);
+}
+
+static void choose_next_turn()
+{
+  turn_radius_m = randf(TURN_RADIUS_MIN_M, TURN_RADIUS_MAX_M);
+  turn_angle_rad = randf(TURN_ANGLE_MIN_DEG, TURN_ANGLE_MAX_DEG) * DEG_TO_RAD;
+  target_mps = randf(TURN_MIN_KTS, TURN_MAX_KTS) * KNOTS_TO_MPS;
 }
 
 // UTC carry
@@ -150,15 +196,13 @@ void gps_simulator_init()
 
   mode            = STRAIGHT;
   straight_dist   = 0.0f;
-  wind_phase      = randf(0, TWO_PI);
-  gust_phase      = randf(0, TWO_PI);
-  ripple_phase    = randf(0, TWO_PI);
 
-  heading_deg     = 45.0f;
+  leg_heading_deg = randf(35.0f, 55.0f);
+  heading_deg     = leg_heading_deg;
   speed_mps       = 0.0f;
 
-  straight_base_mps =
-    randf(33.0f, 38.5f) * KNOTS_TO_MPS;
+  choose_next_straight();
+  recovery_time_s = 0.0f;
   target_mps = straight_base_mps;
 
   sim_ms        = 0;
@@ -249,6 +293,10 @@ int gps_simulator_step()
     if (gust_phase > TWO_PI) gust_phase -= TWO_PI;
     ripple_phase += TWO_PI * SIM_DT / RIPPLE_OSC_PERIOD_S;
     if (ripple_phase > TWO_PI) ripple_phase -= TWO_PI;
+    course_phase += TWO_PI * SIM_DT / COURSE_WANDER_PERIOD_S;
+    if (course_phase > TWO_PI) course_phase -= TWO_PI;
+    jitter_phase += TWO_PI * SIM_DT / COURSE_JITTER_PERIOD_S;
+    if (jitter_phase > TWO_PI) jitter_phase -= TWO_PI;
 
     const float wind_mps =
       sinf(wind_phase) * STRAIGHT_WIND_AMPL_KTS * KNOTS_TO_MPS;
@@ -257,11 +305,22 @@ int gps_simulator_step()
     const float ripple_mps =
       sinf(ripple_phase) * RIPPLE_AMPL_KTS * KNOTS_TO_MPS;
 
-    target_mps = clampf(
-      straight_base_mps + wind_mps + gust_mps + ripple_mps,
-      STRAIGHT_MIN_KTS * KNOTS_TO_MPS,
-      STRAIGHT_MAX_KTS * KNOTS_TO_MPS
-    );
+    if (recovery_time_s > 0.0f) {
+      recovery_time_s -= SIM_DT;
+      target_mps = recovery_mps + 0.45f * gust_mps + ripple_mps;
+    }
+    else {
+      target_mps = clampf(
+        straight_base_mps + wind_mps + gust_mps + ripple_mps,
+        STRAIGHT_MIN_KTS * KNOTS_TO_MPS,
+        STRAIGHT_MAX_KTS * KNOTS_TO_MPS
+      );
+    }
+
+    const float course_wander =
+      sinf(course_phase) * COURSE_WANDER_DEG +
+      sinf(jitter_phase + 0.4f * sinf(gust_phase)) * COURSE_JITTER_DEG;
+    heading_deg = normalize_deg(leg_heading_deg + course_wander);
   }
 
   ramp_speed();
@@ -272,11 +331,11 @@ int gps_simulator_step()
     lat += m_to_deg_lat(speed_mps * SIM_DT * cos(heading_deg * DEG_TO_RAD));
     lon += m_to_deg_lon(speed_mps * SIM_DT * sin(heading_deg * DEG_TO_RAD), lat);
 
-    if (straight_dist >= STRAIGHT_LEN_M) {
+    if (straight_dist >= straight_len_m) {
       straight_dist = 0.0f;
       mode = TURN;
 
-      target_mps = randf(TURN_MIN_KTS, TURN_MAX_KTS) * KNOTS_TO_MPS;
+      choose_next_turn();
 
       const float h = heading_deg * DEG_TO_RAD;
       turn_dir_n = cos(h);
@@ -284,28 +343,23 @@ int gps_simulator_step()
       turn_nrm_n = -turn_dir_e;
       turn_nrm_e =  turn_dir_n;
 
-      turn_center_lat = lat - m_to_deg_lat(turn_nrm_n * TURN_RADIUS_M);
-      turn_center_lon = lon - m_to_deg_lon(turn_nrm_e * TURN_RADIUS_M, lat);
+      turn_center_lat = lat - m_to_deg_lat(turn_nrm_n * turn_radius_m);
+      turn_center_lon = lon - m_to_deg_lon(turn_nrm_e * turn_radius_m, lat);
 
       turn_phi = 0.0f;
     }
   }
   else { // TURN
-    turn_phi += speed_mps / TURN_RADIUS_M * SIM_DT;
+    turn_phi += speed_mps / turn_radius_m * SIM_DT;
+    bool turn_finished = false;
 
-    if (turn_phi >= TURN_ANGLE_RAD) {
-      turn_phi = TURN_ANGLE_RAD;
-      mode = STRAIGHT;
-
-      straight_base_mps =
-        randf(33.0f, 38.5f) * KNOTS_TO_MPS;
-
-      target_mps = straight_base_mps;
-      heading_deg = fmodf(heading_deg + TURN_ANGLE_RAD * RAD_TO_DEG, 360.0f);
+    if (turn_phi >= turn_angle_rad) {
+      turn_phi = turn_angle_rad;
+      turn_finished = true;
     }
 
-    const float x = TURN_RADIUS_M * cos(turn_phi);
-    const float y = TURN_RADIUS_M * sin(turn_phi);
+    const float x = turn_radius_m * cos(turn_phi);
+    const float y = turn_radius_m * sin(turn_phi);
 
     lat = turn_center_lat
         + m_to_deg_lat(turn_nrm_n * x + turn_dir_n * y);
@@ -319,6 +373,14 @@ int gps_simulator_step()
     ) * RAD_TO_DEG;
 
     if (heading_deg < 0) heading_deg += 360.0f;
+
+    if (turn_finished) {
+      mode = STRAIGHT;
+      straight_dist = 0.0f;
+      leg_heading_deg = normalize_deg(heading_deg + randf(-7.0f, 7.0f));
+      choose_next_straight();
+      target_mps = recovery_mps;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -328,6 +390,15 @@ int gps_simulator_step()
   ubxMessage.navPvt.lon     = lon * 1e7;
   ubxMessage.navPvt.gSpeed  = speed_mps * 1000.0f;
   ubxMessage.navPvt.heading = heading_deg * 100000.0f;
+  ubxMessage.navPvt.velN    = speed_mps * 1000.0f * cos(heading_deg * DEG_TO_RAD);
+  ubxMessage.navPvt.velE    = speed_mps * 1000.0f * sin(heading_deg * DEG_TO_RAD);
+  ubxMessage.navPvt.velD    = 0;
+  ubxMessage.navPvt.sAcc    = static_cast<uint32_t>(randf(150.0f, 360.0f));
+  ubxMessage.navPvt.hAcc    = static_cast<uint32_t>(randf(400.0f, 1100.0f));
+  ubxMessage.navPvt.vAcc    = static_cast<uint32_t>(randf(700.0f, 1600.0f));
+  ubxMessage.navPvt.headAcc = static_cast<uint32_t>(randf(30000.0f, 90000.0f));
+  ubxMessage.navPvt.pDOP    = 120;
+  ubxMessage.navDOP.hDOP    = 120;
 
   return MT_NAV_PVT;
 }

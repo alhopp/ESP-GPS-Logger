@@ -63,6 +63,10 @@ void reset_session_stats()
   speed_10s.Reset_stats();
   speed_1h.Reset_stats();
   alpha_500m.Reset_stats();
+#if STATS_ONLY_SERIAL
+  alpha_500m_60.Reset_stats();
+  alpha_500m_70.Reset_stats();
+#endif
 
   // Distance windows still expose their live arrays directly for legacy RP6
   // compatibility, so reset them here until the class owns a Reset_stats().

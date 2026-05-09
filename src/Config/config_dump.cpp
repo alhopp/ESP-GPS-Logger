@@ -2,11 +2,16 @@
 
 #include <Arduino.h>
 
+#include "Core/build_config.h"
 #include "Core/system_info.h"
 #include "Config/config_types.h"
 
 void config_dump()
 {
+#if STATS_ONLY_SERIAL
+  return;
+#endif
+
   Serial.println();
   Serial.println("[CONFIG ] ===== Loaded from JSON =====");
 

@@ -12,8 +12,16 @@
 #define LOG_ENABLED 1
 #endif
 
+#ifndef STATS_ONLY_SERIAL
+#define STATS_ONLY_SERIAL GPS_SIMULATOR
+#endif
+
 #ifndef RUN_DETECTOR_DEBUG
-#define RUN_DETECTOR_DEBUG GPS_SIMULATOR
+#define RUN_DETECTOR_DEBUG 0
+#endif
+
+#ifndef SBP_STAT_SAMPLE_DEBUG
+#define SBP_STAT_SAMPLE_DEBUG 0
 #endif
 
 inline constexpr bool build_gps_simulator_enabled()

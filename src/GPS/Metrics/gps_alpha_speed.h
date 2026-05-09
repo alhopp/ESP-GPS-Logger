@@ -7,20 +7,22 @@ class GPS_distance_speed;
 // ============================================================================
 // Alfa_speed
 //
-// Calculates alpha speed using the RP6/Speedreader model:
-// - average speed comes from a distance-window calculator, normally 500 m
-// - the entry and exit points must close within the configured radius, normally
-//   50 m for Alpha 500
-// - results are sorted per run and exported for RTC/display/GeoJSON
+// Calculates alpha speed using the GPS Speedreader-style Alpha 500 model:
+// - scan all possible start/end windows inside the history buffer
+// - sailed path must be <= the configured distance, normally 500 m
+// - finish must close within the configured radius, normally 50 m
+// - results are sorted and exported for RTC/display/GeoJSON
 // ============================================================================
 
 class Alfa_speed {
 public:
-  explicit Alfa_speed(int alfa_radius);
+  explicit Alfa_speed(int alfa_radius, bool export_best = true);
 
   float Update_Alfa(const GPS_distance_speed& M);
   void Reset_stats();
   void Finalise_Run();
+  int ResultSbpStart(int slot) const;
+  int ResultSbpEnd(int slot) const;
 
   double straight_dist_square;   // Straight-line distance squared, m^2.
   double alfa_speed;             // Current alpha speed, mm/s.
@@ -41,7 +43,21 @@ public:
   int alfa_distance[10];         // Path distance inside window, mm.
 
 private:
+  void clearResults();
+  void sortResults();
+  void recordCandidate(double speedMmps,
+                       int startGpsIndex,
+                       int endGpsIndex,
+                       double closureDist2,
+                       double distanceScaled,
+                       int sampleRate);
+
+  int result_start[10];
+  int result_end[10];
+  int result_sbp_start[10];
+  int result_sbp_end[10];
   int old_run_count = -1;
+  bool export_best = true;
 };
 
 // Geometry/stat export for the session-best Alpha 500.

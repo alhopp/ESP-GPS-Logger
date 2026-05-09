@@ -248,7 +248,7 @@ void printSbpSpeedEdges(const char* label, const char* sbpPath, int first, int l
 
 void printSbpDebugSamples(const char* sbpPath)
 {
-#if LOG_ENABLED
+#if LOG_ENABLED && SBP_STAT_SAMPLE_DEBUG
   if (!sbpPath || !sbpPath[0]) return;
 
   gps_time_speed_rebuild_10s_top5_per_run();
@@ -360,8 +360,6 @@ void logging_session_files_write_raw()
 
 void logging_session_files_close()
 {
-  Serial.println("[STORAGE] logging_session_files_close()");
-
   closeFile(sbpfile);
 
   if (activeSbpPath[0] != '\0' && activeGeoPath[0] != '\0') {
@@ -376,6 +374,4 @@ void logging_session_files_close()
   closeFile(sbpfile);
   activeSbpPath[0] = '\0';
   activeGeoPath[0] = '\0';
-
-  Serial.println("[STORAGE] files closed");
 }

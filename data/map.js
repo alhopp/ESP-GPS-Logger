@@ -571,11 +571,9 @@ const StatsGraph = {
       if(this.mode === "alpha"){
         const distance = Number(this.stats?.alphaDistance);
         const closure = Number(this.stats?.alphaClosure);
-        if(Number.isFinite(distance) && distance > 0){
-          pills.push(`<span class="stat-info-pill">Dist ${distance.toFixed(0)}m</span>`);
-        }
-        if(Number.isFinite(closure) && closure > 0){
-          pills.push(`<span class="stat-info-pill">Closure ${closure.toFixed(1)}m</span>`);
+        if(Number.isFinite(distance) && distance > 0 &&
+           Number.isFinite(closure) && closure > 0){
+          pills.push(`<span class="stat-info-pill">Dist ${distance.toFixed(0)}m @ ${closure.toFixed(1)}m</span>`);
         }
       }
     }

@@ -80,6 +80,10 @@ void updateTimeWindows()
 void updateAlphaWindows()
 {
   alpha_500m.Update_Alfa(speed_500m);
+#if STATS_ONLY_SERIAL
+  alpha_500m_60.Update_Alfa(speed_500m);
+  alpha_500m_70.Update_Alfa(speed_500m);
+#endif
   gps_alpha_guidance_update();
 }
 }

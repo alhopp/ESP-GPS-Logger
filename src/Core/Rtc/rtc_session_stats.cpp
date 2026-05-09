@@ -1,5 +1,6 @@
 #include "Core/Rtc/rtc_session_stats.h"
 
+#include "Core/build_config.h"
 #include "Core/log.h"
 #include "Core/system_info.h"
 
@@ -12,6 +13,8 @@
 #include "GPS/Metrics/gps_run_detector.h"
 #include "GPS/Metrics/gps_time_speed.h"
 #include "Logging/sbp_writer.h"
+
+#include <math.h>
 
 RTC_DATA_ATTR float RTC_distance = 0.0f;
 
@@ -47,12 +50,12 @@ void printSbpRange(const char* label, int first, int last)
 
 void printSnapshotHeader()
 {
-  Serial.println("\n================ RTC SNAPSHOT STATS ================");
+  Serial.println("\n================ GPS STATS SUMMARY ================");
 }
 
 void printSnapshotFooter()
 {
-  Serial.println("====================================================\n");
+  Serial.println("================ END GPS STATS ====================\n");
 }
 
 void printRunStartDebug()
@@ -238,6 +241,43 @@ void snapshotSpecialSpeeds()
   Serial.printf("1 hour          : %.3f kn\n", RTC_1h_knots);
 }
 
+void printAlphaRankTable(const char* title, const Alfa_speed& alpha)
+{
+  Serial.println(title);
+
+  for (int rank = 0; rank < 5; rank++) {
+    const int slot = 9 - rank;
+    const float speedKnots = alpha.avg_speed[slot] * MMPS_TO_KNOTS;
+    const int start = alpha.ResultSbpStart(slot);
+    const int end = alpha.ResultSbpEnd(slot);
+
+    if (speedKnots <= 0.0f || start < 0 || end < start) {
+      Serial.printf("  #%d            : n/a\n", rank + 1);
+      continue;
+    }
+
+    const int pathM = alpha.alfa_distance[slot] / 1000;
+    const float closureM = sqrt((double)alpha.real_distance[slot]);
+    Serial.printf("  #%d            : %.3f kn %d -> %d dist=%dm closure=%.1fm\n",
+                  rank + 1,
+                  speedKnots,
+                  start,
+                  end,
+                  pathM,
+                  closureM);
+  }
+}
+
+void printAlphaComparisonTables()
+{
+  Serial.println();
+  printAlphaRankTable("Alpha 50m top 5:", alpha_500m);
+#if STATS_ONLY_SERIAL
+  printAlphaRankTable("Alpha 60m top 5:", alpha_500m_60);
+  printAlphaRankTable("Alpha 70m top 5:", alpha_500m_70);
+#endif
+}
+
 void snapshotDistance()
 {
   RTC_distance = total_distance * 0.000001f;   // mm -> km
@@ -260,14 +300,11 @@ void printFinalScreenValues()
 void rtc_snapshot_stats()
 {
   printSnapshotHeader();
-  printRunStartDebug();
   snapshotBest2s();
   snapshotTopRun10s();
-  printRun10sSummary();
-  printRunDetectorSummary();
   snapshotSpecialSpeeds();
+  printAlphaComparisonTables();
   snapshotDistance();
   printStatSbpWindows();
-  printFinalScreenValues();
   printSnapshotFooter();
 }

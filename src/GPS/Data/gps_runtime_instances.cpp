@@ -29,3 +29,8 @@ GPS_time_speed speed_1h(3600);          // 60 minutes.
 
 // Alpha calculators. Constructor argument is the closure radius in meters.
 Alfa_speed alpha_500m(50);
+
+#if STATS_ONLY_SERIAL
+Alfa_speed alpha_500m_60(60, false);
+Alfa_speed alpha_500m_70(70, false);
+#endif

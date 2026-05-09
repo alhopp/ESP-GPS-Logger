@@ -58,6 +58,10 @@ void stopLoggingStorage()
 void exitLogging()
 {
   alpha_500m.Finalise_Run();
+#if STATS_ONLY_SERIAL
+  alpha_500m_60.Finalise_Run();
+  alpha_500m_70.Finalise_Run();
+#endif
   rtc_snapshot_stats();
 
   beginStorageShutdown();

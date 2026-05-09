@@ -9,7 +9,7 @@
 constexpr int LOG_TAG_W = 7;
 constexpr int LOG_ITEM_W = 12;
 
-#if LOG_ENABLED
+#if LOG_ENABLED && !STATS_ONLY_SERIAL
 #define LOG_FMT(tag, item, fmt, ...)                                      \
   do {                                                                    \
     Serial.printf("[%-*s] %-*s : " fmt "\n",                              \

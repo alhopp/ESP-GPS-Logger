@@ -14,6 +14,7 @@
 #include "GPS/Data/gps_data.h"
 #include "GPS/Data/gps_satellite_quality.h"
 
+#include "Core/build_config.h"
 #include "GPS/Metrics/gps_alpha_speed.h"
 #include "GPS/Metrics/gps_distance_speed.h"
 #include "GPS/Metrics/gps_time_speed.h"
@@ -35,3 +36,9 @@ extern GPS_time_speed speed_1h;
 
 // Alpha calculator. Uses the 500 m distance window with a 50 m closure radius.
 extern Alfa_speed alpha_500m;
+
+#if STATS_ONLY_SERIAL
+// Comparison-only alpha calculators for Speedreader validation logs.
+extern Alfa_speed alpha_500m_60;
+extern Alfa_speed alpha_500m_70;
+#endif
