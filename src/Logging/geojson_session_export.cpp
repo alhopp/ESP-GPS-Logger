@@ -101,6 +101,13 @@ void attachSessionStats()
     .h1 = RTC_1h_knots,
     .max = RTC_max_2s_knots,
     .avg10 = RTC_avg_10s_knots,
+    .r10 = {
+      RTC_R1_10s,
+      RTC_R2_10s,
+      RTC_R3_10s,
+      RTC_R4_10s,
+      RTC_R5_10s
+    },
     .distance = RTC_distance
   };
 

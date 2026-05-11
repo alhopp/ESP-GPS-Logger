@@ -26,6 +26,7 @@ struct GeoJSONStats {
   float h1;
   float max;
   float avg10;
+  float r10[5];
   float distance;
 };
 

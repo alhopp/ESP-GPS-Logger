@@ -167,6 +167,8 @@ void enterSleep()
 {
   LOG_SYS("MODE", "ENTER SLEEP");
 
+  storage_begin_shutdown();
+  storage_off();
   wifi_stop();
   gps_shutdown();
 }

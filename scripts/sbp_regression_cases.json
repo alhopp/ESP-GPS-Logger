@@ -1,0 +1,76 @@
+[
+  {
+    "id": "81316",
+    "path": "devlogs/ALGPS_168601046_20220216_181316.sbp",
+    "expected": {
+      "frames": 13950,
+      "2s": 30.470,
+      "10s_avg": 26.947,
+      "nm": 16.783,
+      "alpha": 11.790,
+      "alpha_start": 7438,
+      "alpha_end": 7849,
+      "alpha_distance": 499.8,
+      "alpha_closure": 44.6,
+      "h1": 6.971,
+      "distance_km": 12.911
+    },
+    "tolerances": {
+      "alpha": 0.02
+    }
+  },
+  {
+    "id": "74652",
+    "path": "devlogs/ALGPS_168601046_20220303_174652.sbp",
+    "expected": {
+      "frames": 11104,
+      "2s": 33.306,
+      "10s_avg": 29.976,
+      "nm": 16.306,
+      "alpha": 12.168,
+      "alpha_start": 1207,
+      "alpha_end": 1605,
+      "alpha_distance": 499.5,
+      "alpha_closure": 43.9,
+      "h1": 7.318,
+      "distance_km": 13.553
+    },
+    "tolerances": {
+      "alpha": 0.02
+    }
+  },
+  {
+    "id": "01-13",
+    "path": "devlogs/ALGPS_168601046_20230113_194045.sbp",
+    "expected": {
+      "frames": 45805,
+      "2s": 37.798,
+      "10s_avg": 35.578,
+      "nm": 30.065,
+      "alpha": 10.679,
+      "alpha_start": 25111,
+      "alpha_end": 25564,
+      "alpha_distance": 498.8,
+      "alpha_closure": 46.6,
+      "h1": 19.638,
+      "distance_km": 36.370
+    }
+  },
+  {
+    "id": "01-01",
+    "path": "devlogs/ALGPS_168601046_20230101_193002.sbp",
+    "expected": {
+      "frames": 35883,
+      "2s": 36.029,
+      "10s_avg": 33.218,
+      "nm": 24.463,
+      "alpha": 20.727,
+      "alpha_start": 13980,
+      "alpha_end": 14213,
+      "alpha_distance": 499.0,
+      "alpha_closure": 48.5,
+      "h1": 17.773,
+      "distance_km": 32.916
+    }
+  }
+]

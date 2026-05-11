@@ -21,49 +21,12 @@
 #include "GPS/gps_runtime_state.h"
 #include "Fonts.h"
 #include "GPS/gps_config.h"
-#include "GPS/Metrics/gps_alpha_guidance.h"
 #include "Layout.h"
 #include "Storage/storage_manager.h"
 
 namespace {
 constexpr int UI_OFFSET = 0;
 constexpr int SPEED_Y = 112;
-
-const char* adviceText(AlphaSteerAdvice advice)
-{
-  switch (advice) {
-    case AlphaSteerAdvice::GoUp:   return "UP";
-    case AlphaSteerAdvice::GoDown: return "DOWN";
-    case AlphaSteerAdvice::Hold:   return "GOOD";
-    default:                       return "";
-  }
-}
-
-void drawAlphaHelper()
-{
-  const AlphaGuidanceState& helper = gps_alpha_guidance_state();
-
-  display.setFont(Fonts::Body12);
-  display.setCursor(UI_OFFSET + 4, 18);
-  display.print("ALPHA HELPER");
-
-  display.setFont(Fonts::Body18);
-  display.setCursor(UI_OFFSET + 8, 58);
-  display.print(adviceText(helper.advice));
-
-  display.setFont(Fonts::Body12);
-  display.setCursor(UI_OFFSET + 8, 88);
-  display.print("Closure ");
-  display.print(helper.closureM, 0);
-  display.print("m / ");
-  display.print(helper.targetClosureM, 0);
-  display.print("m");
-
-  display.setCursor(UI_OFFSET + 8, 108);
-  display.print("Alpha ");
-  display.print(helper.alphaSpeedKnots, 1);
-  display.print(" kt");
-}
 
 void drawSavingSession()
 {
@@ -78,11 +41,6 @@ void draw_SPEED()
 {
   if (storage_is_shutting_down()) {
     drawSavingSession();
-    return;
-  }
-
-  if (gps_alpha_guidance_state().active) {
-    drawAlphaHelper();
     return;
   }
 

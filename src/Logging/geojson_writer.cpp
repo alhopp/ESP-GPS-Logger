@@ -377,6 +377,12 @@ void geojson_end_feature()
     geoFile.print("\"avg10\":");
     geoFile.print(stats.avg10, 3);
     geoFile.println(",");
+    geoFile.print("\"r10\":[");
+    for (int i = 0; i < 5; i++) {
+      if (i) geoFile.print(",");
+      geoFile.print(stats.r10[i], 3);
+    }
+    geoFile.println("],");
     geoFile.print("\"distance\":");
     geoFile.print(stats.distance, 3);
     geoFile.println("}");

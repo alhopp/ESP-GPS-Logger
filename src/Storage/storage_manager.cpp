@@ -23,6 +23,8 @@ namespace {
 // and avoids the wider SD bus pins.
 constexpr const char* SD_MMC_MOUNTPOINT = "/sdcard";
 constexpr bool SD_MMC_1BIT_MODE = true;
+constexpr int SD_MMC_MOUNT_ATTEMPTS = 3;
+constexpr uint32_t SD_MMC_RETRY_DELAY_MS = 150;
 
 // Internal storage state. sd_detected records whether the card/bus has ever
 // passed mount during this boot; sd_mounted records current bus state.
@@ -81,7 +83,6 @@ void initStorage()
 // Returns false if SD was never successfully detected or remount fails.
 bool storage_on()
 {
-  if (!storage_sd_available()) return false;
   return mountSD_MMC();
 }
 
@@ -183,20 +184,29 @@ bool mountSD_MMC()
 {
   if (sd_mounted) return true;
 
-  LOG_STORAGE("SD MMC", "preflight");
-  pinMode(SDMMC_DAT0_PIN, INPUT_PULLUP);
-  delay(2);
+  for (int attempt = 1; attempt <= SD_MMC_MOUNT_ATTEMPTS; attempt++) {
+    LOG_STORAGE("SD MMC", "preflight %d/%d", attempt, SD_MMC_MOUNT_ATTEMPTS);
 
-  LOG_STORAGE("SD MMC", "init");
-  if (!SD_MMC.begin(SD_MMC_MOUNTPOINT, SD_MMC_1BIT_MODE)) {
-    LOG_STORAGE("SD MMC", "no card");
-    sd_mounted = false;
-    return false;
+    // Force the peripheral back to a clean state before each attempt. Deep
+    // sleep can leave the SD/eMMC bus in a state where the first mount fails.
+    SD_MMC.end();
+    pinMode(SDMMC_DAT0_PIN, INPUT_PULLUP);
+    delay(SD_MMC_RETRY_DELAY_MS);
+
+    LOG_STORAGE("SD MMC", "init");
+    if (SD_MMC.begin(SD_MMC_MOUNTPOINT, SD_MMC_1BIT_MODE)) {
+      sd_mounted = true;
+      sd_detected = true;
+      return true;
+    }
+
+    LOG_STORAGE("SD MMC", "mount failed");
+    SD_MMC.end();
+    delay(SD_MMC_RETRY_DELAY_MS);
   }
 
-  sd_mounted = true;
-  sd_detected = true;
-  return true;
+  sd_mounted = false;
+  return false;
 }
 
 // Clean shutdown of SD_MMC:

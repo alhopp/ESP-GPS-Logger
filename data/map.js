@@ -559,7 +559,8 @@ const StatsGraph = {
     if(this.mode === "10s"){
       for(let i = 0; i < 5; i++){
         const set = series.sets[i] || { color:this.colors[i % this.colors.length], points:[] };
-        const avg = this.avg(set.points);
+        const exact = Number(this.stats?.r10?.[i]);
+        const avg = Number.isFinite(exact) && exact > 0 ? exact : this.avg(set.points);
         const value = Number.isFinite(avg) ? avg : 0;
         pills.push(`<span class="stat-info-pill stat-info-box" style="--stat-color:${set.color}"><b>${i + 1}</b><span>${value.toFixed(2)}</span></span>`);
       }

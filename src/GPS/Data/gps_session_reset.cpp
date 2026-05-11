@@ -13,7 +13,6 @@
 #include "GPS/Data/gps_data.h"
 #include "GPS/Data/gps_runtime_instances.h"
 #include "GPS/gps_runtime_state.h"
-#include "GPS/Metrics/gps_alpha_guidance.h"
 #include "GPS/Metrics/gps_run_detector.h"
 #include "GPS/Metrics/gps_stats_service.h"
 
@@ -55,7 +54,6 @@ void reset_session_stats()
   // Clear stateful services that remember previous samples or runs.
   gps_run_reset();
   gps_stats_service_reset();
-  gps_alpha_guidance_reset();
   gps_data_reset_quality_state();
 
   // Time and alpha classes own their own reset routines.

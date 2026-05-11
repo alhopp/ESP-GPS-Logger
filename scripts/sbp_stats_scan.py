@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import math
 import struct
 from pathlib import Path
@@ -455,31 +456,22 @@ def select_non_overlapping_alpha(
 
 
 def print_stats(path: Path, start_row: int = 1, end_row: int | None = None) -> None:
-    rows = read_sbp(path)
-    original_count = len(rows)
-    if start_row < 1:
-        start_row = 1
-    if end_row is None or end_row > len(rows):
-        end_row = len(rows)
-    rows = rows[start_row - 1 : end_row]
-    runs, detector = detect_runs(rows)
-    total_m = sum(row["speed_mmps"] for row in rows) / SAMPLE_RATE_HZ / 1000.0
-    two_s = best_fixed_window(rows, 2)
-    top_10s = top_10s_per_run(rows, runs, 5)
-    nm_windows = distance_windows(rows, NM_M, 5)
-    ignore_alpha_start = 1 if start_row > 1 else 0
-    display_boundary_offset = start_row > 1
-    alpha_candidates = alpha_windows(rows, 0, 50.0, ignore_alpha_start, display_boundary_offset)
-    alpha_results = select_non_overlapping_alpha(alpha_candidates, 5)
-    alpha_raw_results = alpha_candidates[:10]
-    alpha_60_results = select_non_overlapping_alpha(
-        alpha_windows(rows, 0, 60.0, ignore_alpha_start, display_boundary_offset), 5
-    )
-    alpha_70_results = select_non_overlapping_alpha(
-        alpha_windows(rows, 0, 70.0, ignore_alpha_start, display_boundary_offset), 5
-    )
-    h1 = total_m / 3600.0 * 1000.0 * MMPS_TO_KNOTS
-    avg_10s = sum(row[0] for row in top_10s) / 5.0 if len(top_10s) == 5 else 0.0
+    stats = compute_stats(path, start_row, end_row)
+    rows = stats["rows"]
+    original_count = stats["original_count"]
+    start_row = stats["start_row"]
+    end_row = stats["end_row"]
+    detector = stats["detector"]
+    two_s = stats["two_s"]
+    top_10s = stats["top_10s"]
+    avg_10s = stats["avg_10s"]
+    nm_windows = stats["nm_windows"]
+    alpha_results = stats["alpha_results"]
+    alpha_raw_results = stats["alpha_raw_results"]
+    alpha_60_results = stats["alpha_60_results"]
+    alpha_70_results = stats["alpha_70_results"]
+    h1 = stats["h1"]
+    total_m = stats["total_m"]
 
     print(f"SBP: {path}")
     if start_row != 1 or end_row != original_count:
@@ -529,12 +521,171 @@ def print_stats(path: Path, start_row: int = 1, end_row: int | None = None) -> N
     print(f"Dist:    {total_m / 1000.0:.3f} km  1 -> {len(rows)}")
 
 
+def compute_stats(path: Path, start_row: int = 1, end_row: int | None = None) -> dict[str, object]:
+    rows = read_sbp(path)
+    original_count = len(rows)
+    if start_row < 1:
+        start_row = 1
+    if end_row is None or end_row > len(rows):
+        end_row = len(rows)
+    rows = rows[start_row - 1 : end_row]
+    runs, detector = detect_runs(rows)
+    total_m = sum(row["speed_mmps"] for row in rows) / SAMPLE_RATE_HZ / 1000.0
+    two_s = best_fixed_window(rows, 2)
+    top_10s = top_10s_per_run(rows, runs, 5)
+    nm_windows = distance_windows(rows, NM_M, 5)
+    ignore_alpha_start = 1 if start_row > 1 else 0
+    display_boundary_offset = start_row > 1
+    alpha_candidates = alpha_windows(rows, 0, 50.0, ignore_alpha_start, display_boundary_offset)
+    alpha_results = select_non_overlapping_alpha(alpha_candidates, 5)
+    alpha_raw_results = alpha_candidates[:10]
+    alpha_60_results = select_non_overlapping_alpha(
+        alpha_windows(rows, 0, 60.0, ignore_alpha_start, display_boundary_offset), 5
+    )
+    alpha_70_results = select_non_overlapping_alpha(
+        alpha_windows(rows, 0, 70.0, ignore_alpha_start, display_boundary_offset), 5
+    )
+    h1 = total_m / 3600.0 * 1000.0 * MMPS_TO_KNOTS
+    avg_10s = sum(row[0] for row in top_10s) / 5.0 if len(top_10s) == 5 else 0.0
+
+    return {
+        "path": path,
+        "rows": rows,
+        "original_count": original_count,
+        "start_row": start_row,
+        "end_row": end_row,
+        "runs": runs,
+        "detector": detector,
+        "total_m": total_m,
+        "two_s": two_s,
+        "top_10s": top_10s,
+        "avg_10s": avg_10s,
+        "nm_windows": nm_windows,
+        "alpha_results": alpha_results,
+        "alpha_raw_results": alpha_raw_results,
+        "alpha_60_results": alpha_60_results,
+        "alpha_70_results": alpha_70_results,
+        "h1": h1,
+    }
+
+
+def stat_value(stats: dict[str, object], metric: str) -> object:
+    if metric == "frames":
+        return len(stats["rows"])  # type: ignore[arg-type]
+    if metric == "2s":
+        return stats["two_s"][0]  # type: ignore[index]
+    if metric == "2s_start":
+        return stats["two_s"][1]  # type: ignore[index]
+    if metric == "2s_end":
+        return stats["two_s"][2]  # type: ignore[index]
+    if metric == "10s_avg":
+        return stats["avg_10s"]
+    if metric == "nm":
+        windows = stats["nm_windows"]  # type: ignore[assignment]
+        return windows[0][0] if windows else 0.0
+    if metric == "alpha":
+        windows = stats["alpha_results"]  # type: ignore[assignment]
+        return windows[0][0] if windows else 0.0
+    if metric == "alpha_start":
+        windows = stats["alpha_results"]  # type: ignore[assignment]
+        return windows[0][1] if windows else -1
+    if metric == "alpha_end":
+        windows = stats["alpha_results"]  # type: ignore[assignment]
+        return windows[0][2] if windows else -1
+    if metric == "alpha_distance":
+        windows = stats["alpha_results"]  # type: ignore[assignment]
+        return windows[0][3] if windows else 0.0
+    if metric == "alpha_closure":
+        windows = stats["alpha_results"]  # type: ignore[assignment]
+        return windows[0][4] if windows else 0.0
+    if metric == "h1":
+        return stats["h1"]
+    if metric == "distance_km":
+        return stats["total_m"] / 1000.0  # type: ignore[operator]
+    raise KeyError(f"Unknown regression metric: {metric}")
+
+
+def regression_tolerance(metric: str, case_tolerances: dict[str, float]) -> float:
+    if metric in case_tolerances:
+        return float(case_tolerances[metric])
+    if metric.endswith("_start") or metric.endswith("_end") or metric == "frames":
+        return 0.0
+    if metric == "alpha_closure":
+        return 0.2
+    if metric == "alpha_distance":
+        return 0.5
+    if metric == "distance_km":
+        return 0.01
+    return 0.02
+
+
+def run_regression(cases_path: Path) -> int:
+    cases = json.loads(cases_path.read_text())
+    failed = 0
+    passed = 0
+
+    print(f"Regression cases: {cases_path}")
+    for case in cases:
+        case_id = case["id"]
+        path = Path(case["path"])
+        start_row = int(case.get("from", 1))
+        end_row = case.get("to")
+        expected = case.get("expected", {})
+        tolerances = case.get("tolerances", {})
+
+        if not path.exists():
+            print(f"{case_id:<12} MISSING {path}")
+            failed += 1
+            continue
+
+        stats = compute_stats(path, start_row, int(end_row) if end_row is not None else None)
+        case_failed = False
+        details: list[str] = []
+
+        for metric, expected_value in expected.items():
+            actual = stat_value(stats, metric)
+            tolerance = regression_tolerance(metric, tolerances)
+            if isinstance(expected_value, int):
+                ok = int(actual) == expected_value
+                actual_text = str(int(actual))
+            else:
+                actual_float = float(actual)
+                expected_float = float(expected_value)
+                ok = abs(actual_float - expected_float) <= tolerance
+                actual_text = f"{actual_float:.3f}"
+
+            if ok:
+                passed += 1
+            else:
+                failed += 1
+                case_failed = True
+            details.append(
+                f"{metric} {actual_text} expected {expected_value} tol {tolerance:g}"
+            )
+
+        status = "FAIL" if case_failed else "PASS"
+        print(f"{case_id:<12} {status}  " + "; ".join(details))
+
+    print(f"Regression result: {passed} passed, {failed} failed")
+    return 1 if failed else 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("path", nargs="?", help="SBP file path. Defaults to newest devlogs/*.sbp.")
     parser.add_argument("--from", dest="start_row", type=int, default=1, help="1-based first SBP row to include.")
     parser.add_argument("--to", dest="end_row", type=int, default=None, help="1-based last SBP row to include.")
+    parser.add_argument("--regression", action="store_true", help="Run known-result regression cases.")
+    parser.add_argument(
+        "--cases",
+        type=Path,
+        default=Path("scripts/sbp_regression_cases.json"),
+        help="Regression case JSON path.",
+    )
     args = parser.parse_args()
+
+    if args.regression:
+        return run_regression(args.cases)
 
     path = Path(args.path) if args.path else latest_sbp()
     if not path:
