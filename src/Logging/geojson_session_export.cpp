@@ -76,6 +76,19 @@ bool readFrame(File& file, SBPFrame& frame)
   return file.read(reinterpret_cast<uint8_t*>(&frame), sizeof(frame)) == sizeof(frame);
 }
 
+int countSbpFrames(const char* sbpPath)
+{
+  fs::FS& storage = storage_sd_fs();
+  File file = storage.open(sbpPath, FILE_READ);
+  if (!file) return 0;
+
+  const size_t size = file.size();
+  file.close();
+
+  if (size <= SBP_HEADER_SIZE) return 0;
+  return (size - SBP_HEADER_SIZE) / sizeof(SBPFrame);
+}
+
 void attachSessionStats()
 {
   const float alphaKnotsFromBest = alpha_best_speed_mmps * MMPS_TO_KNOTS;
@@ -237,7 +250,14 @@ void attachGraphSeries(const char* sbpPath)
 
   const int alphaCount = readGpsSpeedGraph(sbpPath, graphAlpha, alpha_sbp_start, alpha_sbp_end);
   const int nmCount = readGpsSpeedGraph(sbpPath, graphNm, win_nm_start, win_nm_end);
-  const int h1Count = readSecondSpeedGraph(sbpPath, graph1h, win_1h_start_sec, win_1h_end_sec);
+  int h1Count = readSecondSpeedGraph(sbpPath, graph1h, win_1h_start_sec, win_1h_end_sec);
+  if (h1Count == 0) {
+    const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
+    const int totalSeconds = countSbpFrames(sbpPath) / sampleRate;
+    if (totalSeconds > 0) {
+      h1Count = readSecondSpeedGraph(sbpPath, graph1h, 0, totalSeconds - 1);
+    }
+  }
   const int distanceCount = readSessionSpeedGraph(sbpPath);
 
   GeoJSONGraphs graphs {
@@ -308,10 +328,10 @@ void addRangeFeature(const char* sbpPath, const char* mode, int startGpsIdx, int
 
 void addOneHourFeature(const char* sbpPath)
 {
-  if (win_1h_start_sec < 0 || win_1h_end_sec <= win_1h_start_sec) return;
+  if (win_1h_start_sec < 0 || win_1h_end_sec < win_1h_start_sec) return;
 
   const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
-  const int startGpsIdx = (win_1h_start_sec + 1) * sampleRate;
+  const int startGpsIdx = (win_1h_start_sec * sampleRate) + 1;
   const int endGpsIdx = (win_1h_end_sec + 1) * sampleRate;
   const int seconds = win_1h_end_sec - win_1h_start_sec + 1;
   int secStep = seconds > GRAPH_MAX_POINTS ? (seconds + GRAPH_MAX_POINTS - 1) / GRAPH_MAX_POINTS : 1;

@@ -11,21 +11,22 @@ from pathlib import Path
 
 
 SBP_HEADER_SIZE = 64
-SBP_FRAME = struct.Struct("<BBHIIIiiHHhBB")
+SBP_FRAME = struct.Struct("<BBHIIiiiHHhBB")
 MMPS_TO_KNOTS = 0.0019438444924406
 SAMPLE_RATE_HZ = 5
 ALPHA_RADIUS_M = 50.0
 ALPHA_RADIUS_TOLERANCE_M = 1.0
 ALPHA_SHORT_RADIUS_M = 49.85
-ALPHA_SPEEDREADER_CLOSURE_TOLERANCE_M = 0.2
+ALPHA_SPEEDREADER_CLOSURE_TOLERANCE_M = 0.0
 ALPHA_FULL_DISTANCE_TOLERANCE_START_M = 490.0
-ALPHA_MIN_M = 200.0
+ALPHA_MIN_M = 100.0
 ALPHA_MAX_M = 500.0
 ALPHA_MAX_TIME_S = 194.0
 FILTER_MIN_SPEED_KNOTS = 0.6
 FILTER_MAX_ACCEL_MPS2 = 8.0
 FILTER_MAX_HDOP = 5.0
 FILTER_MIN_SATS = 5
+MAX_PADDED_GAP_S = 20.0
 NM_M = 1852.0
 SPEED_DETECTION_MIN_MMPS = 4000.0
 STANDSTILL_DETECTION_MAX_MMPS = 1000.0
@@ -35,7 +36,7 @@ JIBE_COURSE_DEVIATION_MIN_DEG = 50.0
 TIME_DELAY_NEW_RUN_S = 10
 
 
-def read_sbp(path: Path) -> list[dict[str, float]]:
+def read_sbp(path: Path, pad_missing: bool = False) -> list[dict[str, float]]:
     payload = path.read_bytes()[SBP_HEADER_SIZE:]
     rows: list[dict[str, float]] = []
     frame_bytes = len(payload) // SBP_FRAME.size * SBP_FRAME.size
@@ -61,10 +62,52 @@ def read_sbp(path: Path) -> list[dict[str, float]]:
                 "hdop": fields[0] / 10.0,
                 "sats": fields[1],
                 "time": timestamp,
+                "synthetic": False,
             }
         )
+    if pad_missing:
+        rows = pad_missing_samples(rows)
     apply_speedreader_filters(rows)
     return rows
+
+
+def pad_missing_samples(rows: list[dict[str, float]]) -> list[dict[str, float]]:
+    if len(rows) < 2:
+        return rows
+
+    padded: list[dict[str, float]] = []
+    sample_period_s = 1.0 / SAMPLE_RATE_HZ
+    for index, row in enumerate(rows):
+        if index == 0:
+            padded.append(dict(row))
+            continue
+
+        previous = rows[index - 1]
+        elapsed = (row["time"] - previous["time"]).total_seconds()
+        missing = (
+            max(0, round(elapsed / sample_period_s) - 1)
+            if 0.0 < elapsed <= MAX_PADDED_GAP_S
+            else 0
+        )
+
+        for missing_index in range(1, missing + 1):
+            fraction = missing_index / (missing + 1)
+            synthetic = dict(previous)
+            synthetic["time"] = previous["time"] + dt.timedelta(seconds=sample_period_s * missing_index)
+            synthetic["lat"] = previous["lat"] + (row["lat"] - previous["lat"]) * fraction
+            synthetic["lon"] = previous["lon"] + (row["lon"] - previous["lon"]) * fraction
+            synthetic["speed_mmps"] = 0.0
+            synthetic["heading_deg"] = previous["heading_deg"]
+            synthetic["hdop"] = max(previous["hdop"], row["hdop"])
+            synthetic["sats"] = min(previous["sats"], row["sats"])
+            synthetic["synthetic"] = True
+            padded.append(synthetic)
+
+        padded.append(dict(row))
+
+    for row_index, row in enumerate(padded, start=1):
+        row["row"] = row_index
+    return padded
 
 
 def apply_speedreader_filters(rows: list[dict[str, float]]) -> None:
@@ -78,7 +121,7 @@ def apply_speedreader_filters(rows: list[dict[str, float]]) -> None:
             if elapsed > 0:
                 accel_ok = abs(speed_mps - previous_mps) / elapsed <= FILTER_MAX_ACCEL_MPS2
 
-        row["filtered"] = not (
+        row["filtered"] = row.get("synthetic", False) or not (
             row["hdop"] <= FILTER_MAX_HDOP
             and row["sats"] >= FILTER_MIN_SATS
             and accel_ok

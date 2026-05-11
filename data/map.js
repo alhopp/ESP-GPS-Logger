@@ -553,6 +553,7 @@ const StatsGraph = {
     const el = $("statsInfo");
     if(!el) return;
     el.classList.toggle("ten-sec-info", this.mode === "10s");
+    el.classList.toggle("alpha-info", this.mode === "alpha");
 
     const pills = [];
     if(this.mode === "10s"){
@@ -560,7 +561,7 @@ const StatsGraph = {
         const set = series.sets[i] || { color:this.colors[i % this.colors.length], points:[] };
         const avg = this.avg(set.points);
         const value = Number.isFinite(avg) ? avg : 0;
-        pills.push(`<span class="stat-info-pill stat-info-box" style="border-color:${set.color}"><b>${i + 1}</b><span>${value.toFixed(2)}</span></span>`);
+        pills.push(`<span class="stat-info-pill stat-info-box" style="--stat-color:${set.color}"><b>${i + 1}</b><span>${value.toFixed(2)}</span></span>`);
       }
     }else{
       const points = series.sets[0]?.points || [];

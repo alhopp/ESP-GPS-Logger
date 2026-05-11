@@ -9,7 +9,7 @@
 // - End point must return within the configured alpha radius
 // - No jibe/run-shape heuristic is required for validity
 // - Speedreader-style low-speed filter zeroes samples below 0.6 kn
-// - Short alpha candidates need at least max(100 m, 2 x closure radius) path
+// - Alpha candidates need at least 100 m path and at most 500 m path
 // ============================================================================
 
 #include "GPS/Metrics/gps_alpha_speed.h"
@@ -49,9 +49,8 @@ extern int alfa_counter;
 namespace {
 constexpr double SPEED_TIE_EPS_MMPS = 2.0;
 constexpr double ALPHA_MIN_DISTANCE_M = 100.0;
-constexpr double ALPHA_MIN_DISTANCE_RADIUS_FACTOR = 2.0;
 constexpr double ALPHA_MAX_TIME_S = 194.0;
-constexpr double ALPHA_CLOSURE_TOLERANCE_M = 0.2;
+constexpr double ALPHA_CLOSURE_TOLERANCE_M = 0.0;
 constexpr double SPEEDREADER_MIN_SPEED_KNOTS = 0.6;
 constexpr int ALPHA_RESULT_COUNT = 10;
 
@@ -271,10 +270,7 @@ float Alfa_speed::Update_Alfa(const GPS_distance_speed& M)
   const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
   const double maxDistanceScaled = (double)M.m_set_distance * 1000.0 * (double)sampleRate;
   const double radiusM = sqrt(alfa_circle_square);
-  const double radiusDistanceM = radiusM * ALPHA_MIN_DISTANCE_RADIUS_FACTOR;
-  const double minDistanceM =
-      radiusDistanceM > ALPHA_MIN_DISTANCE_M ? radiusDistanceM : ALPHA_MIN_DISTANCE_M;
-  const double minDistanceScaled = minDistanceM * 1000.0 * (double)sampleRate;
+  const double minDistanceScaled = ALPHA_MIN_DISTANCE_M * 1000.0 * (double)sampleRate;
   const int maxTimeSamples = (int)(ALPHA_MAX_TIME_S * (double)sampleRate);
 
   if(exit > 0 && maxDistanceScaled > 0.0 && _sampleGood[exit % BUFFER_SIZE])

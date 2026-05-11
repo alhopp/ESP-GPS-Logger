@@ -33,9 +33,14 @@ static constexpr float    KNOTS_TO_MPS    = 0.514444f;
 static constexpr float STRAIGHT_MIN_KTS   = 28.0f;
 static constexpr float STRAIGHT_MAX_KTS   = 42.0f;
 static constexpr float TURN_MIN_KTS       = 5.0f;
-static constexpr float TURN_MAX_KTS       = 18.0f;
+static constexpr float TURN_EXIT_MIN_KTS  = 12.0f;
+static constexpr float TURN_EXIT_MAX_KTS  = 24.0f;
+static constexpr float TURN_DROP_MIN_KTS  = 10.0f;
+static constexpr float TURN_DROP_MAX_KTS  = 16.0f;
+static constexpr float TURN_RECOVERY_START_FRACTION = 0.58f;
 
 static constexpr float SPEED_RAMP_MPS2    = 1.2f;     // accel/decel
+static constexpr float TURN_SPEED_RAMP_MPS2 = 3.4f;   // stronger speed change through turns
 static constexpr float STRAIGHT_LEN_MIN_M = 420.0f;
 static constexpr float STRAIGHT_LEN_MAX_M = 780.0f;
 static constexpr float TURN_RADIUS_MIN_M  = 18.0f;
@@ -95,6 +100,9 @@ static float turn_dir_n      = 0.0f;
 static float turn_dir_e      = 0.0f;
 static float turn_nrm_n      = 0.0f;
 static float turn_nrm_e      = 0.0f;
+static float turn_entry_mps  = 0.0f;
+static float turn_min_mps    = 0.0f;
+static float turn_exit_mps   = 0.0f;
 
 // Timing
 static uint32_t sim_ms = 0;
@@ -134,7 +142,8 @@ static float clampf(float v, float lo, float hi)
 
 static void ramp_speed()
 {
-  const float max_d = SPEED_RAMP_MPS2 * SIM_DT;
+  const float ramp = mode == TURN ? TURN_SPEED_RAMP_MPS2 : SPEED_RAMP_MPS2;
+  const float max_d = ramp * SIM_DT;
   const float diff  = target_mps - speed_mps;
   speed_mps += clampf(diff, -max_d, max_d);
 }
@@ -166,7 +175,18 @@ static void choose_next_turn()
 {
   turn_radius_m = randf(TURN_RADIUS_MIN_M, TURN_RADIUS_MAX_M);
   turn_angle_rad = randf(TURN_ANGLE_MIN_DEG, TURN_ANGLE_MAX_DEG) * DEG_TO_RAD;
-  target_mps = randf(TURN_MIN_KTS, TURN_MAX_KTS) * KNOTS_TO_MPS;
+  turn_entry_mps = speed_mps;
+  turn_min_mps = turn_entry_mps - randf(TURN_DROP_MIN_KTS, TURN_DROP_MAX_KTS) * KNOTS_TO_MPS;
+  if (turn_min_mps < TURN_MIN_KTS * KNOTS_TO_MPS) {
+    turn_min_mps = TURN_MIN_KTS * KNOTS_TO_MPS;
+  }
+
+  turn_exit_mps = randf(TURN_EXIT_MIN_KTS, TURN_EXIT_MAX_KTS) * KNOTS_TO_MPS;
+  if (turn_exit_mps < turn_min_mps + 4.0f * KNOTS_TO_MPS) {
+    turn_exit_mps = turn_min_mps + 4.0f * KNOTS_TO_MPS;
+  }
+
+  target_mps = turn_min_mps;
 }
 
 // UTC carry
@@ -321,6 +341,21 @@ int gps_simulator_step()
       sinf(course_phase) * COURSE_WANDER_DEG +
       sinf(jitter_phase + 0.4f * sinf(gust_phase)) * COURSE_JITTER_DEG;
     heading_deg = normalize_deg(leg_heading_deg + course_wander);
+  }
+  else {
+    const float progress = turn_angle_rad > 0.0f
+        ? clampf(turn_phi / turn_angle_rad, 0.0f, 1.0f)
+        : 1.0f;
+
+    if (progress < TURN_RECOVERY_START_FRACTION) {
+      target_mps = turn_min_mps;
+    }
+    else {
+      const float t = (progress - TURN_RECOVERY_START_FRACTION) /
+                      (1.0f - TURN_RECOVERY_START_FRACTION);
+      const float smooth = t * t * (3.0f - 2.0f * t);
+      target_mps = turn_min_mps + (turn_exit_mps - turn_min_mps) * smooth;
+    }
   }
 
   ramp_speed();

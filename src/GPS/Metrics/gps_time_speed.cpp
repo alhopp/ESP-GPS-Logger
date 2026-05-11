@@ -216,6 +216,8 @@ void GPS_time_speed::Reset_stats()
   win_10s_top5_count=0;
   win_2s_sbp_start=-1;
   win_2s_sum_cms=0;
+  win_1h_start_sec=-1;
+  win_1h_end_sec=-1;
 }
 
 // -----------------------------------------------------------------------------
@@ -316,6 +318,11 @@ float GPS_time_speed::Update_speed(int actual_run)
       avg_s_sum -= (int)_secSpeed[(index_sec - time_window) % BUFFER_SIZE];
     }
     avg_s = avg_s_sum / time_window;
+
+    if(time_window == 3600 && !fullWindowReady){
+      win_1h_start_sec = 0;
+      win_1h_end_sec = index_sec;
+    }
 
     if(fullWindowReady && isMeaningfullyFaster(avg_s, s_max_speed)){
       s_max_speed = avg_s;

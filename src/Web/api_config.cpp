@@ -36,6 +36,9 @@ void registerConfigApi(WebServer& server)
     system["storage_mb"] = storage_sd_total_mb();
     system["storage_used_mb"] = storage_sd_used_mb();
     system["storage_free_mb"] = storage_sd_free_mb();
+    system["storage_bytes"] = storage_sd_total_bytes();
+    system["storage_used_bytes"] = storage_sd_used_bytes();
+    system["storage_free_bytes"] = storage_sd_free_bytes();
     system["storage_detected"] = storage_sd_available();
     system["software_version"] = systemInfo.software_version;
     system["display"] = systemInfo.display;

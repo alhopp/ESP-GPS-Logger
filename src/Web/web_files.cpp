@@ -109,6 +109,8 @@ void registerFileEndpoints(WebServer &server)
     j["ok"] = true;
     j["storage_used_mb"] = storage_sd_used_mb();
     j["storage_free_mb"] = storage_sd_free_mb();
+    j["storage_used_bytes"] = storage_sd_used_bytes();
+    j["storage_free_bytes"] = storage_sd_free_bytes();
     JsonArray files = j.createNestedArray("files");
 
     if (!storage_logs_dir_ready()) {

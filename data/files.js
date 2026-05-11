@@ -38,17 +38,30 @@ function fileSizeKb(size){
   if(bytes >= 1024 * 1024){
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }
-  return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024).toFixed(1)} kB`;
 }
 
-function updateLogsTitle(usedMb, freeMb){
+function formatStorageSize(bytes, fallbackMb){
+  const value = Number(bytes);
+  if(Number.isFinite(value) && value > 0){
+    if(value < 1024 * 1024){
+      return `${(value / 1024).toFixed(1)} kB`;
+    }
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  const mb = Number(fallbackMb);
+  return Number.isFinite(mb) ? `${mb} MB` : null;
+}
+
+function updateLogsTitle(storage){
   const el = document.getElementById("logsTitle");
   if(!el) return;
 
-  const used = Number(usedMb);
-  const free = Number(freeMb);
-  if(Number.isFinite(used) && Number.isFinite(free)){
-    el.textContent = `Logs - ${used} MB used / ${free} MB free`;
+  const used = formatStorageSize(storage?.storage_used_bytes, storage?.storage_used_mb);
+  const free = formatStorageSize(storage?.storage_free_bytes, storage?.storage_free_mb);
+  if(used && free){
+    el.textContent = `Logs - ${used} used / ${free} free`;
   }else{
     el.textContent = "Logs";
   }
@@ -69,7 +82,7 @@ async function loadFiles(fileList, sdInfo){
 
     const j = await r.json();
     if(!j.ok) throw new Error("no sd");
-    updateLogsTitle(j.storage_used_mb, j.storage_free_mb);
+    updateLogsTitle(j);
 
     const groups = {};
     j.files.forEach(f=>{
@@ -116,7 +129,7 @@ async function loadFiles(fileList, sdInfo){
     sdInfo.textContent = "";
 
   }catch(e){
-    updateLogsTitle(null, null);
+    updateLogsTitle(null);
     sdInfo.textContent = "SD not available";
     console.warn("Files API unavailable", e);
   }
@@ -155,22 +168,29 @@ function enableSwipe(container, fileList, sdInfo){
         method:"DELETE",
         headers:{ "Content-Type":"application/json" },
         body:JSON.stringify({ name:r.dataset.name })
-      });
+      })
+        .then(res => res.ok ? res.json() : { ok:false })
+        .then(j => {
+          if(!j.ok) throw new Error("delete failed");
+          r.remove();
 
-      r.remove();
+          // Remove date header if no files remain for that date.
+          if(!fileList.querySelector(`.file-row[data-date="${date}"]`)){
+            const h = fileList.querySelector(`.file-date[data-date="${date}"]`);
+            h && h.remove();
+          }
 
-      // Remove date header if no files remain for that date.
-      if(!fileList.querySelector(`.file-row[data-date="${date}"]`)){
-        const h = fileList.querySelector(`.file-date[data-date="${date}"]`);
-        h && h.remove();
-      }
-
-      sdInfo && (sdInfo.textContent = "");
-
-      // Refresh map sessions if map is already running.
-      if(window.MapSessions?._started){
-        MapSessions.reload();
-      }
+          return loadFiles(fileList, sdInfo).then(() => {
+            // Refresh map sessions if map is already running.
+            if(window.MapSessions?._started){
+              MapSessions.reload();
+            }
+          });
+        })
+        .catch(err => {
+          sdInfo && (sdInfo.textContent = "Delete failed");
+          console.warn("Delete failed", err);
+        });
 
       return;
     }

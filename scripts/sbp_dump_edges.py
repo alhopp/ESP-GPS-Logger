@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 SBP_HEADER_SIZE = 64
-SBP_FRAME = struct.Struct("<BBHIIIiiHHhBB")
+SBP_FRAME = struct.Struct("<BBHIIiiiHHhBB")
 MMPS_TO_KNOTS = 0.0019438444924406
 
 

@@ -5,7 +5,6 @@
 #include "Core/Globals.h"
 #include "Core/system_mode.h"
 #include "GPS/gps_runtime_state.h"
-#include "GPS/Metrics/gps_alpha_guidance.h"
 #include "Display/display_geometry.h"
 #include "Runtime/display_redraw.h"
 
@@ -44,37 +43,10 @@ void updateSpeedDisplayThrottle(const GpsFix& fix)
   }
 }
 
-void updateAlphaHelperDisplay()
-{
-  static bool lastActive = false;
-  static AlphaSteerAdvice lastAdvice = AlphaSteerAdvice::Inactive;
-  static int lastClosureM = -1;
-  static uint32_t lastUpdateMs = 0;
-
-  if (getMode() != MODE_LOGGING || !GPS_Signal_OK) return;
-
-  const AlphaGuidanceState& helper = gps_alpha_guidance_state();
-  const int closureM = static_cast<int>(helper.closureM + 0.5f);
-  const uint32_t now = millis();
-
-  const bool changed =
-    helper.active != lastActive ||
-    helper.advice != lastAdvice ||
-    abs(closureM - lastClosureM) >= 2;
-
-  if (changed || (helper.active && now - lastUpdateMs >= 1000)) {
-    lastActive = helper.active;
-    lastAdvice = helper.advice;
-    lastClosureM = closureM;
-    lastUpdateMs = now;
-    screen_request_partial(SPEED_WINDOW);
-  }
-}
 }
 
 void gps_display_policy_update(const GpsFix& fix)
 {
   updateSatelliteWaitDisplay(fix);
-  updateAlphaHelperDisplay();
   updateSpeedDisplayThrottle(fix);
 }

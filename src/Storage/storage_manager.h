@@ -28,6 +28,9 @@ bool storage_littlefs_available();
 uint32_t storage_sd_total_mb();
 uint32_t storage_sd_used_mb();
 uint32_t storage_sd_free_mb();
+uint64_t storage_sd_total_bytes();
+uint64_t storage_sd_used_bytes();
+uint64_t storage_sd_free_bytes();
 
 // Returns the SD_MMC filesystem object. Call storage_on() or
 // storage_logs_dir_ready() first unless the current system mode already did it.
