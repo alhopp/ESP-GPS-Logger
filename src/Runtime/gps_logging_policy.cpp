@@ -15,6 +15,27 @@ constexpr uint32_t SESSION_BEGIN_RETRY_MS = 250UL;
 
 uint32_t timeWaitStartMs = 0;
 uint32_t lastSessionBeginAttemptMs = 0;
+
+bool ensureGpsTimeReady(const GpsFix& fix)
+{
+  if (Time_Set_OK) return true;
+
+  if (!fix.validDateTime && millis() - timeWaitStartMs <= TIME_SYNC_WAIT_MS) return false;
+
+  if (fix.validDateTime) {
+    Set_GPS_Time(config.timezone);
+  }
+
+  Time_Set_OK = true;
+  return true;
+}
+
+bool sessionBeginRetryDue(uint32_t nowMs)
+{
+  if (nowMs - lastSessionBeginAttemptMs < SESSION_BEGIN_RETRY_MS) return false;
+  lastSessionBeginAttemptMs = nowMs;
+  return true;
+}
 }
 
 void gps_logging_policy_note_signal_ready(uint32_t nowMs)
@@ -27,19 +48,10 @@ bool gps_logging_policy_maybe_start_session(const GpsFix& fix)
   if (!GPS_Signal_OK) return false;
   if (logging_session_active()) return true;
 
-  if (!Time_Set_OK) {
-    if (!fix.validDateTime && millis() - timeWaitStartMs <= TIME_SYNC_WAIT_MS) return false;
-
-    if (fix.validDateTime) {
-      Set_GPS_Time(config.timezone);
-    }
-
-    Time_Set_OK = true;
-  }
+  if (!ensureGpsTimeReady(fix)) return false;
 
   const uint32_t now = millis();
-  if (now - lastSessionBeginAttemptMs < SESSION_BEGIN_RETRY_MS) return false;
-  lastSessionBeginAttemptMs = now;
+  if (!sessionBeginRetryDue(now)) return false;
 
   if (!logging_session_begin(fix)) return false;
 

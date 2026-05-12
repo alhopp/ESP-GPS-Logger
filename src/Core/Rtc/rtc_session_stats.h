@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 void rtc_snapshot_stats();
+bool rtc_session_stats_valid();
 
 // Distance (km)
 extern RTC_DATA_ATTR float RTC_distance;

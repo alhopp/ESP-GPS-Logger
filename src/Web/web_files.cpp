@@ -69,12 +69,17 @@ bool isValidLogFile(const char* name)
   return ext && isAllowedLogExtension(ext);
 }
 
-void sendJsonOk(WebServer& server, bool ok)
+uint64_t fileSize(fs::FS& storage, const char* path)
 {
-  server.send(200, "application/json", ok ? "{\"ok\":true}" : "{\"ok\":false}");
+  File file = storage.open(path, FILE_READ);
+  if (!file) return 0;
+
+  const uint64_t size = file.size();
+  file.close();
+  return size;
 }
 
-void removePairedLogFile(fs::FS& storage, const char* base)
+uint64_t removePairedLogFile(fs::FS& storage, const char* base)
 {
   char pairedPath[128];
 
@@ -83,12 +88,21 @@ void removePairedLogFile(fs::FS& storage, const char* base)
   } else if (hasExtension(base, ".sbp")) {
     buildPairedPath(pairedPath, sizeof(pairedPath), base, ".geojson");
   } else {
-    return;
+    return 0;
   }
 
-  if (storage.exists(pairedPath)) {
-    storage.remove(pairedPath);
-  }
+  if (!storage.exists(pairedPath)) return 0;
+
+  const uint64_t size = fileSize(storage, pairedPath);
+  return storage.remove(pairedPath) ? size : 0;
+}
+
+void sendDeleteResult(WebServer& server, bool ok, uint64_t deletedBytes)
+{
+  StaticJsonDocument<128> response;
+  response["ok"] = ok;
+  response["deleted_bytes"] = static_cast<double>(deletedBytes);
+  web_send_json(server, response);
 }
 } // namespace
 
@@ -238,7 +252,7 @@ void registerFileEndpoints(WebServer &server)
   server.on("/api/file", HTTP_DELETE, [&] {
 
     if (!storage_on() || !server.hasArg("plain")) {
-      sendJsonOk(server, false);
+      sendDeleteResult(server, false, 0);
       return;
     }
 
@@ -258,9 +272,10 @@ void registerFileEndpoints(WebServer &server)
     char path[128];
     buildLogPath(path, sizeof(path), base);
 
+    const uint64_t fileBytes = fileSize(storage, path);
     const bool removed = storage.remove(path);
-    if (removed) removePairedLogFile(storage, base);
+    const uint64_t pairedBytes = removed ? removePairedLogFile(storage, base) : 0;
 
-    sendJsonOk(server, removed);
+    sendDeleteResult(server, removed, removed ? fileBytes + pairedBytes : 0);
   });
 }

@@ -2,6 +2,7 @@
 // Outlook-style file list with date grouping + swipe delete.
 
 let swipeBound = false;   // Files-tab local state.
+let filesStorageCache = null;
 
 // -----------------------------------------------------------------------------
 // Helpers: filename -> date
@@ -57,6 +58,7 @@ function formatStorageSize(bytes, fallbackMb){
 function updateLogsTitle(storage){
   const el = document.getElementById("logsTitle");
   if(!el) return;
+  if(storage) filesStorageCache = { ...storage };
 
   const used = formatStorageSize(storage?.storage_used_bytes, storage?.storage_used_mb);
   const free = formatStorageSize(storage?.storage_free_bytes, storage?.storage_free_mb);
@@ -65,6 +67,24 @@ function updateLogsTitle(storage){
   }else{
     el.textContent = "Logs";
   }
+}
+
+function applyDeletedStorageBytes(deletedBytes){
+  const bytes = Number(deletedBytes);
+  if(!filesStorageCache || !Number.isFinite(bytes) || bytes <= 0) return;
+
+  const used = Number(filesStorageCache.storage_used_bytes);
+  const free = Number(filesStorageCache.storage_free_bytes);
+  if(Number.isFinite(used)){
+    filesStorageCache.storage_used_bytes = Math.max(0, used - bytes);
+    filesStorageCache.storage_used_mb = Math.floor(filesStorageCache.storage_used_bytes / (1024 * 1024));
+  }
+  if(Number.isFinite(free)){
+    filesStorageCache.storage_free_bytes = free + bytes;
+    filesStorageCache.storage_free_mb = Math.floor(filesStorageCache.storage_free_bytes / (1024 * 1024));
+  }
+
+  updateLogsTitle(filesStorageCache);
 }
 
 // -----------------------------------------------------------------------------
@@ -173,6 +193,7 @@ function enableSwipe(container, fileList, sdInfo){
         .then(j => {
           if(!j.ok) throw new Error("delete failed");
           r.remove();
+          applyDeletedStorageBytes(j.deleted_bytes);
 
           // Remove date header if no files remain for that date.
           if(!fileList.querySelector(`.file-row[data-date="${date}"]`)){
@@ -180,12 +201,12 @@ function enableSwipe(container, fileList, sdInfo){
             h && h.remove();
           }
 
-          return loadFiles(fileList, sdInfo).then(() => {
-            // Refresh map sessions if map is already running.
-            if(window.MapSessions?._started){
-              MapSessions.reload();
-            }
-          });
+          sdInfo.textContent = "";
+
+          // Refresh map sessions if map is already running.
+          if(window.MapSessions?._started){
+            MapSessions.removeDeleted(r.dataset.name);
+          }
         })
         .catch(err => {
           sdInfo && (sdInfo.textContent = "Delete failed");

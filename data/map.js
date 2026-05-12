@@ -293,17 +293,55 @@ window.MapSessions = {
     this.loadCurrent();
   },
 
-  loadCurrent(){
+  removeDeleted(name){
+    if(!name) return;
+
+    const removedIndex = this.files.findIndex(f => f.name === name || f.sbp_name === name);
+    if(removedIndex < 0) return;
+
+    const wasCurrent = removedIndex === this.index;
+    this.files.splice(removedIndex, 1);
+
+    if(!this.files.length){
+      this.index = 0;
+      MapView.clear();
+      updateStatsUI(null);
+      $("sessionTitle").textContent = "No sessions";
+      $("sessionMeta").textContent  = "";
+      return;
+    }
+
+    if(removedIndex < this.index){
+      this.index--;
+    }
+    if(this.index >= this.files.length){
+      this.index = this.files.length - 1;
+    }
+
+    if(wasCurrent){
+      this.loadCurrent();
+    }else{
+      this.updateHeader();
+    }
+  },
+
+  updateHeader(){
     const f = this.files[this.index];
     if(!f) return;
 
-    const total   = this.files.length;
+    const total = this.files.length;
     const logical = total - this.index;
     const displayName = f.sbp_name || f.name;
 
     $("sessionTitle").textContent = `Session ${logical} of ${total}`;
-    $("sessionMeta").textContent  = displayName.replace(/\.(geojson|sbp|ubx|txt)$/i,"");
+    $("sessionMeta").textContent = displayName.replace(/\.(geojson|sbp|ubx|txt)$/i,"");
+  },
 
+  loadCurrent(){
+    const f = this.files[this.index];
+    if(!f) return;
+
+    this.updateHeader();
     MapView.clear();
     MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}&t=${Date.now()}`);
   },

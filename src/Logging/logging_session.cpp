@@ -8,12 +8,27 @@
 #include "Storage/storage_manager.h"
 
 namespace {
-bool session_active = false;
+enum class SessionState {
+  Idle,
+  Active,
+  Closing
+};
+
+SessionState session_state = SessionState::Idle;
+
+bool isSessionActive()
+{
+  return session_state == SessionState::Active;
+}
 }
 
 bool logging_session_begin(const GpsFix& firstFix)
 {
-  if (session_active) return true;
+  if (isSessionActive()) return true;
+  if (session_state == SessionState::Closing) {
+    LOG_STORAGE("Session", "begin rejected while closing");
+    return false;
+  }
 
   if (storage_is_shutting_down() || !Time_Set_OK) {
     LOG_STORAGE("Session", "begin rejected time=%d shutdown=%d",
@@ -25,7 +40,7 @@ bool logging_session_begin(const GpsFix& firstFix)
     return false;
   }
 
-  session_active = true;
+  session_state = SessionState::Active;
   LOG_STORAGE("Session", "started sats=%u lat=%.6f lon=%.6f",
               firstFix.satellites, firstFix.lat, firstFix.lon);
   return true;
@@ -33,7 +48,7 @@ bool logging_session_begin(const GpsFix& firstFix)
 
 void logging_session_write_fix(const GpsFix& fix, bool writeLiveTrack)
 {
-  if (!session_active) return;
+  if (!isSessionActive()) return;
 
   logging_session_files_write_raw();
   (void)fix;
@@ -42,14 +57,16 @@ void logging_session_write_fix(const GpsFix& fix, bool writeLiveTrack)
 
 void logging_session_end()
 {
-  if (!session_active) return;
+  if (!isSessionActive()) return;
 
   LOG_STORAGE("Session", "ending");
-  session_active = false;
-  logging_session_files_close();
+  session_state = SessionState::Closing;
+  const bool exported = logging_session_files_close();
+  session_state = SessionState::Idle;
+  LOG_STORAGE("Session", "ended export=%d", exported);
 }
 
 bool logging_session_active()
 {
-  return session_active;
+  return isSessionActive();
 }

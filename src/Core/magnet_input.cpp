@@ -17,6 +17,11 @@ constexpr uint32_t HALL_STABLE_MS = 20;
 constexpr uint32_t SHORT_PRESS_MIN_MS = 300;
 constexpr uint32_t WIFI_HOLD_MS = 2000;
 constexpr uint32_t BOOT_IGNORE_MS = 1500;
+
+bool modeShowsMagnetAffordance(SystemMode mode)
+{
+  return mode == MODE_IDLE || mode == MODE_CONFIG;
+}
 }
 
 // -----------------------------------------------------------------------------
@@ -105,7 +110,9 @@ void magnet_poll()
   // UI update on magnet state change (once per edge)
   // ---------------------------------------------------------------------------
   if (magnet_active != prev_magnet_active) {
-    screen_request_magnet_affordance();
+    if (modeShowsMagnetAffordance(getMode())) {
+      screen_request_magnet_affordance();
+    }
     prev_magnet_active = magnet_active;
   }
   // ---------------------------------------------------------------------------

@@ -49,6 +49,13 @@ void ensureStorageReady(const char* context)
   }
 }
 
+bool modeNeedsStorage(SystemMode mode)
+{
+  return mode == MODE_WAIT_SATS ||
+         mode == MODE_LOGGING ||
+         mode == MODE_CONFIG;
+}
+
 void stopLoggingStorage()
 {
   logging_session_end();
@@ -261,9 +268,7 @@ void setMode(SystemMode newMode)
 
   runExitActions(oldMode, newMode);
 
-  if (newMode == MODE_WAIT_SATS ||
-      newMode == MODE_LOGGING ||
-      newMode == MODE_CONFIG) {
+  if (modeNeedsStorage(newMode)) {
     storage_end_shutdown();
   }
 

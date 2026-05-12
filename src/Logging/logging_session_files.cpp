@@ -10,7 +10,6 @@
 #include "Core/log.h"
 #include "Core/Globals.h"
 #include "Core/build_config.h"
-#include "Core/system_info.h"
 #include "GPS/gps_config.h"
 #include "Logging/sbp_writer.h"
 #include "Logging/geojson_session_export.h"
@@ -43,6 +42,13 @@ struct SBPDebugFrame {
   uint8_t  sdop;
   uint8_t  vsdop;
 } __attribute__((packed));
+
+struct SessionPaths {
+  char base[96];
+  char ubx[128];
+  char sbp[128];
+  char geojson[128];
+};
 
 const char* basenameOnly(const char* path)
 {
@@ -128,6 +134,14 @@ void buildSessionPath(char* path, size_t pathSize, const char* base, const char*
   snprintf(path, pathSize, "/logs/%s.%s", base, extension);
 }
 
+void buildSessionPaths(SessionPaths& paths)
+{
+  buildSessionBase(paths.base, sizeof(paths.base));
+  buildSessionPath(paths.ubx, sizeof(paths.ubx), paths.base, "ubx");
+  buildSessionPath(paths.sbp, sizeof(paths.sbp), paths.base, "sbp");
+  buildSessionPath(paths.geojson, sizeof(paths.geojson), paths.base, "geojson");
+}
+
 void closeFile(File& file)
 {
   if (!file) return;
@@ -135,6 +149,17 @@ void closeFile(File& file)
   file.flush();
   file.close();
   file = File();
+}
+
+void clearActiveSessionPaths()
+{
+  activeSbpPath[0] = '\0';
+  activeGeoPath[0] = '\0';
+}
+
+bool hasActiveSessionPaths()
+{
+  return activeSbpPath[0] != '\0' && activeGeoPath[0] != '\0';
 }
 
 float frameKnots(const SBPDebugFrame& frame)
@@ -240,12 +265,10 @@ void printSbpSpeedEdges(const char* label, const char* sbpPath, int first, int l
   file.close();
 }
 
-void printSbpDebugSamples(const char* sbpPath)
+void printSbpDebugSamples(const char* sbpPath, const SessionStatsSnapshot& snapshot)
 {
 #if LOG_ENABLED && SBP_STAT_SAMPLE_DEBUG
   if (!sbpPath || !sbpPath[0]) return;
-
-  const SessionStatsSnapshot snapshot = build_session_stats_snapshot();
 
   Serial.println();
   Serial.println("================ SBP STAT SAMPLE VALUES ================");
@@ -283,7 +306,23 @@ void printSbpDebugSamples(const char* sbpPath)
   Serial.println("========================================================");
 #else
   (void)sbpPath;
+  (void)snapshot;
 #endif
+}
+
+bool exportClosedSession()
+{
+  if (!hasActiveSessionPaths()) return false;
+
+  const SessionStatsSnapshot snapshot = build_session_stats_snapshot();
+  printSbpDebugSamples(activeSbpPath, snapshot);
+
+  if (!geojson_session_export_finalize(activeSbpPath, activeGeoPath, snapshot)) {
+    LOG_ERROR("STORAGE", "GeoJSON export failed");
+    return false;
+  }
+
+  return true;
 }
 }
 
@@ -301,21 +340,13 @@ bool logging_session_files_open()
 
   fs::FS& storage = storage_sd_fs();
   logging_raw_writers_reset();
-  activeSbpPath[0] = '\0';
-  activeGeoPath[0] = '\0';
+  clearActiveSessionPaths();
 
-  char base[96];
-  char filenameUBX[128];
-  char filenameSBP[128];
-  char filenameGEO[128];
-
-  buildSessionBase(base, sizeof(base));
-  buildSessionPath(filenameUBX, sizeof(filenameUBX), base, "ubx");
-  buildSessionPath(filenameSBP, sizeof(filenameSBP), base, "sbp");
-  buildSessionPath(filenameGEO, sizeof(filenameGEO), base, "geojson");
+  SessionPaths paths;
+  buildSessionPaths(paths);
 
   if (config.logUBX) {
-    ubxfile = storage.open(filenameUBX, FILE_APPEND);
+    ubxfile = storage.open(paths.ubx, FILE_APPEND);
     if (!ubxfile) {
       LOG_ERROR("STORAGE", "UBX open failed");
       closeFile(ubxfile);
@@ -323,7 +354,7 @@ bool logging_session_files_open()
     }
   }
 
-  sbpfile = storage.open(filenameSBP, FILE_WRITE);
+  sbpfile = storage.open(paths.sbp, FILE_WRITE);
   if (!sbpfile) {
     LOG_ERROR("STORAGE", "SBP open failed");
     closeFile(ubxfile);
@@ -335,10 +366,10 @@ bool logging_session_files_open()
     sbp_write_header(sbpfile);
   }
 
-  strlcpy(activeSbpPath, filenameSBP, sizeof(activeSbpPath));
-  strlcpy(activeGeoPath, filenameGEO, sizeof(activeGeoPath));
+  strlcpy(activeSbpPath, paths.sbp, sizeof(activeSbpPath));
+  strlcpy(activeGeoPath, paths.geojson, sizeof(activeGeoPath));
 
-  LOG_STORAGE("LOG", "Session started %s", base);
+  LOG_STORAGE("LOG", "Session started %s", paths.base);
   return true;
 }
 
@@ -350,20 +381,12 @@ void logging_session_files_write_raw()
   logging_raw_writers_write_sbp(sbpfile);
 }
 
-void logging_session_files_close()
+bool logging_session_files_close()
 {
   closeFile(sbpfile);
-
-  if (activeSbpPath[0] != '\0' && activeGeoPath[0] != '\0') {
-    printSbpDebugSamples(activeSbpPath);
-
-    if (!geojson_session_export_finalize(activeSbpPath, activeGeoPath)) {
-      LOG_ERROR("STORAGE", "GeoJSON export failed");
-    }
-  }
-
+  const bool exported = exportClosedSession();
   closeFile(ubxfile);
   closeFile(sbpfile);
-  activeSbpPath[0] = '\0';
-  activeGeoPath[0] = '\0';
+  clearActiveSessionPaths();
+  return exported;
 }

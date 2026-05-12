@@ -37,6 +37,9 @@ struct SessionStatsSnapshot {
 
   SessionWindow nauticalMile;
   SessionAlphaWindow alpha;
+  SessionAlphaWindow alpha50[5];
+  SessionAlphaWindow alpha60[5];
+  SessionAlphaWindow alpha70[5];
 
   SessionWindow oneHour;
 

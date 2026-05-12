@@ -9,6 +9,8 @@
 #include "GPS/Metrics/gps_time_speed.h"
 #include "Logging/sbp_writer.h"
 
+#include <math.h>
+
 namespace {
 int sampleRate()
 {
@@ -47,6 +49,26 @@ SessionWindow makeWindow(
   window.run = run;
   window.sumCms = sumCms;
   return window;
+}
+
+void fillAlphaTop5(SessionAlphaWindow* out, const Alfa_speed& alpha)
+{
+  if (!out) return;
+
+  for (int rank = 0; rank < 5; rank++) {
+    const int slot = 9 - rank;
+
+    out[rank].speedKnots = alpha.avg_speed[slot] * MMPS_TO_KNOTS;
+    out[rank].startSbp = alpha.ResultSbpStart(slot);
+    out[rank].endSbp = alpha.ResultSbpEnd(slot);
+    out[rank].distanceM = alpha.alfa_distance[slot] / 1000;
+    out[rank].closureM = sqrt((double)alpha.real_distance[slot]);
+
+    if (out[rank].speedKnots <= 0.0f || out[rank].startSbp < 0 ||
+        out[rank].endSbp < out[rank].startSbp) {
+      out[rank] = SessionAlphaWindow();
+    }
+  }
 }
 } // namespace
 
@@ -98,6 +120,9 @@ SessionStatsSnapshot build_session_stats_snapshot()
   snapshot.alpha.endSbp = alpha_sbp_end;
   snapshot.alpha.distanceM = alpha_best_distance_m;
   snapshot.alpha.closureM = alpha_best_closure_m;
+  fillAlphaTop5(snapshot.alpha50, alpha_500m);
+  fillAlphaTop5(snapshot.alpha60, alpha_500m_60);
+  fillAlphaTop5(snapshot.alpha70, alpha_500m_70);
 
   const float padded1hMmps = total_distance / 3600.0f;
   const float hourKnots = speed_1h.s_max_speed > 0.0

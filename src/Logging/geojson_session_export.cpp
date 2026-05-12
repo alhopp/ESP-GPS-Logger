@@ -397,6 +397,14 @@ bool geojson_session_export_finalize(const char* sbpPath, const char* geojsonPat
 {
   if (!sbpPath || !geojsonPath) return false;
   const SessionStatsSnapshot snapshot = build_session_stats_snapshot();
+  return geojson_session_export_finalize(sbpPath, geojsonPath, snapshot);
+}
+
+bool geojson_session_export_finalize(const char* sbpPath,
+                                     const char* geojsonPath,
+                                     const SessionStatsSnapshot& snapshot)
+{
+  if (!sbpPath || !geojsonPath) return false;
 
   if (!geojson_begin(geojsonPath)) {
     LOG_ERROR("STORAGE", "GeoJSON open failed");

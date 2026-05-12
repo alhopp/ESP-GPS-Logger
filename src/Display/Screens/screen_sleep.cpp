@@ -68,13 +68,14 @@ void drawLogo()
 void draw_SLEEP()
 {
   const char* labels[ROWS] = { "02:", "10:", "1H:", "AL:", "NM:", "DI:" };
+  const bool hasStats = rtc_session_stats_valid();
   const float values[ROWS] = {
-    RTC_max_2s_knots,
-    RTC_avg_10s_knots,
-    RTC_1h_knots,
-    RTC_alp_knots,
-    RTC_mile_knots,
-    RTC_distance
+    hasStats ? RTC_max_2s_knots : 0.0f,
+    hasStats ? RTC_avg_10s_knots : 0.0f,
+    hasStats ? RTC_1h_knots : 0.0f,
+    hasStats ? RTC_alp_knots : 0.0f,
+    hasStats ? RTC_mile_knots : 0.0f,
+    hasStats ? RTC_distance : 0.0f
   };
 
   drawStatsRows(labels, values);

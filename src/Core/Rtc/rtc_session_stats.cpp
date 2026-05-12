@@ -2,12 +2,7 @@
 
 #include "Core/build_config.h"
 
-#include "GPS/Data/gps_runtime_instances.h"
-#include "GPS/gps_config.h"
-#include "GPS/Metrics/gps_alpha_speed.h"
 #include "Session/session_stats_snapshot.h"
-
-#include <math.h>
 
 RTC_DATA_ATTR float RTC_distance = 0.0f;
 
@@ -22,6 +17,7 @@ RTC_DATA_ATTR float RTC_R2_10s = 0.0f;
 RTC_DATA_ATTR float RTC_R3_10s = 0.0f;
 RTC_DATA_ATTR float RTC_R4_10s = 0.0f;
 RTC_DATA_ATTR float RTC_R5_10s = 0.0f;
+RTC_DATA_ATTR bool RTC_session_stats_valid = false;
 
 namespace {
 void printSbpRange(const char* label, int first, int last)
@@ -44,40 +40,34 @@ void printSnapshotFooter()
   Serial.println("================ END GPS STATS ====================\n");
 }
 
-void printAlphaRankTable(const char* title, const Alfa_speed& alpha)
+void printAlphaRankTable(const char* title, const SessionAlphaWindow* alpha)
 {
   Serial.println(title);
 
   for (int rank = 0; rank < 5; rank++) {
-    const int slot = 9 - rank;
-    const float speedKnots = alpha.avg_speed[slot] * MMPS_TO_KNOTS;
-    const int start = alpha.ResultSbpStart(slot);
-    const int end = alpha.ResultSbpEnd(slot);
-
-    if (speedKnots <= 0.0f || start < 0 || end < start) {
+    const SessionAlphaWindow& row = alpha[rank];
+    if (row.speedKnots <= 0.0f || row.startSbp < 0 || row.endSbp < row.startSbp) {
       Serial.printf("  #%d            : n/a\n", rank + 1);
       continue;
     }
 
-    const int pathM = alpha.alfa_distance[slot] / 1000;
-    const float closureM = sqrt((double)alpha.real_distance[slot]);
     Serial.printf("  #%d            : %.3f kn %d -> %d dist=%dm closure=%.1fm\n",
                   rank + 1,
-                  speedKnots,
-                  start,
-                  end,
-                  pathM,
-                  closureM);
+                  row.speedKnots,
+                  row.startSbp,
+                  row.endSbp,
+                  row.distanceM,
+                  row.closureM);
   }
 }
 
-void printAlphaComparisonTables()
+void printAlphaComparisonTables(const SessionStatsSnapshot& snapshot)
 {
   Serial.println();
-  printAlphaRankTable("Alpha 50m top 5:", alpha_500m);
+  printAlphaRankTable("Alpha 50m top 5:", snapshot.alpha50);
 #if STATS_ONLY_SERIAL
-  printAlphaRankTable("Alpha 60m top 5:", alpha_500m_60);
-  printAlphaRankTable("Alpha 70m top 5:", alpha_500m_70);
+  printAlphaRankTable("Alpha 60m top 5:", snapshot.alpha60);
+  printAlphaRankTable("Alpha 70m top 5:", snapshot.alpha70);
 #endif
 }
 
@@ -95,6 +85,17 @@ void applySnapshotToRtc(const SessionStatsSnapshot& snapshot)
   RTC_R3_10s = snapshot.tenSecond[2].speedKnots;
   RTC_R4_10s = snapshot.tenSecond[3].speedKnots;
   RTC_R5_10s = snapshot.tenSecond[4].speedKnots;
+  RTC_session_stats_valid = true;
+}
+
+bool snapshotHasSessionStats(const SessionStatsSnapshot& snapshot)
+{
+  return snapshot.distanceKm > 0.0f ||
+         snapshot.max2s.speedKnots > 0.0f ||
+         snapshot.tenSecondAverageKnots > 0.0f ||
+         snapshot.alpha.speedKnots > 0.0f ||
+         snapshot.nauticalMile.speedKnots > 0.0f ||
+         snapshot.oneHour.speedKnots > 0.0f;
 }
 
 void printSnapshotStats(const SessionStatsSnapshot& snapshot)
@@ -152,12 +153,23 @@ void printStatSbpWindows(const SessionStatsSnapshot& snapshot)
 void rtc_snapshot_stats()
 {
   const SessionStatsSnapshot snapshot = build_session_stats_snapshot();
-  applySnapshotToRtc(snapshot);
+  const bool hasStats = snapshotHasSessionStats(snapshot);
+  if (hasStats) {
+    applySnapshotToRtc(snapshot);
+  }
 
   printSnapshotHeader();
+  if (!hasStats) {
+    Serial.println("No live session stats; keeping previous sleep-screen stats.");
+  }
   printSnapshotStats(snapshot);
-  printAlphaComparisonTables();
+  printAlphaComparisonTables(snapshot);
   printSnapshotDistance(snapshot);
   printStatSbpWindows(snapshot);
   printSnapshotFooter();
+}
+
+bool rtc_session_stats_valid()
+{
+  return RTC_session_stats_valid;
 }

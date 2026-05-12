@@ -6,12 +6,12 @@
 // Responsibilities:
 // - Define the authoritative SystemMode enum
 // - Expose read-only access to the current mode
-// - Provide the ONLY legal mechanism for mode transitions
+// - Provide the only legal mechanism for mode transitions
 //
 // Design rules:
-// - All mode-related side-effects are owned by system_mode.cpp
+// - All mode-related side effects are owned by system_mode.cpp
 //   (Wi-Fi, GPS power, sleep, etc.)
-// - Other modules must NEVER perform mode-specific side-effects
+// - Other modules must never perform mode-specific side effects
 // - UI and display logic must react to getMode(), not infer state
 // -----------------------------------------------------------------------------
 
@@ -19,41 +19,29 @@
 
 #include <Arduino.h>
 
-// -----------------------------------------------------------------------------
-// SYSTEM MODES
-// -----------------------------------------------------------------------------
 enum SystemMode {
   MODE_BOOT,
-  MODE_IDLE,      
-  
+  MODE_IDLE,
   MODE_WAIT_SATS,
-
-  MODE_CONFIG,    
-
+  MODE_CONFIG,
   MODE_LOGGING,
   MODE_SLEEP,
   MODE_ERROR,
 };
 
-// -----------------------------------------------------------------------------
-// PUBLIC API
-// -----------------------------------------------------------------------------
-
-// Return the current authoritative system mode
+// Return the current authoritative system mode.
 SystemMode getMode();
 
-// Request a system mode transition
+// Request a system mode transition.
 //
 // Behaviour:
 // - If newMode equals the current mode, the call is a no-op
-// - EXIT → TRANSITION → ENTER side-effects are handled internally
+// - EXIT -> TRANSITION -> ENTER side effects are handled internally
 // - Callers must not assume immediate completion of hardware changes
-//
 void setMode(SystemMode newMode);
 
 void systemModeLoop();
 
-
-// Optional helper for logging / diagnostics
-// (Must NOT be used for UI or control logic)
+// Optional helper for logging / diagnostics.
+// Must not be used for UI or control logic.
 const char* modeToString(SystemMode mode);
