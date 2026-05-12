@@ -269,9 +269,9 @@ void setMode(SystemMode newMode)
 
   currentMode = newMode;
   modeEnteredAtMs = millis();
-  requestModeRedraw();
 
   runEnterActions(newMode);
+  requestModeRedraw();
 
   if (enterModeFailed && currentMode == newMode) {
     currentMode = MODE_IDLE;

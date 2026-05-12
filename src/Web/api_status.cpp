@@ -33,6 +33,7 @@ void registerStatusApi(WebServer& server)
     j["fix_type"] = ubxMessage.navPvt.fixType;
     j["last_gps_age_ms"] = last_gps_msg ? millis() - last_gps_msg : -1;
     j["sd_ok"] = storage_sd_available();
+    j["sd_mounted"] = storage_sd_mounted();
     j["littlefs_ok"] = storage_littlefs_available();
     j["storage_shutting_down"] = storage_is_shutting_down();
     j["simulator"] = build_gps_simulator_enabled();

@@ -107,18 +107,23 @@ void registerFileEndpoints(WebServer &server)
 
     DynamicJsonDocument j(FILE_LIST_JSON_BYTES);
     j["ok"] = true;
+
+    if (!storage_logs_dir_ready()) {
+      LOG_STORAGE("API files", "storage not ready");
+      j["ok"] = false;
+      j["storage_used_mb"] = 0;
+      j["storage_free_mb"] = 0;
+      j["storage_used_bytes"] = 0;
+      j["storage_free_bytes"] = 0;
+      web_send_json(server, j);
+      return;
+    }
+
     j["storage_used_mb"] = storage_sd_used_mb();
     j["storage_free_mb"] = storage_sd_free_mb();
     j["storage_used_bytes"] = storage_sd_used_bytes();
     j["storage_free_bytes"] = storage_sd_free_bytes();
     JsonArray files = j.createNestedArray("files");
-
-    if (!storage_logs_dir_ready()) {
-      LOG_STORAGE("API files", "storage not ready");
-      j["ok"] = false;
-      web_send_json(server, j);
-      return;
-    }
 
     fs::FS& storage = storage_sd_fs();
     File dir = storage.open("/logs");

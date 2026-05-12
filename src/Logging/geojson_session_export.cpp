@@ -3,14 +3,10 @@
 #include <Arduino.h>
 
 #include "Core/log.h"
-#include "Core/Rtc/rtc_session_stats.h"
 #include "Core/system_info.h"
-#include "GPS/Data/gps_data.h"
 #include "GPS/gps_config.h"
-#include "GPS/Metrics/gps_alpha_speed.h"
-#include "GPS/Metrics/gps_distance_speed.h"
-#include "GPS/Metrics/gps_time_speed.h"
 #include "Logging/geojson_writer.h"
+#include "Session/session_stats_snapshot.h"
 #include "Storage/storage_manager.h"
 
 namespace {
@@ -89,26 +85,29 @@ int countSbpFrames(const char* sbpPath)
   return (size - SBP_HEADER_SIZE) / sizeof(SBPFrame);
 }
 
-void attachSessionStats()
+bool hasWindow(const SessionWindow& window)
 {
-  const float alphaKnotsFromBest = alpha_best_speed_mmps * MMPS_TO_KNOTS;
+  return window.startSbp >= 1 && window.endSbp >= window.startSbp;
+}
 
+void attachSessionStats(const SessionStatsSnapshot& snapshot)
+{
   GeoJSONStats s {
-    .nm = RTC_mile_knots,
-    .alpha = RTC_alp_knots > alphaKnotsFromBest ? RTC_alp_knots : alphaKnotsFromBest,
-    .alphaDistance = static_cast<float>(alpha_best_distance_m),
-    .alphaClosure = alpha_best_closure_m,
-    .h1 = RTC_1h_knots,
-    .max = RTC_max_2s_knots,
-    .avg10 = RTC_avg_10s_knots,
+    .nm = snapshot.nauticalMile.speedKnots,
+    .alpha = snapshot.alpha.speedKnots,
+    .alphaDistance = static_cast<float>(snapshot.alpha.distanceM),
+    .alphaClosure = snapshot.alpha.closureM,
+    .h1 = snapshot.oneHour.speedKnots,
+    .max = snapshot.max2s.speedKnots,
+    .avg10 = snapshot.tenSecondAverageKnots,
     .r10 = {
-      RTC_R1_10s,
-      RTC_R2_10s,
-      RTC_R3_10s,
-      RTC_R4_10s,
-      RTC_R5_10s
+      snapshot.tenSecond[0].speedKnots,
+      snapshot.tenSecond[1].speedKnots,
+      snapshot.tenSecond[2].speedKnots,
+      snapshot.tenSecond[3].speedKnots,
+      snapshot.tenSecond[4].speedKnots
     },
-    .distance = RTC_distance
+    .distance = snapshot.distanceKm
   };
 
   geojson_set_stats(s);
@@ -205,6 +204,16 @@ int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int e
   return count;
 }
 
+int readSecondSpeedGraphForGpsRange(const char* sbpPath, float* out, int startGpsIdx, int endGpsIdx)
+{
+  if (startGpsIdx < 1 || endGpsIdx < startGpsIdx) return 0;
+
+  const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
+  const int startSecIdx = (startGpsIdx - 1) / sampleRate;
+  const int endSecIdx = (endGpsIdx - 1) / sampleRate;
+  return readSecondSpeedGraph(sbpPath, out, startSecIdx, endSecIdx);
+}
+
 int readSessionSpeedGraph(const char* sbpPath)
 {
   graphSessionMinutes = 0.0f;
@@ -233,31 +242,50 @@ int readSessionSpeedGraph(const char* sbpPath)
   return count;
 }
 
-void attachGraphSeries(const char* sbpPath)
+void attachGraphSeries(const char* sbpPath, const SessionStatsSnapshot& snapshot)
 {
   const int s2Count = readGpsSpeedGraph(
     sbpPath,
     graph2s,
-    win_2s_sbp_start,
-    win_2s_sbp_start >= 1 ? win_2s_sbp_start + (2 * systemInfo.sample_rate) - 1 : -1
+    snapshot.max2s.startSbp,
+    snapshot.max2s.endSbp
   );
 
-  const int s10SeriesCount = win_10s_top5_count > 5 ? 5 : win_10s_top5_count;
+  int s10SeriesCount = 0;
   for (int i = 0; i < 5; i++) {
     graph10sCount[i] = 0;
   }
-  for (int i = 0; i < s10SeriesCount; i++) {
+
+  for (int i = 0; i < 5; i++) {
+    if (!hasWindow(snapshot.tenSecond[i])) continue;
+
     graph10sCount[i] = readGpsSpeedGraph(
       sbpPath,
       graph10s[i],
-      win_10s_top5_sbp_start[i],
-      win_10s_top5_sbp_start[i] >= 1 ? win_10s_top5_sbp_start[i] + (10 * systemInfo.sample_rate) - 1 : -1
+      snapshot.tenSecond[i].startSbp,
+      snapshot.tenSecond[i].endSbp
     );
+    s10SeriesCount = i + 1;
   }
 
-  const int alphaCount = readGpsSpeedGraph(sbpPath, graphAlpha, alpha_sbp_start, alpha_sbp_end);
-  const int nmCount = readGpsSpeedGraph(sbpPath, graphNm, win_nm_start, win_nm_end);
-  int h1Count = readSecondSpeedGraph(sbpPath, graph1h, win_1h_start_sec, win_1h_end_sec);
+  const int alphaCount = readGpsSpeedGraph(
+    sbpPath,
+    graphAlpha,
+    snapshot.alpha.startSbp,
+    snapshot.alpha.endSbp
+  );
+  const int nmCount = readGpsSpeedGraph(
+    sbpPath,
+    graphNm,
+    snapshot.nauticalMile.startSbp,
+    snapshot.nauticalMile.endSbp
+  );
+  int h1Count = readSecondSpeedGraphForGpsRange(
+    sbpPath,
+    graph1h,
+    snapshot.oneHour.startSbp,
+    snapshot.oneHour.endSbp
+  );
   if (h1Count == 0) {
     const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
     const int totalSeconds = countSbpFrames(sbpPath) / sampleRate;
@@ -308,16 +336,6 @@ void addSbpRangePoints(const char* sbpPath, int startGpsIdx, int endGpsIdx, int 
   file.close();
 }
 
-void addWindowFeature(const char* sbpPath, const char* mode, int startGpsIdx, int seconds)
-{
-  if (startGpsIdx < 0) return;
-
-  const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
-  geojson_begin_feature(mode);
-  addSbpRangePoints(sbpPath, startGpsIdx, startGpsIdx + (seconds * sampleRate) - 1, sampleRate);
-  geojson_end_feature();
-}
-
 void addRangeFeature(const char* sbpPath, const char* mode, int startGpsIdx, int endGpsIdx)
 {
   if (startGpsIdx < 0 || endGpsIdx < startGpsIdx) return;
@@ -333,32 +351,31 @@ void addRangeFeature(const char* sbpPath, const char* mode, int startGpsIdx, int
   geojson_end_feature();
 }
 
-void addOneHourFeature(const char* sbpPath)
+void addOneHourFeature(const char* sbpPath, const SessionStatsSnapshot& snapshot)
 {
-  if (win_1h_start_sec < 0 || win_1h_end_sec < win_1h_start_sec) return;
+  if (!hasWindow(snapshot.oneHour)) return;
 
   const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
-  const int startGpsIdx = (win_1h_start_sec * sampleRate) + 1;
-  const int endGpsIdx = (win_1h_end_sec + 1) * sampleRate;
-  const int seconds = win_1h_end_sec - win_1h_start_sec + 1;
+  const int samples = snapshot.oneHour.endSbp - snapshot.oneHour.startSbp + 1;
+  const int seconds = samples / sampleRate;
   int secStep = seconds > GRAPH_MAX_POINTS ? (seconds + GRAPH_MAX_POINTS - 1) / GRAPH_MAX_POINTS : 1;
 
   geojson_begin_feature("1h");
-  addSbpRangePoints(sbpPath, startGpsIdx, endGpsIdx, secStep * sampleRate);
+  addSbpRangePoints(sbpPath, snapshot.oneHour.startSbp, snapshot.oneHour.endSbp, secStep * sampleRate);
   geojson_end_feature();
 }
 
-void addDerivedFeatures(const char* sbpPath)
+void addDerivedFeatures(const char* sbpPath, const SessionStatsSnapshot& snapshot)
 {
-  addWindowFeature(sbpPath, "2s", win_2s_sbp_start, 2);
+  addRangeFeature(sbpPath, "2s", snapshot.max2s.startSbp, snapshot.max2s.endSbp);
 
-  for (int i = 0; i < win_10s_top5_count; i++) {
-    addWindowFeature(sbpPath, "10s", win_10s_top5_sbp_start[i], 10);
+  for (int i = 0; i < 5; i++) {
+    addRangeFeature(sbpPath, "10s", snapshot.tenSecond[i].startSbp, snapshot.tenSecond[i].endSbp);
   }
 
-  addRangeFeature(sbpPath, "alpha", alpha_sbp_start, alpha_sbp_end);
-  addRangeFeature(sbpPath, "nm", win_nm_start, win_nm_end);
-  addOneHourFeature(sbpPath);
+  addRangeFeature(sbpPath, "alpha", snapshot.alpha.startSbp, snapshot.alpha.endSbp);
+  addRangeFeature(sbpPath, "nm", snapshot.nauticalMile.startSbp, snapshot.nauticalMile.endSbp);
+  addOneHourFeature(sbpPath, snapshot);
 }
 
 bool addBaseTrackFromSbp(const char* sbpPath)
@@ -379,6 +396,7 @@ bool addBaseTrackFromSbp(const char* sbpPath)
 bool geojson_session_export_finalize(const char* sbpPath, const char* geojsonPath)
 {
   if (!sbpPath || !geojsonPath) return false;
+  const SessionStatsSnapshot snapshot = build_session_stats_snapshot();
 
   if (!geojson_begin(geojsonPath)) {
     LOG_ERROR("STORAGE", "GeoJSON open failed");
@@ -392,10 +410,10 @@ bool geojson_session_export_finalize(const char* sbpPath, const char* geojsonPat
     return false;
   }
 
-  attachSessionStats();
-  attachGraphSeries(sbpPath);
+  attachSessionStats(snapshot);
+  attachGraphSeries(sbpPath, snapshot);
   geojson_end_feature();
-  addDerivedFeatures(sbpPath);
+  addDerivedFeatures(sbpPath, snapshot);
   geojson_end();
   return true;
 }

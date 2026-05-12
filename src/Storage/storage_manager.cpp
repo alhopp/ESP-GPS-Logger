@@ -83,6 +83,10 @@ void initStorage()
 // Returns false if SD was never successfully detected or remount fails.
 bool storage_on()
 {
+  if (shutting_down) {
+    LOG_STORAGE("SD MMC", "mount blocked during shutdown");
+    return false;
+  }
   return mountSD_MMC();
 }
 
@@ -97,6 +101,11 @@ bool storage_off()
 bool storage_sd_available()
 {
   return sd_detected;
+}
+
+bool storage_sd_mounted()
+{
+  return sd_mounted;
 }
 
 bool storage_littlefs_available()
@@ -121,19 +130,19 @@ uint32_t storage_sd_free_mb()
 
 uint64_t storage_sd_total_bytes()
 {
-  if (!sd_detected) return 0;
+  if (!sd_mounted) return 0;
   return SD_MMC.totalBytes();
 }
 
 uint64_t storage_sd_used_bytes()
 {
-  if (!sd_detected) return 0;
+  if (!sd_mounted) return 0;
   return SD_MMC.usedBytes();
 }
 
 uint64_t storage_sd_free_bytes()
 {
-  if (!sd_detected) return 0;
+  if (!sd_mounted) return 0;
 
   const uint64_t total = storage_sd_total_bytes();
   const uint64_t used = storage_sd_used_bytes();

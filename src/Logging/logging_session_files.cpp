@@ -12,12 +12,11 @@
 #include "Core/build_config.h"
 #include "Core/system_info.h"
 #include "GPS/gps_config.h"
-#include "GPS/Metrics/gps_alpha_speed.h"
-#include "GPS/Metrics/gps_time_speed.h"
 #include "Logging/sbp_writer.h"
 #include "Logging/geojson_session_export.h"
 #include "Logging/logging_raw_writers.h"
 #include "Logging/logging_session_files.h"
+#include "Session/session_stats_snapshot.h"
 #include "Storage/storage_manager.h"
 #include "Config/config_types.h"
 
@@ -138,11 +137,6 @@ void closeFile(File& file)
   file = File();
 }
 
-int sampleRate()
-{
-  return systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
-}
-
 float frameKnots(const SBPDebugFrame& frame)
 {
   return static_cast<float>(frame.Sog) * 10.0f * MMPS_TO_KNOTS;
@@ -251,9 +245,7 @@ void printSbpDebugSamples(const char* sbpPath)
 #if LOG_ENABLED && SBP_STAT_SAMPLE_DEBUG
   if (!sbpPath || !sbpPath[0]) return;
 
-  gps_time_speed_rebuild_10s_top5_per_run();
-
-  const int rate = sampleRate();
+  const SessionStatsSnapshot snapshot = build_session_stats_snapshot();
 
   Serial.println();
   Serial.println("================ SBP STAT SAMPLE VALUES ================");
@@ -261,30 +253,30 @@ void printSbpDebugSamples(const char* sbpPath)
   printSbpSpeedRange(
     "2s",
     sbpPath,
-    win_2s_sbp_start,
-    win_2s_sbp_start >= 1 ? win_2s_sbp_start + (2 * rate) - 1 : -1,
-    win_2s_sum_cms
+    snapshot.max2s.startSbp,
+    snapshot.max2s.endSbp,
+    snapshot.max2s.sumCms
   );
 
   for (int i = 0; i < 5; i++) {
     char label[20];
-    snprintf(label, sizeof(label), "10s #%d R%d", i + 1, win_10s_top5_run[i]);
+    snprintf(label, sizeof(label), "10s #%d R%d", i + 1, snapshot.tenSecond[i].run);
     printSbpSpeedRange(
       label,
       sbpPath,
-      win_10s_top5_sbp_start[i],
-      win_10s_top5_sbp_start[i] >= 1 ? win_10s_top5_sbp_start[i] + (10 * rate) - 1 : -1,
-      win_10s_top5_sum_cms[i]
+      snapshot.tenSecond[i].startSbp,
+      snapshot.tenSecond[i].endSbp,
+      snapshot.tenSecond[i].sumCms
     );
   }
 
-  printSbpSpeedEdges("Alpha", sbpPath, alpha_sbp_start, alpha_sbp_end, 5);
-  if (alpha_sbp_start >= 0 && alpha_sbp_end >= alpha_sbp_start) {
+  printSbpSpeedEdges("Alpha", sbpPath, snapshot.alpha.startSbp, snapshot.alpha.endSbp, 5);
+  if (snapshot.alpha.startSbp >= 0 && snapshot.alpha.endSbp >= snapshot.alpha.startSbp) {
     Serial.printf(
       "Alpha detail: %.3f kn, %dm path, %.1fm closure\n",
-      alpha_best_speed_mmps * MMPS_TO_KNOTS,
-      alpha_best_distance_m,
-      alpha_best_closure_m
+      snapshot.alpha.speedKnots,
+      snapshot.alpha.distanceM,
+      snapshot.alpha.closureM
     );
   }
 

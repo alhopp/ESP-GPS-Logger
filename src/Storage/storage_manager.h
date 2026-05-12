@@ -22,8 +22,11 @@ bool storage_on();
 // Cleanly unmount SD_MMC. Open log files must be closed by their owner first.
 bool storage_off();
 
-// Availability/status flags.
+// Availability/status flags. "available" means SD_MMC has mounted at least
+// once this boot; "mounted" means the bus is currently active and byte/file
+// operations are safe.
 bool storage_sd_available();
+bool storage_sd_mounted();
 bool storage_littlefs_available();
 uint32_t storage_sd_total_mb();
 uint32_t storage_sd_used_mb();
