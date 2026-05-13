@@ -18,6 +18,13 @@
 namespace {
 constexpr const char* CONFIG_FILE = "/config.txt";
 
+enum ConfigLoadResult : uint8_t {
+  CONFIG_LOAD_OK,
+  CONFIG_LOAD_MISSING,
+  CONFIG_LOAD_OPEN_FAILED,
+  CONFIG_LOAD_INVALID,
+};
+
 bool writeConfigFile()
 {
   File f = LittleFS.open(CONFIG_FILE, FILE_WRITE);
@@ -28,9 +35,10 @@ bool writeConfigFile()
   return true;
 }
 
-void applyAndDumpConfig()
+void finishConfigLoad(const char* status)
 {
   config_apply_runtime();
+  LOG_CONFIG("Init", "%s", status);
   config_dump();
 }
 
@@ -41,6 +49,23 @@ void resetConfigToDefaults(bool persist)
     LOG_ERROR("CONFIG", "Cannot create config.txt");
   }
 }
+
+ConfigLoadResult loadConfigFile()
+{
+  if (!LittleFS.exists(CONFIG_FILE)) {
+    return CONFIG_LOAD_MISSING;
+  }
+
+  File f = LittleFS.open(CONFIG_FILE, FILE_READ);
+  if (!f) {
+    return CONFIG_LOAD_OPEN_FAILED;
+  }
+
+  const bool loaded = config_load_json(f);
+  f.close();
+
+  return loaded ? CONFIG_LOAD_OK : CONFIG_LOAD_INVALID;
+}
 }
 
 Config config;
@@ -49,34 +74,29 @@ void initConfig()
 {
   LOG_CONFIG("Init", "Loading configuration");
 
-  if (!LittleFS.exists(CONFIG_FILE)) {
-    LOG_CONFIG("Config", "No config found, creating default");
-    resetConfigToDefaults(true);
-    applyAndDumpConfig();
-    return;
+  switch (loadConfigFile()) {
+    case CONFIG_LOAD_OK:
+      finishConfigLoad("Configuration loaded");
+      return;
+
+    case CONFIG_LOAD_MISSING:
+      LOG_CONFIG("Config", "No config found, creating default");
+      resetConfigToDefaults(true);
+      finishConfigLoad("Default configuration created");
+      return;
+
+    case CONFIG_LOAD_OPEN_FAILED:
+      LOG_ERROR("CONFIG", "Failed to open config.txt");
+      resetConfigToDefaults(false);
+      finishConfigLoad("Using in-memory defaults");
+      return;
+
+    case CONFIG_LOAD_INVALID:
+      LOG_ERROR("CONFIG", "Invalid config, reset defaults");
+      resetConfigToDefaults(true);
+      finishConfigLoad("Invalid configuration reset");
+      return;
   }
-
-  File f = LittleFS.open(CONFIG_FILE, FILE_READ);
-  if (!f) {
-    LOG_ERROR("CONFIG", "Failed to open config.txt");
-    resetConfigToDefaults(false);
-    applyAndDumpConfig();
-    return;
-  }
-
-  if (!config_load_json(f)) {
-    LOG_ERROR("CONFIG", "Invalid config, reset defaults");
-    f.close();
-
-    resetConfigToDefaults(true);
-  } else {
-    f.close();
-  }
-
-  config_apply_runtime();
-
-  LOG_CONFIG("Init", "Configuration loaded");
-  config_dump();
 }
 
 void saveConfig()
