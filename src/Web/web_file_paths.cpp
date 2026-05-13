@@ -12,8 +12,7 @@
 namespace {
 bool isAllowedLogExtension(const char* ext)
 {
-  return !strcasecmp(ext, ".txt") ||
-         !strcasecmp(ext, ".sbp") ||
+  return !strcasecmp(ext, ".sbp") ||
          !strcasecmp(ext, ".ubx") ||
          !strcasecmp(ext, ".geojson");
 }
