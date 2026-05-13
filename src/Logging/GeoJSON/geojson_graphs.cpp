@@ -18,15 +18,19 @@
 #include "Session/session_stats_snapshot.h"
 
 namespace {
-float graph2s[GEOJSON_MAX_SERIES_POINTS];
-float graph10s[5][GEOJSON_MAX_SERIES_POINTS];
-int graph10sCount[5];
-float graphAlpha[GEOJSON_MAX_SERIES_POINTS];
-float graphNm[GEOJSON_MAX_SERIES_POINTS];
-float graph1h[GEOJSON_MAX_SERIES_POINTS];
-float graphDistance[GEOJSON_MAX_SERIES_POINTS];
-float graph1hMinutes = 0.0f;
-float graphSessionMinutes = 0.0f;
+struct GeoJsonGraphBuildState {
+  float s2[GEOJSON_MAX_SERIES_POINTS];
+  float s10[5][GEOJSON_MAX_SERIES_POINTS];
+  int s10Count[5];
+  float alpha[GEOJSON_MAX_SERIES_POINTS];
+  float nm[GEOJSON_MAX_SERIES_POINTS];
+  float h1[GEOJSON_MAX_SERIES_POINTS];
+  float distance[GEOJSON_MAX_SERIES_POINTS];
+  float h1Minutes = 0.0f;
+  float sessionMinutes = 0.0f;
+};
+
+GeoJsonGraphBuildState graphState;
 
 void compressGraph(float* values, int& count, int& strideSamples)
 {
@@ -74,7 +78,7 @@ int readGpsSpeedGraph(const char* sbpPath, float* out, int startGpsIdx, int endG
 
 int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int endSecIdx)
 {
-  graph1hMinutes = 0.0f;
+  graphState.h1Minutes = 0.0f;
   if (!out || startSecIdx < 0 || endSecIdx < startSecIdx) return 0;
 
   const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
@@ -117,7 +121,7 @@ int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int e
   }
 
   file.close();
-  graph1hMinutes = secondsRead / 60.0f;
+  graphState.h1Minutes = secondsRead / 60.0f;
   return count;
 }
 
@@ -133,7 +137,7 @@ int readSecondSpeedGraphForGpsRange(const char* sbpPath, float* out, int startGp
 
 int readSessionSpeedGraph(const char* sbpPath)
 {
-  graphSessionMinutes = 0.0f;
+  graphState.sessionMinutes = 0.0f;
   File file;
   if (!geojson_sbp_open(file, sbpPath)) return 0;
 
@@ -147,7 +151,12 @@ int readSessionSpeedGraph(const char* sbpPath)
   GeoJsonSbpFrame frame;
   while (geojson_sbp_read_frame(file, frame)) {
     if (gpsIndex >= nextSample) {
-      appendCompactGraphPoint(graphDistance, count, strideSamples, geojson_sbp_frame_knots(frame));
+      appendCompactGraphPoint(
+        graphState.distance,
+        count,
+        strideSamples,
+        geojson_sbp_frame_knots(frame)
+      );
       nextSample = gpsIndex + strideSamples;
     }
 
@@ -155,7 +164,7 @@ int readSessionSpeedGraph(const char* sbpPath)
   }
 
   file.close();
-  graphSessionMinutes = (gpsIndex - 1) / static_cast<float>(sampleRate) / 60.0f;
+  graphState.sessionMinutes = (gpsIndex - 1) / static_cast<float>(sampleRate) / 60.0f;
   return count;
 }
 }
@@ -164,22 +173,22 @@ void geojson_attach_graph_series(const char* sbpPath, const SessionStatsSnapshot
 {
   const int s2Count = readGpsSpeedGraph(
     sbpPath,
-    graph2s,
+    graphState.s2,
     snapshot.max2s.startSbp,
     snapshot.max2s.endSbp
   );
 
   int s10SeriesCount = 0;
   for (int i = 0; i < 5; i++) {
-    graph10sCount[i] = 0;
+    graphState.s10Count[i] = 0;
   }
 
   for (int i = 0; i < 5; i++) {
     if (!geojson_has_window(snapshot.tenSecond[i])) continue;
 
-    graph10sCount[i] = readGpsSpeedGraph(
+    graphState.s10Count[i] = readGpsSpeedGraph(
       sbpPath,
-      graph10s[i],
+      graphState.s10[i],
       snapshot.tenSecond[i].startSbp,
       snapshot.tenSecond[i].endSbp
     );
@@ -188,19 +197,19 @@ void geojson_attach_graph_series(const char* sbpPath, const SessionStatsSnapshot
 
   const int alphaCount = readGpsSpeedGraph(
     sbpPath,
-    graphAlpha,
+    graphState.alpha,
     snapshot.alpha.startSbp,
     snapshot.alpha.endSbp
   );
   const int nmCount = readGpsSpeedGraph(
     sbpPath,
-    graphNm,
+    graphState.nm,
     snapshot.nauticalMile.startSbp,
     snapshot.nauticalMile.endSbp
   );
   int h1Count = readSecondSpeedGraphForGpsRange(
     sbpPath,
-    graph1h,
+    graphState.h1,
     snapshot.oneHour.startSbp,
     snapshot.oneHour.endSbp
   );
@@ -208,25 +217,25 @@ void geojson_attach_graph_series(const char* sbpPath, const SessionStatsSnapshot
     const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
     const int totalSeconds = geojson_sbp_count_frames(sbpPath) / sampleRate;
     if (totalSeconds > 0) {
-      h1Count = readSecondSpeedGraph(sbpPath, graph1h, 0, totalSeconds - 1);
+      h1Count = readSecondSpeedGraph(sbpPath, graphState.h1, 0, totalSeconds - 1);
     }
   }
   const int distanceCount = readSessionSpeedGraph(sbpPath);
 
   GeoJSONGraphs graphs {
-    .s2 = { graph2s, s2Count, 2.0f, "s" },
+    .s2 = { graphState.s2, s2Count, 2.0f, "s" },
     .s10 = {
-      { graph10s[0], graph10sCount[0], 10.0f, "s" },
-      { graph10s[1], graph10sCount[1], 10.0f, "s" },
-      { graph10s[2], graph10sCount[2], 10.0f, "s" },
-      { graph10s[3], graph10sCount[3], 10.0f, "s" },
-      { graph10s[4], graph10sCount[4], 10.0f, "s" }
+      { graphState.s10[0], graphState.s10Count[0], 10.0f, "s" },
+      { graphState.s10[1], graphState.s10Count[1], 10.0f, "s" },
+      { graphState.s10[2], graphState.s10Count[2], 10.0f, "s" },
+      { graphState.s10[3], graphState.s10Count[3], 10.0f, "s" },
+      { graphState.s10[4], graphState.s10Count[4], 10.0f, "s" }
     },
     .s10Count = s10SeriesCount,
-    .alpha = { graphAlpha, alphaCount, 500.0f, "m" },
-    .nm = { graphNm, nmCount, 1852.0f, "m" },
-    .h1 = { graph1h, h1Count, graph1hMinutes, "min" },
-    .distance = { graphDistance, distanceCount, graphSessionMinutes, "min" }
+    .alpha = { graphState.alpha, alphaCount, 500.0f, "m" },
+    .nm = { graphState.nm, nmCount, 1852.0f, "m" },
+    .h1 = { graphState.h1, h1Count, graphState.h1Minutes, "min" },
+    .distance = { graphState.distance, distanceCount, graphState.sessionMinutes, "min" }
   };
 
   geojson_set_graphs(graphs);
