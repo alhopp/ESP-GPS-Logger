@@ -47,16 +47,8 @@ function formatSpeed(value){
   return Number.isFinite(n) && n > 0 ? `${n.toFixed(2)} kt` : "-";
 }
 
-function formatDistance(value){
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? `${n.toFixed(2)} km` : "-";
-}
-
 function updateLogsTitle(storage){
-  const el = document.getElementById("logsTitle");
-  if(!el) return;
   if(storage) filesStorageCache = { ...storage };
-  el.textContent = "Logs";
 }
 
 function updateSessionSummary(name, stats){
@@ -64,8 +56,8 @@ function updateSessionSummary(name, stats){
     .find(el => el.dataset.name === name);
   if(!row) return;
 
-  AppUtil.setText(row.querySelector("[data-summary='max']"), formatSpeed(stats?.max));
-  AppUtil.setText(row.querySelector("[data-summary='distance']"), formatDistance(stats?.distance));
+  AppUtil.setText(row.querySelector("[data-summary='2s']"), formatSpeed(stats?.max));
+  AppUtil.setText(row.querySelector("[data-summary='10s']"), formatSpeed(stats?.avg10));
   AppUtil.setText(row.querySelector("[data-summary='alpha']"), formatSpeed(stats?.alpha));
 }
 
@@ -153,8 +145,8 @@ async function loadFiles(fileList, sdInfo){
                 <div class="file-text">
                   <div class="file-name">${AppUtil.escapeHtml(sessionTitle(displayName))}</div>
                   <div class="file-stats">
-                    <span><b data-summary="max">-</b><small>Max</small></span>
-                    <span><b data-summary="distance">-</b><small>Dist</small></span>
+                    <span><b data-summary="2s">-</b><small>2sec</small></span>
+                    <span><b data-summary="10s">-</b><small>10sec</small></span>
                     <span><b data-summary="alpha">-</b><small>Alpha</small></span>
                   </div>
                   <div class="file-size">${AppUtil.escapeHtml(details)}</div>

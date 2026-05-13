@@ -32,7 +32,6 @@ section.a{display:flex;flex-direction:column;opacity:1}
 .card{margin-bottom:16px;padding:16px;background:var(--d);border:1px solid var(--e);border-radius:var(--r);box-shadow:var(--sh);transition:transform .12s ease,box-shadow .12s ease}
 .card:active{transform:scale(.985);box-shadow:var(--sh2)}
 h3{margin:0 0 10px;font-size:18px;color:var(--a);display:flex;align-items:center;justify-content:space-between}
-#logsTitle{display:block;line-height:1.25}
 label{display:block;margin-top:10px;font-size:14px;color:var(--f)}
 input,select{width:100%;margin-top:4px;padding:12px;font-size:17px;border:1px solid var(--e);border-radius:10px;background:#fff}
 
