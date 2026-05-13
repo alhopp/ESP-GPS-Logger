@@ -4,7 +4,7 @@
 // Selects saved or build-time phone hotspot credentials for STA mode.
 // ============================================================================
 
-#include "Web/wifi_credentials.h"
+#include "Web/WiFi/wifi_credentials.h"
 
 #include "Config/config_types.h"
 #include "Core/build_config.h"

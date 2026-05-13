@@ -1,4 +1,4 @@
-#include "Web/api_config.h"
+#include "Web/API/api_config.h"
 
 #include <ArduinoJson.h>
 #include <WiFi.h>
@@ -7,9 +7,9 @@
 #include "Core/build_config.h"
 #include "Core/system_info.h"
 #include "Storage/storage_manager.h"
-#include "Web/web_json.h"
-#include "Web/web_server.h"
-#include "Web/wifi_manager.h"
+#include "Web/Server/web_json.h"
+#include "Web/Server/web_server.h"
+#include "Web/WiFi/wifi_manager.h"
 
 namespace {
 constexpr size_t CONFIG_GET_JSON_BYTES = 3072;

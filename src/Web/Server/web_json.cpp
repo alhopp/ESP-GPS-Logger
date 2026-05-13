@@ -1,6 +1,6 @@
-#include "Web/web_json.h"
+#include "Web/Server/web_json.h"
 
-#include "Web/web_server.h"
+#include "Web/Server/web_server.h"
 
 void web_send_json(WebServer& server, JsonDocument& doc)
 {

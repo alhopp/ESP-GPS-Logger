@@ -5,7 +5,7 @@
 // - Web server only runs when network stack is UP
 // ============================================================================
 
-#include "Web/wifi_manager.h"
+#include "Web/WiFi/wifi_manager.h"
 
 #include <ESPmDNS.h>
 #include <WiFi.h>

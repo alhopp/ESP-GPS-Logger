@@ -15,9 +15,9 @@
 
 #include "Core/log.h"
 #include "Storage/storage_manager.h"
-#include "Web/web_file_paths.h"
-#include "Web/web_json.h"
-#include "Web/web_server.h"
+#include "Web/Files/web_file_paths.h"
+#include "Web/Server/web_json.h"
+#include "Web/Server/web_server.h"
 
 namespace {
 constexpr size_t FILE_LIST_JSON_BYTES = 16384;

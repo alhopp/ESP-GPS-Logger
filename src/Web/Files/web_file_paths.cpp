@@ -4,7 +4,7 @@
 // Safe filename validation and /logs path construction for web file endpoints.
 // ============================================================================
 
-#include "Web/web_file_paths.h"
+#include "Web/Files/web_file_paths.h"
 
 #include <Arduino.h>
 #include <string.h>

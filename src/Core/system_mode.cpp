@@ -20,8 +20,8 @@
 #include "Storage/storage_manager.h"
 #include "Logging/logging_session.h"
 #include "Runtime/display_redraw.h"
-#include "Web/web_server.h"
-#include "Web/wifi_manager.h"
+#include "Web/Server/web_server.h"
+#include "Web/WiFi/wifi_manager.h"
 
 namespace {
 constexpr uint32_t IDLE_AUTO_SLEEP_MS = 30000;

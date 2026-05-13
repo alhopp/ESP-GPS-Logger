@@ -4,7 +4,7 @@
 #include "Display/Screens/ui_text.h"
 #include "Fonts.h"
 #include "Layout.h"
-#include "Web/wifi_manager.h"
+#include "Web/WiFi/wifi_manager.h"
 
 namespace {
 

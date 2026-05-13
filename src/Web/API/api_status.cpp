@@ -1,4 +1,4 @@
-#include "Web/api_status.h"
+#include "Web/API/api_status.h"
 
 #include <ArduinoJson.h>
 #include <WiFi.h>
@@ -11,7 +11,7 @@
 #include "Core/build_config.h"
 #include "Core/system_mode.h"
 #include "Logging/logging_session.h"
-#include "Web/web_json.h"
+#include "Web/Server/web_json.h"
 
 namespace {
 

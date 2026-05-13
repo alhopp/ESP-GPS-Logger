@@ -17,7 +17,7 @@ enum WifiUiState {
   WIFI_UI_OFF
 };
 
-#include "Web/wifi_credentials.h"
+#include "Web/WiFi/wifi_credentials.h"
 
 void wifi_init();
 void wifi_stop();
