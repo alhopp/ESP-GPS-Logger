@@ -1,5 +1,13 @@
 #include <Arduino.h>
 
+// ============================================================================
+// GPS runtime task
+//
+// Runs only while the system is waiting for satellites or actively logging.
+// Each NAV-PVT fix flows through the logging policy, session writer, metrics
+// update, and display policy in that order.
+// ============================================================================
+
 #include "Core/build_config.h"
 #include "Core/Globals.h"
 #include "GPS/gps_runtime_state.h"

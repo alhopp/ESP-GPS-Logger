@@ -1,12 +1,16 @@
 #pragma once
 
+// ============================================================================
+// GPS logging policy
+//
+// Decides when a good GPS signal may become a logging session. The GPS task
+// supplies fixes; this module owns the time-sync wait and session-begin retry
+// gate before handing off to the logging subsystem.
+// ============================================================================
+
 #include <stdint.h>
 
 #include "GPS/gps_fix.h"
-
-// Owns the runtime policy for starting a GPS logging session.
-// The task loop decides when a fix has arrived; this module decides whether
-// the session can begin yet and performs the existing time-sync gate.
 
 void gps_logging_policy_note_signal_ready(uint32_t nowMs);
 

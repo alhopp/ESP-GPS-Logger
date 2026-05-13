@@ -1,5 +1,13 @@
 #include "Runtime/gps_logging_policy.h"
 
+// ============================================================================
+// GPS logging policy
+//
+// Preserves the existing behaviour where logging starts only after signal
+// quality is good, GPS time has been accepted or timed out, and session start is
+// retried at a short interval until storage is ready.
+// ============================================================================
+
 #include <Arduino.h>
 
 #include "Config/config_types.h"

@@ -111,7 +111,7 @@ void enterDeepSleep(DrawFn draw)
 {
   LOG_TASK("Display", "forcing final FULL refresh before deep sleep");
 
-  // HARD reset any lingering partial-window state
+  // Reset any lingering partial-window state before the final full-screen draw.
   display.setPartialWindow(0, 0, display.width(), display.height());
   display.setFullWindow();
 
@@ -181,7 +181,6 @@ void displayTask(void* parameter)
       continue;
     }
 
-    RefreshRequest effectiveRequest = request;
-    renderRefresh(effectiveRequest, draw);
+    renderRefresh(request, draw);
   }
 }

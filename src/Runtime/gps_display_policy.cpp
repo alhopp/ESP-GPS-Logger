@@ -1,5 +1,12 @@
 #include "Runtime/gps_display_policy.h"
 
+// ============================================================================
+// GPS display policy
+//
+// Keeps e-paper updates sparse: satellite wait redraws only when the satellite
+// count changes, and speed redraws are throttled based on current speed.
+// ============================================================================
+
 #include <Arduino.h>
 
 #include "Core/Globals.h"

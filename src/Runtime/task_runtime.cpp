@@ -1,5 +1,13 @@
 #include "Runtime/task_runtime.h"
 
+// ============================================================================
+// Runtime task launcher
+//
+// Creates the GPS and display tasks on their intended ESP32 cores. If display
+// task creation fails after the GPS task was started, the GPS task is deleted so
+// startup does not continue with a half-running runtime.
+// ============================================================================
+
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>

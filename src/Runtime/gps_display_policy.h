@@ -1,8 +1,13 @@
 #pragma once
 
-#include "GPS/gps_fix.h"
+// ============================================================================
+// GPS display policy
+//
+// Converts incoming GPS fixes into redraw requests. Drawing remains in the
+// display screen modules; this file only decides when a satellite/status or
+// speed refresh is worth requesting.
+// ============================================================================
 
-// Owns GPS-driven display refresh policy for the runtime task.
-// Screen renderers still own drawing; this module only requests redraw windows.
+#include "GPS/gps_fix.h"
 
 void gps_display_policy_update(const GpsFix& fix);
