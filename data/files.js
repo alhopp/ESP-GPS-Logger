@@ -151,7 +151,9 @@ async function loadFiles(fileList, sdInfo){
                   <div class="file-size">${AppUtil.escapeHtml(details)}</div>
                   <div class="file-name">${AppUtil.escapeHtml(sessionTitle(displayName))}</div>
                 </div>
-                <button class="file-download" type="button" aria-label="Download">Download</button>
+                <button class="file-download" type="button" aria-label="Download SBP">
+                  <span aria-hidden="true">&#8681;</span>
+                </button>
               </div>
             </div>
           `);
