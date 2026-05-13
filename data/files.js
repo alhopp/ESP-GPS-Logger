@@ -143,13 +143,13 @@ async function loadFiles(fileList, sdInfo){
               <div class="file-delete">&#128465;</div>
               <div class="file-swipe-inner">
                 <div class="file-text">
-                  <div class="file-name">${AppUtil.escapeHtml(sessionTitle(displayName))}</div>
                   <div class="file-stats">
                     <span><b data-summary="2s">-</b><small>2sec</small></span>
                     <span><b data-summary="10s">-</b><small>10sec</small></span>
                     <span><b data-summary="alpha">-</b><small>Alpha</small></span>
                   </div>
                   <div class="file-size">${AppUtil.escapeHtml(details)}</div>
+                  <div class="file-name">${AppUtil.escapeHtml(sessionTitle(displayName))}</div>
                 </div>
                 <button class="file-download" type="button" aria-label="Download">Download</button>
               </div>
