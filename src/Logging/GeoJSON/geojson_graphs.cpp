@@ -11,8 +11,8 @@
 
 #include "Core/system_info.h"
 #include "GPS/gps_config.h"
-#include "Logging/GeoJSON/geojson_sbp_reader.h"
 #include "Logging/GeoJSON/geojson_writer.h"
+#include "Logging/SBP/sbp_session_reader.h"
 #include "Session/session_stats_snapshot.h"
 
 namespace {
@@ -65,15 +65,15 @@ int readGpsSpeedGraph(const char* sbpPath, float* out, int startGpsIdx, int endG
       : 1;
 
   File file;
-  if (!geojson_sbp_open(file, sbpPath)) return 0;
+  if (!sbp_session_open(file, sbpPath)) return 0;
 
-  GeoJsonSbpFrame frame;
+  SbpFrame frame;
   int count = 0;
   for (int gpsIndex = startGpsIdx;
        gpsIndex <= endGpsIdx && count < GEOJSON_MAX_SERIES_POINTS;
        gpsIndex += step) {
-    if (geojson_sbp_read_frame_at(file, gpsIndex, frame)) {
-      out[count++] = geojson_sbp_frame_knots(frame);
+    if (sbp_session_read_frame_at(file, gpsIndex, frame)) {
+      out[count++] = sbp_frame_knots(frame);
     }
   }
 
@@ -95,9 +95,9 @@ int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int e
       : 1;
 
   File file;
-  if (!geojson_sbp_open(file, sbpPath)) return 0;
+  if (!sbp_session_open(file, sbpPath)) return 0;
 
-  GeoJsonSbpFrame frame;
+  SbpFrame frame;
   int gpsIndex = 1;
   int secIndex = startSecIdx;
   int count = 0;
@@ -105,7 +105,7 @@ int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int e
   int samplesInSecond = 0;
   int secondsRead = 0;
 
-  while (geojson_sbp_read_frame(file, frame) && count < GEOJSON_MAX_SERIES_POINTS) {
+  while (sbp_session_read_frame(file, frame) && count < GEOJSON_MAX_SERIES_POINTS) {
     if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx) {
       sumCms += frame.Sog;
       samplesInSecond++;
@@ -144,7 +144,7 @@ int readSessionSpeedGraph(const char* sbpPath)
 {
   graphState.sessionMinutes = 0.0f;
   File file;
-  if (!geojson_sbp_open(file, sbpPath)) return 0;
+  if (!sbp_session_open(file, sbpPath)) return 0;
 
   const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
   int count = 0;
@@ -153,14 +153,14 @@ int readSessionSpeedGraph(const char* sbpPath)
   int nextSample = 1;
   int gpsIndex = 1;
 
-  GeoJsonSbpFrame frame;
-  while (geojson_sbp_read_frame(file, frame)) {
+  SbpFrame frame;
+  while (sbp_session_read_frame(file, frame)) {
     if (gpsIndex >= nextSample) {
       appendCompactGraphPoint(
         graphState.distance,
         count,
         strideSamples,
-        geojson_sbp_frame_knots(frame)
+        sbp_frame_knots(frame)
       );
       nextSample = gpsIndex + strideSamples;
     }
@@ -220,7 +220,7 @@ void geojson_attach_graph_series(const char* sbpPath, const SessionStatsSnapshot
   );
   if (h1Count == 0) {
     const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
-    const int totalSeconds = geojson_sbp_count_frames(sbpPath) / sampleRate;
+    const int totalSeconds = sbp_session_count_frames(sbpPath) / sampleRate;
     if (totalSeconds > 0) {
       h1Count = readSecondSpeedGraph(sbpPath, graphState.h1, 0, totalSeconds - 1);
     }

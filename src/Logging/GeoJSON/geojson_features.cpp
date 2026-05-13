@@ -10,8 +10,8 @@
 #include <Arduino.h>
 
 #include "Core/system_info.h"
-#include "Logging/GeoJSON/geojson_sbp_reader.h"
 #include "Logging/GeoJSON/geojson_writer.h"
+#include "Logging/SBP/sbp_session_reader.h"
 #include "Session/session_stats_snapshot.h"
 
 namespace {
@@ -34,9 +34,9 @@ void addSbpRangePoints(const char* sbpPath, int startGpsIdx, int endGpsIdx, int 
   if (step < 1) step = 1;
 
   File file;
-  if (!geojson_sbp_open(file, sbpPath)) return;
+  if (!sbp_session_open(file, sbpPath)) return;
 
-  GeoJsonSbpFrame frame;
+  SbpFrame frame;
   int firstGpsIdx = startGpsIdx < 1 ? 1 : startGpsIdx;
   const int offset = (firstGpsIdx - startGpsIdx) % step;
   if (offset != 0) {
@@ -44,8 +44,8 @@ void addSbpRangePoints(const char* sbpPath, int startGpsIdx, int endGpsIdx, int 
   }
 
   for (int gpsIndex = firstGpsIdx; gpsIndex <= endGpsIdx; gpsIndex += step) {
-    if (geojson_sbp_read_frame_at(file, gpsIndex, frame)) {
-      geojson_add_point(geojson_sbp_frame_lat(frame), geojson_sbp_frame_lon(frame));
+    if (sbp_session_read_frame_at(file, gpsIndex, frame)) {
+      geojson_add_point(sbp_frame_lat(frame), sbp_frame_lon(frame));
     }
   }
 
@@ -87,11 +87,11 @@ void addOneHourFeature(const char* sbpPath, const SessionStatsSnapshot& snapshot
 bool geojson_add_base_track_from_sbp(const char* sbpPath)
 {
   File file;
-  if (!geojson_sbp_open(file, sbpPath)) return false;
+  if (!sbp_session_open(file, sbpPath)) return false;
 
-  GeoJsonSbpFrame frame;
-  while (geojson_sbp_read_frame(file, frame)) {
-    geojson_add_track_point(geojson_sbp_frame_lat(frame), geojson_sbp_frame_lon(frame));
+  SbpFrame frame;
+  while (sbp_session_read_frame(file, frame)) {
+    geojson_add_track_point(sbp_frame_lat(frame), sbp_frame_lon(frame));
   }
 
   file.close();

@@ -12,27 +12,16 @@
 
 #include "Core/build_config.h"
 #include "Logging/SBP/sbp_format.h"
+#include "Logging/SBP/sbp_session_reader.h"
 #include "Session/session_stats_snapshot.h"
 #include "Storage/storage_manager.h"
 
 namespace {
-bool readSbpFrame(File& file, int sbpIndex, SbpFrame& frame)
-{
-  if (sbpIndex < 1) return false;
-
-  const size_t offset =
-      SBP_HEADER_SIZE + static_cast<size_t>(sbpIndex - 1) * sizeof(SbpFrame);
-  if (offset + sizeof(SbpFrame) > file.size()) return false;
-
-  if (!file.seek(offset)) return false;
-  return file.read(reinterpret_cast<uint8_t*>(&frame), sizeof(frame)) == sizeof(frame);
-}
-
 void printSbpSpeedRow(File& file, int first, int last)
 {
   for (int index = first; index <= last; index++) {
     SbpFrame frame;
-    if (!readSbpFrame(file, index, frame)) {
+    if (!sbp_session_read_frame_at(file, index, frame)) {
       Serial.printf(" %d:n/a", index);
       continue;
     }
@@ -68,7 +57,7 @@ void printSbpSpeedRange(const char* label,
 
     for (int index = start; index <= end; index++) {
       SbpFrame frame;
-      if (readSbpFrame(file, index, frame)) {
+      if (sbp_session_read_frame_at(file, index, frame)) {
         sumCms += frame.Sog;
         count++;
       }
