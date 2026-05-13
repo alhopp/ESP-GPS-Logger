@@ -18,7 +18,6 @@ const SystemInfo systemInfo = {
 
   GPS_SOFTWARE_VERSION,              // software_version
   "LilyGO T5 B74",                 // display
-  80,                              // cpu_freq
 
   "Knots",                         // speed_units
   3.6f                             // cal_speed

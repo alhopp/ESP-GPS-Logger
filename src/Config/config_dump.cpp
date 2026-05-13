@@ -70,7 +70,7 @@ void config_dump()
   printField("[CONFIG ] ", "  phone_pass     = ", config.phone_pass[0] ? "***" : "(not set)");
 
   Serial.println();
-  Serial.println("[SYSTEM ] ===== Static system info =====");
+  Serial.println("[SYSTEM ] ===== System info =====");
 
   printField("[SYSTEM ] ", "gnss_module      = ", systemInfo.gnss_module);
   printField("[SYSTEM ] ", "gnss_mode        = ", systemInfo.gnss_mode);
@@ -80,7 +80,7 @@ void config_dump()
   printField("[SYSTEM ] ", "cal_speed        = ", systemInfo.cal_speed);
   printField("[SYSTEM ] ", "storage_mb       = ", systemInfo.storage_mb);
   printField("[SYSTEM ] ", "display          = ", systemInfo.display);
-  printField("[SYSTEM ] ", "cpu_freq         = ", systemInfo.cpu_freq);
+  printField("[SYSTEM ] ", "cpu_freq         = ", getCpuFrequencyMhz());
   printField("[SYSTEM ] ", "software_version = ", systemInfo.software_version);
 
   Serial.println("=======================================");

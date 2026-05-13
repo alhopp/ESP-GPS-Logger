@@ -22,7 +22,6 @@ struct SystemInfo {
   const char* software_version;   // e.g. "Version 1"
   
   const char* display;            // "LilyGO T5 B74"   
-  uint32_t    cpu_freq;           // e.g. 80 MHz
 
   const char* speed_units;        // "Knots"
   float       cal_speed;          // e.g. 3.6
