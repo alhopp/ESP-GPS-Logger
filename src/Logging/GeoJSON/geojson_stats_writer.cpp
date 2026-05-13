@@ -6,38 +6,41 @@
 
 #include "Logging/GeoJSON/geojson_stats_writer.h"
 
+#include "Logging/GeoJSON/geojson_json_writer.h"
+
 void geojson_write_stats(File& file, const GeoJSONStats& stats)
 {
-  file.println(",");
+  geojson_write_comma_line(file);
   file.println("\"stats\":{");
-  file.print("\"nm\":");
+  geojson_write_property_name(file, "nm");
   file.print(stats.nm, 3);
-  file.println(",");
-  file.print("\"alpha\":");
+  geojson_write_comma_line(file);
+  geojson_write_property_name(file, "alpha");
   file.print(stats.alpha, 3);
-  file.println(",");
-  file.print("\"alphaDistance\":");
+  geojson_write_comma_line(file);
+  geojson_write_property_name(file, "alphaDistance");
   file.print(stats.alphaDistance, 1);
-  file.println(",");
-  file.print("\"alphaClosure\":");
+  geojson_write_comma_line(file);
+  geojson_write_property_name(file, "alphaClosure");
   file.print(stats.alphaClosure, 1);
-  file.println(",");
-  file.print("\"h1\":");
+  geojson_write_comma_line(file);
+  geojson_write_property_name(file, "h1");
   file.print(stats.h1, 3);
-  file.println(",");
-  file.print("\"max\":");
+  geojson_write_comma_line(file);
+  geojson_write_property_name(file, "max");
   file.print(stats.max, 3);
-  file.println(",");
-  file.print("\"avg10\":");
+  geojson_write_comma_line(file);
+  geojson_write_property_name(file, "avg10");
   file.print(stats.avg10, 3);
-  file.println(",");
-  file.print("\"r10\":[");
+  geojson_write_comma_line(file);
+  geojson_write_property_name(file, "r10");
+  file.print("[");
   for (int i = 0; i < 5; i++) {
     if (i) file.print(",");
     file.print(stats.r10[i], 3);
   }
   file.println("],");
-  file.print("\"distance\":");
+  geojson_write_property_name(file, "distance");
   file.print(stats.distance, 3);
   file.println("}");
 }

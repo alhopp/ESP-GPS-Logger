@@ -7,12 +7,13 @@
 
 #include "Logging/GeoJSON/geojson_graph_writer.h"
 
+#include "Logging/GeoJSON/geojson_json_writer.h"
+
 namespace {
 void writeGraphSeries(File& file, const char* name, const GeoJSONGraphSeries& series)
 {
-  file.print("\"");
-  file.print(name);
-  file.print("\":[");
+  geojson_write_property_name(file, name);
+  file.print("[");
 
   for (int i = 0; i < series.count; i++) {
     if (i) file.print(",");
@@ -24,9 +25,8 @@ void writeGraphSeries(File& file, const char* name, const GeoJSONGraphSeries& se
 
 void writeGraphSeriesList(File& file, const char* name, const GeoJSONGraphSeries* series, int count)
 {
-  file.print("\"");
-  file.print(name);
-  file.print("\":[");
+  geojson_write_property_name(file, name);
+  file.print("[");
 
   for (int i = 0; i < count; i++) {
     if (i) file.print(",");
@@ -43,9 +43,8 @@ void writeGraphSeriesList(File& file, const char* name, const GeoJSONGraphSeries
 
 void writeGraphMetaSeries(File& file, const char* name, const GeoJSONGraphSeries& series)
 {
-  file.print("\"");
-  file.print(name);
-  file.print("\":{\"xMax\":");
+  geojson_write_property_name(file, name);
+  file.print("{\"xMax\":");
   file.print(series.xMax, 3);
   file.print(",\"xUnit\":\"");
   file.print(series.xUnit ? series.xUnit : "");
@@ -55,18 +54,18 @@ void writeGraphMetaSeries(File& file, const char* name, const GeoJSONGraphSeries
 
 void geojson_write_graphs(File& file, const GeoJSONGraphs& graphs)
 {
-  file.println(",");
+  geojson_write_comma_line(file);
   file.println("\"graphs\":{");
   writeGraphSeries(file, "2s", graphs.s2);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphSeriesList(file, "10s", graphs.s10, graphs.s10Count);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphSeries(file, "alpha", graphs.alpha);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphSeries(file, "nm", graphs.nm);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphSeries(file, "1h", graphs.h1);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphSeries(file, "distance", graphs.distance);
   file.println();
   file.print("},");
@@ -74,15 +73,15 @@ void geojson_write_graphs(File& file, const GeoJSONGraphs& graphs)
   file.println();
   file.println("\"graph_meta\":{");
   writeGraphMetaSeries(file, "2s", graphs.s2);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphMetaSeries(file, "10s", graphs.s10Count > 0 ? graphs.s10[0] : graphs.s2);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphMetaSeries(file, "alpha", graphs.alpha);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphMetaSeries(file, "nm", graphs.nm);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphMetaSeries(file, "1h", graphs.h1);
-  file.println(",");
+  geojson_write_comma_line(file);
   writeGraphMetaSeries(file, "distance", graphs.distance);
   file.println();
   file.print("}");
