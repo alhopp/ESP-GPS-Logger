@@ -16,6 +16,7 @@
 
 namespace {
 constexpr int GEOJSON_MAX_SERIES_POINTS = 240;
+constexpr int BASE_TRACK_1HZ_THRESHOLD_SECONDS = 20 * 60;
 
 bool hasWindow(const SessionWindow& window)
 {
@@ -82,15 +83,36 @@ void addOneHourFeature(const char* sbpPath, const SessionStatsSnapshot& snapshot
   addSbpRangePoints(sbpPath, snapshot.oneHour.startSbp, snapshot.oneHour.endSbp, secStep * sampleRate);
   geojson_end_feature();
 }
+
+int baseTrackStride(int frameCount)
+{
+  const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
+  const int thresholdFrames = BASE_TRACK_1HZ_THRESHOLD_SECONDS * sampleRate;
+  return frameCount > thresholdFrames ? sampleRate : 1;
+}
 }
 
 bool geojson_add_base_track_from_sbp(const char* sbpPath)
 {
+  const int frameCount = sbp_session_count_frames(sbpPath);
+  if (frameCount <= 0) return false;
+
   File file;
   if (!sbp_session_open(file, sbpPath)) return false;
 
   SbpFrame frame;
+  const int stride = baseTrackStride(frameCount);
+  int gpsIndex = 1;
+
   while (sbp_session_read_frame(file, frame)) {
+    if ((gpsIndex - 1) % stride == 0) {
+      geojson_add_track_point(sbp_frame_lat(frame), sbp_frame_lon(frame));
+    }
+    gpsIndex++;
+  }
+
+  if ((frameCount - 1) % stride != 0 &&
+      sbp_session_read_frame_at(file, frameCount, frame)) {
     geojson_add_track_point(sbp_frame_lat(frame), sbp_frame_lon(frame));
   }
 
