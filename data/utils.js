@@ -39,11 +39,55 @@ window.AppUtil = {
   }
 };
 
+window.AppCache = {
+  name:"esp32-gps-v65",
+
+  cacheable(url, options={}){
+    const method = String(options.method || "GET").toUpperCase();
+    if(method !== "GET") return false;
+
+    const u = new URL(url, location.origin);
+    if(u.origin !== location.origin) return false;
+    if(u.pathname === "/api/files") return true;
+    return u.pathname === "/api/download" &&
+      (u.searchParams.get("file") || "").toLowerCase().endsWith(".geojson");
+  },
+
+  key(url){
+    const u = new URL(url, location.origin);
+    u.searchParams.delete("t");
+    return u.toString();
+  },
+
+  async put(url, response){
+    if(!("caches" in window) || !response?.ok) return;
+    const cache = await caches.open(this.name);
+    await cache.put(this.key(url), response);
+  },
+
+  async match(url){
+    if(!("caches" in window)) return null;
+    const cache = await caches.open(this.name);
+    return cache.match(this.key(url));
+  }
+};
+
 window.Api = {
   async json(url, options={}){
-    const response = await fetch(url, { cache:"no-store", ...options });
-    if(!response.ok) throw new Error(`${url} failed: ${response.status}`);
-    return response.json();
+    const cacheable = AppCache.cacheable(url, options);
+
+    try{
+      const response = await fetch(url, { cache:"no-store", ...options });
+      if(!response.ok) throw new Error(`${url} failed: ${response.status}`);
+      if(cacheable) AppCache.put(url, response.clone()).catch(() => {});
+      return response.json();
+    }catch(err){
+      if(cacheable){
+        const cached = await AppCache.match(url);
+        if(cached) return cached.json();
+      }
+      throw err;
+    }
   },
 
   async postJson(url, payload){

@@ -52,6 +52,31 @@ void sendNoContent()
   server.send(204);
 }
 
+void streamLittleFsFile(const char* path, const char* contentType)
+{
+  webserver_note_activity();
+
+  File f = LittleFS.open(path, "r");
+  if (!f) {
+    server.send(404, "text/plain", "File missing");
+    return;
+  }
+
+  server.streamFile(f, contentType);
+  f.close();
+}
+
+void handleManifest()
+{
+  streamLittleFsFile("/manifest.webmanifest", "application/manifest+json");
+}
+
+void handleServiceWorker()
+{
+  server.sendHeader("Cache-Control", "no-cache");
+  streamLittleFsFile("/sw.js", "application/javascript");
+}
+
 void registerStaticRoutes()
 {
   server.on("/", HTTP_GET, handleRoot);
@@ -59,6 +84,8 @@ void registerStaticRoutes()
   server.on("/favicon.ico", HTTP_GET, sendNoContent);
   server.on("/apple-touch-icon.png", HTTP_GET, sendNoContent);
   server.on("/apple-touch-icon-precomposed.png", HTTP_GET, sendNoContent);
+  server.on("/manifest.webmanifest", HTTP_GET, handleManifest);
+  server.on("/sw.js", HTTP_GET, handleServiceWorker);
   server.serveStatic("/", LittleFS, "/");
   server.onNotFound(sendNoContent);
 }
