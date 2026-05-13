@@ -26,6 +26,8 @@
 #define GPS_SIM_SPEEDUP 1
 #endif
 
+namespace {
+
 static constexpr float    SIM_DT          = 0.2f;     // 5 Hz
 static constexpr uint32_t SIM_RATE_MS     = 200;
 static constexpr float    KNOTS_TO_MPS    = 0.514444f;
@@ -205,6 +207,8 @@ static inline void utc_add_one_second()
   p.month = 1;
   p.year++;
 }
+
+} // namespace
 
 // -----------------------------------------------------------------------------
 // Init
