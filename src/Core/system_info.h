@@ -18,11 +18,10 @@ struct SystemInfo {
   uint32_t    sample_rate;        // "5"
 
   const char* software_version;   // e.g. "Version 1"
-  
+
   const char* display;            // "LilyGO T5 B74"   
 
   const char* speed_units;        // "Knots"
-  float       cal_speed;          // e.g. 3.6
 
 };
 extern const SystemInfo systemInfo;

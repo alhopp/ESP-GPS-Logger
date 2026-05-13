@@ -14,9 +14,8 @@ const SystemInfo systemInfo = {
   "SEA",                           // dynamic_model
   5,                               // sample_rate
 
-  GPS_SOFTWARE_VERSION,              // software_version
+  GPS_SOFTWARE_VERSION,            // software_version
   "LilyGO T5 B74",                 // display
 
-  "Knots",                         // speed_units
-  3.6f                             // cal_speed
+  "Knots"                          // speed_units
 };

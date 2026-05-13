@@ -78,7 +78,6 @@ void config_dump()
   printField("[SYSTEM ] ", "dynamic_model    = ", systemInfo.dynamic_model);
   printField("[SYSTEM ] ", "sample_rate      = ", systemInfo.sample_rate);
   printField("[SYSTEM ] ", "speed_units      = ", systemInfo.speed_units);
-  printField("[SYSTEM ] ", "cal_speed        = ", systemInfo.cal_speed);
   printField("[SYSTEM ] ", "storage_mb       = ", storage_sd_total_mb());
   printField("[SYSTEM ] ", "storage_used_mb  = ", storage_sd_used_mb());
   printField("[SYSTEM ] ", "storage_free_mb  = ", storage_sd_free_mb());

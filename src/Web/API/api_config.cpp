@@ -52,7 +52,6 @@ void addSystemJson(JsonDocument& j)
   system["display"] = systemInfo.display;
   system["cpu_freq"] = getCpuFrequencyMhz();
   system["speed_units"] = systemInfo.speed_units;
-  system["cal_speed"] = systemInfo.cal_speed;
   system["simulator"] = build_gps_simulator_enabled();
   system["dev_wifi"] = build_dev_wifi_enabled();
   system["logging_enabled"] = LOG_ENABLED != 0;
