@@ -4,37 +4,6 @@
 
 let dirty = false;
 
-window.IS_LOCAL =
-  location.hostname === "localhost" ||
-  location.hostname === "127.0.0.1";
-
-if (window.IS_LOCAL) {
-  const realFetch = window.fetch;
-
-  window.fetch = async (url, opts) => {
-    if (url === "/api/files") {
-      return new Response(JSON.stringify({
-        ok: true,
-        files: [
-          { name: "test_track1.geojson", size: 1234 },
-          { name: "test_track2.geojson", size: 1234 },
-          { name: "test_track3.geojson", size: 1234 }
-        ]
-      }), {
-        headers: { "Content-Type": "application/json" }
-      });
-    }
-
-    if (url.startsWith("/api/download")) {
-      const params = new URLSearchParams(url.split("?")[1]);
-      const file = params.get("file");
-      return realFetch(`/logs/${file}`, opts);
-    }
-
-    return realFetch(url, opts);
-  };
-}
-
 function splashReady(){
   requestAnimationFrame(() => {
     $("splash")?.classList.add("ready");
