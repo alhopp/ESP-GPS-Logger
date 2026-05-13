@@ -146,11 +146,14 @@ async function loadFiles(fileList, sdInfo){
                  data-download="${AppUtil.escapeHtml(downloadName)}"
                  data-date="${AppUtil.escapeHtml(date)}">
               <div class="file-actions">
+                <button class="file-action file-action-delete" type="button" aria-label="Delete session">
+                  <span aria-hidden="true">&#128465;</span><small>Delete</small>
+                </button>
                 <button class="file-action file-action-download" type="button" aria-label="Download SBP">
                   <span aria-hidden="true">&#8681;</span><small>SBP</small>
                 </button>
-                <button class="file-action file-action-delete" type="button" aria-label="Delete session">
-                  <span aria-hidden="true">&#128465;</span><small>Delete</small>
+                <button class="file-action file-action-map" type="button" aria-label="Open on map">
+                  <span aria-hidden="true">&#10148;</span><small>Map</small>
                 </button>
               </div>
               <div class="file-swipe-inner">
@@ -197,8 +200,15 @@ function enableSwipe(container, fileList, sdInfo){
       `/api/download?file=${encodeURIComponent(name)}&t=${Date.now()}`);
   };
 
+  const openMap = r => {
+    if(!r) return;
+    MapSessions.openFile(r.dataset.name)
+      .finally(() => AppShell.openTab("map"));
+  };
+
   const deleteRow = r => {
     if(!r) return;
+    if(!confirm("Delete this session? This cannot be undone.")) return;
 
     const date = r.dataset.date;
 
@@ -241,6 +251,8 @@ function enableSwipe(container, fileList, sdInfo){
         download(r.dataset.download || r.dataset.name);
       }else if(action.classList.contains("file-action-delete")){
         deleteRow(r);
+      }else if(action.classList.contains("file-action-map")){
+        openMap(r);
       }
 
       return;
@@ -288,6 +300,8 @@ function enableSwipe(container, fileList, sdInfo){
         download(r.dataset.download || r.dataset.name);
       }else if(action.classList.contains("file-action-delete")){
         deleteRow(r);
+      }else if(action.classList.contains("file-action-map")){
+        openMap(r);
       }
       return;
     }
@@ -295,10 +309,7 @@ function enableSwipe(container, fileList, sdInfo){
     const r = e.target.closest(".file-swipe");
     if(!r) return;
 
-    if(!r.classList.contains("show-actions")){
-      selectFileRow(r);
-      MapSessions.openFile(r.dataset.name)
-        .finally(() => AppShell.openTab("map"));
-    }
+    selectFileRow(r);
+    r.classList.remove("show-actions");
   });
 }
