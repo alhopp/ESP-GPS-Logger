@@ -40,7 +40,7 @@ input,select{width:100%;margin-top:4px;padding:12px;font-size:17px;border:1px so
 .file-list{flex:0 0 auto;display:flex;flex-direction:column;gap:15px}
 .file-swipe{position:relative;overflow:hidden;border-radius:16px;background:linear-gradient(180deg,#fff,#f8fbff);border:1px solid rgba(219,226,238,.95);box-shadow:0 10px 22px rgba(15,30,55,.10)}
 .file-row{border-bottom:0}
-.file-row.selected{background:linear-gradient(180deg,#f0f7ff,#e7f2ff);border-color:rgba(30,136,229,.55);box-shadow:0 10px 22px rgba(30,136,229,.14),inset 4px 0 0 var(--a)}
+.file-row.selected{background:linear-gradient(180deg,#fff,#f8fbff);border-color:rgba(30,136,229,.75);box-shadow:0 10px 22px rgba(30,136,229,.16),inset 4px 0 0 var(--a)}
 .file-swipe-inner{display:flex;align-items:center;gap:14px;padding:18px 15px;transform:translateX(0);transition:transform .2s ease;will-change:transform}
 .file-actions{position:absolute;right:0;top:0;bottom:0;width:188px;display:flex;transform:translateX(100%);transition:transform .2s ease;pointer-events:auto}
 .file-delete-actions{position:absolute;left:0;top:0;bottom:0;width:104px;display:flex;transform:translateX(-100%);transition:transform .2s ease;pointer-events:auto}
@@ -60,6 +60,7 @@ input,select{width:100%;margin-top:4px;padding:12px;font-size:17px;border:1px so
 .file-name{margin-top:5px;font-size:12px;font-weight:650;color:var(--f);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 11px}
 .file-stats span{min-width:0;padding:11px 8px;border:1px solid rgba(219,226,238,.9);border-radius:10px;background:rgba(244,247,251,.82);text-align:center}
+.file-row.selected .file-stats span{border-color:rgba(30,136,229,.24);background:#fff}
 .file-stats b{display:block;font-size:18px;line-height:1.1;color:var(--b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-stats small{display:block;margin-top:4px;font-size:12px;font-weight:700;color:var(--f);text-transform:uppercase}
 .file-size{font-size:14px;font-weight:750;color:var(--b)}

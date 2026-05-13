@@ -207,6 +207,7 @@ function enableSwipe(container, fileList, sdInfo){
 
   const openMap = r => {
     if(!r) return;
+    r.classList.remove("show-actions", "show-delete");
     MapSessions.openFile(r.dataset.name)
       .finally(() => AppShell.openTab("map"));
   };
