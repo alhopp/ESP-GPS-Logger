@@ -42,6 +42,7 @@ static int staAttempts = 0;
 static constexpr uint32_t STA_RETRY_INTERVAL_MS = 3000;
 static constexpr uint32_t STA_LOST_GRACE_MS = 5000;
 static constexpr int STA_MAX_ATTEMPTS = 10;
+static constexpr const char* AP_PROVISIONING_SSID = "GPS-Setup";
 
 // -----------------------------------------------------------------------------
 // UI state
@@ -99,6 +100,7 @@ static void reset_sta_retry_state()
 {
   staAttempts = 0;
   lastStaAttempt = millis();
+  lastStaConnected = 0;
 }
 
 static bool have_phone_wifi()
@@ -182,7 +184,7 @@ static void start_ap()
   disconnect_wifi_radios();
 
   WiFi.mode(WIFI_AP);
-  WiFi.softAP("GPS-Setup");
+  WiFi.softAP(AP_PROVISIONING_SSID);
 
   LOG_WIFI("AP", "IP=%s", WiFi.softAPIP().toString().c_str());
 

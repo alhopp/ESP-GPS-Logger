@@ -8,6 +8,7 @@
 #include "Core/system_info.h"
 #include "Storage/storage_manager.h"
 #include "Web/web_json.h"
+#include "Web/web_server.h"
 #include "Web/wifi_manager.h"
 
 namespace {
@@ -155,6 +156,8 @@ void registerConfigApi(WebServer& server)
   });
 
   server.on("/api/config", HTTP_POST, [&server] {
+    webserver_note_activity();
+
     DynamicJsonDocument j(CONFIG_POST_JSON_BYTES);
     if (deserializeJson(j, server.arg("plain"))) {
       server.send(400, "text/plain", "Bad JSON");

@@ -25,6 +25,7 @@
 
 namespace {
 constexpr uint32_t IDLE_AUTO_SLEEP_MS = 30000;
+constexpr uint32_t CONFIG_AUTO_SLEEP_MS = 10UL * 60UL * 1000UL;
 
 volatile SystemMode currentMode = MODE_BOOT;
 volatile bool enterModeFailed = false;
@@ -254,6 +255,12 @@ void systemModeLoop()
   if (wifi_net_active()) {
     webserver_start();
     webserver_loop();
+  }
+
+  const uint32_t lastActivity = webserver_last_activity_ms();
+  const uint32_t activityBase = lastActivity ? lastActivity : modeEnteredAtMs;
+  if (millis() - activityBase >= CONFIG_AUTO_SLEEP_MS) {
+    setMode(MODE_SLEEP);
   }
 }
 

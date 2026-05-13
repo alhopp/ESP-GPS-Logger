@@ -16,6 +16,7 @@
 #include "Core/log.h"
 #include "Storage/storage_manager.h"
 #include "Web/web_json.h"
+#include "Web/web_server.h"
 
 namespace {
 constexpr size_t FILE_LIST_JSON_BYTES = 16384;
@@ -243,6 +244,8 @@ void handleFilesList(WebServer& server)
 
 void handleFileDownload(WebServer& server)
 {
+  webserver_note_activity();
+
   if (!storage_on() || !server.hasArg("file")) {
     server.send(400);
     return;
@@ -281,6 +284,8 @@ void handleFileDownload(WebServer& server)
 
 void handleFileDelete(WebServer& server)
 {
+  webserver_note_activity();
+
   if (!storage_on() || !server.hasArg("plain")) {
     sendDeleteResult(server, false, 0);
     return;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 // ============================================================================
 // web_server.h
 //
@@ -12,3 +14,6 @@
 void webserver_start();
 void webserver_stop();
 void webserver_loop();
+
+void webserver_note_activity();
+uint32_t webserver_last_activity_ms();

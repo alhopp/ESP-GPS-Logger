@@ -18,11 +18,14 @@
 
 static WebServer server(80);
 static bool webStarted = false;
+static bool routesRegistered = false;
+static uint32_t lastWebActivityMs = 0;
 
 namespace {
 
 void handleRoot()
 {
+  webserver_note_activity();
   const char* page = wifi_show_ap_page() ? "/ap.html" : "/index.html";
 
   File f = LittleFS.open(page, "r");
@@ -37,6 +40,7 @@ void handleRoot()
 
 void handleReboot()
 {
+  webserver_note_activity();
   server.send(200, "text/plain", "OK");
   delay(200);
   ESP.restart();
@@ -44,6 +48,7 @@ void handleReboot()
 
 void sendNoContent()
 {
+  webserver_note_activity();
   server.send(204);
 }
 
@@ -71,11 +76,15 @@ void webserver_start()
 {
   if (webStarted) return;
 
-  registerApiRoutes();
-  registerStaticRoutes();
+  if (!routesRegistered) {
+    registerApiRoutes();
+    registerStaticRoutes();
+    routesRegistered = true;
+  }
 
   server.begin();
   webStarted = true;
+  webserver_note_activity();
   LOG_WIFI("Web", "started (network active)");
 }
 
@@ -85,9 +94,20 @@ void webserver_stop()
     server.stop();
   }
   webStarted = false;
+  lastWebActivityMs = 0;
 }
 
 void webserver_loop()
 {
   server.handleClient();
+}
+
+void webserver_note_activity()
+{
+  lastWebActivityMs = millis();
+}
+
+uint32_t webserver_last_activity_ms()
+{
+  return lastWebActivityMs;
 }
