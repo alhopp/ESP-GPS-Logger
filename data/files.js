@@ -42,6 +42,16 @@ function fileSizeKb(size){
   return `${(bytes / 1024).toFixed(1)} kB`;
 }
 
+function formatSpeed(value){
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? `${n.toFixed(2)} kt` : "-";
+}
+
+function formatDistance(value){
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? `${n.toFixed(2)} km` : "-";
+}
+
 function updateLogsTitle(storage){
   const el = document.getElementById("logsTitle");
   if(!el) return;
@@ -54,6 +64,34 @@ function updateLogsTitle(storage){
   }else{
     el.textContent = "Logs";
   }
+}
+
+function updateSessionSummary(name, stats){
+  const row = Array.from(document.querySelectorAll(".file-row[data-name]"))
+    .find(el => el.dataset.name === name);
+  if(!row) return;
+
+  AppUtil.setText(row.querySelector("[data-summary='max']"), formatSpeed(stats?.max));
+  AppUtil.setText(row.querySelector("[data-summary='distance']"), formatDistance(stats?.distance));
+  AppUtil.setText(row.querySelector("[data-summary='alpha']"), formatSpeed(stats?.alpha));
+}
+
+async function loadSessionSummary(file){
+  try{
+    const gj = await Api.json(`/api/download?file=${encodeURIComponent(file.name)}&t=${Date.now()}`);
+    const base = gj.features?.find(f => f.properties?.mode === "track");
+    updateSessionSummary(file.name, base?.properties?.stats);
+  }catch(err){
+    console.warn("Session summary unavailable", file.name, err);
+  }
+}
+
+function hydrateSessionSummaries(files){
+  files
+    .filter(f => f.name?.endsWith(".geojson"))
+    .forEach((file, index) => {
+      setTimeout(() => loadSessionSummary(file), index * 120);
+    });
 }
 
 function applyDeletedStorageBytes(deletedBytes){
@@ -119,11 +157,16 @@ async function loadFiles(fileList, sdInfo){
                  data-date="${AppUtil.escapeHtml(date)}">
               <div class="file-delete">&#128465;</div>
               <div class="file-swipe-inner">
-                <div class="file-icon">&#128196;</div>
                 <div class="file-text">
                   <div class="file-name">${AppUtil.escapeHtml(sessionTitle(displayName))}</div>
+                  <div class="file-stats">
+                    <span><b data-summary="max">-</b><small>Max</small></span>
+                    <span><b data-summary="distance">-</b><small>Dist</small></span>
+                    <span><b data-summary="alpha">-</b><small>Alpha</small></span>
+                  </div>
                   <div class="file-size">${AppUtil.escapeHtml(details)}</div>
                 </div>
+                <button class="file-download" type="button" aria-label="Download">&#8681;</button>
               </div>
             </div>
           `);
@@ -131,6 +174,7 @@ async function loadFiles(fileList, sdInfo){
       });
 
     sdInfo.textContent = "";
+    hydrateSessionSummaries(j.files);
 
   }catch(e){
     updateLogsTitle(null);
@@ -225,11 +269,21 @@ function enableSwipe(container, fileList, sdInfo){
   }, { passive:true });
 
   container.addEventListener("click", e=>{
+    const downloadBtn = e.target.closest(".file-download");
+    if(downloadBtn){
+      e.preventDefault();
+      e.stopPropagation();
+      const r = downloadBtn.closest(".file-swipe");
+      download(r?.dataset.download || r?.dataset.name);
+      return;
+    }
+
     const r = e.target.closest(".file-swipe");
     if(!r) return;
 
     if(!r.classList.contains("show-delete")){
-      download(r.dataset.download || r.dataset.name);
+      AppShell.openTab("map");
+      setTimeout(() => MapSessions.openFile(r.dataset.name), 180);
     }
   });
 }

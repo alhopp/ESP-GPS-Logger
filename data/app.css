@@ -39,15 +39,22 @@ input,select{width:100%;margin-top:4px;padding:12px;font-size:17px;border:1px so
 /* ================= FILES ================= */
 
 .file-list{flex:0 0 auto}
-.file-swipe{position:relative;overflow:hidden;border-radius:12px}
+.file-swipe{position:relative;overflow:hidden;border-radius:12px;background:rgba(255,255,255,.55)}
 .file-row{border-bottom:1px solid var(--e)}
-.file-swipe-inner{display:flex;align-items:center;padding:12px 0;transform:translateX(0);transition:transform .2s ease;will-change:transform}
+.file-row.selected{background:linear-gradient(180deg,#f2f8ff,#eaf4ff);box-shadow:inset 3px 0 0 var(--a)}
+.file-swipe-inner{display:flex;align-items:center;gap:10px;padding:12px 10px;transform:translateX(0);transition:transform .2s ease;will-change:transform}
 .file-delete{position:absolute;right:0;top:0;bottom:0;width:72px;display:flex;align-items:center;justify-content:center;background:#fdecea;color:#c62828;transform:translateX(100%);transition:transform .2s ease;pointer-events:auto}
 .file-swipe.show-delete .file-swipe-inner{transform:translateX(-72px)}
 .file-swipe.show-delete .file-delete{transform:translateX(0)}
-.file-icon{width:32px;height:32px;margin:0 12px 0 8px}
-.file-name{font-size:15px}
+.file-text{flex:1;min-width:0}
+.file-name{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:9px 0}
+.file-stats span{min-width:0;padding:8px 7px;border:1px solid rgba(219,226,238,.9);border-radius:8px;background:rgba(244,247,251,.75);text-align:center}
+.file-stats b{display:block;font-size:14px;line-height:1.1;color:var(--b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-stats small{display:block;margin-top:3px;font-size:11px;font-weight:700;color:var(--f);text-transform:uppercase}
 .file-size{font-size:13px;color:var(--f)}
+.file-download{flex:0 0 42px;width:42px;height:42px;border:1px solid var(--e);border-radius:10px;background:#fff;color:var(--a);font-size:22px;font-weight:900}
+.file-download:active{transform:scale(.94)}
 section#files.a~footer{display:none}
 
 /* Files: no press-scale */

@@ -30,6 +30,13 @@ function tab(id, btn){
   }
 }
 
+window.AppShell = {
+  openTab(id){
+    const btn = document.querySelector(`nav button[data-tab='${id}']`);
+    if(btn) tab(id, btn);
+  }
+};
+
 function markDirty(saveBtn){
   if(dirty) return;
   dirty = true;

@@ -84,8 +84,35 @@ window.MapSessions = {
     if(!f) return;
 
     this.updateHeader();
+    this.markSelected();
     MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}&t=${Date.now()}`, {
       preserveStats:true
+    });
+  },
+
+  async openFile(name){
+    if(!name) return;
+    if(!MapView.map){
+      MapView.init();
+      setTimeout(() => this.openFile(name), 220);
+      return;
+    }
+
+    if(!this.files.length){
+      await this.reload({ keepCurrent:true });
+    }
+
+    const idx = this.files.findIndex(f => f.name === name || f.sbp_name === name);
+    if(idx < 0) return;
+
+    this.index = idx;
+    this.loadCurrent();
+  },
+
+  markSelected(){
+    const current = this.files[this.index]?.name;
+    document.querySelectorAll(".file-row[data-name]").forEach(row => {
+      row.classList.toggle("selected", row.dataset.name === current);
     });
   },
 
