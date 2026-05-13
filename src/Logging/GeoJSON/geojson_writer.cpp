@@ -30,7 +30,8 @@ struct GeoJsonWriterState {
 };
 
 GeoJsonWriterState state;
-}
+
+} // namespace
 
 // -----------------------------------------------------------------------------
 // Stats setter (called once per session)
@@ -46,6 +47,8 @@ void geojson_set_graphs(const GeoJSONGraphs& g)
   state.graphs = g;
   state.hasGraphs = true;
 }
+
+namespace {
 
 void writeCoordinate(double lat, double lon)
 {
@@ -209,6 +212,8 @@ void writeTrackProperties()
     writeGraphs(state.file, state.graphs);
   }
 }
+
+} // namespace
 
 // -----------------------------------------------------------------------------
 // Begin GeoJSON file
