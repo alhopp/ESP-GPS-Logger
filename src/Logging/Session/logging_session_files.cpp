@@ -48,6 +48,20 @@ bool hasActiveSessionPaths()
   return activeSbpPath[0] != '\0' && activeGeoPath[0] != '\0';
 }
 
+void printSessionCloseProgress(const char* message)
+{
+#if LOG_ENABLED
+  Serial.printf("[%-*s] %-*s : %s\n",
+                LOG_TAG_W,
+                "STORAGE",
+                LOG_ITEM_W,
+                "Session",
+                message);
+#else
+  (void)message;
+#endif
+}
+
 bool exportClosedSession()
 {
   if (!hasActiveSessionPaths()) return false;
@@ -55,11 +69,24 @@ bool exportClosedSession()
   const SessionStatsSnapshot snapshot = build_session_stats_snapshot();
   logging_sbp_debug_print_samples(activeSbpPath, snapshot);
 
+  printSessionCloseProgress("map file generating...");
+  const uint32_t startedAtMs = millis();
+
   if (!geojson_session_export_finalize(activeSbpPath, activeGeoPath, snapshot)) {
     LOG_ERROR("STORAGE", "GeoJSON export failed");
+    char message[64];
+    snprintf(message, sizeof(message),
+             "map file failed after %.1fs - shutting down",
+             (millis() - startedAtMs) / 1000.0f);
+    printSessionCloseProgress(message);
     return false;
   }
 
+  char message[64];
+  snprintf(message, sizeof(message),
+           "map file complete in %.1fs - shutting down",
+           (millis() - startedAtMs) / 1000.0f);
+  printSessionCloseProgress(message);
   return true;
 }
 }
