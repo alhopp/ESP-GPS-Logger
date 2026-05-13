@@ -1,5 +1,12 @@
 #pragma once
 
+// ============================================================================
+// RTC session stats
+//
+// Stores the final session summary in RTC memory so the sleep screen can show
+// the completed session after logging has stopped.
+// ============================================================================
+
 #include <Arduino.h>
 
 void rtc_snapshot_stats();

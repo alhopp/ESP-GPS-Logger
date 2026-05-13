@@ -281,6 +281,8 @@ void setMode(SystemMode newMode)
   enterModeFailed = false;
 
   if (oldMode == MODE_LOGGING) {
+    // Mark the requested mode before closing the session so the GPS task stops
+    // writing fixes while stats are finalised and storage is shutting down.
     currentMode = newMode;
   }
 

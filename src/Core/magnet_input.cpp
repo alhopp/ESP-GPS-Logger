@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#include "Core/input_pins.h"
+#include "Core/board_pins.h"
 #include "Core/magnet_input.h"
 #include "Core/log.h"
 #include "Core/system_mode.h"
@@ -8,6 +8,13 @@
 
 #include "Display/Screens/screen_system.h"
 
+// ============================================================================
+// Magnet input
+//
+// Debounces the Hall sensor and translates user gestures into mode requests:
+// short press starts/stops logging or exits config, long hold enters config from
+// idle or sleeps after release while logging/waiting for satellites.
+// ============================================================================
 
 // -----------------------------------------------------------------------------
 // Gesture thresholds
@@ -125,7 +132,7 @@ void magnet_poll()
   }
 
   // ---------------------------------------------------------------------------
-  // Long hold → CONFIG
+  // Long hold: enter config from idle, or sleep after release while logging.
   // ---------------------------------------------------------------------------
   if (active && !longHandled && (now - pressTime >= WIFI_HOLD_MS)) {
     longHandled = true;
@@ -144,7 +151,7 @@ void magnet_poll()
     }
   }
 
-  // Release → short press action or config exit
+  // Release: complete a pending sleep request, short press action, or config exit.
   if (!active && prevActive && longHandled && sleepOnRelease) {
     sleepOnRelease = false;
     setMode(MODE_SLEEP);

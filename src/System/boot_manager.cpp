@@ -13,7 +13,6 @@
 #include "Display/E_paper.h"
 #include "Core/Battery/battery_monitor.h"
 #include "Core/log.h"
-#include "Core/Globals.h"
 
 namespace {
 constexpr uint32_t SERIAL_WAIT_MS = 400;
@@ -49,11 +48,6 @@ BootResult checkFatalBootConditions()
   if (battery_is_low()) {
     LOG_BOOT("Shutdown", "low battery");
     return BOOT_LOW_BATTERY;
-  }
-
-  if (reset_boot) {
-    LOG_BOOT("Shutdown", "after reset");
-    return BOOT_AFTER_RESET;
   }
 
   return BOOT_OK;

@@ -1,4 +1,11 @@
 #include "Core/system_info.h"
+
+// ============================================================================
+// System information
+//
+// Central definition of the static device metadata declared in system_info.h.
+// ============================================================================
+
 #include "build_version.h"
 
 const SystemInfo systemInfo = {

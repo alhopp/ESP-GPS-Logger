@@ -1,8 +1,15 @@
 #include "Core/sleep_control.h"
 
+// ============================================================================
+// Deep sleep control
+//
+// Configures EXT1 wake on the Hall sensor pin and reports whether the current
+// boot was caused by that wake source.
+// ============================================================================
+
 #include <esp_sleep.h>
 
-#include "Core/input_pins.h"
+#include "Core/board_pins.h"
 
 bool sleep_woke_from_magnet()
 {

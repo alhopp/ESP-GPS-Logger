@@ -1,5 +1,12 @@
 #include "Core/Rtc/rtc_session_stats.h"
 
+// ============================================================================
+// RTC session stats
+//
+// Snapshots completed-session metrics into RTC memory and prints a serial debug
+// summary of the exact stat windows used for display/export.
+// ============================================================================
+
 #include "Core/build_config.h"
 
 #include "Session/session_stats_snapshot.h"

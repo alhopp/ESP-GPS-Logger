@@ -1,5 +1,12 @@
 #pragma once
 
+// ============================================================================
+// Build feature flags
+//
+// Compile-time switches supplied by platformio.ini. Defaults here keep local
+// builds working when a flag is not provided by the environment.
+// ============================================================================
+
 #ifndef GPS_SIMULATOR
 #define GPS_SIMULATOR 0
 #endif

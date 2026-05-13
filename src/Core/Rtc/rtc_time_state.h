@@ -1,5 +1,12 @@
 #pragma once
 
+// ============================================================================
+// RTC time state
+//
+// Compact date/time fields retained across deep sleep for screens that need the
+// previous known time before GPS time has been accepted again.
+// ============================================================================
+
 #include <Arduino.h>
 
 // Date / time snapshot cached across deep sleep.

@@ -1,4 +1,13 @@
 #pragma once
+
+// ============================================================================
+// System information
+//
+// Static device metadata reported through the web API and status/debug output.
+// Keep this file to build/device facts; runtime state belongs in the relevant
+// module or RTC state file.
+// ============================================================================
+
 #include <stdint.h>
 
 

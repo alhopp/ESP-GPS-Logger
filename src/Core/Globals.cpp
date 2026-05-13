@@ -1,20 +1,11 @@
-// -----------------------------------------------------------------------------
-// Globals.cpp
+// ============================================================================
+// Shared legacy runtime globals
 //
-// Centralised global runtime state.
-//
-// Notes:
-// - This file contains ONLY data declarations
-// - No logic, no side-effects, no initialisation sequences
-// - Values are grouped by functional responsibility
-// -----------------------------------------------------------------------------
+// Contains only data declarations for the remaining cross-cutting globals.
+// New state should live in the module that owns the behaviour.
+// ============================================================================
 
 #include "Core/Globals.h"
-
-// ============================================================================
-// BOOT / SHUTDOWN STATE
-// ============================================================================
-bool reset_boot = false;
 
 // ============================================================================
 // TIME / CLOCK / SYNC
@@ -22,6 +13,6 @@ bool reset_boot = false;
 char TimeZone[64] = "GMT0";
 
 // ============================================================================
-// SHUTDOWN / SESSION CONTROL
+// WAKE INPUT STATE
 // ============================================================================
 volatile bool woke_from_sleep = false;

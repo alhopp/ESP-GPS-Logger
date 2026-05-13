@@ -1,5 +1,12 @@
 #pragma once
 
+// ============================================================================
+// Shared legacy runtime globals
+//
+// This header is intentionally small. Prefer module-owned state for new code;
+// keep only cross-cutting globals that still have multiple owners.
+// ============================================================================
+
 #include <time.h>
 
 
@@ -11,8 +18,7 @@ extern tm   tmstruct;
 extern int  Time_Set_OK;
 
 // ============================================================================
-// SHUTDOWN / SESSION CONTROL
+// WAKE INPUT STATE
 // ============================================================================
-extern bool reset_boot;
 extern volatile bool woke_from_sleep;
 

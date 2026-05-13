@@ -1,10 +1,15 @@
 #pragma once
 
+// ============================================================================
+// Serial logging helpers
+//
+// Fixed-width tagged logging for boot/runtime diagnostics. Logging is compiled
+// out when LOG_ENABLED is false or stats-only serial output is enabled.
+// ============================================================================
+
 #include <Arduino.h>
 
 #include "Core/build_config.h"
-
-// Serial logging helpers with fixed-width tags for readable boot/runtime logs.
 
 constexpr int LOG_TAG_W = 7;
 constexpr int LOG_ITEM_W = 12;

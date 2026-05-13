@@ -1,5 +1,12 @@
 #include "Core/Battery/battery_monitor.h"
 
+// ============================================================================
+// Battery monitor
+//
+// Samples the ESP32 ADC, applies the configured millivolts-per-count
+// calibration, and updates RTC battery state used by boot checks and display.
+// ============================================================================
+
 #include <Arduino.h>
 
 #include "Core/battery_config.h"

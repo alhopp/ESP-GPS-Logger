@@ -16,8 +16,7 @@
 
 enum BootResult : uint8_t {
   BOOT_OK = 0,
-  BOOT_LOW_BATTERY,
-  BOOT_AFTER_RESET
+  BOOT_LOW_BATTERY
 };
 
 // Run early boot checks and initialise core boot-time hardware.

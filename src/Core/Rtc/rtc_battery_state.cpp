@@ -1,5 +1,11 @@
 #include "Core/Rtc/rtc_battery_state.h"
 
+// ============================================================================
+// RTC battery state
+//
+// Definitions for battery values retained in RTC memory across deep sleep.
+// ============================================================================
+
 #include "Core/battery_config.h"
 
 RTC_DATA_ATTR float RTC_voltage_bat = 3.6f;
