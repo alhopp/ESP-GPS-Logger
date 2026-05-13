@@ -50,6 +50,11 @@ static constexpr int STA_MAX_ATTEMPTS = 10;
 static WifiUiState wifiUiState = WIFI_UI_OFF;
 static constexpr DisplayWindow WIFI_STATUS_WINDOW = DISPLAY_FULL_WINDOW;
 
+struct WifiCredentials {
+  const char* ssid;
+  const char* pass;
+};
+
 WifiUiState wifi_get_ui_state()
 {
   return wifiUiState;
@@ -101,22 +106,23 @@ static bool have_phone_wifi()
   return wifi_effective_phone_ssid()[0];
 }
 
-const char* wifi_effective_phone_ssid()
+static WifiCredentials effective_phone_wifi()
 {
 #if DEV_FORCE_WIFI
-  return DEV_SSID;
+  return {DEV_SSID, DEV_PASS};
 #else
-  return config.phone_ssid;
+  return {config.phone_ssid, config.phone_pass};
 #endif
+}
+
+const char* wifi_effective_phone_ssid()
+{
+  return effective_phone_wifi().ssid;
 }
 
 bool wifi_effective_phone_password_set()
 {
-#if DEV_FORCE_WIFI
-  return DEV_PASS[0];
-#else
-  return config.phone_pass[0];
-#endif
+  return effective_phone_wifi().pass[0];
 }
 
 static void mark_sta_connected()
@@ -144,24 +150,20 @@ static void start_sta()
     return;
   }
 
+  const WifiCredentials phoneWifi = effective_phone_wifi();
 #if DEV_FORCE_WIFI
-  const char *ssid = DEV_SSID;
-  const char *pass = DEV_PASS;
   LOG_WIFI("STA", "DEV FORCE");
-#else
-  const char *ssid = config.phone_ssid;
-  const char *pass = config.phone_pass;
 #endif
 
   wifi_set_ui_state(WIFI_UI_TRYING);
-  LOG_WIFI("STA", "connect %s", ssid);
+  LOG_WIFI("STA", "connect %s", phoneWifi.ssid);
 
   disconnect_wifi_radios();
 
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(true);
   WiFi.setAutoReconnect(false);
-  WiFi.begin(ssid, pass);
+  WiFi.begin(phoneWifi.ssid, phoneWifi.pass);
 
   lastStaAttempt = millis();
   staAttempts++;
@@ -186,6 +188,23 @@ static void start_ap()
 
   apActive = true;
   wifi_set_ui_state(WIFI_UI_AP);
+}
+
+static void handle_sta_connected()
+{
+  if (wifiUiState != WIFI_UI_CONNECTED) {
+    mark_sta_connected();
+    return;
+  }
+
+  lastStaConnected = millis();
+}
+
+static void handle_sta_lost()
+{
+  LOG_WIFI("STA", "connection lost, waiting");
+  wifi_set_ui_state(WIFI_UI_TRYING);
+  lastStaAttempt = millis();
 }
 
 // -----------------------------------------------------------------------------
@@ -228,18 +247,12 @@ void wifi_loop()
   if (!wifiStarted) return;
   if (apActive) return;
   if (wifi_sta_connected()) {
-    if (wifiUiState != WIFI_UI_CONNECTED) {
-      mark_sta_connected();
-    } else {
-      lastStaConnected = millis();
-    }
+    handle_sta_connected();
     return;
   }
 
   if (wifiUiState == WIFI_UI_CONNECTED) {
-    LOG_WIFI("STA", "connection lost, waiting");
-    wifi_set_ui_state(WIFI_UI_TRYING);
-    lastStaAttempt = millis();
+    handle_sta_lost();
     return;
   }
 
