@@ -264,6 +264,7 @@ function enableSwipe(container, fileList, sdInfo){
     if(!row) return;
 
     closeAll();
+    selectFileRow(row);
     x0 = e.touches[0].clientX;
     y0 = e.touches[0].clientY;
     dx = 0;
