@@ -17,8 +17,6 @@ struct SystemInfo {
   const char* dynamic_model;      // "SEA"
   uint32_t    sample_rate;        // "5"
 
-  uint32_t    storage_mb;         // e.g. 128
-
   const char* software_version;   // e.g. "Version 1"
   
   const char* display;            // "LilyGO T5 B74"   

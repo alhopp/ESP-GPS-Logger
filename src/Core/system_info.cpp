@@ -14,8 +14,6 @@ const SystemInfo systemInfo = {
   "SEA",                           // dynamic_model
   5,                               // sample_rate
 
-  128,                             // storage_mb
-
   GPS_SOFTWARE_VERSION,              // software_version
   "LilyGO T5 B74",                 // display
 
