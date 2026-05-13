@@ -9,21 +9,9 @@
 
 #include <FS.h>
 
-struct GeoJsonSbpFrame {
-  uint8_t  HDOP;
-  uint8_t  SVIDCnt;
-  uint16_t UtcSec;
-  uint32_t date_time_UTC_packed;
-  uint32_t SVIDList;
-  int32_t  Lat;
-  int32_t  Lon;
-  int32_t  AltCM;
-  uint16_t Sog;
-  uint16_t Cog;
-  int16_t  ClmbRte;
-  uint8_t  sdop;
-  uint8_t  vsdop;
-} __attribute__((packed));
+#include "Logging/SBP/sbp_format.h"
+
+using GeoJsonSbpFrame = SbpFrame;
 
 bool geojson_sbp_open(File& file, const char* sbpPath);
 bool geojson_sbp_read_frame(File& file, GeoJsonSbpFrame& frame);

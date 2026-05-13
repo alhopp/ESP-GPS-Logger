@@ -11,41 +11,18 @@
 #include <FS.h>
 
 #include "Core/build_config.h"
-#include "GPS/gps_config.h"
+#include "Logging/SBP/sbp_format.h"
 #include "Session/session_stats_snapshot.h"
 #include "Storage/storage_manager.h"
 
 namespace {
-constexpr int SBP_HEADER_SIZE = 64;
-
-struct SBPDebugFrame {
-  uint8_t  HDOP;
-  uint8_t  SVIDCnt;
-  uint16_t UtcSec;
-  uint32_t date_time_UTC_packed;
-  uint32_t SVIDList;
-  int32_t  Lat;
-  int32_t  Lon;
-  int32_t  AltCM;
-  uint16_t Sog;
-  uint16_t Cog;
-  int16_t  ClmbRte;
-  uint8_t  sdop;
-  uint8_t  vsdop;
-} __attribute__((packed));
-
-float frameKnots(const SBPDebugFrame& frame)
-{
-  return static_cast<float>(frame.Sog) * 10.0f * MMPS_TO_KNOTS;
-}
-
-bool readSbpFrame(File& file, int sbpIndex, SBPDebugFrame& frame)
+bool readSbpFrame(File& file, int sbpIndex, SbpFrame& frame)
 {
   if (sbpIndex < 1) return false;
 
   const size_t offset =
-      SBP_HEADER_SIZE + static_cast<size_t>(sbpIndex - 1) * sizeof(SBPDebugFrame);
-  if (offset + sizeof(SBPDebugFrame) > file.size()) return false;
+      SBP_HEADER_SIZE + static_cast<size_t>(sbpIndex - 1) * sizeof(SbpFrame);
+  if (offset + sizeof(SbpFrame) > file.size()) return false;
 
   if (!file.seek(offset)) return false;
   return file.read(reinterpret_cast<uint8_t*>(&frame), sizeof(frame)) == sizeof(frame);
@@ -54,13 +31,13 @@ bool readSbpFrame(File& file, int sbpIndex, SBPDebugFrame& frame)
 void printSbpSpeedRow(File& file, int first, int last)
 {
   for (int index = first; index <= last; index++) {
-    SBPDebugFrame frame;
+    SbpFrame frame;
     if (!readSbpFrame(file, index, frame)) {
       Serial.printf(" %d:n/a", index);
       continue;
     }
 
-    Serial.printf(" %d:%.3f", index, frameKnots(frame));
+    Serial.printf(" %d:%.3f", index, sbp_frame_knots(frame));
   }
   Serial.println();
 }
@@ -90,7 +67,7 @@ void printSbpSpeedRange(const char* label,
     printSbpSpeedRow(file, start, end);
 
     for (int index = start; index <= end; index++) {
-      SBPDebugFrame frame;
+      SbpFrame frame;
       if (readSbpFrame(file, index, frame)) {
         sumCms += frame.Sog;
         count++;

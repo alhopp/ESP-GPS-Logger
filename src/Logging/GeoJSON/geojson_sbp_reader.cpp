@@ -7,12 +7,7 @@
 
 #include "Logging/GeoJSON/geojson_sbp_reader.h"
 
-#include "GPS/gps_config.h"
 #include "Storage/storage_manager.h"
-
-namespace {
-constexpr int SBP_HEADER_SIZE = 64;
-}
 
 bool geojson_sbp_open(File& file, const char* sbpPath)
 {
@@ -47,15 +42,15 @@ int geojson_sbp_count_frames(const char* sbpPath)
 
 double geojson_sbp_frame_lat(const GeoJsonSbpFrame& frame)
 {
-  return frame.Lat * 0.0000001;
+  return sbp_frame_lat(frame);
 }
 
 double geojson_sbp_frame_lon(const GeoJsonSbpFrame& frame)
 {
-  return frame.Lon * 0.0000001;
+  return sbp_frame_lon(frame);
 }
 
 float geojson_sbp_frame_knots(const GeoJsonSbpFrame& frame)
 {
-  return static_cast<float>(frame.Sog) * 10.0f * MMPS_TO_KNOTS;
+  return sbp_frame_knots(frame);
 }

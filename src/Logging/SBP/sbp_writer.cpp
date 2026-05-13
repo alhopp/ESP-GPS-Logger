@@ -6,39 +6,16 @@
 // ============================================================================
 
 #include "Logging/SBP/sbp_writer.h"
+#include "Logging/SBP/sbp_format.h"
+
 #include "GPS/Ublox/ublox_driver.h"
 #include "GPS/Data/gps_data.h"
 #include "Core/Globals.h"
 
 namespace {
-struct SBP_Header { // 64 bytes
-  uint16_t Text_length;
-  uint8_t  Id1;
-  uint8_t  Id2;
-  uint16_t Again_length;
-  uint8_t  Start;
-  char     Identity[57];
-} __attribute__((packed));
+SbpHeader sbp_header = {30, 0xA0, 0xA2, 30, 0xFD, "ESP-GPS,0,unknown,unknown"};
 
-struct SBP_frame { // 32 bytes
-  uint8_t  HDOP;
-  uint8_t  SVIDCnt;
-  uint16_t UtcSec;
-  uint32_t date_time_UTC_packed;
-  uint32_t SVIDList;
-  int32_t  Lat;
-  int32_t  Lon;
-  int32_t  AltCM;
-  uint16_t Sog;
-  uint16_t Cog;
-  int16_t  ClmbRte;
-  uint8_t  sdop;
-  uint8_t  vsdop;
-} __attribute__((packed));
-
-SBP_Header sbp_header = {30, 0xA0, 0xA2, 30, 0xFD, "ESP-GPS,0,unknown,unknown"};
-
-SBP_frame sbp_frame;
+SbpFrame sbp_frame;
 int sbp_frame_count = 0;
 
 uint8_t scaledByte(uint32_t value, uint32_t divisor)
@@ -63,11 +40,11 @@ void stampCurrentSampleWithSbpRow()
 
 void sbp_write_header(File& file)
 {
-  for (int i = 32; i < 64; i++) {
+  for (size_t i = 32; i < SBP_HEADER_SIZE; i++) {
     ((uint8_t*)&sbp_header)[i] = 0xFF;
   }
 
-  file.write((uint8_t*)&sbp_header, 64);
+  file.write((uint8_t*)&sbp_header, SBP_HEADER_SIZE);
 }
 
 void sbp_writer_reset()
@@ -120,7 +97,7 @@ void sbp_write_frame(File& file)
   sbp_frame.sdop = sdop;
   sbp_frame.vsdop = vsdop;
 
-  if (file.write((uint8_t*)&sbp_frame, 32) == 32) {
+  if (file.write((uint8_t*)&sbp_frame, SBP_FRAME_SIZE) == SBP_FRAME_SIZE) {
     sbp_frame_count++;
     stampCurrentSampleWithSbpRow();
   }
