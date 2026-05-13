@@ -1,3 +1,11 @@
+// ============================================================================
+// app_startup.cpp
+//
+// Arduino setup() entry orchestration. Keeps boot ordering explicit:
+// early boot checks, persistent config/storage setup, runtime task creation,
+// then handoff to the normal idle mode.
+// ============================================================================
+
 #include "System/app_startup.h"
 
 #include "Config/config_manager.h"
@@ -13,11 +21,15 @@
 
 namespace {
 
-void initSubsystems()
+void initRuntimeSubsystems()
 {
   initStorage();
   initConfig();
+
+  // initBoot() already sampled battery for the low-voltage boot gate. Sample
+  // again after config load so display/runtime use the saved calibration value.
   battery_sample();
+
   initMagnet();
 }
 
@@ -46,7 +58,7 @@ void appStartup()
     return;
   }
 
-  initSubsystems();
+  initRuntimeSubsystems();
 
   if (!startTasksOrEnterError()) {
     return;

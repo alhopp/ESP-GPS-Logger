@@ -1,3 +1,10 @@
+// ============================================================================
+// app_supervisor.cpp
+//
+// Arduino loop() foreground supervisor. Time-critical GPS/display work lives in
+// RTOS tasks; this loop only polls simple foreground services and mode policy.
+// ============================================================================
+
 #include "System/app_supervisor.h"
 
 #include <Arduino.h>

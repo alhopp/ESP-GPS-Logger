@@ -1,4 +1,9 @@
 #pragma once
 
-// Runs the lightweight foreground supervisor used by Arduino loop().
+// ============================================================================
+// app_supervisor.h
+//
+// Lightweight foreground supervisor called by Arduino loop().
+// ============================================================================
+
 void appSupervisorLoop();

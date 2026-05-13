@@ -1,4 +1,9 @@
 #pragma once
 
-// Runs the boot-time application startup sequence used by Arduino setup().
+// ============================================================================
+// app_startup.h
+//
+// Boot-time application startup sequence called by Arduino setup().
+// ============================================================================
+
 void appStartup();

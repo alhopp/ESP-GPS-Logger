@@ -1,3 +1,9 @@
+// ============================================================================
+// watchdog_manager.cpp
+//
+// Foreground watchdog feed used by the Arduino loop supervisor.
+// ============================================================================
+
 #include "System/watchdog_manager.h"
 
 #include <esp_task_wdt.h>
