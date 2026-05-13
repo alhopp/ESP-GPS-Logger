@@ -14,7 +14,7 @@
 #include "Core/build_config.h"
 #include "Logging/SBP/sbp_writer.h"
 #include "Logging/GeoJSON/geojson_session_export.h"
-#include "Logging/logging_raw_writers.h"
+#include "Logging/Raw/logging_raw_writers.h"
 #include "Logging/logging_session_files.h"
 #include "Logging/logging_session_paths.h"
 #include "Logging/SBP/logging_sbp_debug.h"
