@@ -1,4 +1,4 @@
-#include "Runtime/gps_display_policy.h"
+#include "Runtime/Policies/gps_display_policy.h"
 
 // ============================================================================
 // GPS display policy
@@ -13,7 +13,7 @@
 #include "Core/system_mode.h"
 #include "GPS/gps_runtime_state.h"
 #include "Display/display_geometry.h"
-#include "Runtime/display_redraw.h"
+#include "Runtime/Display/display_redraw.h"
 
 namespace {
 constexpr DisplayWindow SAT_WAIT_WINDOW = DISPLAY_BOTTOM_STATUS_WINDOW;

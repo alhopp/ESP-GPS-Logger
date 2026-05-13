@@ -12,7 +12,7 @@
 
 #include "Core/build_config.h"
 #include "Core/log.h"
-#include "Runtime/display_redraw.h"
+#include "Runtime/Display/display_redraw.h"
 
 // -----------------------------------------------------------------------------
 // State

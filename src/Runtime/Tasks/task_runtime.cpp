@@ -1,4 +1,4 @@
-#include "Runtime/task_runtime.h"
+#include "Runtime/Tasks/task_runtime.h"
 
 // ============================================================================
 // Runtime task launcher
@@ -13,8 +13,8 @@
 #include <freertos/task.h>
 
 #include "Core/log.h"
-#include "Runtime/task_display.h"
-#include "Runtime/task_gps.h"
+#include "Runtime/Tasks/task_display.h"
+#include "Runtime/Tasks/task_gps.h"
 
 namespace {
 constexpr uint32_t GPS_TASK_STACK = 4096;

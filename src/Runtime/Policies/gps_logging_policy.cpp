@@ -1,4 +1,4 @@
-#include "Runtime/gps_logging_policy.h"
+#include "Runtime/Policies/gps_logging_policy.h"
 
 // ============================================================================
 // GPS logging policy

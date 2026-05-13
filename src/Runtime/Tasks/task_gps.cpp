@@ -14,9 +14,9 @@
 #include "GPS/Ublox/ublox_driver.h"
 #include "Core/system_mode.h"
 #include "Logging/logging_session.h"
-#include "Runtime/gps_display_policy.h"
-#include "Runtime/gps_logging_policy.h"
-#include "Runtime/task_gps.h"
+#include "Runtime/Policies/gps_display_policy.h"
+#include "Runtime/Policies/gps_logging_policy.h"
+#include "Runtime/Tasks/task_gps.h"
 
 #include "GPS/gps_fix.h"
 #include "GPS/gps_config.h"

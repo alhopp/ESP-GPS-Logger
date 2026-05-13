@@ -3,7 +3,7 @@
 
 #include "Core/magnet_input.h"
 #include "Display/E_paper.h"
-#include "Runtime/display_redraw.h"
+#include "Runtime/Display/display_redraw.h"
 
 namespace {
 constexpr int MAG_X = 30;

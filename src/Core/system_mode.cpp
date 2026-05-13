@@ -19,7 +19,7 @@
 #include "GPS/Hardware/gps_manager.h"
 #include "Storage/storage_manager.h"
 #include "Logging/logging_session.h"
-#include "Runtime/display_redraw.h"
+#include "Runtime/Display/display_redraw.h"
 #include "Web/Server/web_server.h"
 #include "Web/WiFi/wifi_manager.h"
 

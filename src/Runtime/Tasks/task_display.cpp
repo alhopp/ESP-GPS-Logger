@@ -12,7 +12,7 @@
 // - Other code may ONLY signal redraw intent
 // ============================================================================
 
-#include "Runtime/task_display.h"
+#include "Runtime/Tasks/task_display.h"
 
 #include <Arduino.h>
 
@@ -25,7 +25,7 @@
 
 #include "Display/E_paper.h"
 #include "Display/screen_draw.h"
-#include "Runtime/display_redraw.h"
+#include "Runtime/Display/display_redraw.h"
 
 // ============================================================================
 // Redraw signalling state
