@@ -193,6 +193,7 @@ function enableSwipe(container, fileList, sdInfo){
 
   let row = null, x0 = 0, y0 = 0, dx = 0, sw = false;
   let openState = "";
+  let suppressClick = false;
 
   const closeOtherRows = activeRow =>
     container.querySelectorAll(".file-swipe.show-actions,.file-swipe.show-delete")
@@ -244,26 +245,6 @@ function enableSwipe(container, fileList, sdInfo){
   };
 
   container.addEventListener("touchstart", e=>{
-    const action = e.target.closest(".file-action");
-    if(action){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-
-      const r = action.closest(".file-swipe");
-      if(!r) return;
-
-      selectFileRow(r);
-      if(action.classList.contains("file-action-download")){
-        download(r.dataset.download || r.dataset.name);
-      }else if(action.classList.contains("file-action-delete")){
-        deleteRow(r);
-      }else if(action.classList.contains("file-action-map")){
-        openMap(r);
-      }
-
-      return;
-    }
-
     row = e.target.closest(".file-swipe");
     if(!row) return;
 
@@ -295,6 +276,7 @@ function enableSwipe(container, fileList, sdInfo){
   container.addEventListener("touchend", ()=>{
     if(!sw) return;
     sw = false;
+    suppressClick = Math.abs(dx) > 12;
 
     row.classList.remove("show-actions", "show-delete");
 
@@ -312,6 +294,13 @@ function enableSwipe(container, fileList, sdInfo){
   }, { passive:true });
 
   container.addEventListener("click", e=>{
+    if(suppressClick){
+      suppressClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     const action = e.target.closest(".file-action");
     if(action){
       e.preventDefault();
