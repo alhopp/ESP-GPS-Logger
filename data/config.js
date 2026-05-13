@@ -26,10 +26,7 @@ function setPasswordPlaceholder(el,hasPassword){
  * ------------------------------------------------------------------------- */
 window.loadConfig = async function loadConfig(els){
   try{
-    const r = await fetch(CONFIG_URL,{ cache:"no-store" });
-    if(!r.ok) throw new Error("config fetch failed");
-
-    const c = await r.json();
+    const c = await Api.json(CONFIG_URL);
 
     setVal(els.Sleep_info1, c.ui?.Sleep_info1);
     setVal(els.Sleep_info2, c.ui?.Sleep_info2);
@@ -58,9 +55,11 @@ window.loadConfig = async function loadConfig(els){
     /* ---------- System ---------- */
     if(c.system) window.SystemTab?.load(c.system);
     else console.warn("No system object in /api/config");
+    if(els.saveBtn) els.saveBtn.textContent = "Save";
 
   }catch(err){
     console.error("Config load failed", err);
+    if(els.saveBtn) els.saveBtn.textContent = "Config Load Failed";
   }
 
   els.saveBtn && (els.saveBtn.disabled=true, dirty=false);
@@ -98,15 +97,16 @@ window.saveConfig = async function saveConfig(els){
     payload.wifi.phone_pass = phonePass;
   }
 
-  const r = await fetch(CONFIG_URL,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(payload)
-  });
-
-  r.ok
-    ? (els.saveBtn.disabled=true, dirty=false)
-    : console.warn("Config save failed");
+  try{
+    await Api.postJson(CONFIG_URL, payload);
+    els.saveBtn.disabled = true;
+    els.saveBtn.textContent = "Save";
+    dirty = false;
+  }catch(err){
+    els.saveBtn.disabled = false;
+    els.saveBtn.textContent = "Save Failed - Retry";
+    console.warn("Config save failed", err);
+  }
 };
 
 /* ---------------------------------------------------------------------------

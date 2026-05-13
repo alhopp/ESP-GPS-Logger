@@ -5,28 +5,16 @@ window.SystemTab = (function(){
     if(!el) return;
     el.textContent = (v!==undefined && v!==null && v!=="") ? v : "-";
   }
-  function formatStorageSize(bytes, fallbackMb){
-    const value = Number(bytes);
-    if(Number.isFinite(value) && value > 0){
-      if(value < 1024 * 1024){
-        return `${(value / 1024).toFixed(1)} kB`;
-      }
-      return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-    }
-
-    const mb = Number(fallbackMb);
-    return Number.isFinite(mb) ? `${mb} MB` : null;
-  }
 
   function load(system){
     if(!system) return;
 
     const yesNo = v => v ? "Yes" : "No";
     const storageText = system.storage_detected
-      ? formatStorageSize(system.storage_bytes, system.storage_mb)
+      ? AppUtil.formatStorageSize(system.storage_bytes, system.storage_mb)
       : "Not detected";
     const storageUsedText = system.storage_detected
-      ? `${formatStorageSize(system.storage_used_bytes, system.storage_used_mb)} used / ${formatStorageSize(system.storage_free_bytes, system.storage_free_mb)} free`
+      ? `${AppUtil.formatStorageSize(system.storage_used_bytes, system.storage_used_mb)} used / ${AppUtil.formatStorageSize(system.storage_free_bytes, system.storage_free_mb)} free`
       : null;
 
     setText($("sys_gnss_module"),   system.gnss_module);

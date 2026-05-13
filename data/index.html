@@ -18,10 +18,10 @@
 <header>ESP32 GPS</header>
 
 <nav>
-  <button class="a" onclick="tab('map',this)">Map</button>
-  <button onclick="tab('files',this)">Files</button>
-  <button onclick="tab('settings',this)">Settings</button>
-  <button onclick="tab('system',this)">System</button>
+  <button class="a" data-tab="map">Map</button>
+  <button data-tab="files">Files</button>
+  <button data-tab="settings">Settings</button>
+  <button data-tab="system">System</button>
 </nav>
 
 <!-- ================= FILES ================= -->
@@ -149,7 +149,7 @@
     <h3 id="infoTitle"></h3>
     <p id="infoText"></p>
     <div class="modal-actions">
-      <button class="modal-close" onclick="closeInfo()">Close</button>
+      <button class="modal-close" id="infoCloseBtn">Close</button>
     </div>
   </div>
 </div>
@@ -160,11 +160,15 @@
 
 <script src="/leaflet.js"></script>
 <script src="/uPlot.iife.min.js"></script>
-<script src="/files.js?v=59"></script>
-<script src="/config.js?v=57"></script>
-<script src="/system.js?v=58"></script>
-<script src="/map.js?v=63"></script>
-<script src="/app_init.js?v=57"></script>
+<script src="/utils.js?v=64"></script>
+<script src="/files.js?v=64"></script>
+<script src="/config.js?v=64"></script>
+<script src="/system.js?v=64"></script>
+<script src="/stats_graph.js?v=64"></script>
+<script src="/map_view.js?v=64"></script>
+<script src="/map_sessions.js?v=64"></script>
+<script src="/map.js?v=64"></script>
+<script src="/app_init.js?v=64"></script>
 
 </body>
 </html>

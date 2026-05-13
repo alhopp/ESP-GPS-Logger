@@ -42,26 +42,13 @@ function fileSizeKb(size){
   return `${(bytes / 1024).toFixed(1)} kB`;
 }
 
-function formatStorageSize(bytes, fallbackMb){
-  const value = Number(bytes);
-  if(Number.isFinite(value) && value > 0){
-    if(value < 1024 * 1024){
-      return `${(value / 1024).toFixed(1)} kB`;
-    }
-    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  const mb = Number(fallbackMb);
-  return Number.isFinite(mb) ? `${mb} MB` : null;
-}
-
 function updateLogsTitle(storage){
   const el = document.getElementById("logsTitle");
   if(!el) return;
   if(storage) filesStorageCache = { ...storage };
 
-  const used = formatStorageSize(storage?.storage_used_bytes, storage?.storage_used_mb);
-  const free = formatStorageSize(storage?.storage_free_bytes, storage?.storage_free_mb);
+  const used = AppUtil.formatStorageSize(storage?.storage_used_bytes, storage?.storage_used_mb);
+  const free = AppUtil.formatStorageSize(storage?.storage_free_bytes, storage?.storage_free_mb);
   if(used && free){
     el.textContent = `Logs - ${used} used / ${free} free`;
   }else{
@@ -97,10 +84,7 @@ async function loadFiles(fileList, sdInfo){
   sdInfo.textContent = "Scanning...";
 
   try{
-    const r = await fetch("/api/files",{ cache:"no-store" });
-    if(!r.ok) throw new Error("files api missing");
-
-    const j = await r.json();
+    const j = await Api.json("/api/files");
     if(!j.ok) throw new Error("no sd");
     updateLogsTitle(j);
 
@@ -114,8 +98,8 @@ async function loadFiles(fileList, sdInfo){
       .sort((a,b)=>b.localeCompare(a))
       .forEach(date=>{
         fileList.insertAdjacentHTML("beforeend",`
-          <div class="file-date" data-date="${date}">
-            ${formatDateLabel(date)}
+          <div class="file-date" data-date="${AppUtil.escapeHtml(date)}">
+            ${AppUtil.escapeHtml(formatDateLabel(date))}
           </div>
         `);
 
@@ -130,15 +114,15 @@ async function loadFiles(fileList, sdInfo){
 
           fileList.insertAdjacentHTML("beforeend",`
             <div class="file-row file-swipe"
-                 data-name="${f.name}"
-                 data-download="${downloadName}"
-                 data-date="${date}">
+                 data-name="${AppUtil.escapeHtml(f.name)}"
+                 data-download="${AppUtil.escapeHtml(downloadName)}"
+                 data-date="${AppUtil.escapeHtml(date)}">
               <div class="file-delete">&#128465;</div>
               <div class="file-swipe-inner">
                 <div class="file-icon">&#128196;</div>
                 <div class="file-text">
-                  <div class="file-name">${sessionTitle(displayName)}</div>
-                  <div class="file-size">${details}</div>
+                  <div class="file-name">${AppUtil.escapeHtml(sessionTitle(displayName))}</div>
+                  <div class="file-size">${AppUtil.escapeHtml(details)}</div>
                 </div>
               </div>
             </div>
@@ -184,12 +168,7 @@ function enableSwipe(container, fileList, sdInfo){
 
       const date = r.dataset.date;
 
-      fetch("/api/file",{
-        method:"DELETE",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ name:r.dataset.name })
-      })
-        .then(res => res.ok ? res.json() : { ok:false })
+      Api.deleteJson("/api/file", { name:r.dataset.name })
         .then(j => {
           if(!j.ok) throw new Error("delete failed");
           r.remove();

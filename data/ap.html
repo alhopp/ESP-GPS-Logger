@@ -60,9 +60,10 @@ html,body{touch-action:manipulation}
 
 
 <footer>
-  <button id="saveBtn" onclick="save()">Save &amp; Reboot</button>
+  <button id="saveBtn">Save &amp; Reboot</button>
 </footer>
 
+<script src="/utils.js?v=64"></script>
 <script>
 const ssidEl = document.getElementById("ssid");
 const passEl = document.getElementById("pass");
@@ -77,14 +78,17 @@ async function save(){
   btn.disabled = true;
   statusEl.textContent = "Saving Wi-Fi settings... rebooting device";
 
-  await fetch("/api/config",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ wifi:{ phone_ssid:ssid, phone_pass:pass } })
-  });
-
-  await fetch("/api/reboot",{method:"POST"});
+  try{
+    await Api.postJson("/api/config", { wifi:{ phone_ssid:ssid, phone_pass:pass } });
+    await Api.post("/api/reboot");
+  }catch(err){
+    statusEl.textContent = "Save failed. Try again.";
+    btn.disabled = false;
+    console.warn(err);
+  }
 }
+
+btn.addEventListener("click", save);
 </script>
 
 </body>
