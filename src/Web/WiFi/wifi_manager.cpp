@@ -14,41 +14,38 @@
 #include "Core/log.h"
 #include "Runtime/Display/display_redraw.h"
 
+namespace {
+
 // -----------------------------------------------------------------------------
 // State
 // -----------------------------------------------------------------------------
 
-static bool wifiStarted = false;
-static bool apActive = false;
-static bool mdnsStarted = false;
+bool wifiStarted = false;
+bool apActive = false;
+bool mdnsStarted = false;
 
 // -----------------------------------------------------------------------------
 // STA retry control
 // -----------------------------------------------------------------------------
 
-static uint32_t lastStaAttempt = 0;
-static uint32_t lastStaConnected = 0;
-static uint32_t staSearchStarted = 0;
-static int staAttempts = 0;
+uint32_t lastStaAttempt = 0;
+uint32_t lastStaConnected = 0;
+uint32_t staSearchStarted = 0;
+int staAttempts = 0;
 
-static constexpr uint32_t STA_RETRY_INTERVAL_MS = 5000;
-static constexpr uint32_t STA_LOST_GRACE_MS = 5000;
-static constexpr uint32_t STA_HOTSPOT_WAIT_MS = 60000;
-static constexpr const char* AP_PROVISIONING_SSID = "GPS-Setup";
+constexpr uint32_t STA_RETRY_INTERVAL_MS = 5000;
+constexpr uint32_t STA_LOST_GRACE_MS = 5000;
+constexpr uint32_t STA_HOTSPOT_WAIT_MS = 60000;
+constexpr const char* AP_PROVISIONING_SSID = "GPS-Setup";
 
 // -----------------------------------------------------------------------------
 // UI state
 // -----------------------------------------------------------------------------
 
-static WifiUiState wifiUiState = WIFI_UI_OFF;
-static constexpr DisplayWindow WIFI_STATUS_WINDOW = DISPLAY_FULL_WINDOW;
+WifiUiState wifiUiState = WIFI_UI_OFF;
+constexpr DisplayWindow WIFI_STATUS_WINDOW = DISPLAY_FULL_WINDOW;
 
-WifiUiState wifi_get_ui_state()
-{
-  return wifiUiState;
-}
-
-static void wifi_set_ui_state(WifiUiState s)
+void wifi_set_ui_state(WifiUiState s)
 {
   if (wifiUiState == s) return;
 
@@ -60,30 +57,30 @@ static void wifi_set_ui_state(WifiUiState s)
 // Internal helpers
 // -----------------------------------------------------------------------------
 
-static bool wifi_sta_connected()
+bool wifi_sta_connected()
 {
   return WiFi.status() == WL_CONNECTED;
 }
 
-static bool wifi_ap_active()
+bool wifi_ap_active()
 {
   return apActive;
 }
 
-static void disconnect_wifi_radios()
+void disconnect_wifi_radios()
 {
   WiFi.disconnect(true, true);
   delay(100);
 }
 
-static void stop_mdns()
+void stop_mdns()
 {
   if (!mdnsStarted) return;
   MDNS.end();
   mdnsStarted = false;
 }
 
-static void reset_sta_retry_state()
+void reset_sta_retry_state()
 {
   staAttempts = 0;
   const uint32_t now = millis();
@@ -92,12 +89,12 @@ static void reset_sta_retry_state()
   lastStaConnected = 0;
 }
 
-static bool have_phone_wifi()
+bool have_phone_wifi()
 {
   return wifi_effective_phone_ssid()[0];
 }
 
-static bool phone_hotspot_visible(const char* ssid)
+bool phone_hotspot_visible(const char* ssid)
 {
   if (!ssid || !ssid[0]) return false;
 
@@ -116,7 +113,7 @@ static bool phone_hotspot_visible(const char* ssid)
   return found;
 }
 
-static void mark_sta_connected()
+void mark_sta_connected()
 {
   LOG_WIFI("STA", "connected IP=%s", WiFi.localIP().toString().c_str());
   lastStaConnected = millis();
@@ -133,7 +130,7 @@ static void mark_sta_connected()
 // STA
 // -----------------------------------------------------------------------------
 
-static void start_sta()
+void start_sta()
 {
   if (wifi_sta_connected()) {
     LOG_WIFI("STA", "already connected IP=%s", WiFi.localIP().toString().c_str());
@@ -167,7 +164,7 @@ static void start_sta()
   staAttempts++;
 }
 
-static bool hotspotWaitExpired()
+bool hotspotWaitExpired()
 {
   return staSearchStarted && millis() - staSearchStarted >= STA_HOTSPOT_WAIT_MS;
 }
@@ -176,7 +173,7 @@ static bool hotspotWaitExpired()
 // AP
 // -----------------------------------------------------------------------------
 
-static void start_ap()
+void start_ap()
 {
   if (apActive) return;
 
@@ -193,7 +190,7 @@ static void start_ap()
   wifi_set_ui_state(WIFI_UI_AP);
 }
 
-static void handle_sta_connected()
+void handle_sta_connected()
 {
   if (wifiUiState != WIFI_UI_CONNECTED) {
     mark_sta_connected();
@@ -203,7 +200,7 @@ static void handle_sta_connected()
   lastStaConnected = millis();
 }
 
-static void handle_sta_lost()
+void handle_sta_lost()
 {
   LOG_WIFI("STA", "connection lost, waiting");
   wifi_set_ui_state(WIFI_UI_TRYING);
@@ -213,6 +210,13 @@ static void handle_sta_lost()
 // -----------------------------------------------------------------------------
 // Public API
 // -----------------------------------------------------------------------------
+
+} // namespace
+
+WifiUiState wifi_get_ui_state()
+{
+  return wifiUiState;
+}
 
 void wifi_init()
 {

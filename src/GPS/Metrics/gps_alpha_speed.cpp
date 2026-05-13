@@ -88,9 +88,8 @@ int sbpStartForGpsIndex(int gpsIndex)
 
   return gpsIndex > 2 ? gpsIndex - 2 : 1;
 }
-}
 
-static inline double closure_dist2(int a, int b)
+double closure_dist2(int a, int b)
 {
   const double lat0 = _lat[a];
   const double lon0 = _long[a];
@@ -102,6 +101,7 @@ static inline double closure_dist2(int a, int b)
 
   const double k = 111195.0; // meters / degree
   return (dlat*dlat + dlon*dlon) * k * k;
+}
 }
 
 void Alfa_speed::clearResults()
