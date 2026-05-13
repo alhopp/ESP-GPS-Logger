@@ -145,7 +145,14 @@ async function loadFiles(fileList, sdInfo){
                  data-name="${AppUtil.escapeHtml(f.name)}"
                  data-download="${AppUtil.escapeHtml(downloadName)}"
                  data-date="${AppUtil.escapeHtml(date)}">
-              <div class="file-delete">&#128465;</div>
+              <div class="file-actions">
+                <button class="file-action file-action-download" type="button" aria-label="Download SBP">
+                  <span aria-hidden="true">&#8681;</span><small>SBP</small>
+                </button>
+                <button class="file-action file-action-delete" type="button" aria-label="Delete session">
+                  <span aria-hidden="true">&#128465;</span><small>Delete</small>
+                </button>
+              </div>
               <div class="file-swipe-inner">
                 <div class="file-text">
                   <div class="file-stats">
@@ -156,9 +163,6 @@ async function loadFiles(fileList, sdInfo){
                   <div class="file-size">${AppUtil.escapeHtml(details)}</div>
                   <div class="file-name">${AppUtil.escapeHtml(sessionTitle(displayName))}</div>
                 </div>
-                <button class="file-download" type="button" aria-label="Download SBP">
-                  <span aria-hidden="true">&#8681;</span>
-                </button>
               </div>
             </div>
           `);
@@ -185,48 +189,59 @@ function enableSwipe(container, fileList, sdInfo){
   let row = null, x0 = 0, y0 = 0, dx = 0, sw = false;
 
   const closeAll = () =>
-    container.querySelectorAll(".file-swipe.show-delete")
-      .forEach(r => r.classList.remove("show-delete"));
+    container.querySelectorAll(".file-swipe.show-actions")
+      .forEach(r => r.classList.remove("show-actions"));
 
   const download = name => {
     name && (location.href =
       `/api/download?file=${encodeURIComponent(name)}&t=${Date.now()}`);
   };
 
+  const deleteRow = r => {
+    if(!r) return;
+
+    const date = r.dataset.date;
+
+    Api.deleteJson("/api/file", { name:r.dataset.name })
+      .then(j => {
+        if(!j.ok) throw new Error("delete failed");
+        r.remove();
+        applyDeletedStorageBytes(j.deleted_bytes);
+
+        // Remove date header if no files remain for that date.
+        if(!fileList.querySelector(`.file-row[data-date="${date}"]`)){
+          const h = fileList.querySelector(`.file-date[data-date="${date}"]`);
+          h && h.remove();
+        }
+
+        sdInfo.textContent = "";
+
+        // Refresh map sessions if map is already running.
+        if(window.MapSessions?._started){
+          MapSessions.removeDeleted(r.dataset.name);
+        }
+      })
+      .catch(err => {
+        sdInfo && (sdInfo.textContent = "Delete failed");
+        console.warn("Delete failed", err);
+      });
+  };
+
   container.addEventListener("touchstart", e=>{
-    const del = e.target.closest(".file-delete");
-    if(del){
+    const action = e.target.closest(".file-action");
+    if(action){
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      const r = del.closest(".file-swipe");
+      const r = action.closest(".file-swipe");
       if(!r) return;
 
-      const date = r.dataset.date;
-
-      Api.deleteJson("/api/file", { name:r.dataset.name })
-        .then(j => {
-          if(!j.ok) throw new Error("delete failed");
-          r.remove();
-          applyDeletedStorageBytes(j.deleted_bytes);
-
-          // Remove date header if no files remain for that date.
-          if(!fileList.querySelector(`.file-row[data-date="${date}"]`)){
-            const h = fileList.querySelector(`.file-date[data-date="${date}"]`);
-            h && h.remove();
-          }
-
-          sdInfo.textContent = "";
-
-          // Refresh map sessions if map is already running.
-          if(window.MapSessions?._started){
-            MapSessions.removeDeleted(r.dataset.name);
-          }
-        })
-        .catch(err => {
-          sdInfo && (sdInfo.textContent = "Delete failed");
-          console.warn("Delete failed", err);
-        });
+      selectFileRow(r);
+      if(action.classList.contains("file-action-download")){
+        download(r.dataset.download || r.dataset.name);
+      }else if(action.classList.contains("file-action-delete")){
+        deleteRow(r);
+      }
 
       return;
     }
@@ -257,24 +272,30 @@ function enableSwipe(container, fileList, sdInfo){
     if(!sw) return;
     sw = false;
 
-    row.classList.toggle("show-delete", dx < -36);
+    row.classList.toggle("show-actions", dx < -36);
   }, { passive:true });
 
   container.addEventListener("click", e=>{
-    const downloadBtn = e.target.closest(".file-download");
-    if(downloadBtn){
+    const action = e.target.closest(".file-action");
+    if(action){
       e.preventDefault();
       e.stopPropagation();
-      const r = downloadBtn.closest(".file-swipe");
+      const r = action.closest(".file-swipe");
+      if(!r) return;
+
       selectFileRow(r);
-      download(r?.dataset.download || r?.dataset.name);
+      if(action.classList.contains("file-action-download")){
+        download(r.dataset.download || r.dataset.name);
+      }else if(action.classList.contains("file-action-delete")){
+        deleteRow(r);
+      }
       return;
     }
 
     const r = e.target.closest(".file-swipe");
     if(!r) return;
 
-    if(!r.classList.contains("show-delete")){
+    if(!r.classList.contains("show-actions")){
       selectFileRow(r);
       MapSessions.openFile(r.dataset.name)
         .finally(() => AppShell.openTab("map"));
