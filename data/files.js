@@ -275,8 +275,8 @@ function enableSwipe(container, fileList, sdInfo){
     if(!r) return;
 
     if(!r.classList.contains("show-delete")){
-      AppShell.openTab("map");
-      setTimeout(() => MapSessions.openFile(r.dataset.name), 180);
+      MapSessions.openFile(r.dataset.name)
+        .finally(() => AppShell.openTab("map"));
     }
   });
 }

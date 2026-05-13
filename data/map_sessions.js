@@ -94,8 +94,8 @@ window.MapSessions = {
     if(!name) return;
     if(!MapView.map){
       MapView.init();
-      setTimeout(() => this.openFile(name), 220);
-      return;
+      await new Promise(resolve => setTimeout(resolve, 220));
+      return this.openFile(name);
     }
 
     if(!this.files.length){
