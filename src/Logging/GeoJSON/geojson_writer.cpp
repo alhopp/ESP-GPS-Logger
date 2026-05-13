@@ -8,6 +8,7 @@
 #include "Logging/GeoJSON/geojson_writer.h"
 #include <string.h>
 
+#include "Logging/GeoJSON/geojson_graph_writer.h"
 #include "Logging/GeoJSON/geojson_track_simplifier.h"
 #include "Storage/storage_manager.h"
 
@@ -69,85 +70,6 @@ void writeTrackPoint(const GeoJsonTrackPoint& point)
   writeCoordinate(point.lat, point.lon);
 }
 
-void writeGraphSeries(const char* name, const GeoJSONGraphSeries& series)
-{
-  state.file.print("\"");
-  state.file.print(name);
-  state.file.print("\":[");
-
-  for (int i = 0; i < series.count; i++) {
-    if (i) state.file.print(",");
-    state.file.print(series.values[i], 2);
-  }
-
-  state.file.print("]");
-}
-
-void writeGraphSeriesList(const char* name, const GeoJSONGraphSeries* series, int count)
-{
-  state.file.print("\"");
-  state.file.print(name);
-  state.file.print("\":[");
-
-  for (int i = 0; i < count; i++) {
-    if (i) state.file.print(",");
-    state.file.print("[");
-    for (int j = 0; j < series[i].count; j++) {
-      if (j) state.file.print(",");
-      state.file.print(series[i].values[j], 2);
-    }
-    state.file.print("]");
-  }
-
-  state.file.print("]");
-}
-
-void writeGraphMetaSeries(const char* name, const GeoJSONGraphSeries& series)
-{
-  state.file.print("\"");
-  state.file.print(name);
-  state.file.print("\":{\"xMax\":");
-  state.file.print(series.xMax, 3);
-  state.file.print(",\"xUnit\":\"");
-  state.file.print(series.xUnit ? series.xUnit : "");
-  state.file.print("\"}");
-}
-
-void writeGraphs()
-{
-  state.file.println(",");
-  state.file.println("\"graphs\":{");
-  writeGraphSeries("2s", state.graphs.s2);
-  state.file.println(",");
-  writeGraphSeriesList("10s", state.graphs.s10, state.graphs.s10Count);
-  state.file.println(",");
-  writeGraphSeries("alpha", state.graphs.alpha);
-  state.file.println(",");
-  writeGraphSeries("nm", state.graphs.nm);
-  state.file.println(",");
-  writeGraphSeries("1h", state.graphs.h1);
-  state.file.println(",");
-  writeGraphSeries("distance", state.graphs.distance);
-  state.file.println();
-  state.file.print("},");
-
-  state.file.println();
-  state.file.println("\"graph_meta\":{");
-  writeGraphMetaSeries("2s", state.graphs.s2);
-  state.file.println(",");
-  writeGraphMetaSeries("10s", state.graphs.s10Count > 0 ? state.graphs.s10[0] : state.graphs.s2);
-  state.file.println(",");
-  writeGraphMetaSeries("alpha", state.graphs.alpha);
-  state.file.println(",");
-  writeGraphMetaSeries("nm", state.graphs.nm);
-  state.file.println(",");
-  writeGraphMetaSeries("1h", state.graphs.h1);
-  state.file.println(",");
-  writeGraphMetaSeries("distance", state.graphs.distance);
-  state.file.println();
-  state.file.print("}");
-}
-
 bool isTrackFeature()
 {
   return state.currentMode && strcmp(state.currentMode, "track") == 0;
@@ -196,7 +118,7 @@ void writeTrackProperties()
   }
 
   if (state.hasGraphs) {
-    writeGraphs();
+    geojson_write_graphs(state.file, state.graphs);
   }
 }
 
