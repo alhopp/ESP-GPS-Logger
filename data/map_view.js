@@ -7,7 +7,6 @@ window.MapView = {
   baseTrack:null,
   overlay:null,
   defaultOverlays:{},
-  dot:null,
   _r:null,
   _overlays:{},
 
@@ -71,7 +70,7 @@ window.MapView = {
     });
   },
 
-  zoomToBounds(bounds, meta){
+  zoomToBounds(bounds){
     const b = bounds;
     if(!b.isValid()) return;
 
@@ -84,8 +83,6 @@ window.MapView = {
     const z = this.map.getZoom();
     if(z > 16) this.map.setZoom(16);
     if(z < 13) this.map.setZoom(13);
-
-    if(meta) console.log("[Map] bounds", meta);
   },
 
   trackBounds(feature){
@@ -143,13 +140,7 @@ window.MapView = {
           style:{ color:"#9aa0a6", weight:4, opacity:0.75 }
         }).addTo(this.map);
 
-        this.zoomToBounds(tb.bounds, {
-          points:tb.count,
-          south:tb.bounds.getSouth(),
-          west:tb.bounds.getWest(),
-          north:tb.bounds.getNorth(),
-          east:tb.bounds.getEast()
-        });
+        this.zoomToBounds(tb.bounds);
       }
 
       this.showOverlay("nm", { pinned:true });
@@ -224,10 +215,6 @@ window.MapView = {
       if(this.defaultOverlays[k]) this.map.removeLayer(this.defaultOverlays[k]);
     });
     this.defaultOverlays = {};
-    if(this.dot){
-      this.map.removeLayer(this.dot);
-      this.dot = null;
-    }
     this._overlays = {};
     StatsGraph.clear();
   }

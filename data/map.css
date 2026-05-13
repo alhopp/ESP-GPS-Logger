@@ -1,6 +1,6 @@
 /* =============================================================================
    MAP + SESSION CARD
-   (DEFINED ONLY HERE — no duplicates in app.css)
+   Defined only here; no duplicates in app.css.
    ============================================================================= */
 
 /* ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ section#map.a~footer{display:none}
 }
 
 /* ---------------------------------------------------------------------------
-   STATS GRID (NOT TRANSFORMED — iOS SAFE)
+   STATS GRID (NOT TRANSFORMED; iOS SAFE)
 --------------------------------------------------------------------------- */
 
 .stats-grid{
@@ -134,7 +134,7 @@ section#map.a~footer{display:none}
   padding-top:132px;
   transition:transform .22s ease;
 
-  pointer-events:none;   /* 🔑 CRITICAL */
+  pointer-events:none;
 }
 
 

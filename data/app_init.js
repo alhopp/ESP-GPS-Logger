@@ -30,8 +30,6 @@ function tab(id, btn){
   }
 }
 
-window.tab = tab;
-
 function markDirty(saveBtn){
   if(dirty) return;
   dirty = true;
