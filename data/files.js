@@ -192,10 +192,13 @@ function enableSwipe(container, fileList, sdInfo){
   swipeBound = true;
 
   let row = null, x0 = 0, y0 = 0, dx = 0, sw = false;
+  let openState = "";
 
-  const closeAll = () =>
+  const closeOtherRows = activeRow =>
     container.querySelectorAll(".file-swipe.show-actions,.file-swipe.show-delete")
-      .forEach(r => r.classList.remove("show-actions", "show-delete"));
+      .forEach(r => {
+        if(r !== activeRow) r.classList.remove("show-actions", "show-delete");
+      });
 
   const download = name => {
     name && (location.href =
@@ -263,8 +266,13 @@ function enableSwipe(container, fileList, sdInfo){
     row = e.target.closest(".file-swipe");
     if(!row) return;
 
-    closeAll();
+    closeOtherRows(row);
     selectFileRow(row);
+    openState = row.classList.contains("show-actions")
+      ? "actions"
+      : row.classList.contains("show-delete")
+        ? "delete"
+        : "";
     x0 = e.touches[0].clientX;
     y0 = e.touches[0].clientY;
     dx = 0;
@@ -287,8 +295,19 @@ function enableSwipe(container, fileList, sdInfo){
     if(!sw) return;
     sw = false;
 
-    row.classList.toggle("show-actions", dx < -36);
-    row.classList.toggle("show-delete", dx > 36);
+    row.classList.remove("show-actions", "show-delete");
+
+    if(openState === "actions"){
+      if(dx < -56) row.classList.add("show-actions");
+    }else if(openState === "delete"){
+      if(dx > 56) row.classList.add("show-delete");
+    }else if(dx < -56){
+      row.classList.add("show-actions");
+    }else if(dx > 56){
+      row.classList.add("show-delete");
+    }
+
+    openState = "";
   }, { passive:true });
 
   container.addEventListener("click", e=>{
