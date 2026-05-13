@@ -339,17 +339,31 @@ void logDirectory(fs::FS& fs, const char* path, int depth)
 void logLogsDirectoryReport(fs::FS& fs)
 {
 #if LOG_ENABLED
+  auto logReport = [](const char* item, const char* fmt, ...) {
+    char message[160];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(message, sizeof(message), fmt, args);
+    va_end(args);
+    Serial.printf("[%-*s] %-*s : %s\n",
+                  LOG_TAG_W,
+                  "STORAGE",
+                  LOG_ITEM_W,
+                  item,
+                  message);
+  };
+
   int count = 0;
   uint64_t totalBytes = 0;
 
   File root = fs.open("/logs");
   if (!root) {
-    LOG_STORAGE("SD Logs", "/logs not found");
+    logReport("SD Logs", "/logs not found");
     return;
   }
 
   if (!root.isDirectory()) {
-    LOG_STORAGE("SD Logs", "/logs is not a directory");
+    logReport("SD Logs", "/logs is not a directory");
     root.close();
     return;
   }
@@ -389,10 +403,10 @@ void logLogsDirectoryReport(fs::FS& fs)
         status = " RAW";
       }
 
-      LOG_STORAGE("SD Log", "%s %llu bytes%s",
-                  path,
-                  (unsigned long long)size,
-                  status);
+      logReport("SD Log", "%s %llu bytes%s",
+                path,
+                (unsigned long long)size,
+                status);
 
       count++;
       totalBytes += size;
@@ -404,9 +418,9 @@ void logLogsDirectoryReport(fs::FS& fs)
 
   root.close();
 
-  LOG_STORAGE("SD Logs", "%d files, %llu bytes",
-              count,
-              (unsigned long long)totalBytes);
+  logReport("SD Logs", "%d files, %llu bytes",
+            count,
+            (unsigned long long)totalBytes);
 #else
   (void)fs;
 #endif
