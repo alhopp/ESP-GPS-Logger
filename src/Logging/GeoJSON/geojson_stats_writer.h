@@ -8,6 +8,6 @@
 
 #include <FS.h>
 
-#include "Logging/GeoJSON/geojson_writer.h"
+#include "Logging/GeoJSON/geojson_types.h"
 
 void geojson_write_stats(File& file, const GeoJSONStats& stats);

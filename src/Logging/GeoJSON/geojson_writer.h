@@ -7,6 +7,8 @@
 // GeoJSON file and appending feature/geometry fragments safely.
 // ============================================================================
 
+#include "Logging/GeoJSON/geojson_types.h"
+
 bool geojson_begin(const char* filename);
 
 // Feature lifecycle
@@ -21,35 +23,6 @@ void geojson_end();
 // Session statistics (attached to base track only)
 // -----------------------------------------------------------------------------
 
-struct GeoJSONStats {
-  float nm;
-  float alpha;
-  float alphaDistance;
-  float alphaClosure;
-  float h1;
-  float max;
-  float avg10;
-  float r10[5];
-  float distance;
-};
-
 void geojson_set_stats(const GeoJSONStats& s);
-
-struct GeoJSONGraphSeries {
-  const float* values;
-  int count;
-  float xMax;
-  const char* xUnit;
-};
-
-struct GeoJSONGraphs {
-  GeoJSONGraphSeries s2;
-  GeoJSONGraphSeries s10[5];
-  int s10Count;
-  GeoJSONGraphSeries alpha;
-  GeoJSONGraphSeries nm;
-  GeoJSONGraphSeries h1;
-  GeoJSONGraphSeries distance;
-};
 
 void geojson_set_graphs(const GeoJSONGraphs& graphs);

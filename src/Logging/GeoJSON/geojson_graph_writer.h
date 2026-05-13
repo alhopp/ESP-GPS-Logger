@@ -9,6 +9,6 @@
 
 #include <FS.h>
 
-#include "Logging/GeoJSON/geojson_writer.h"
+#include "Logging/GeoJSON/geojson_types.h"
 
 void geojson_write_graphs(File& file, const GeoJSONGraphs& graphs);
