@@ -39,8 +39,6 @@ void requestModeRedraw()
 void beginStorageShutdown()
 {
   storage_begin_shutdown();
-  screen_request_redraw();
-  vTaskDelay(pdMS_TO_TICKS(20));
 }
 
 void ensureStorageReady(const char* context)
@@ -281,9 +279,10 @@ void setMode(SystemMode newMode)
   enterModeFailed = false;
 
   if (oldMode == MODE_LOGGING) {
-    // Mark the requested mode before closing the session so the GPS task stops
-    // writing fixes while stats are finalised and storage is shutting down.
-    currentMode = newMode;
+    // Stop the GPS task before closing/exporting the session, but do not expose
+    // MODE_SLEEP yet. The display task enters deep sleep as soon as it sees
+    // MODE_SLEEP, and long GeoJSON exports must finish first.
+    currentMode = newMode == MODE_SLEEP ? MODE_IDLE : newMode;
   }
 
   runExitActions(oldMode, newMode);
