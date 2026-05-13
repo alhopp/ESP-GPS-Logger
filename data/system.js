@@ -10,11 +10,12 @@ window.SystemTab = (function(){
     if(!system) return;
 
     const yesNo = v => v ? "Yes" : "No";
+    const compactMb = { mbDecimals:0, compact:true };
     const storageText = system.storage_detected
-      ? AppUtil.formatStorageSize(system.storage_bytes, system.storage_mb)
+      ? AppUtil.formatStorageSize(system.storage_bytes, system.storage_mb, compactMb)
       : "Not detected";
     const storageUsedText = system.storage_detected
-      ? `${AppUtil.formatStorageSize(system.storage_used_bytes, system.storage_used_mb)} used / ${AppUtil.formatStorageSize(system.storage_free_bytes, system.storage_free_mb)} free`
+      ? `${AppUtil.formatStorageSize(system.storage_used_bytes, system.storage_used_mb, compactMb)} used / ${AppUtil.formatStorageSize(system.storage_free_bytes, system.storage_free_mb, compactMb)} free`
       : null;
 
     setText($("sys_gnss_module"),   system.gnss_module);

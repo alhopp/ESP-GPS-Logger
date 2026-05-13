@@ -15,17 +15,22 @@ window.AppUtil = {
     })[ch]);
   },
 
-  formatStorageSize(bytes, fallbackMb){
+  formatStorageSize(bytes, fallbackMb, options={}){
+    const hasMbDecimals = Object.prototype.hasOwnProperty.call(options, "mbDecimals");
+    const mbDecimals = hasMbDecimals ? options.mbDecimals : 1;
+    const separator = options.compact ? "" : " ";
     const value = Number(bytes);
     if(Number.isFinite(value) && value > 0){
       if(value < 1024 * 1024){
         return `${(value / 1024).toFixed(1)} kB`;
       }
-      return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+      return `${(value / (1024 * 1024)).toFixed(mbDecimals)}${separator}MB`;
     }
 
     const mb = Number(fallbackMb);
-    return Number.isFinite(mb) ? `${mb} MB` : null;
+    if(!Number.isFinite(mb)) return null;
+    const fallbackText = hasMbDecimals ? mb.toFixed(mbDecimals) : String(mb);
+    return `${fallbackText}${separator}MB`;
   },
 
   setText(el, value){
