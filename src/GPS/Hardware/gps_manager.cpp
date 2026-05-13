@@ -17,9 +17,6 @@
 #include "GPS/Hardware/gps_power.h"
 #include "GPS/Hardware/gps_startup_time.h"
 
-tm tmstruct{};
-int Time_Set_OK = 0;
-
 namespace {
 GpsLifecycleState lifecycleState = GpsLifecycleState::Off;
 
