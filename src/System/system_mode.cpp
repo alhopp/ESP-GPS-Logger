@@ -7,7 +7,7 @@
 // transitions between modes: Wi-Fi, GPS power, storage, and session shutdown.
 // -----------------------------------------------------------------------------
 
-#include "Core/system_mode.h"
+#include "System/system_mode.h"
 
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>

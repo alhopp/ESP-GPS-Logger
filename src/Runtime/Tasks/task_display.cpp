@@ -21,7 +21,7 @@
 #include "Core/log.h"
 
 #include "Core/Power/sleep_control.h"
-#include "Core/system_mode.h"
+#include "System/system_mode.h"
 
 #include "Display/E_paper.h"
 #include "Display/screen_draw.h"

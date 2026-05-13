@@ -16,7 +16,7 @@
 #include "GPS/Hardware/gps_manager.h"
 #include "Core/Globals.h"
 #include "Core/build_config.h"
-#include "Core/system_mode.h"
+#include "System/system_mode.h"
 #include "Logging/logging_session.h"
 #include "Web/Server/web_json.h"
 

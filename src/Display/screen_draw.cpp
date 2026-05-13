@@ -16,7 +16,7 @@
 
 #include "Display/screen_draw.h"
 
-#include "Core/system_mode.h"
+#include "System/system_mode.h"
 #include "Display/Screens/screen_speed.h"
 #include "Display/Screens/screen_system.h"
 

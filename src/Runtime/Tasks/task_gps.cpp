@@ -12,7 +12,7 @@
 #include "Core/Globals.h"
 #include "GPS/gps_runtime_state.h"
 #include "GPS/Ublox/ublox_driver.h"
-#include "Core/system_mode.h"
+#include "System/system_mode.h"
 #include "Logging/logging_session.h"
 #include "Runtime/Policies/gps_display_policy.h"
 #include "Runtime/Policies/gps_logging_policy.h"

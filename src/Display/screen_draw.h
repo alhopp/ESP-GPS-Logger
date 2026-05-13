@@ -19,7 +19,7 @@
 // - system_mode decides what mode we are in
 // -----------------------------------------------------------------------------
 
-#include "Core/system_mode.h"
+#include "System/system_mode.h"
 
 // Each draw_* function must perform a complete, non-blocking screen render.
 using DrawFn = void (*)();

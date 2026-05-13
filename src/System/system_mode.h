@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Core/system_mode.h
+// System/system_mode.h
 //
 // Central system mode state machine interface.
 //
