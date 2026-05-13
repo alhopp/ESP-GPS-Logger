@@ -9,7 +9,10 @@ function showStats(){
 
 function hideStats(){
   $("sessionCard")?.classList.remove("stats");
-  MapView.map?.invalidateSize(true);
+  setTimeout(() => {
+    MapView.map?.invalidateSize(true);
+    MapView.refitTrack?.();
+  }, 220);
 }
 
 function updateStatsUI(stats){

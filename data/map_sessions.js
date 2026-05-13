@@ -84,8 +84,9 @@ window.MapSessions = {
     if(!f) return;
 
     this.updateHeader();
-    MapView.clear();
-    MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}&t=${Date.now()}`);
+    MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}&t=${Date.now()}`, {
+      preserveStats:true
+    });
   },
 
   prev(){

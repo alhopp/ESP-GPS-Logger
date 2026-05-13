@@ -7,6 +7,7 @@ window.MapView = {
   baseTrack:null,
   overlay:null,
   defaultOverlays:{},
+  trackFitBounds:null,
   _r:null,
   _overlays:{},
 
@@ -73,9 +74,13 @@ window.MapView = {
   zoomToBounds(bounds){
     const b = bounds;
     if(!b.isValid()) return;
+    this.trackFitBounds = b;
+
+    const bottomPadding = this.bottomOverlayPadding();
 
     this.map.fitBounds(b, {
-      padding:[30,30],
+      paddingTopLeft:[30,30],
+      paddingBottomRight:[30,bottomPadding],
       animate:false,
       maxZoom:16
     });
@@ -83,6 +88,17 @@ window.MapView = {
     const z = this.map.getZoom();
     if(z > 16) this.map.setZoom(16);
     if(z < 13) this.map.setZoom(13);
+  },
+
+  bottomOverlayPadding(){
+    const card = $("sessionCard");
+    if(!card || card.classList.contains("stats")) return 30;
+    return Math.ceil(card.getBoundingClientRect().height + 34);
+  },
+
+  refitTrack(){
+    if(!this.map || !this.trackFitBounds) return;
+    this.zoomToBounds(this.trackFitBounds);
   },
 
   trackBounds(feature){
@@ -106,10 +122,10 @@ window.MapView = {
     return { bounds, count };
   },
 
-  async loadGeoJSON(url){
+  async loadGeoJSON(url, options={}){
     if(!this.map) return;
 
-    this.clear();
+    this.clear({ preserveStats:!!options.preserveStats });
 
     try{
       const gj = await Api.json(url);
@@ -202,7 +218,7 @@ window.MapView = {
     })[mode] || { pane:"overlayPane", color:"#af52de", weight:5 };
   },
 
-  clear(){
+  clear(options={}){
     if(this.baseTrack){
       this.map.removeLayer(this.baseTrack);
       this.baseTrack = null;
@@ -215,7 +231,8 @@ window.MapView = {
       if(this.defaultOverlays[k]) this.map.removeLayer(this.defaultOverlays[k]);
     });
     this.defaultOverlays = {};
+    this.trackFitBounds = null;
     this._overlays = {};
-    StatsGraph.clear();
+    if(!options.preserveStats) StatsGraph.clear();
   }
 };
