@@ -46,7 +46,6 @@ void logSDStats();
 void logDirectory(fs::FS& fs, const char* path, int depth = 0);
 void logStorageReport(const char* item, const char* fmt, ...);
 void logLogsDirectoryReport(fs::FS& fs);
-void removeOrphanSbpLogs(fs::FS& fs);
 
 }
 
@@ -205,7 +204,6 @@ void mountSdForBoot()
     LOG_ERROR("SD I/O", "FAILED");
   }
 
-  removeOrphanSbpLogs(storage_sd_fs());
   logLogsDirectoryReport(storage_sd_fs());
 }
 
@@ -356,70 +354,6 @@ void logStorageReport(const char* item, const char* fmt, ...)
 #else
   (void)item;
   (void)fmt;
-#endif
-}
-
-void removeOrphanSbpLogs(fs::FS& fs)
-{
-#if LOG_ENABLED
-  int removedCount = 0;
-  uint64_t removedBytes = 0;
-
-  File root = fs.open("/logs");
-  if (!root || !root.isDirectory()) {
-    if (root) root.close();
-    return;
-  }
-
-  File file = root.openNextFile();
-  while (file) {
-    if (!file.isDirectory()) {
-      const char* name = file.name();
-      char sbpPath[128];
-      if (name && name[0] == '/') {
-        strlcpy(sbpPath, name, sizeof(sbpPath));
-      } else {
-        snprintf(sbpPath, sizeof(sbpPath), "/logs/%s", name ? name : "");
-      }
-
-      if (strstr(sbpPath, ".sbp") != nullptr) {
-        char geoPath[128];
-        strlcpy(geoPath, sbpPath, sizeof(geoPath));
-        char* dot = strrchr(geoPath, '.');
-        if (dot) {
-          strlcpy(dot, ".geojson", sizeof(geoPath) - (dot - geoPath));
-          if (!fs.exists(geoPath)) {
-            const uint64_t size = file.size();
-            file.close();
-
-            if (fs.remove(sbpPath)) {
-              removedCount++;
-              removedBytes += size;
-              logStorageReport("SD Clean", "deleted %s %llu bytes",
-                               sbpPath,
-                               (unsigned long long)size);
-            } else {
-              logStorageReport("SD Clean", "delete failed %s", sbpPath);
-            }
-
-            file = root.openNextFile();
-            continue;
-          }
-        }
-      }
-    }
-
-    file.close();
-    file = root.openNextFile();
-  }
-
-  root.close();
-
-  logStorageReport("SD Clean", "deleted %d orphan SBP files, %llu bytes",
-                   removedCount,
-                   (unsigned long long)removedBytes);
-#else
-  (void)fs;
 #endif
 }
 
