@@ -20,6 +20,11 @@
 namespace {
 constexpr size_t FILE_LIST_JSON_BYTES = 16384;
 
+struct ValidatedLogPath {
+  const char* base;
+  char path[128];
+};
+
 // Return filename portion of a path. Callers must copy it before the owning
 // File/String goes out of scope.
 const char* basenameOnly(const char* path)
@@ -67,6 +72,16 @@ bool isValidLogFile(const char* name)
 
   const char* ext = strrchr(name, '.');
   return ext && isAllowedLogExtension(ext);
+}
+
+bool resolveLogPath(const char* requestedName, ValidatedLogPath& result)
+{
+  const char* base = basenameOnly(requestedName);
+  if (!isValidLogFile(base)) return false;
+
+  result.base = base;
+  buildLogPath(result.path, sizeof(result.path), base);
+  return true;
 }
 
 uint64_t fileSize(fs::FS& storage, const char* path)
@@ -238,31 +253,28 @@ void handleFileDownload(WebServer& server)
   const int q = file.indexOf('?');
   if (q >= 0) file = file.substring(0, q);
 
-  const char* base = basenameOnly(file.c_str());
-  if (!isValidLogFile(base)) {
+  ValidatedLogPath logFile;
+  if (!resolveLogPath(file.c_str(), logFile)) {
     server.send(400);
     return;
   }
 
-  char path[128];
-  buildLogPath(path, sizeof(path), base);
-
   fs::FS& storage = storage_sd_fs();
-  if (!storage.exists(path)) {
+  if (!storage.exists(logFile.path)) {
     server.send(404);
     return;
   }
 
-  File f = storage.open(path, FILE_READ);
+  File f = storage.open(logFile.path, FILE_READ);
   if (!f) {
     server.send(500);
     return;
   }
 
-  server.sendHeader("Content-Disposition", String("attachment; filename=\"") + base + "\"");
+  server.sendHeader("Content-Disposition", String("attachment; filename=\"") + logFile.base + "\"");
   server.sendHeader("Cache-Control", "no-store");
 
-  const char* mime = strstr(base, ".geojson") ? "application/geo+json" : "application/octet-stream";
+  const char* mime = strstr(logFile.base, ".geojson") ? "application/geo+json" : "application/octet-stream";
   server.streamFile(f, mime);
   f.close();
 }
@@ -280,19 +292,16 @@ void handleFileDelete(WebServer& server)
     return;
   }
 
-  const char* base = basenameOnly(j["name"]);
-  if (!isValidLogFile(base)) {
+  ValidatedLogPath logFile;
+  if (!resolveLogPath(j["name"], logFile)) {
     server.send(400);
     return;
   }
 
   fs::FS& storage = storage_sd_fs();
-  char path[128];
-  buildLogPath(path, sizeof(path), base);
-
-  const uint64_t fileBytes = fileSize(storage, path);
-  const bool removed = storage.remove(path);
-  const uint64_t pairedBytes = removed ? removePairedLogFile(storage, base) : 0;
+  const uint64_t fileBytes = fileSize(storage, logFile.path);
+  const bool removed = storage.remove(logFile.path);
+  const uint64_t pairedBytes = removed ? removePairedLogFile(storage, logFile.base) : 0;
 
   sendDeleteResult(server, removed, removed ? fileBytes + pairedBytes : 0);
 }
