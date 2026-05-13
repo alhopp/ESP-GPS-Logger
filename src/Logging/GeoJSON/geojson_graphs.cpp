@@ -13,6 +13,7 @@
 #include "GPS/gps_config.h"
 #include "Logging/GeoJSON/geojson_export_limits.h"
 #include "Logging/GeoJSON/geojson_sbp_reader.h"
+#include "Logging/GeoJSON/geojson_session_windows.h"
 #include "Logging/GeoJSON/geojson_writer.h"
 #include "Session/session_stats_snapshot.h"
 
@@ -26,11 +27,6 @@ float graph1h[GEOJSON_MAX_SERIES_POINTS];
 float graphDistance[GEOJSON_MAX_SERIES_POINTS];
 float graph1hMinutes = 0.0f;
 float graphSessionMinutes = 0.0f;
-
-bool hasWindow(const SessionWindow& window)
-{
-  return window.startSbp >= 1 && window.endSbp >= window.startSbp;
-}
 
 void compressGraph(float* values, int& count, int& strideSamples)
 {
@@ -179,7 +175,7 @@ void geojson_attach_graph_series(const char* sbpPath, const SessionStatsSnapshot
   }
 
   for (int i = 0; i < 5; i++) {
-    if (!hasWindow(snapshot.tenSecond[i])) continue;
+    if (!geojson_has_window(snapshot.tenSecond[i])) continue;
 
     graph10sCount[i] = readGpsSpeedGraph(
       sbpPath,
