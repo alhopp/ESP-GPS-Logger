@@ -10,6 +10,7 @@ window.MapView = {
   trackFitBounds:null,
   _r:null,
   _overlays:{},
+  _loadToken:0,
 
   init(){
     if(this.map){
@@ -124,14 +125,14 @@ window.MapView = {
 
   async loadGeoJSON(url, options={}){
     if(!this.map) return;
-
-    this.clear({ preserveStats:!!options.preserveStats });
+    const token = ++this._loadToken;
 
     try{
       const gj = await Api.json(url);
+      if(token !== this._loadToken) return;
       if(!gj.features) throw new Error("no features");
 
-      this._overlays = {};
+      const overlays = {};
       const base = gj.features.find(f => f.properties?.mode === "track");
 
       gj.features.forEach(f => {
@@ -139,9 +140,12 @@ window.MapView = {
         if(!mode || mode === "track") return;
         if(!f.geometry?.coordinates || f.geometry.coordinates.length < 2) return;
 
-        if(!this._overlays[mode]) this._overlays[mode] = [];
-        this._overlays[mode].push(f);
+        if(!overlays[mode]) overlays[mode] = [];
+        overlays[mode].push(f);
       });
+
+      this.clear({ preserveStats:!!options.preserveStats });
+      this._overlays = overlays;
 
       const stats = base?.properties?.stats;
       updateStatsUI(stats);
@@ -166,6 +170,7 @@ window.MapView = {
 
       setTimeout(() => this.map.invalidateSize(true), 50);
     }catch(err){
+      if(token !== this._loadToken) return;
       console.warn("[Map] GeoJSON failed", err);
       updateStatsUI(null);
       StatsGraph.drawEmpty("Session map failed to load");
