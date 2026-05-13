@@ -15,28 +15,32 @@
 // Internal state
 // -----------------------------------------------------------------------------
 namespace {
-File geoFile;
-
-bool firstFeature = true;
-bool firstPoint = true;
-
-bool hasStats = false;
-GeoJSONStats stats;
-bool hasGraphs = false;
-GeoJSONGraphs graphs;
-
-const char* currentMode = nullptr;
-
 struct TrackPoint {
   double lat;
   double lon;
 };
 
-bool adaptiveTrackActive = false;
-bool haveTrackLast = false;
-bool haveTrackPending = false;
-TrackPoint trackLast;
-TrackPoint trackPending;
+struct GeoJsonWriterState {
+  File file;
+
+  bool firstFeature = true;
+  bool firstPoint = true;
+
+  bool hasStats = false;
+  GeoJSONStats stats;
+  bool hasGraphs = false;
+  GeoJSONGraphs graphs;
+
+  const char* currentMode = nullptr;
+
+  bool adaptiveTrackActive = false;
+  bool haveTrackLast = false;
+  bool haveTrackPending = false;
+  TrackPoint trackLast;
+  TrackPoint trackPending;
+};
+
+GeoJsonWriterState state;
 
 constexpr double TRACK_MIN_POINT_M = 4.0;
 constexpr double TRACK_MAX_STRAIGHT_M = 80.0;
@@ -51,14 +55,14 @@ constexpr double RAD_TO_DEG_LOCAL = 57.29577951308232;
 // -----------------------------------------------------------------------------
 void geojson_set_stats(const GeoJSONStats& s)
 {
-  stats = s;
-  hasStats = true;
+  state.stats = s;
+  state.hasStats = true;
 }
 
 void geojson_set_graphs(const GeoJSONGraphs& g)
 {
-  graphs = g;
-  hasGraphs = true;
+  state.graphs = g;
+  state.hasGraphs = true;
 }
 
 double distanceMeters(const TrackPoint& a, const TrackPoint& b)
@@ -113,9 +117,9 @@ double perpendicularErrorMeters(const TrackPoint& a,
 
 void resetAdaptiveTrack()
 {
-  adaptiveTrackActive = false;
-  haveTrackLast = false;
-  haveTrackPending = false;
+  state.adaptiveTrackActive = false;
+  state.haveTrackLast = false;
+  state.haveTrackPending = false;
 }
 
 bool coordinateLooksValid(double lat, double lon)
@@ -128,105 +132,105 @@ bool coordinateLooksValid(double lat, double lon)
 
 void writeCoordinate(double lat, double lon)
 {
-  if (!geoFile || !currentMode) return;
+  if (!state.file || !state.currentMode) return;
 
-  if (!firstPoint) {
-    geoFile.println(",");
+  if (!state.firstPoint) {
+    state.file.println(",");
   }
-  firstPoint = false;
+  state.firstPoint = false;
 
   char buf[64];
   snprintf(buf, sizeof(buf),
            "[%.6f,%.6f]",
            lon, lat);
 
-  geoFile.print(buf);
+  state.file.print(buf);
 }
 
 void writeTrackPoint(const TrackPoint& point)
 {
   writeCoordinate(point.lat, point.lon);
-  trackLast = point;
-  haveTrackLast = true;
+  state.trackLast = point;
+  state.haveTrackLast = true;
 }
 
 void writeGraphSeries(const char* name, const GeoJSONGraphSeries& series)
 {
-  geoFile.print("\"");
-  geoFile.print(name);
-  geoFile.print("\":[");
+  state.file.print("\"");
+  state.file.print(name);
+  state.file.print("\":[");
 
   for (int i = 0; i < series.count; i++) {
-    if (i) geoFile.print(",");
-    geoFile.print(series.values[i], 2);
+    if (i) state.file.print(",");
+    state.file.print(series.values[i], 2);
   }
 
-  geoFile.print("]");
+  state.file.print("]");
 }
 
 void writeGraphSeriesList(const char* name, const GeoJSONGraphSeries* series, int count)
 {
-  geoFile.print("\"");
-  geoFile.print(name);
-  geoFile.print("\":[");
+  state.file.print("\"");
+  state.file.print(name);
+  state.file.print("\":[");
 
   for (int i = 0; i < count; i++) {
-    if (i) geoFile.print(",");
-    geoFile.print("[");
+    if (i) state.file.print(",");
+    state.file.print("[");
     for (int j = 0; j < series[i].count; j++) {
-      if (j) geoFile.print(",");
-      geoFile.print(series[i].values[j], 2);
+      if (j) state.file.print(",");
+      state.file.print(series[i].values[j], 2);
     }
-    geoFile.print("]");
+    state.file.print("]");
   }
 
-  geoFile.print("]");
+  state.file.print("]");
 }
 
 void writeGraphMetaSeries(const char* name, const GeoJSONGraphSeries& series)
 {
-  geoFile.print("\"");
-  geoFile.print(name);
-  geoFile.print("\":{\"xMax\":");
-  geoFile.print(series.xMax, 3);
-  geoFile.print(",\"xUnit\":\"");
-  geoFile.print(series.xUnit ? series.xUnit : "");
-  geoFile.print("\"}");
+  state.file.print("\"");
+  state.file.print(name);
+  state.file.print("\":{\"xMax\":");
+  state.file.print(series.xMax, 3);
+  state.file.print(",\"xUnit\":\"");
+  state.file.print(series.xUnit ? series.xUnit : "");
+  state.file.print("\"}");
 }
 
 void writeGraphs()
 {
-  geoFile.println(",");
-  geoFile.println("\"graphs\":{");
-  writeGraphSeries("2s", graphs.s2);
-  geoFile.println(",");
-  writeGraphSeriesList("10s", graphs.s10, graphs.s10Count);
-  geoFile.println(",");
-  writeGraphSeries("alpha", graphs.alpha);
-  geoFile.println(",");
-  writeGraphSeries("nm", graphs.nm);
-  geoFile.println(",");
-  writeGraphSeries("1h", graphs.h1);
-  geoFile.println(",");
-  writeGraphSeries("distance", graphs.distance);
-  geoFile.println();
-  geoFile.print("},");
+  state.file.println(",");
+  state.file.println("\"graphs\":{");
+  writeGraphSeries("2s", state.graphs.s2);
+  state.file.println(",");
+  writeGraphSeriesList("10s", state.graphs.s10, state.graphs.s10Count);
+  state.file.println(",");
+  writeGraphSeries("alpha", state.graphs.alpha);
+  state.file.println(",");
+  writeGraphSeries("nm", state.graphs.nm);
+  state.file.println(",");
+  writeGraphSeries("1h", state.graphs.h1);
+  state.file.println(",");
+  writeGraphSeries("distance", state.graphs.distance);
+  state.file.println();
+  state.file.print("},");
 
-  geoFile.println();
-  geoFile.println("\"graph_meta\":{");
-  writeGraphMetaSeries("2s", graphs.s2);
-  geoFile.println(",");
-  writeGraphMetaSeries("10s", graphs.s10Count > 0 ? graphs.s10[0] : graphs.s2);
-  geoFile.println(",");
-  writeGraphMetaSeries("alpha", graphs.alpha);
-  geoFile.println(",");
-  writeGraphMetaSeries("nm", graphs.nm);
-  geoFile.println(",");
-  writeGraphMetaSeries("1h", graphs.h1);
-  geoFile.println(",");
-  writeGraphMetaSeries("distance", graphs.distance);
-  geoFile.println();
-  geoFile.print("}");
+  state.file.println();
+  state.file.println("\"graph_meta\":{");
+  writeGraphMetaSeries("2s", state.graphs.s2);
+  state.file.println(",");
+  writeGraphMetaSeries("10s", state.graphs.s10Count > 0 ? state.graphs.s10[0] : state.graphs.s2);
+  state.file.println(",");
+  writeGraphMetaSeries("alpha", state.graphs.alpha);
+  state.file.println(",");
+  writeGraphMetaSeries("nm", state.graphs.nm);
+  state.file.println(",");
+  writeGraphMetaSeries("1h", state.graphs.h1);
+  state.file.println(",");
+  writeGraphMetaSeries("distance", state.graphs.distance);
+  state.file.println();
+  state.file.print("}");
 }
 
 // -----------------------------------------------------------------------------
@@ -234,8 +238,8 @@ void writeGraphs()
 // -----------------------------------------------------------------------------
 bool geojson_begin(const char* filename)
 {
-  if (geoFile) {
-    geoFile.close();
+  if (state.file) {
+    state.file.close();
   }
 
   fs::FS& storage = storage_sd_fs();
@@ -243,17 +247,17 @@ bool geojson_begin(const char* filename)
     storage.remove(filename);
   }
 
-  geoFile = storage.open(filename, FILE_WRITE);
-  if (!geoFile) return false;
+  state.file = storage.open(filename, FILE_WRITE);
+  if (!state.file) return false;
 
-  firstFeature = true;
-  currentMode = nullptr;
-  hasStats = false;
-  hasGraphs = false;
+  state.firstFeature = true;
+  state.currentMode = nullptr;
+  state.hasStats = false;
+  state.hasGraphs = false;
 
-  geoFile.println("{");
-  geoFile.println("\"type\":\"FeatureCollection\",");
-  geoFile.println("\"features\":[");
+  state.file.println("{");
+  state.file.println("\"type\":\"FeatureCollection\",");
+  state.file.println("\"features\":[");
   return true;
 }
 
@@ -262,25 +266,25 @@ bool geojson_begin(const char* filename)
 // -----------------------------------------------------------------------------
 void geojson_begin_feature(const char* mode)
 {
-  if (!geoFile) return;
+  if (!state.file) return;
 
-  if (!firstFeature) {
-    geoFile.println(",");
+  if (!state.firstFeature) {
+    state.file.println(",");
   }
-  firstFeature = false;
+  state.firstFeature = false;
 
-  firstPoint = true;
-  currentMode = mode;
+  state.firstPoint = true;
+  state.currentMode = mode;
   if (strcmp(mode, "track") == 0) {
     resetAdaptiveTrack();
-    adaptiveTrackActive = true;
+    state.adaptiveTrackActive = true;
   }
 
-  geoFile.println("{");
-  geoFile.println("\"type\":\"Feature\",");
-  geoFile.println("\"geometry\":{");
-  geoFile.println("\"type\":\"LineString\",");
-  geoFile.println("\"coordinates\":[");
+  state.file.println("{");
+  state.file.println("\"type\":\"Feature\",");
+  state.file.println("\"geometry\":{");
+  state.file.println("\"type\":\"LineString\",");
+  state.file.println("\"coordinates\":[");
 }
 
 // -----------------------------------------------------------------------------
@@ -288,15 +292,15 @@ void geojson_begin_feature(const char* mode)
 // -----------------------------------------------------------------------------
 void geojson_add_point(double lat, double lon)
 {
-  if (!geoFile || !currentMode) return;
+  if (!state.file || !state.currentMode) return;
 
   writeCoordinate(lat, lon);
 }
 
 void geojson_add_track_point(double lat, double lon)
 {
-  if (!geoFile || !currentMode) return;
-  if (!adaptiveTrackActive || strcmp(currentMode, "track") != 0) {
+  if (!state.file || !state.currentMode) return;
+  if (!state.adaptiveTrackActive || strcmp(state.currentMode, "track") != 0) {
     geojson_add_point(lat, lon);
     return;
   }
@@ -304,24 +308,24 @@ void geojson_add_track_point(double lat, double lon)
 
   TrackPoint point { lat, lon };
 
-  if (!haveTrackLast) {
+  if (!state.haveTrackLast) {
     writeTrackPoint(point);
     return;
   }
 
-  if (!haveTrackPending) {
-    if (distanceMeters(trackLast, point) < TRACK_MIN_POINT_M) return;
-    trackPending = point;
-    haveTrackPending = true;
+  if (!state.haveTrackPending) {
+    if (distanceMeters(state.trackLast, point) < TRACK_MIN_POINT_M) return;
+    state.trackPending = point;
+    state.haveTrackPending = true;
     return;
   }
 
-  const double lastToCurrentM = distanceMeters(trackLast, point);
-  const double lastToPendingM = distanceMeters(trackLast, trackPending);
-  const double turnErrorM = perpendicularErrorMeters(trackLast, point, trackPending);
+  const double lastToCurrentM = distanceMeters(state.trackLast, point);
+  const double lastToPendingM = distanceMeters(state.trackLast, state.trackPending);
+  const double turnErrorM = perpendicularErrorMeters(state.trackLast, point, state.trackPending);
   const double turnDeg = headingDeltaDeg(
-    headingDeg(trackLast, trackPending),
-    headingDeg(trackPending, point)
+    headingDeg(state.trackLast, state.trackPending),
+    headingDeg(state.trackPending, point)
   );
 
   const bool forceDistance = lastToCurrentM >= TRACK_MAX_STRAIGHT_M;
@@ -329,11 +333,11 @@ void geojson_add_track_point(double lat, double lon)
                         (turnErrorM >= TRACK_TURN_ERROR_M || turnDeg >= TRACK_TURN_DEG);
 
   if (forceDistance || keepTurn) {
-    writeTrackPoint(trackPending);
+    writeTrackPoint(state.trackPending);
   }
 
-  trackPending = point;
-  haveTrackPending = true;
+  state.trackPending = point;
+  state.haveTrackPending = true;
 }
 
 
@@ -342,67 +346,69 @@ void geojson_add_track_point(double lat, double lon)
 // -----------------------------------------------------------------------------
 void geojson_end_feature()
 {
-  if (!geoFile || !currentMode) return;
+  if (!state.file || !state.currentMode) return;
 
-  if (adaptiveTrackActive && strcmp(currentMode, "track") == 0 && haveTrackPending) {
-    writeTrackPoint(trackPending);
+  if (state.adaptiveTrackActive &&
+      strcmp(state.currentMode, "track") == 0 &&
+      state.haveTrackPending) {
+    writeTrackPoint(state.trackPending);
   }
   resetAdaptiveTrack();
 
-  geoFile.println();
-  geoFile.println("]");     // end coordinates array
-  geoFile.println("},");    // close geometry object
+  state.file.println();
+  state.file.println("]");     // end coordinates array
+  state.file.println("},");    // close geometry object
 
-  geoFile.println("\"properties\":{");
+  state.file.println("\"properties\":{");
 
-  geoFile.print("\"mode\":\"");
-  geoFile.print(currentMode);
-  geoFile.print("\"");
+  state.file.print("\"mode\":\"");
+  state.file.print(state.currentMode);
+  state.file.print("\"");
 
   // Attach session stats ONLY to base track
-  if (hasStats && strcmp(currentMode, "track") == 0) {
-    geoFile.println(",");
-    geoFile.println("\"stats\":{");
-    geoFile.print("\"nm\":");
-    geoFile.print(stats.nm, 3);
-    geoFile.println(",");
-    geoFile.print("\"alpha\":");
-    geoFile.print(stats.alpha, 3);
-    geoFile.println(",");
-    geoFile.print("\"alphaDistance\":");
-    geoFile.print(stats.alphaDistance, 1);
-    geoFile.println(",");
-    geoFile.print("\"alphaClosure\":");
-    geoFile.print(stats.alphaClosure, 1);
-    geoFile.println(",");
-    geoFile.print("\"h1\":");
-    geoFile.print(stats.h1, 3);
-    geoFile.println(",");
-    geoFile.print("\"max\":");
-    geoFile.print(stats.max, 3);
-    geoFile.println(",");
-    geoFile.print("\"avg10\":");
-    geoFile.print(stats.avg10, 3);
-    geoFile.println(",");
-    geoFile.print("\"r10\":[");
+  if (state.hasStats && strcmp(state.currentMode, "track") == 0) {
+    state.file.println(",");
+    state.file.println("\"stats\":{");
+    state.file.print("\"nm\":");
+    state.file.print(state.stats.nm, 3);
+    state.file.println(",");
+    state.file.print("\"alpha\":");
+    state.file.print(state.stats.alpha, 3);
+    state.file.println(",");
+    state.file.print("\"alphaDistance\":");
+    state.file.print(state.stats.alphaDistance, 1);
+    state.file.println(",");
+    state.file.print("\"alphaClosure\":");
+    state.file.print(state.stats.alphaClosure, 1);
+    state.file.println(",");
+    state.file.print("\"h1\":");
+    state.file.print(state.stats.h1, 3);
+    state.file.println(",");
+    state.file.print("\"max\":");
+    state.file.print(state.stats.max, 3);
+    state.file.println(",");
+    state.file.print("\"avg10\":");
+    state.file.print(state.stats.avg10, 3);
+    state.file.println(",");
+    state.file.print("\"r10\":[");
     for (int i = 0; i < 5; i++) {
-      if (i) geoFile.print(",");
-      geoFile.print(stats.r10[i], 3);
+      if (i) state.file.print(",");
+      state.file.print(state.stats.r10[i], 3);
     }
-    geoFile.println("],");
-    geoFile.print("\"distance\":");
-    geoFile.print(stats.distance, 3);
-    geoFile.println("}");
+    state.file.println("],");
+    state.file.print("\"distance\":");
+    state.file.print(state.stats.distance, 3);
+    state.file.println("}");
   }
 
-  if (hasGraphs && strcmp(currentMode, "track") == 0) {
+  if (state.hasGraphs && strcmp(state.currentMode, "track") == 0) {
     writeGraphs();
   }
 
-  geoFile.println("}");   // end properties
-  geoFile.println("}");   // end feature
+  state.file.println("}");   // end properties
+  state.file.println("}");   // end feature
 
-  currentMode = nullptr;
+  state.currentMode = nullptr;
 }
 
 // -----------------------------------------------------------------------------
@@ -410,12 +416,12 @@ void geojson_end_feature()
 // -----------------------------------------------------------------------------
 void geojson_end()
 {
-  if (!geoFile) return;
+  if (!state.file) return;
 
-  geoFile.println();
-  geoFile.println("]");
-  geoFile.println("}");
+  state.file.println();
+  state.file.println("]");
+  state.file.println("}");
 
-  geoFile.flush();
-  geoFile.close();
+  state.file.flush();
+  state.file.close();
 }
