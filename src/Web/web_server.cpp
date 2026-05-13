@@ -19,42 +19,60 @@
 static WebServer server(80);
 static bool webStarted = false;
 
+namespace {
+
+void handleRoot()
+{
+  const char* page = wifi_show_ap_page() ? "/ap.html" : "/index.html";
+
+  File f = LittleFS.open(page, "r");
+  if (!f) {
+    server.send(404, "text/plain", "UI missing");
+    return;
+  }
+
+  server.streamFile(f, "text/html");
+  f.close();
+}
+
+void handleReboot()
+{
+  server.send(200, "text/plain", "OK");
+  delay(200);
+  ESP.restart();
+}
+
+void sendNoContent()
+{
+  server.send(204);
+}
+
+void registerStaticRoutes()
+{
+  server.on("/", HTTP_GET, handleRoot);
+  server.on("/api/reboot", HTTP_POST, handleReboot);
+  server.on("/favicon.ico", HTTP_GET, sendNoContent);
+  server.on("/apple-touch-icon.png", HTTP_GET, sendNoContent);
+  server.on("/apple-touch-icon-precomposed.png", HTTP_GET, sendNoContent);
+  server.serveStatic("/", LittleFS, "/");
+  server.onNotFound(sendNoContent);
+}
+
+void registerApiRoutes()
+{
+  registerConfigApi(server);
+  registerStatusApi(server);
+  registerFileEndpoints(server);
+}
+
+}
+
 void webserver_start()
 {
   if (webStarted) return;
 
-  registerConfigApi(server);
-  registerStatusApi(server);
-  registerFileEndpoints(server);
-
-  server.on("/", HTTP_GET, [] {
-    const char* page = wifi_show_ap_page() ? "/ap.html" : "/index.html";
-
-    File f = LittleFS.open(page, "r");
-    if (!f) {
-      server.send(404, "text/plain", "UI missing");
-      return;
-    }
-
-    server.streamFile(f, "text/html");
-    f.close();
-  });
-
-  server.on("/api/reboot", HTTP_POST, [] {
-    server.send(200, "text/plain", "OK");
-    delay(200);
-    ESP.restart();
-  });
-
-  server.on("/favicon.ico", HTTP_GET, [] { server.send(204); });
-  server.on("/apple-touch-icon.png", HTTP_GET, [] { server.send(204); });
-  server.on("/apple-touch-icon-precomposed.png", HTTP_GET, [] { server.send(204); });
-
-  server.serveStatic("/", LittleFS, "/");
-
-  server.onNotFound([] {
-    server.send(204);
-  });
+  registerApiRoutes();
+  registerStaticRoutes();
 
   server.begin();
   webStarted = true;

@@ -104,6 +104,184 @@ void sendDeleteResult(WebServer& server, bool ok, uint64_t deletedBytes)
   response["deleted_bytes"] = static_cast<double>(deletedBytes);
   web_send_json(server, response);
 }
+
+void addStorageStats(JsonDocument& j)
+{
+  j["storage_used_mb"] = storage_sd_used_mb();
+  j["storage_free_mb"] = storage_sd_free_mb();
+  j["storage_used_bytes"] = storage_sd_used_bytes();
+  j["storage_free_bytes"] = storage_sd_free_bytes();
+}
+
+void addEmptyStorageStats(JsonDocument& j)
+{
+  j["storage_used_mb"] = 0;
+  j["storage_free_mb"] = 0;
+  j["storage_used_bytes"] = 0;
+  j["storage_free_bytes"] = 0;
+}
+
+void addGeojsonFile(JsonArray& files, fs::FS& storage, const char* base, size_t size, time_t modified)
+{
+  JsonObject o = files.createNestedObject();
+  o["name"] = String(base);
+  o["size"] = size;
+  o["mtime"] = static_cast<uint32_t>(modified);
+
+  char sbpPath[128];
+  buildPairedPath(sbpPath, sizeof(sbpPath), base, ".sbp");
+  if (!storage.exists(sbpPath)) return;
+
+  File sbp = storage.open(sbpPath, FILE_READ);
+  if (!sbp) return;
+
+  o["sbp_name"] = String(basenameOnly(sbpPath));
+  o["sbp_size"] = sbp.size();
+  sbp.close();
+}
+
+void handleFilesList(WebServer& server)
+{
+  LOG_STORAGE("API files", "request");
+
+  DynamicJsonDocument j(FILE_LIST_JSON_BYTES);
+  j["ok"] = true;
+
+  if (!storage_logs_dir_ready()) {
+    LOG_STORAGE("API files", "storage not ready");
+    j["ok"] = false;
+    addEmptyStorageStats(j);
+    web_send_json(server, j);
+    return;
+  }
+
+  addStorageStats(j);
+  JsonArray files = j.createNestedArray("files");
+
+  fs::FS& storage = storage_sd_fs();
+  File dir = storage.open("/logs");
+  if (!dir || !dir.isDirectory()) {
+    LOG_STORAGE("API files", "/logs unavailable");
+    j["ok"] = false;
+    web_send_json(server, j);
+    return;
+  }
+
+  int count = 0;
+  int removedEmpty = 0;
+  File file = dir.openNextFile();
+  while (file) {
+    if (!file.isDirectory()) {
+      const char* base = basenameOnly(file.name());
+      if (isValidLogFile(base)) {
+        char baseCopy[96];
+        strlcpy(baseCopy, base, sizeof(baseCopy));
+
+        const size_t size = file.size();
+        const time_t modified = file.getLastWrite();
+        file.close();
+
+        if (size == 0) {
+          char path[128];
+          buildLogPath(path, sizeof(path), baseCopy);
+          if (storage.remove(path)) removedEmpty++;
+        } else if (hasExtension(baseCopy, ".geojson")) {
+          addGeojsonFile(files, storage, baseCopy, size, modified);
+          count++;
+        }
+      } else {
+        file.close();
+      }
+    } else {
+      file.close();
+    }
+    file = dir.openNextFile();
+  }
+  dir.close();
+
+  if (j.overflowed()) {
+    LOG_ERROR("API files", "JSON overflow after %d files", count);
+    j.clear();
+    j["ok"] = false;
+    j["error"] = "too_many_files";
+    web_send_json(server, j);
+    return;
+  }
+
+  LOG_STORAGE("API files", "%d sessions, removed %d empty", count, removedEmpty);
+  web_send_json(server, j);
+}
+
+void handleFileDownload(WebServer& server)
+{
+  if (!storage_on() || !server.hasArg("file")) {
+    server.send(400);
+    return;
+  }
+
+  String file = server.arg("file");
+
+  const int q = file.indexOf('?');
+  if (q >= 0) file = file.substring(0, q);
+
+  const char* base = basenameOnly(file.c_str());
+  if (!isValidLogFile(base)) {
+    server.send(400);
+    return;
+  }
+
+  char path[128];
+  buildLogPath(path, sizeof(path), base);
+
+  fs::FS& storage = storage_sd_fs();
+  if (!storage.exists(path)) {
+    server.send(404);
+    return;
+  }
+
+  File f = storage.open(path, FILE_READ);
+  if (!f) {
+    server.send(500);
+    return;
+  }
+
+  server.sendHeader("Content-Disposition", String("attachment; filename=\"") + base + "\"");
+  server.sendHeader("Cache-Control", "no-store");
+
+  const char* mime = strstr(base, ".geojson") ? "application/geo+json" : "application/octet-stream";
+  server.streamFile(f, mime);
+  f.close();
+}
+
+void handleFileDelete(WebServer& server)
+{
+  if (!storage_on() || !server.hasArg("plain")) {
+    sendDeleteResult(server, false, 0);
+    return;
+  }
+
+  StaticJsonDocument<256> j;
+  if (deserializeJson(j, server.arg("plain"))) {
+    server.send(400);
+    return;
+  }
+
+  const char* base = basenameOnly(j["name"]);
+  if (!isValidLogFile(base)) {
+    server.send(400);
+    return;
+  }
+
+  fs::FS& storage = storage_sd_fs();
+  char path[128];
+  buildLogPath(path, sizeof(path), base);
+
+  const uint64_t fileBytes = fileSize(storage, path);
+  const bool removed = storage.remove(path);
+  const uint64_t pairedBytes = removed ? removePairedLogFile(storage, base) : 0;
+
+  sendDeleteResult(server, removed, removed ? fileBytes + pairedBytes : 0);
+}
 } // namespace
 
 // -----------------------------------------------------------------------------
@@ -112,170 +290,7 @@ void sendDeleteResult(WebServer& server, bool ok, uint64_t deletedBytes)
 
 void registerFileEndpoints(WebServer &server)
 {
-  // ---------------------------------------------------------------------------
-  // GET /api/files
-  // List log files in /logs (name + size only)
-  // ---------------------------------------------------------------------------
-  server.on("/api/files", HTTP_GET, [&] {
-    LOG_STORAGE("API files", "request");
-
-    DynamicJsonDocument j(FILE_LIST_JSON_BYTES);
-    j["ok"] = true;
-
-    if (!storage_logs_dir_ready()) {
-      LOG_STORAGE("API files", "storage not ready");
-      j["ok"] = false;
-      j["storage_used_mb"] = 0;
-      j["storage_free_mb"] = 0;
-      j["storage_used_bytes"] = 0;
-      j["storage_free_bytes"] = 0;
-      web_send_json(server, j);
-      return;
-    }
-
-    j["storage_used_mb"] = storage_sd_used_mb();
-    j["storage_free_mb"] = storage_sd_free_mb();
-    j["storage_used_bytes"] = storage_sd_used_bytes();
-    j["storage_free_bytes"] = storage_sd_free_bytes();
-    JsonArray files = j.createNestedArray("files");
-
-    fs::FS& storage = storage_sd_fs();
-    File dir = storage.open("/logs");
-    if (!dir || !dir.isDirectory()) {
-      LOG_STORAGE("API files", "/logs unavailable");
-      j["ok"] = false;
-      web_send_json(server, j);
-      return;
-    }
-
-    int count = 0;
-    int removedEmpty = 0;
-    File file = dir.openNextFile();
-    while (file) {
-      if (!file.isDirectory()) {
-        const char* base = basenameOnly(file.name());
-        if (isValidLogFile(base)) {
-          char baseCopy[96];
-          strlcpy(baseCopy, base, sizeof(baseCopy));
-
-          const size_t size = file.size();
-          const time_t modified = file.getLastWrite();
-          file.close();
-
-          if (size == 0) {
-            char path[128];
-            buildLogPath(path, sizeof(path), baseCopy);
-            if (storage.remove(path)) removedEmpty++;
-          } else if (hasExtension(baseCopy, ".geojson")) {
-            JsonObject o = files.createNestedObject();
-            o["name"] = String(baseCopy);
-            o["size"] = size;
-            o["mtime"] = static_cast<uint32_t>(modified);
-
-            char sbpPath[128];
-            buildPairedPath(sbpPath, sizeof(sbpPath), baseCopy, ".sbp");
-            if (storage.exists(sbpPath)) {
-              File sbp = storage.open(sbpPath, FILE_READ);
-              if (sbp) {
-                o["sbp_name"] = String(basenameOnly(sbpPath));
-                o["sbp_size"] = sbp.size();
-                sbp.close();
-              }
-            }
-
-            count++;
-          }
-        } else {
-          file.close();
-        }
-      } else {
-        file.close();
-      }
-      file = dir.openNextFile();
-    }
-    dir.close();
-
-    if (j.overflowed()) {
-      LOG_ERROR("API files", "JSON overflow after %d files", count);
-      j.clear();
-      j["ok"] = false;
-      j["error"] = "too_many_files";
-      web_send_json(server, j);
-      return;
-    }
-
-    LOG_STORAGE("API files", "%d sessions, removed %d empty", count, removedEmpty);
-    web_send_json(server, j);
-  });
-
-  // ---------------------------------------------------------------------------
-  // GET /api/download?file=...
-  // Stream validated log file (forced download)
-  // ---------------------------------------------------------------------------
-  server.on("/api/download", HTTP_GET, [&] {
-
-    if (!storage_on() || !server.hasArg("file")) { server.send(400); return; }
-
-    String file = server.arg("file");
-
-    // Strip cache-buster (?t=...)
-    int q = file.indexOf('?');
-    if (q >= 0) file = file.substring(0, q);
-
-    const char* base = basenameOnly(file.c_str());
-    if (!isValidLogFile(base)) { server.send(400); return; }
-
-    char path[128];
-    buildLogPath(path, sizeof(path), base);
-
-    fs::FS& storage = storage_sd_fs();
-    if (!storage.exists(path)) { server.send(404); return; }
-
-    File f = storage.open(path, FILE_READ);
-    if (!f) { server.send(500); return; }
-
-    // ---- Force download (instead of inline open) ----
-    server.sendHeader("Content-Disposition", String("attachment; filename=\"") + base + "\"");
-    server.sendHeader("Cache-Control", "no-store");
-
-    const char* mime = "application/octet-stream";
-    if (strstr(base, ".geojson")) mime = "application/geo+json";
-
-    server.streamFile(f, mime);
-    f.close();
-  });
-
-  // ---------------------------------------------------------------------------
-  // DELETE /api/file
-  // Delete a single validated log file
-  // ---------------------------------------------------------------------------
-  server.on("/api/file", HTTP_DELETE, [&] {
-
-    if (!storage_on() || !server.hasArg("plain")) {
-      sendDeleteResult(server, false, 0);
-      return;
-    }
-
-    StaticJsonDocument<256> j;
-    if (deserializeJson(j, server.arg("plain"))) {
-      server.send(400);
-      return;
-    }
-
-    const char* base = basenameOnly(j["name"]);
-    if (!isValidLogFile(base)) {
-      server.send(400);
-      return;
-    }
-
-    fs::FS& storage = storage_sd_fs();
-    char path[128];
-    buildLogPath(path, sizeof(path), base);
-
-    const uint64_t fileBytes = fileSize(storage, path);
-    const bool removed = storage.remove(path);
-    const uint64_t pairedBytes = removed ? removePairedLogFile(storage, base) : 0;
-
-    sendDeleteResult(server, removed, removed ? fileBytes + pairedBytes : 0);
-  });
+  server.on("/api/files", HTTP_GET, [&] { handleFilesList(server); });
+  server.on("/api/download", HTTP_GET, [&] { handleFileDownload(server); });
+  server.on("/api/file", HTTP_DELETE, [&] { handleFileDelete(server); });
 }

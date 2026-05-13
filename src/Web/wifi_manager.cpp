@@ -77,6 +77,25 @@ static bool wifi_ap_active()
   return apActive;
 }
 
+static void disconnect_wifi_radios()
+{
+  WiFi.disconnect(true, true);
+  delay(100);
+}
+
+static void stop_mdns()
+{
+  if (!mdnsStarted) return;
+  MDNS.end();
+  mdnsStarted = false;
+}
+
+static void reset_sta_retry_state()
+{
+  staAttempts = 0;
+  lastStaAttempt = millis();
+}
+
 static bool have_phone_wifi()
 {
   return wifi_effective_phone_ssid()[0];
@@ -137,8 +156,7 @@ static void start_sta()
   wifi_set_ui_state(WIFI_UI_TRYING);
   LOG_WIFI("STA", "connect %s", ssid);
 
-  WiFi.disconnect(true, true);
-  delay(100);
+  disconnect_wifi_radios();
 
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(true);
@@ -159,8 +177,7 @@ static void start_ap()
 
   LOG_WIFI("AP", "starting provisioning mode");
 
-  WiFi.disconnect(true, true);
-  delay(100);
+  disconnect_wifi_radios();
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP("GPS-Setup");
@@ -177,8 +194,7 @@ static void start_ap()
 
 void wifi_init()
 {
-  staAttempts = 0;
-  lastStaAttempt = millis();
+  reset_sta_retry_state();
   wifiStarted = true;
   apActive = false;
 
@@ -198,10 +214,7 @@ void wifi_stop()
   WiFi.disconnect(true);
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
-  if (mdnsStarted) {
-    MDNS.end();
-    mdnsStarted = false;
-  }
+  stop_mdns();
 
   wifiStarted = false;
   apActive = false;

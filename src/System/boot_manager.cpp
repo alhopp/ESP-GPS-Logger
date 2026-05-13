@@ -18,8 +18,6 @@
 namespace {
 constexpr uint32_t SERIAL_WAIT_MS = 400;
 
-const char* s_failReason = nullptr;
-
 void initSerial()
 {
   Serial.begin(115200);
@@ -50,13 +48,11 @@ BootResult checkFatalBootConditions()
 {
   if (battery_is_low()) {
     LOG_BOOT("Shutdown", "low battery");
-    s_failReason = "Shut down Low Bat!";
     return BOOT_LOW_BATTERY;
   }
 
   if (reset_boot) {
     LOG_BOOT("Shutdown", "after reset");
-    s_failReason = "Shutdown after reset!";
     return BOOT_AFTER_RESET;
   }
 
@@ -66,8 +62,6 @@ BootResult checkFatalBootConditions()
 
 BootResult initBoot()
 {
-  s_failReason = nullptr;
-
   initSerial();
   battery_sample();
   resetTimebase();
@@ -80,9 +74,4 @@ BootResult initBoot()
 
   LOG_BOOT("Status", "boot checks passed");
   return BOOT_OK;
-}
-
-const char* bootFailReason()
-{
-  return s_failReason;
 }

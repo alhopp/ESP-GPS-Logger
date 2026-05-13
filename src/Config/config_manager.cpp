@@ -17,6 +17,30 @@
 
 namespace {
 constexpr const char* CONFIG_FILE = "/config.txt";
+
+bool writeConfigFile()
+{
+  File f = LittleFS.open(CONFIG_FILE, FILE_WRITE);
+  if (!f) return false;
+
+  config_write_json(f);
+  f.close();
+  return true;
+}
+
+void applyAndDumpConfig()
+{
+  config_apply_runtime();
+  config_dump();
+}
+
+void resetConfigToDefaults(bool persist)
+{
+  config_set_defaults();
+  if (persist && !writeConfigFile()) {
+    LOG_ERROR("CONFIG", "Cannot create config.txt");
+  }
+}
 }
 
 Config config;
@@ -27,28 +51,16 @@ void initConfig()
 
   if (!LittleFS.exists(CONFIG_FILE)) {
     LOG_CONFIG("Config", "No config found, creating default");
-    config_set_defaults();
-
-    File f = LittleFS.open(CONFIG_FILE, FILE_WRITE);
-    if (!f) {
-      LOG_ERROR("CONFIG", "Cannot create config.txt");
-      return;
-    }
-
-    config_write_json(f);
-    f.close();
-
-    config_apply_runtime();
-    config_dump();
+    resetConfigToDefaults(true);
+    applyAndDumpConfig();
     return;
   }
 
   File f = LittleFS.open(CONFIG_FILE, FILE_READ);
   if (!f) {
     LOG_ERROR("CONFIG", "Failed to open config.txt");
-    config_set_defaults();
-    config_apply_runtime();
-    config_dump();
+    resetConfigToDefaults(false);
+    applyAndDumpConfig();
     return;
   }
 
@@ -56,12 +68,7 @@ void initConfig()
     LOG_ERROR("CONFIG", "Invalid config, reset defaults");
     f.close();
 
-    config_set_defaults();
-    File fw = LittleFS.open(CONFIG_FILE, FILE_WRITE);
-    if (fw) {
-      config_write_json(fw);
-      fw.close();
-    }
+    resetConfigToDefaults(true);
   } else {
     f.close();
   }
@@ -74,14 +81,10 @@ void initConfig()
 
 void saveConfig()
 {
-  File f = LittleFS.open(CONFIG_FILE, FILE_WRITE);
-  if (!f) {
+  if (!writeConfigFile()) {
     LOG_ERROR("CONFIG", "Cannot save config");
     return;
   }
-
-  config_write_json(f);
-  f.close();
 
   LOG_CONFIG("Save", "Configuration saved, dumping final state");
   config_dump();

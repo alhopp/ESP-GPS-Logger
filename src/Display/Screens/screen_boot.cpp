@@ -2,7 +2,6 @@
 
 #include "Core/Rtc/rtc_battery_state.h"
 #include "Core/Battery/battery_monitor.h"
-#include "Display/display_battery.h"
 #include "Display/Bitmaps/display_bitmaps.h"
 #include "Display/E_paper.h"
 #include "Display/Screens/screen_system_common.h"
@@ -27,6 +26,6 @@ void draw_BOOT()
   display.print("Battery ");
   display.print(battery_display_voltage(RTC_voltage_bat), 1);
   display.print("V ");
-  display.print(static_cast<int>(displayBatteryPercent(RTC_voltage_bat)));
+  display.print(static_cast<int>(battery_percent(RTC_voltage_bat)));
   display.print("%");
 }

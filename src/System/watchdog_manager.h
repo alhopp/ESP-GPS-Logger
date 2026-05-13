@@ -10,5 +10,4 @@
 // long display/storage operations.
 // ============================================================================
 
-void watchdogInit();
 void watchdogLoop();

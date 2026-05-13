@@ -5,7 +5,7 @@
 #include "Core/Rtc/rtc_session_stats.h"
 #include "Display/Bitmaps/display_bitmaps.h"
 #include "Display/E_paper.h"
-#include "Display/display_battery.h"
+#include "Core/Battery/battery_monitor.h"
 #include "Display/Screens/ui_fixed_numbers.h"
 #include "Fonts.h"
 
@@ -46,7 +46,7 @@ void drawBatteryLine(int row)
   display.setFont(Fonts::Mono9);
   display.setCursor(INFO_X_L, INFO_Y + row * INFO_STEP);
   display.print("Batt:");
-  display.print(static_cast<int>(displayBatteryPercent(RTC_voltage_bat)));
+  display.print(static_cast<int>(battery_percent(RTC_voltage_bat)));
   display.print("%");
 }
 

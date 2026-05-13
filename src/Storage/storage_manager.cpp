@@ -33,6 +33,9 @@ bool sd_detected = false;
 bool sd_mounted = false;
 bool shutting_down = false;
 
+uint32_t bytesToMb(uint64_t bytes);
+void mountLittleFS();
+void mountSdForBoot();
 bool mountSD_MMC();
 void unmountSD_MMC();
 bool quickIOTest(fs::FS& fs, const char* path);
@@ -49,32 +52,8 @@ void initStorage()
   littlefs_available = false;
   storage_end_shutdown();
 
-  // Mount LittleFS so config/control storage is always available.
-  if (!LittleFS.begin(true)) {
-    LOG_ERROR("LittleFS", "mount failed");
-  } else {
-    littlefs_available = true;
-    LOG_STORAGE("LittleFS", "mounted");
-    logLittleFSStats();
-  }
-
-  // Mount SD_MMC for main data logging if card is present/usable.
-  if (mountSD_MMC()) {
-    sd_detected = true;
-    LOG_STORAGE("SD", "MMC mounted");
-    logSDStats();
-
-    // Quick write/remove check to catch bad cards or broken mount states.
-    if (quickIOTest(storage_sd_fs(), "/.io_test")) {
-      LOG_STORAGE("SD I/O", "OK");
-    } else {
-      LOG_ERROR("SD I/O", "FAILED");
-    }
-
-    logDirectory(storage_sd_fs(), "/logs");
-  } else {
-    LOG_STORAGE("SD", "not available");
-  }
+  mountLittleFS();
+  mountSdForBoot();
 
   LOG_STORAGE("Init", "done");
 }
@@ -115,17 +94,17 @@ bool storage_littlefs_available()
 
 uint32_t storage_sd_total_mb()
 {
-  return static_cast<uint32_t>(storage_sd_total_bytes() / (1024ULL * 1024ULL));
+  return bytesToMb(storage_sd_total_bytes());
 }
 
 uint32_t storage_sd_used_mb()
 {
-  return static_cast<uint32_t>(storage_sd_used_bytes() / (1024ULL * 1024ULL));
+  return bytesToMb(storage_sd_used_bytes());
 }
 
 uint32_t storage_sd_free_mb()
 {
-  return static_cast<uint32_t>(storage_sd_free_bytes() / (1024ULL * 1024ULL));
+  return bytesToMb(storage_sd_free_bytes());
 }
 
 uint64_t storage_sd_total_bytes()
@@ -186,6 +165,43 @@ void storage_end_shutdown()
 }
 
 namespace {
+
+uint32_t bytesToMb(uint64_t bytes)
+{
+  return static_cast<uint32_t>(bytes / (1024ULL * 1024ULL));
+}
+
+void mountLittleFS()
+{
+  if (!LittleFS.begin(true)) {
+    LOG_ERROR("LittleFS", "mount failed");
+    return;
+  }
+
+  littlefs_available = true;
+  LOG_STORAGE("LittleFS", "mounted");
+  logLittleFSStats();
+}
+
+void mountSdForBoot()
+{
+  if (!mountSD_MMC()) {
+    LOG_STORAGE("SD", "not available");
+    return;
+  }
+
+  sd_detected = true;
+  LOG_STORAGE("SD", "MMC mounted");
+  logSDStats();
+
+  if (quickIOTest(storage_sd_fs(), "/.io_test")) {
+    LOG_STORAGE("SD I/O", "OK");
+  } else {
+    LOG_ERROR("SD I/O", "FAILED");
+  }
+
+  logDirectory(storage_sd_fs(), "/logs");
+}
 
 // Mount SD_MMC in 1-bit safe mode. DAT0 gets a pull-up preflight to improve
 // bring-up reliability when the card/eMMC is not already driving the line.
@@ -251,9 +267,9 @@ void logSDStats()
   const uint64_t used = SD_MMC.usedBytes();
   const uint64_t freeb = (total > used) ? (total - used) : 0;
 
-  LOG_STORAGE("SD Total", "%llu MB", (unsigned long long)(total / (1024ULL * 1024ULL)));
-  LOG_STORAGE("SD Used", "%llu MB", (unsigned long long)(used / (1024ULL * 1024ULL)));
-  LOG_STORAGE("SD Free", "%llu MB", (unsigned long long)(freeb / (1024ULL * 1024ULL)));
+  LOG_STORAGE("SD Total", "%lu MB", static_cast<unsigned long>(bytesToMb(total)));
+  LOG_STORAGE("SD Used", "%lu MB", static_cast<unsigned long>(bytesToMb(used)));
+  LOG_STORAGE("SD Free", "%lu MB", static_cast<unsigned long>(bytesToMb(freeb)));
 }
 
 // Log LittleFS capacity/usage in KB.

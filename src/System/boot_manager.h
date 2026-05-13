@@ -22,8 +22,3 @@ enum BootResult : uint8_t {
 
 // Run early boot checks and initialise core boot-time hardware.
 BootResult initBoot();
-
-// Optional: fetch a human-readable reason for the last non-OK boot result.
-// Returns nullptr if BOOT_OK.
-const char* bootFailReason();
-

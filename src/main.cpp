@@ -7,81 +7,19 @@
 
 #include <Arduino.h>
 
-// --- Core managers -----------------------------------------------------------
-#include "Storage/storage_manager.h"
-#include "System/boot_manager.h"
-#include "Config/config_manager.h"
-#include "System/watchdog_manager.h"
-
-// --- Tasks ------------------------------------------------------------------
-#include "Runtime/task_runtime.h"
-
-// --- System / input ----------------------------------------------------------
-#include "Core/sleep_control.h"
-#include "Core/system_mode.h"
-#include "Core/Battery/battery_monitor.h"
-#include "Core/magnet_input.h"
-#include "Core/log.h"
-#include "Core/Globals.h"
-
-// --- Local config ------------------------------------------------------------
-namespace {
-constexpr uint32_t LOOP_DELAY_MS = 10;
-
-void initSubsystems()
-{
-  initStorage();
-  initConfig();
-  battery_sample();
-  initMagnet();
-}
-
-bool startTasksOrEnterError()
-{
-  if (startRuntimeTasks()) {
-    return true;
-  }
-
-  setMode(MODE_ERROR);
-  return false;
-}
-}
+#include "System/app_supervisor.h"
+#include "System/app_startup.h"
 
 // ============================================================================
 // Setup (runs once at boot)
 // ============================================================================
 void setup() {
-  LOG_SYS("Setup", "start");
-
-  setMode(MODE_BOOT);
-
-  // Detect wake source (used globally)
-  woke_from_sleep = sleep_woke_from_magnet();
-
-  // Early boot validation
-  if (initBoot() != BOOT_OK) {
-    setMode(MODE_SLEEP);
-    return;
-  }
-
-  // Init order matters: storage, config, battery sample, input
-  initSubsystems();
-
-  // Start runtime tasks
-  if (!startTasksOrEnterError()) {
-    return;
-  }
-
-  setMode(MODE_IDLE);
-  LOG_SYS("Setup", "done");
+  appStartup();
 }
 
 // ============================================================================
 // Loop (runs continuously)
 // ============================================================================
 void loop() {
-  magnet_poll();
-  watchdogLoop();
-  systemModeLoop();
-  delay(LOOP_DELAY_MS);
+  appSupervisorLoop();
 }
