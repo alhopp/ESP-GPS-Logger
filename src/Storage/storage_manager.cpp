@@ -44,7 +44,9 @@ bool quickIOTest(fs::FS& fs, const char* path);
 void logLittleFSStats();
 void logSDStats();
 void logDirectory(fs::FS& fs, const char* path, int depth = 0);
+void logStorageReport(const char* item, const char* fmt, ...);
 void logLogsDirectoryReport(fs::FS& fs);
+void removeOrphanSbpLogs(fs::FS& fs);
 
 }
 
@@ -203,6 +205,7 @@ void mountSdForBoot()
     LOG_ERROR("SD I/O", "FAILED");
   }
 
+  removeOrphanSbpLogs(storage_sd_fs());
   logLogsDirectoryReport(storage_sd_fs());
 }
 
@@ -336,34 +339,105 @@ void logDirectory(fs::FS& fs, const char* path, int depth)
 #endif
 }
 
+void logStorageReport(const char* item, const char* fmt, ...)
+{
+#if LOG_ENABLED
+  char message[160];
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(message, sizeof(message), fmt, args);
+  va_end(args);
+  Serial.printf("[%-*s] %-*s : %s\n",
+                LOG_TAG_W,
+                "STORAGE",
+                LOG_ITEM_W,
+                item,
+                message);
+#else
+  (void)item;
+  (void)fmt;
+#endif
+}
+
+void removeOrphanSbpLogs(fs::FS& fs)
+{
+#if LOG_ENABLED
+  int removedCount = 0;
+  uint64_t removedBytes = 0;
+
+  File root = fs.open("/logs");
+  if (!root || !root.isDirectory()) {
+    if (root) root.close();
+    return;
+  }
+
+  File file = root.openNextFile();
+  while (file) {
+    if (!file.isDirectory()) {
+      const char* name = file.name();
+      char sbpPath[128];
+      if (name && name[0] == '/') {
+        strlcpy(sbpPath, name, sizeof(sbpPath));
+      } else {
+        snprintf(sbpPath, sizeof(sbpPath), "/logs/%s", name ? name : "");
+      }
+
+      if (strstr(sbpPath, ".sbp") != nullptr) {
+        char geoPath[128];
+        strlcpy(geoPath, sbpPath, sizeof(geoPath));
+        char* dot = strrchr(geoPath, '.');
+        if (dot) {
+          strlcpy(dot, ".geojson", sizeof(geoPath) - (dot - geoPath));
+          if (!fs.exists(geoPath)) {
+            const uint64_t size = file.size();
+            file.close();
+
+            if (fs.remove(sbpPath)) {
+              removedCount++;
+              removedBytes += size;
+              logStorageReport("SD Clean", "deleted %s %llu bytes",
+                               sbpPath,
+                               (unsigned long long)size);
+            } else {
+              logStorageReport("SD Clean", "delete failed %s", sbpPath);
+            }
+
+            file = root.openNextFile();
+            continue;
+          }
+        }
+      }
+    }
+
+    file.close();
+    file = root.openNextFile();
+  }
+
+  root.close();
+
+  logStorageReport("SD Clean", "deleted %d orphan SBP files, %llu bytes",
+                   removedCount,
+                   (unsigned long long)removedBytes);
+#else
+  (void)fs;
+#endif
+}
+
 void logLogsDirectoryReport(fs::FS& fs)
 {
 #if LOG_ENABLED
-  auto logReport = [](const char* item, const char* fmt, ...) {
-    char message[160];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(message, sizeof(message), fmt, args);
-    va_end(args);
-    Serial.printf("[%-*s] %-*s : %s\n",
-                  LOG_TAG_W,
-                  "STORAGE",
-                  LOG_ITEM_W,
-                  item,
-                  message);
-  };
 
   int count = 0;
   uint64_t totalBytes = 0;
 
   File root = fs.open("/logs");
   if (!root) {
-    logReport("SD Logs", "/logs not found");
+    logStorageReport("SD Logs", "/logs not found");
     return;
   }
 
   if (!root.isDirectory()) {
-    logReport("SD Logs", "/logs is not a directory");
+    logStorageReport("SD Logs", "/logs is not a directory");
     root.close();
     return;
   }
@@ -403,10 +477,10 @@ void logLogsDirectoryReport(fs::FS& fs)
         status = " RAW";
       }
 
-      logReport("SD Log", "%s %llu bytes%s",
-                path,
-                (unsigned long long)size,
-                status);
+      logStorageReport("SD Log", "%s %llu bytes%s",
+                       path,
+                       (unsigned long long)size,
+                       status);
 
       count++;
       totalBytes += size;
@@ -418,9 +492,9 @@ void logLogsDirectoryReport(fs::FS& fs)
 
   root.close();
 
-  logReport("SD Logs", "%d files, %llu bytes",
-            count,
-            (unsigned long long)totalBytes);
+  logStorageReport("SD Logs", "%d files, %llu bytes",
+                   count,
+                   (unsigned long long)totalBytes);
 #else
   (void)fs;
 #endif
