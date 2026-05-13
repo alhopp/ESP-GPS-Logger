@@ -1,8 +1,11 @@
 #pragma once
 
-// -----------------------------------------------------------------------------
-// GeoJSON session writer
-// -----------------------------------------------------------------------------
+// ============================================================================
+// geojson_writer.h
+//
+// Streaming GeoJSON writer API. Provides low-level helpers for opening a
+// GeoJSON file and appending feature/geometry fragments safely.
+// ============================================================================
 
 bool geojson_begin(const char* filename);
 

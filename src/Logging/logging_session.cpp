@@ -1,3 +1,10 @@
+// ============================================================================
+// logging_session.cpp
+//
+// High-level logging session controller. Enforces session state, delegates file
+// lifecycle work, and accepts GPS fixes for raw log output while active.
+// ============================================================================
+
 #include "Logging/logging_session.h"
 
 #include <Arduino.h>

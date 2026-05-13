@@ -1,3 +1,10 @@
+// ============================================================================
+// geojson_writer.cpp
+//
+// Low-level streaming GeoJSON file writer. Manages GeoJSON document structure,
+// point/line feature serialization, and coordinate formatting.
+// ============================================================================
+
 #include "Logging/geojson_writer.h"
 #include <math.h>
 #include <string.h>

@@ -1,3 +1,10 @@
+// ============================================================================
+// logging_session_paths.cpp
+//
+// Builds unique per-session filenames using local date, session number, and
+// device ID. Keeps the naming scheme shared by raw logs and GeoJSON exports.
+// ============================================================================
+
 #include "Logging/logging_session_paths.h"
 
 #include <Arduino.h>

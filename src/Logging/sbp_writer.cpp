@@ -1,3 +1,10 @@
+// ============================================================================
+// sbp_writer.cpp
+//
+// Implements the project SBP binary log writer. The packed record layout here
+// defines the on-device SBP file format and must remain compatible with readers.
+// ============================================================================
+
 #include "Logging/sbp_writer.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "GPS/Data/gps_data.h"

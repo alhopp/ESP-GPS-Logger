@@ -1,3 +1,10 @@
+// ============================================================================
+// geojson_session_export.cpp
+//
+// Converts a completed SBP log into GeoJSON. Adds track points, derived session
+// features, graph series, and static system/session metadata.
+// ============================================================================
+
 #include "Logging/geojson_session_export.h"
 
 #include <Arduino.h>

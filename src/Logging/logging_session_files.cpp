@@ -1,7 +1,9 @@
-// -----------------------------------------------------------------------------
-// File Operations Manager
-// Opens / flushes / logs / closes UBX and SBP session files.
-// -----------------------------------------------------------------------------
+// ============================================================================
+// logging_session_files.cpp
+//
+// Coordinates active session file handles. Opens UBX/SBP files, forwards raw
+// sample writes, closes files, and finalizes GeoJSON export when a session ends.
+// ============================================================================
 
 #include <Arduino.h>
 #include <FS.h>

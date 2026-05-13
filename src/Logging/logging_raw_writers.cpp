@@ -1,3 +1,10 @@
+// ============================================================================
+// logging_raw_writers.cpp
+//
+// Writes raw GNSS output for the active logging session. Handles UBX byte-stream
+// framing/checksum output and delegates SBP record serialization.
+// ============================================================================
+
 #include "Logging/logging_raw_writers.h"
 
 #include "Core/Globals.h"

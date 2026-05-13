@@ -1,3 +1,10 @@
+// ============================================================================
+// logging_sbp_debug.cpp
+//
+// Optional diagnostic reader for SBP session files. Prints selected SBP sample
+// ranges used by the statistics pipeline without affecting session output.
+// ============================================================================
+
 #include "Logging/logging_sbp_debug.h"
 
 #include <Arduino.h>

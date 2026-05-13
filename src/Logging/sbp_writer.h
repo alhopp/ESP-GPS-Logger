@@ -1,4 +1,12 @@
 #pragma once
+
+// ============================================================================
+// sbp_writer.h
+//
+// Public writer API for the project SBP log format. These functions serialize
+// the current GNSS sample into the compact binary records used for session logs.
+// ============================================================================
+
 #include <FS.h>
 
 void sbp_write_header(File& file);
