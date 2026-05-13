@@ -63,15 +63,13 @@ int readGpsSpeedGraph(const char* sbpPath, float* out, int startGpsIdx, int endG
   if (!geojson_sbp_open(file, sbpPath)) return 0;
 
   GeoJsonSbpFrame frame;
-  int gpsIndex = 1;
   int count = 0;
-  while (geojson_sbp_read_frame(file, frame) && count < GEOJSON_MAX_SERIES_POINTS) {
-    if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx &&
-        ((gpsIndex - startGpsIdx) % step) == 0) {
+  for (int gpsIndex = startGpsIdx;
+       gpsIndex <= endGpsIdx && count < GEOJSON_MAX_SERIES_POINTS;
+       gpsIndex += step) {
+    if (geojson_sbp_read_frame_at(file, gpsIndex, frame)) {
       out[count++] = geojson_sbp_frame_knots(frame);
     }
-    if (gpsIndex > endGpsIdx) break;
-    gpsIndex++;
   }
 
   file.close();

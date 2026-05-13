@@ -27,6 +27,23 @@ bool geojson_sbp_read_frame(File& file, GeoJsonSbpFrame& frame)
   return file.read(reinterpret_cast<uint8_t*>(&frame), sizeof(frame)) == sizeof(frame);
 }
 
+bool geojson_sbp_seek_frame(File& file, int sbpIndex)
+{
+  if (!file || sbpIndex < 1) return false;
+
+  const size_t offset =
+      SBP_HEADER_SIZE + static_cast<size_t>(sbpIndex - 1) * sizeof(GeoJsonSbpFrame);
+  if (offset + sizeof(GeoJsonSbpFrame) > file.size()) return false;
+
+  return file.seek(offset);
+}
+
+bool geojson_sbp_read_frame_at(File& file, int sbpIndex, GeoJsonSbpFrame& frame)
+{
+  if (!geojson_sbp_seek_frame(file, sbpIndex)) return false;
+  return geojson_sbp_read_frame(file, frame);
+}
+
 int geojson_sbp_count_frames(const char* sbpPath)
 {
   fs::FS& storage = storage_sd_fs();
