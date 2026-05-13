@@ -15,75 +15,12 @@
 
 #include "Core/log.h"
 #include "Storage/storage_manager.h"
+#include "Web/web_file_paths.h"
 #include "Web/web_json.h"
 #include "Web/web_server.h"
 
 namespace {
 constexpr size_t FILE_LIST_JSON_BYTES = 16384;
-
-struct ValidatedLogPath {
-  const char* base;
-  char path[128];
-};
-
-// Return filename portion of a path. Callers must copy it before the owning
-// File/String goes out of scope.
-const char* basenameOnly(const char* path)
-{
-  if (!path) return nullptr;
-  const char* p = strrchr(path, '/');
-  return p ? p + 1 : path;
-}
-
-bool isAllowedLogExtension(const char* ext)
-{
-  return !strcasecmp(ext, ".txt") ||
-         !strcasecmp(ext, ".sbp") ||
-         !strcasecmp(ext, ".ubx") ||
-         !strcasecmp(ext, ".geojson");
-}
-
-bool hasExtension(const char* name, const char* ext)
-{
-  const char* actual = strrchr(name, '.');
-  return actual && !strcasecmp(actual, ext);
-}
-
-void buildLogPath(char* out, size_t outSize, const char* base)
-{
-  snprintf(out, outSize, "/logs/%s", base);
-}
-
-void buildPairedPath(char* out, size_t outSize, const char* base, const char* newExt)
-{
-  char stem[96];
-  strlcpy(stem, base, sizeof(stem));
-
-  char* dot = strrchr(stem, '.');
-  if (dot) *dot = '\0';
-
-  snprintf(out, outSize, "/logs/%s%s", stem, newExt);
-}
-
-// Validate log filename + extension, reject paths.
-bool isValidLogFile(const char* name)
-{
-  if (!name || !*name) return false;
-  if (strchr(name, '/') || strchr(name, '\\')) return false;
-
-  const char* ext = strrchr(name, '.');
-  return ext && isAllowedLogExtension(ext);
-}
-
-bool resolveLogPath(const char* requestedName, ValidatedLogPath& result)
-{
-  const char* base = basenameOnly(requestedName);
-  if (!isValidLogFile(base)) return false;
-
-  result.base = base;
-  buildLogPath(result.path, sizeof(result.path), base);
-  return true;
-}
 
 uint64_t fileSize(fs::FS& storage, const char* path)
 {
@@ -99,10 +36,10 @@ uint64_t removePairedLogFile(fs::FS& storage, const char* base)
 {
   char pairedPath[128];
 
-  if (hasExtension(base, ".geojson")) {
-    buildPairedPath(pairedPath, sizeof(pairedPath), base, ".sbp");
-  } else if (hasExtension(base, ".sbp")) {
-    buildPairedPath(pairedPath, sizeof(pairedPath), base, ".geojson");
+  if (web_log_has_extension(base, ".geojson")) {
+    web_log_build_paired_path(pairedPath, sizeof(pairedPath), base, ".sbp");
+  } else if (web_log_has_extension(base, ".sbp")) {
+    web_log_build_paired_path(pairedPath, sizeof(pairedPath), base, ".geojson");
   } else {
     return 0;
   }
@@ -145,13 +82,13 @@ void addGeojsonFile(JsonArray& files, fs::FS& storage, const char* base, size_t 
   o["mtime"] = static_cast<uint32_t>(modified);
 
   char sbpPath[128];
-  buildPairedPath(sbpPath, sizeof(sbpPath), base, ".sbp");
+  web_log_build_paired_path(sbpPath, sizeof(sbpPath), base, ".sbp");
   if (!storage.exists(sbpPath)) return;
 
   File sbp = storage.open(sbpPath, FILE_READ);
   if (!sbp) return;
 
-  o["sbp_name"] = String(basenameOnly(sbpPath));
+  o["sbp_name"] = String(web_log_basename(sbpPath));
   o["sbp_size"] = sbp.size();
   sbp.close();
 }
@@ -163,8 +100,8 @@ bool processLogDirectoryEntry(File& file, fs::FS& storage, JsonArray& files, int
     return false;
   }
 
-  const char* base = basenameOnly(file.name());
-  if (!isValidLogFile(base)) {
+  const char* base = web_log_basename(file.name());
+  if (!web_log_is_valid_file(base)) {
     file.close();
     return false;
   }
@@ -178,12 +115,12 @@ bool processLogDirectoryEntry(File& file, fs::FS& storage, JsonArray& files, int
 
   if (size == 0) {
     char path[128];
-    buildLogPath(path, sizeof(path), baseCopy);
+    web_log_build_path(path, sizeof(path), baseCopy);
     if (storage.remove(path)) removedEmpty++;
     return false;
   }
 
-  if (!hasExtension(baseCopy, ".geojson")) {
+  if (!web_log_has_extension(baseCopy, ".geojson")) {
     return false;
   }
 
@@ -257,7 +194,7 @@ void handleFileDownload(WebServer& server)
   if (q >= 0) file = file.substring(0, q);
 
   ValidatedLogPath logFile;
-  if (!resolveLogPath(file.c_str(), logFile)) {
+  if (!web_log_resolve_path(file.c_str(), logFile)) {
     server.send(400);
     return;
   }
@@ -298,7 +235,7 @@ void handleFileDelete(WebServer& server)
   }
 
   ValidatedLogPath logFile;
-  if (!resolveLogPath(j["name"], logFile)) {
+  if (!web_log_resolve_path(j["name"], logFile)) {
     server.send(400);
     return;
   }
