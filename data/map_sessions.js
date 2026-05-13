@@ -29,7 +29,8 @@ window.MapSessions = {
 
       if(!options.keepCurrent) this.index = 0;
       if(this.index >= this.files.length) this.index = this.files.length - 1;
-      this.loadCurrent();
+      if(options.deferLoad) return;
+      await this.loadCurrent();
     }catch(err){
       console.warn("[Map] session list failed", err);
       this.showEmpty("Sessions unavailable");
@@ -85,7 +86,7 @@ window.MapSessions = {
 
     this.updateHeader();
     this.markSelected();
-    MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}&t=${Date.now()}`, {
+    return MapView.loadGeoJSON(`/api/download?file=${encodeURIComponent(f.name)}&t=${Date.now()}`, {
       preserveStats:true
     });
   },
@@ -99,14 +100,14 @@ window.MapSessions = {
     }
 
     if(!this.files.length){
-      await this.reload({ keepCurrent:true });
+      await this.reload({ keepCurrent:true, deferLoad:true });
     }
 
     const idx = this.files.findIndex(f => f.name === name || f.sbp_name === name);
     if(idx < 0) return;
 
     this.index = idx;
-    this.loadCurrent();
+    return this.loadCurrent();
   },
 
   markSelected(){
