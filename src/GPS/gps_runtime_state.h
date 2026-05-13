@@ -14,7 +14,6 @@
 extern bool GPS_Signal_OK;
 extern int  last_gps_msg;
 extern int  nav_pvt_message;
-extern int  nav_sat_message;
 
 // Session/run state shared by the metric calculators and display.
 extern int   run_count;

@@ -16,8 +16,6 @@
 #include "Config/config_types.h"
 
 namespace {
-float raw_battery_adc = 2000.0f;
-
 float calibrationMvPerCount()
 {
   return config.cal_bat > 0.0f ? config.cal_bat : BATTERY_ADC_MV_PER_COUNT_DEFAULT;
@@ -36,7 +34,7 @@ void battery_sample()
   analogRead(BATTERY_ADC_PIN);
   delay(5);
 
-  raw_battery_adc = analogRead(BATTERY_ADC_PIN);
+  const float raw_battery_adc = analogRead(BATTERY_ADC_PIN);
   RTC_voltage_bat = adcRawToVolts(raw_battery_adc);
 
   LOG_BOOT("Battery", "raw=%.0f cal=%.2f %.2f V",
