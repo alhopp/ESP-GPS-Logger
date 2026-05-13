@@ -130,6 +130,25 @@ bool wifi_effective_phone_password_set()
   return effective_phone_wifi().pass[0];
 }
 
+static bool phone_hotspot_visible(const char* ssid)
+{
+  if (!ssid || !ssid[0]) return false;
+
+  WiFi.mode(WIFI_STA);
+  const int networkCount = WiFi.scanNetworks(false, true);
+  bool found = false;
+
+  for (int i = 0; i < networkCount; i++) {
+    if (WiFi.SSID(i) == ssid) {
+      found = true;
+      break;
+    }
+  }
+
+  WiFi.scanDelete();
+  return found;
+}
+
 static void mark_sta_connected()
 {
   LOG_WIFI("STA", "connected IP=%s", WiFi.localIP().toString().c_str());
@@ -161,11 +180,18 @@ static void start_sta()
 #endif
 
   wifi_set_ui_state(WIFI_UI_TRYING);
+  disconnect_wifi_radios();
+  WiFi.mode(WIFI_STA);
+
+  if (!phone_hotspot_visible(phoneWifi.ssid)) {
+    LOG_WIFI("STA", "waiting for hotspot %s", phoneWifi.ssid);
+    lastStaAttempt = millis();
+    staAttempts++;
+    return;
+  }
+
   LOG_WIFI("STA", "connect %s", phoneWifi.ssid);
 
-  disconnect_wifi_radios();
-
-  WiFi.mode(WIFI_STA);
   WiFi.setSleep(true);
   WiFi.setAutoReconnect(false);
   WiFi.begin(phoneWifi.ssid, phoneWifi.pass);
