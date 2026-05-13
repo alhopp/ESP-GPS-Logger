@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "Logging/GeoJSON/geojson_graph_writer.h"
+#include "Logging/GeoJSON/geojson_stats_writer.h"
 #include "Logging/GeoJSON/geojson_track_simplifier.h"
 #include "Storage/storage_manager.h"
 
@@ -75,46 +76,10 @@ bool isTrackFeature()
   return state.currentMode && strcmp(state.currentMode, "track") == 0;
 }
 
-void writeStats()
-{
-  state.file.println(",");
-  state.file.println("\"stats\":{");
-  state.file.print("\"nm\":");
-  state.file.print(state.stats.nm, 3);
-  state.file.println(",");
-  state.file.print("\"alpha\":");
-  state.file.print(state.stats.alpha, 3);
-  state.file.println(",");
-  state.file.print("\"alphaDistance\":");
-  state.file.print(state.stats.alphaDistance, 1);
-  state.file.println(",");
-  state.file.print("\"alphaClosure\":");
-  state.file.print(state.stats.alphaClosure, 1);
-  state.file.println(",");
-  state.file.print("\"h1\":");
-  state.file.print(state.stats.h1, 3);
-  state.file.println(",");
-  state.file.print("\"max\":");
-  state.file.print(state.stats.max, 3);
-  state.file.println(",");
-  state.file.print("\"avg10\":");
-  state.file.print(state.stats.avg10, 3);
-  state.file.println(",");
-  state.file.print("\"r10\":[");
-  for (int i = 0; i < 5; i++) {
-    if (i) state.file.print(",");
-    state.file.print(state.stats.r10[i], 3);
-  }
-  state.file.println("],");
-  state.file.print("\"distance\":");
-  state.file.print(state.stats.distance, 3);
-  state.file.println("}");
-}
-
 void writeTrackProperties()
 {
   if (state.hasStats) {
-    writeStats();
+    geojson_write_stats(state.file, state.stats);
   }
 
   if (state.hasGraphs) {
