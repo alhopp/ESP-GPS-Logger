@@ -44,6 +44,7 @@ bool quickIOTest(fs::FS& fs, const char* path);
 void logLittleFSStats();
 void logSDStats();
 void logDirectory(fs::FS& fs, const char* path, int depth = 0);
+void logLogsDirectoryReport(fs::FS& fs);
 
 }
 
@@ -202,7 +203,7 @@ void mountSdForBoot()
     LOG_ERROR("SD I/O", "FAILED");
   }
 
-  logDirectory(storage_sd_fs(), "/logs");
+  logLogsDirectoryReport(storage_sd_fs());
 }
 
 // Mount SD_MMC in 1-bit safe mode. DAT0 gets a pull-up preflight to improve
@@ -332,6 +333,82 @@ void logDirectory(fs::FS& fs, const char* path, int depth)
   (void)fs;
   (void)path;
   (void)depth;
+#endif
+}
+
+void logLogsDirectoryReport(fs::FS& fs)
+{
+#if LOG_ENABLED
+  int count = 0;
+  uint64_t totalBytes = 0;
+
+  File root = fs.open("/logs");
+  if (!root) {
+    LOG_STORAGE("SD Logs", "/logs not found");
+    return;
+  }
+
+  if (!root.isDirectory()) {
+    LOG_STORAGE("SD Logs", "/logs is not a directory");
+    root.close();
+    return;
+  }
+
+  File file = root.openNextFile();
+  while (file) {
+    if (!file.isDirectory()) {
+      const char* name = file.name();
+      const uint64_t size = file.size();
+      char path[128];
+      if (name && name[0] == '/') {
+        strlcpy(path, name, sizeof(path));
+      } else {
+        snprintf(path, sizeof(path), "/logs/%s", name ? name : "");
+      }
+
+      bool isGeojson = strstr(path, ".geojson") != nullptr;
+      bool isSbp = strstr(path, ".sbp") != nullptr;
+      bool isUbx = strstr(path, ".ubx") != nullptr;
+      bool paired = false;
+
+      if (isGeojson || isSbp) {
+        char pairedPath[128];
+        strlcpy(pairedPath, path, sizeof(pairedPath));
+        char* dot = strrchr(pairedPath, '.');
+        if (dot) {
+          strlcpy(dot, isGeojson ? ".sbp" : ".geojson",
+                  sizeof(pairedPath) - (dot - pairedPath));
+          paired = fs.exists(pairedPath);
+        }
+      }
+
+      const char* status = "";
+      if ((isGeojson || isSbp) && !paired) {
+        status = " ORPHAN";
+      } else if (isUbx) {
+        status = " RAW";
+      }
+
+      LOG_STORAGE("SD Log", "%s %llu bytes%s",
+                  path,
+                  (unsigned long long)size,
+                  status);
+
+      count++;
+      totalBytes += size;
+    }
+
+    file.close();
+    file = root.openNextFile();
+  }
+
+  root.close();
+
+  LOG_STORAGE("SD Logs", "%d files, %llu bytes",
+              count,
+              (unsigned long long)totalBytes);
+#else
+  (void)fs;
 #endif
 }
 
