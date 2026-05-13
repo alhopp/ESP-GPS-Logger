@@ -5,7 +5,7 @@
 // defines the on-device SBP file format and must remain compatible with readers.
 // ============================================================================
 
-#include "Logging/sbp_writer.h"
+#include "Logging/SBP/sbp_writer.h"
 #include "GPS/Ublox/ublox_driver.h"
 #include "GPS/Data/gps_data.h"
 #include "Core/Globals.h"
