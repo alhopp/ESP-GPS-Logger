@@ -6,20 +6,15 @@
 // ============================================================================
 
 #include "Logging/GeoJSON/geojson_writer.h"
-#include <math.h>
 #include <string.h>
 
+#include "Logging/GeoJSON/geojson_track_simplifier.h"
 #include "Storage/storage_manager.h"
 
 // -----------------------------------------------------------------------------
 // Internal state
 // -----------------------------------------------------------------------------
 namespace {
-struct TrackPoint {
-  double lat;
-  double lon;
-};
-
 struct GeoJsonWriterState {
   File file;
 
@@ -32,22 +27,9 @@ struct GeoJsonWriterState {
   GeoJSONGraphs graphs;
 
   const char* currentMode = nullptr;
-
-  bool adaptiveTrackActive = false;
-  bool haveTrackLast = false;
-  bool haveTrackPending = false;
-  TrackPoint trackLast;
-  TrackPoint trackPending;
 };
 
 GeoJsonWriterState state;
-
-constexpr double TRACK_MIN_POINT_M = 4.0;
-constexpr double TRACK_MAX_STRAIGHT_M = 80.0;
-constexpr double TRACK_TURN_ERROR_M = 5.0;
-constexpr double TRACK_TURN_DEG = 12.0;
-constexpr double DEG_TO_RAD_LOCAL = 0.017453292519943295;
-constexpr double RAD_TO_DEG_LOCAL = 57.29577951308232;
 }
 
 // -----------------------------------------------------------------------------
@@ -63,71 +45,6 @@ void geojson_set_graphs(const GeoJSONGraphs& g)
 {
   state.graphs = g;
   state.hasGraphs = true;
-}
-
-double distanceMeters(const TrackPoint& a, const TrackPoint& b)
-{
-  const double lat = (a.lat + b.lat) * 0.5 * DEG_TO_RAD_LOCAL;
-  const double dlat = b.lat - a.lat;
-  const double dlon = (b.lon - a.lon) * cos(lat);
-  return sqrt(dlat * dlat + dlon * dlon) * 111195.0;
-}
-
-double headingDeg(const TrackPoint& a, const TrackPoint& b)
-{
-  const double lat = (a.lat + b.lat) * 0.5 * DEG_TO_RAD_LOCAL;
-  const double x = (b.lon - a.lon) * cos(lat);
-  const double y = b.lat - a.lat;
-  double deg = atan2(x, y) * RAD_TO_DEG_LOCAL;
-  if (deg < 0.0) deg += 360.0;
-  return deg;
-}
-
-double headingDeltaDeg(double a, double b)
-{
-  double d = fabs(a - b);
-  return d > 180.0 ? 360.0 - d : d;
-}
-
-double perpendicularErrorMeters(const TrackPoint& a,
-                                const TrackPoint& b,
-  const TrackPoint& p)
-{
-  const double lat = (a.lat + b.lat) * 0.5 * DEG_TO_RAD_LOCAL;
-  const double ax = 0.0;
-  const double ay = 0.0;
-  const double bx = (b.lon - a.lon) * cos(lat) * 111195.0;
-  const double by = (b.lat - a.lat) * 111195.0;
-  const double px = (p.lon - a.lon) * cos(lat) * 111195.0;
-  const double py = (p.lat - a.lat) * 111195.0;
-
-  const double dx = bx - ax;
-  const double dy = by - ay;
-  const double len2 = dx * dx + dy * dy;
-  if (len2 <= 0.001) return sqrt(px * px + py * py);
-
-  double t = (px * dx + py * dy) / len2;
-  if (t < 0.0) t = 0.0;
-  if (t > 1.0) t = 1.0;
-
-  const double ex = px - t * dx;
-  const double ey = py - t * dy;
-  return sqrt(ex * ex + ey * ey);
-}
-
-void resetAdaptiveTrack()
-{
-  state.adaptiveTrackActive = false;
-  state.haveTrackLast = false;
-  state.haveTrackPending = false;
-}
-
-bool coordinateLooksValid(double lat, double lon)
-{
-  return isfinite(lat) && isfinite(lon) &&
-         fabs(lat) <= 90.0 &&
-         fabs(lon) <= 180.0 &&
-         (fabs(lat) >= 0.001 || fabs(lon) >= 0.001);
 }
 
 void writeCoordinate(double lat, double lon)
@@ -147,11 +64,9 @@ void writeCoordinate(double lat, double lon)
   state.file.print(buf);
 }
 
-void writeTrackPoint(const TrackPoint& point)
+void writeTrackPoint(const GeoJsonTrackPoint& point)
 {
   writeCoordinate(point.lat, point.lon);
-  state.trackLast = point;
-  state.haveTrackLast = true;
 }
 
 void writeGraphSeries(const char* name, const GeoJSONGraphSeries& series)
@@ -328,8 +243,7 @@ void geojson_begin_feature(const char* mode)
   state.firstPoint = true;
   state.currentMode = mode;
   if (strcmp(mode, "track") == 0) {
-    resetAdaptiveTrack();
-    state.adaptiveTrackActive = true;
+    geojson_track_simplifier_reset();
   }
 
   state.file.println("{");
@@ -352,44 +266,15 @@ void geojson_add_point(double lat, double lon)
 void geojson_add_track_point(double lat, double lon)
 {
   if (!state.file || !state.currentMode) return;
-  if (!state.adaptiveTrackActive || !isTrackFeature()) {
+  if (!isTrackFeature()) {
     geojson_add_point(lat, lon);
     return;
   }
-  if (!coordinateLooksValid(lat, lon)) return;
 
-  TrackPoint point { lat, lon };
-
-  if (!state.haveTrackLast) {
+  GeoJsonTrackPoint point;
+  if (geojson_track_simplifier_add(lat, lon, point)) {
     writeTrackPoint(point);
-    return;
   }
-
-  if (!state.haveTrackPending) {
-    if (distanceMeters(state.trackLast, point) < TRACK_MIN_POINT_M) return;
-    state.trackPending = point;
-    state.haveTrackPending = true;
-    return;
-  }
-
-  const double lastToCurrentM = distanceMeters(state.trackLast, point);
-  const double lastToPendingM = distanceMeters(state.trackLast, state.trackPending);
-  const double turnErrorM = perpendicularErrorMeters(state.trackLast, point, state.trackPending);
-  const double turnDeg = headingDeltaDeg(
-    headingDeg(state.trackLast, state.trackPending),
-    headingDeg(state.trackPending, point)
-  );
-
-  const bool forceDistance = lastToCurrentM >= TRACK_MAX_STRAIGHT_M;
-  const bool keepTurn = lastToPendingM >= TRACK_MIN_POINT_M &&
-                        (turnErrorM >= TRACK_TURN_ERROR_M || turnDeg >= TRACK_TURN_DEG);
-
-  if (forceDistance || keepTurn) {
-    writeTrackPoint(state.trackPending);
-  }
-
-  state.trackPending = point;
-  state.haveTrackPending = true;
 }
 
 
@@ -400,10 +285,13 @@ void geojson_end_feature()
 {
   if (!state.file || !state.currentMode) return;
 
-  if (state.adaptiveTrackActive && isTrackFeature() && state.haveTrackPending) {
-    writeTrackPoint(state.trackPending);
+  if (isTrackFeature()) {
+    GeoJsonTrackPoint point;
+    if (geojson_track_simplifier_flush(point)) {
+      writeTrackPoint(point);
+    }
   }
-  resetAdaptiveTrack();
+  geojson_track_simplifier_reset();
 
   state.file.println();
   state.file.println("]");     // end coordinates array
