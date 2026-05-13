@@ -233,6 +233,58 @@ void writeGraphs()
   state.file.print("}");
 }
 
+bool isTrackFeature()
+{
+  return state.currentMode && strcmp(state.currentMode, "track") == 0;
+}
+
+void writeStats()
+{
+  state.file.println(",");
+  state.file.println("\"stats\":{");
+  state.file.print("\"nm\":");
+  state.file.print(state.stats.nm, 3);
+  state.file.println(",");
+  state.file.print("\"alpha\":");
+  state.file.print(state.stats.alpha, 3);
+  state.file.println(",");
+  state.file.print("\"alphaDistance\":");
+  state.file.print(state.stats.alphaDistance, 1);
+  state.file.println(",");
+  state.file.print("\"alphaClosure\":");
+  state.file.print(state.stats.alphaClosure, 1);
+  state.file.println(",");
+  state.file.print("\"h1\":");
+  state.file.print(state.stats.h1, 3);
+  state.file.println(",");
+  state.file.print("\"max\":");
+  state.file.print(state.stats.max, 3);
+  state.file.println(",");
+  state.file.print("\"avg10\":");
+  state.file.print(state.stats.avg10, 3);
+  state.file.println(",");
+  state.file.print("\"r10\":[");
+  for (int i = 0; i < 5; i++) {
+    if (i) state.file.print(",");
+    state.file.print(state.stats.r10[i], 3);
+  }
+  state.file.println("],");
+  state.file.print("\"distance\":");
+  state.file.print(state.stats.distance, 3);
+  state.file.println("}");
+}
+
+void writeTrackProperties()
+{
+  if (state.hasStats) {
+    writeStats();
+  }
+
+  if (state.hasGraphs) {
+    writeGraphs();
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Begin GeoJSON file
 // -----------------------------------------------------------------------------
@@ -300,7 +352,7 @@ void geojson_add_point(double lat, double lon)
 void geojson_add_track_point(double lat, double lon)
 {
   if (!state.file || !state.currentMode) return;
-  if (!state.adaptiveTrackActive || strcmp(state.currentMode, "track") != 0) {
+  if (!state.adaptiveTrackActive || !isTrackFeature()) {
     geojson_add_point(lat, lon);
     return;
   }
@@ -348,9 +400,7 @@ void geojson_end_feature()
 {
   if (!state.file || !state.currentMode) return;
 
-  if (state.adaptiveTrackActive &&
-      strcmp(state.currentMode, "track") == 0 &&
-      state.haveTrackPending) {
+  if (state.adaptiveTrackActive && isTrackFeature() && state.haveTrackPending) {
     writeTrackPoint(state.trackPending);
   }
   resetAdaptiveTrack();
@@ -366,43 +416,8 @@ void geojson_end_feature()
   state.file.print("\"");
 
   // Attach session stats ONLY to base track
-  if (state.hasStats && strcmp(state.currentMode, "track") == 0) {
-    state.file.println(",");
-    state.file.println("\"stats\":{");
-    state.file.print("\"nm\":");
-    state.file.print(state.stats.nm, 3);
-    state.file.println(",");
-    state.file.print("\"alpha\":");
-    state.file.print(state.stats.alpha, 3);
-    state.file.println(",");
-    state.file.print("\"alphaDistance\":");
-    state.file.print(state.stats.alphaDistance, 1);
-    state.file.println(",");
-    state.file.print("\"alphaClosure\":");
-    state.file.print(state.stats.alphaClosure, 1);
-    state.file.println(",");
-    state.file.print("\"h1\":");
-    state.file.print(state.stats.h1, 3);
-    state.file.println(",");
-    state.file.print("\"max\":");
-    state.file.print(state.stats.max, 3);
-    state.file.println(",");
-    state.file.print("\"avg10\":");
-    state.file.print(state.stats.avg10, 3);
-    state.file.println(",");
-    state.file.print("\"r10\":[");
-    for (int i = 0; i < 5; i++) {
-      if (i) state.file.print(",");
-      state.file.print(state.stats.r10[i], 3);
-    }
-    state.file.println("],");
-    state.file.print("\"distance\":");
-    state.file.print(state.stats.distance, 3);
-    state.file.println("}");
-  }
-
-  if (state.hasGraphs && strcmp(state.currentMode, "track") == 0) {
-    writeGraphs();
+  if (isTrackFeature()) {
+    writeTrackProperties();
   }
 
   state.file.println("}");   // end properties
