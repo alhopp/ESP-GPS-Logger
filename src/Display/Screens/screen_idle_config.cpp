@@ -33,15 +33,15 @@ void draw_WIFI_CONFIG()
 
   switch (wifi_get_ui_state()) {
     case WIFI_UI_TRYING:
-      drawConfigStatus("Connecting to hotspot", "Open: gps.local");
+      drawConfigStatus("Looking for hotspot", "Turn on phone hotspot");
       break;
 
     case WIFI_UI_FAILED:
-      drawConfigStatus("Wi-Fi connection failed", "Retrying...");
+      drawConfigStatus("Phone hotspot not found", "Starting setup Wi-Fi");
       break;
 
     case WIFI_UI_AP:
-      drawConfigStatus("Wi-Fi setup required", "Open: gps.local");
+      drawConfigStatus("Join Wi-Fi: GPS-Setup", "Open: 192.168.4.1");
       break;
 
     case WIFI_UI_CONNECTED:

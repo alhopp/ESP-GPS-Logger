@@ -37,11 +37,12 @@ static bool mdnsStarted = false;
 
 static uint32_t lastStaAttempt = 0;
 static uint32_t lastStaConnected = 0;
+static uint32_t staSearchStarted = 0;
 static int staAttempts = 0;
 
-static constexpr uint32_t STA_RETRY_INTERVAL_MS = 3000;
+static constexpr uint32_t STA_RETRY_INTERVAL_MS = 5000;
 static constexpr uint32_t STA_LOST_GRACE_MS = 5000;
-static constexpr int STA_MAX_ATTEMPTS = 10;
+static constexpr uint32_t STA_HOTSPOT_WAIT_MS = 60000;
 static constexpr const char* AP_PROVISIONING_SSID = "GPS-Setup";
 
 // -----------------------------------------------------------------------------
@@ -99,7 +100,9 @@ static void stop_mdns()
 static void reset_sta_retry_state()
 {
   staAttempts = 0;
-  lastStaAttempt = millis();
+  const uint32_t now = millis();
+  staSearchStarted = now;
+  lastStaAttempt = now;
   lastStaConnected = 0;
 }
 
@@ -169,6 +172,11 @@ static void start_sta()
 
   lastStaAttempt = millis();
   staAttempts++;
+}
+
+static bool hotspotWaitExpired()
+{
+  return staSearchStarted && millis() - staSearchStarted >= STA_HOTSPOT_WAIT_MS;
 }
 
 // -----------------------------------------------------------------------------
@@ -264,22 +272,14 @@ void wifi_loop()
 
   if (millis() - lastStaAttempt <= STA_RETRY_INTERVAL_MS) return;
 
-  LOG_WIFI("STA", "not connected");
-  wifi_set_ui_state(WIFI_UI_FAILED);
-
-  if (staAttempts >= STA_MAX_ATTEMPTS) {
-    if (build_dev_wifi_enabled()) {
-      LOG_WIFI("STA", "DEV retry loop");
-      staAttempts = 0;
-      return;
-    }
-
-    LOG_WIFI("STA", "failed, AP fallback");
+  if (hotspotWaitExpired() && !build_dev_wifi_enabled()) {
+    LOG_WIFI("STA", "hotspot not found, AP fallback");
+    wifi_set_ui_state(WIFI_UI_FAILED);
     start_ap();
     return;
   }
 
-  LOG_WIFI("STA", "retry %d/%d", staAttempts + 1, STA_MAX_ATTEMPTS);
+  LOG_WIFI("STA", "retry %d", staAttempts + 1);
   start_sta();
 }
 
