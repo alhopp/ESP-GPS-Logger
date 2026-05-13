@@ -11,13 +11,18 @@
 
 #include "Core/system_info.h"
 #include "GPS/gps_config.h"
-#include "Logging/GeoJSON/geojson_export_limits.h"
 #include "Logging/GeoJSON/geojson_sbp_reader.h"
-#include "Logging/GeoJSON/geojson_session_windows.h"
 #include "Logging/GeoJSON/geojson_writer.h"
 #include "Session/session_stats_snapshot.h"
 
 namespace {
+constexpr int GEOJSON_MAX_SERIES_POINTS = 240;
+
+bool hasWindow(const SessionWindow& window)
+{
+  return window.startSbp >= 1 && window.endSbp >= window.startSbp;
+}
+
 struct GeoJsonGraphBuildState {
   float s2[GEOJSON_MAX_SERIES_POINTS];
   float s10[5][GEOJSON_MAX_SERIES_POINTS];
@@ -184,7 +189,7 @@ void geojson_attach_graph_series(const char* sbpPath, const SessionStatsSnapshot
   }
 
   for (int i = 0; i < 5; i++) {
-    if (!geojson_has_window(snapshot.tenSecond[i])) continue;
+    if (!hasWindow(snapshot.tenSecond[i])) continue;
 
     graphState.s10Count[i] = readGpsSpeedGraph(
       sbpPath,

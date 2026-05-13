@@ -10,13 +10,18 @@
 #include <Arduino.h>
 
 #include "Core/system_info.h"
-#include "Logging/GeoJSON/geojson_export_limits.h"
 #include "Logging/GeoJSON/geojson_sbp_reader.h"
-#include "Logging/GeoJSON/geojson_session_windows.h"
 #include "Logging/GeoJSON/geojson_writer.h"
 #include "Session/session_stats_snapshot.h"
 
 namespace {
+constexpr int GEOJSON_MAX_SERIES_POINTS = 240;
+
+bool hasWindow(const SessionWindow& window)
+{
+  return window.startSbp >= 1 && window.endSbp >= window.startSbp;
+}
+
 void addSbpRangePoints(const char* sbpPath, int startGpsIdx, int endGpsIdx, int step)
 {
   if (startGpsIdx < 0 || endGpsIdx < startGpsIdx) return;
@@ -56,7 +61,7 @@ void addRangeFeature(const char* sbpPath, const char* mode, int startGpsIdx, int
 
 void addOneHourFeature(const char* sbpPath, const SessionStatsSnapshot& snapshot)
 {
-  if (!geojson_has_window(snapshot.oneHour)) return;
+  if (!hasWindow(snapshot.oneHour)) return;
 
   const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
   const int samples = snapshot.oneHour.endSbp - snapshot.oneHour.startSbp + 1;
