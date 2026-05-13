@@ -16,42 +16,16 @@
 
 namespace {
 
-void printField(const char* prefix, const char* label, const char* value)
+template <typename T>
+void printField(const char* prefix, const char* label, const T& value)
 {
   Serial.print(prefix);
   Serial.print(label);
   Serial.println(value);
 }
 
-void printField(const char* prefix, const char* label, float value)
+void printLoadedConfig()
 {
-  Serial.print(prefix);
-  Serial.print(label);
-  Serial.println(value);
-}
-
-void printField(const char* prefix, const char* label, bool value)
-{
-  Serial.print(prefix);
-  Serial.print(label);
-  Serial.println(value);
-}
-
-void printField(const char* prefix, const char* label, uint32_t value)
-{
-  Serial.print(prefix);
-  Serial.print(label);
-  Serial.println(value);
-}
-
-}
-
-void config_dump()
-{
-#if STATS_ONLY_SERIAL
-  return;
-#endif
-
   Serial.println();
   Serial.println("[CONFIG ] ===== Loaded from JSON =====");
 
@@ -76,7 +50,10 @@ void config_dump()
   Serial.println("[CONFIG ] Wi-Fi");
   printField("[CONFIG ] ", "  phone_ssid     = ", config.phone_ssid[0] ? config.phone_ssid : "(not set)");
   printField("[CONFIG ] ", "  phone_pass     = ", config.phone_pass[0] ? "***" : "(not set)");
+}
 
+void printSystemInfo()
+{
   Serial.println();
   Serial.println("[SYSTEM ] ===== System info =====");
 
@@ -94,4 +71,16 @@ void config_dump()
 
   Serial.println("=======================================");
   Serial.println();
+}
+
+}
+
+void config_dump()
+{
+#if STATS_ONLY_SERIAL
+  return;
+#endif
+
+  printLoadedConfig();
+  printSystemInfo();
 }
