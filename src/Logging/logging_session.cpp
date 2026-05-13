@@ -11,7 +11,7 @@
 
 #include "Core/log.h"
 #include "Core/Globals.h"
-#include "Logging/logging_session_files.h"
+#include "Logging/Session/logging_session_files.h"
 #include "Storage/storage_manager.h"
 
 namespace {

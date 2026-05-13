@@ -5,7 +5,7 @@
 // device ID. Keeps the naming scheme shared by raw logs and GeoJSON exports.
 // ============================================================================
 
-#include "Logging/logging_session_paths.h"
+#include "Logging/Session/logging_session_paths.h"
 
 #include <Arduino.h>
 #include <FS.h>
