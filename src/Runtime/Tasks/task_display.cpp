@@ -31,15 +31,15 @@
 // Redraw signalling state
 // ============================================================================
 
-static volatile bool display_dirty = false;   // full refresh requested
-static volatile bool partial_dirty = false;   // partial refresh requested
-
-static DisplayWindow partialWindow = {0, 0, 0, 0};
-
-static TaskHandle_t displayTaskHandle = nullptr;
-static portMUX_TYPE redrawMux = portMUX_INITIALIZER_UNLOCKED;
-
 namespace {
+volatile bool display_dirty = false;   // full refresh requested
+volatile bool partial_dirty = false;   // partial refresh requested
+
+DisplayWindow partialWindow = {0, 0, 0, 0};
+
+TaskHandle_t displayTaskHandle = nullptr;
+portMUX_TYPE redrawMux = portMUX_INITIALIZER_UNLOCKED;
+
 struct RefreshRequest {
   bool partial = false;
   DisplayWindow window = {0, 0, 0, 0};

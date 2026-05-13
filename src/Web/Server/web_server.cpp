@@ -16,12 +16,11 @@
 
 #include <esp_system.h>
 
-static WebServer server(80);
-static bool webStarted = false;
-static bool routesRegistered = false;
-static uint32_t lastWebActivityMs = 0;
-
 namespace {
+WebServer server(80);
+bool webStarted = false;
+bool routesRegistered = false;
+uint32_t lastWebActivityMs = 0;
 
 void handleRoot()
 {

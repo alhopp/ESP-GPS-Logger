@@ -25,20 +25,17 @@ constexpr uint32_t SHORT_PRESS_MIN_MS = 300;
 constexpr uint32_t WIFI_HOLD_MS = 2000;
 constexpr uint32_t BOOT_IGNORE_MS = 1500;
 
+uint32_t bootTime = 0;
+uint32_t pressTime = 0;
+bool longHandled = false;
+bool sleepOnRelease = false;
+bool waitingForRelease = false;
+
 bool modeShowsMagnetAffordance(SystemMode mode)
 {
   return mode == MODE_IDLE || mode == MODE_CONFIG;
 }
 }
-
-// -----------------------------------------------------------------------------
-// Internal state
-// -----------------------------------------------------------------------------
-static uint32_t bootTime = 0;
-static uint32_t pressTime = 0;
-static bool     longHandled = false;
-static bool     sleepOnRelease = false;
-static bool     waitingForRelease = false;
 
 // -----------------------------------------------------------------------------
 // External state (exported)
