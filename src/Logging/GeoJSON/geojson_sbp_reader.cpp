@@ -5,7 +5,7 @@
 // details out of the higher-level GeoJSON export orchestration.
 // ============================================================================
 
-#include "Logging/geojson_sbp_reader.h"
+#include "Logging/GeoJSON/geojson_sbp_reader.h"
 
 #include "GPS/gps_config.h"
 #include "Storage/storage_manager.h"

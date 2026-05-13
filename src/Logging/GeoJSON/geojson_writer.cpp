@@ -5,7 +5,7 @@
 // point/line feature serialization, and coordinate formatting.
 // ============================================================================
 
-#include "Logging/geojson_writer.h"
+#include "Logging/GeoJSON/geojson_writer.h"
 #include <math.h>
 #include <string.h>
 

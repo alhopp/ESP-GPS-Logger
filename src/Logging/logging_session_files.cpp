@@ -13,7 +13,7 @@
 #include "Core/Globals.h"
 #include "Core/build_config.h"
 #include "Logging/sbp_writer.h"
-#include "Logging/geojson_session_export.h"
+#include "Logging/GeoJSON/geojson_session_export.h"
 #include "Logging/logging_raw_writers.h"
 #include "Logging/logging_session_files.h"
 #include "Logging/logging_session_paths.h"

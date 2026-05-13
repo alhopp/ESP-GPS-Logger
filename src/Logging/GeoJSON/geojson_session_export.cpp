@@ -5,15 +5,15 @@
 // features, graph series, and static system/session metadata.
 // ============================================================================
 
-#include "Logging/geojson_session_export.h"
+#include "Logging/GeoJSON/geojson_session_export.h"
 
 #include <Arduino.h>
 
 #include "Core/log.h"
 #include "Core/system_info.h"
 #include "GPS/gps_config.h"
-#include "Logging/geojson_sbp_reader.h"
-#include "Logging/geojson_writer.h"
+#include "Logging/GeoJSON/geojson_sbp_reader.h"
+#include "Logging/GeoJSON/geojson_writer.h"
 #include "Session/session_stats_snapshot.h"
 
 namespace {
