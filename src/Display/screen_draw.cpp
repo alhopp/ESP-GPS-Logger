@@ -28,6 +28,7 @@ DrawFn getDrawFnForMode(SystemMode mode)
     case MODE_WAIT_SATS: return draw_WAIT_SATS;
     case MODE_CONFIG:    return draw_WIFI_CONFIG;
     case MODE_LOGGING:   return draw_SPEED;
+    case MODE_SAVING:    return draw_SPEED;
     case MODE_SLEEP:     return draw_SLEEP;
     default:             return nullptr;
   }

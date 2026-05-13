@@ -25,6 +25,7 @@ enum SystemMode {
   MODE_WAIT_SATS,
   MODE_CONFIG,
   MODE_LOGGING,
+  MODE_SAVING,
   MODE_SLEEP,
   MODE_ERROR,
 };

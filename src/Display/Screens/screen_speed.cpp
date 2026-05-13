@@ -32,7 +32,7 @@ void drawSavingSession()
 {
   drawCenteredText("ESP-GPS", 20, Fonts::Body12);
   drawCenteredText("Saving session", 50, Fonts::Body12);
-  drawCenteredText("Building map file", 78, Fonts::Body9);
+  drawCenteredText("Map file generating", 78, Fonts::Body9);
   drawCenteredText("Please wait", 102, Fonts::Body9);
 }
 }

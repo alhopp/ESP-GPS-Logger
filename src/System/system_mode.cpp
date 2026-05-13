@@ -117,6 +117,7 @@ void runExitActions(SystemMode oldMode, SystemMode newMode)
 
     case MODE_BOOT:
     case MODE_IDLE:
+    case MODE_SAVING:
     case MODE_ERROR:
     default:
       break;
@@ -200,6 +201,7 @@ void runEnterActions(SystemMode newMode)
 
     case MODE_BOOT:
     case MODE_IDLE:
+    case MODE_SAVING:
     case MODE_ERROR:
     default:
       break;
@@ -229,6 +231,7 @@ const char* modeToString(SystemMode mode)
     case MODE_WAIT_SATS: return "WAIT_SATS";
     case MODE_CONFIG:    return "CONFIG";
     case MODE_LOGGING:   return "LOGGING";
+    case MODE_SAVING:    return "SAVING";
     case MODE_SLEEP:     return "SLEEP";
     case MODE_ERROR:     return "ERROR";
     default:             return "?";
@@ -278,11 +281,16 @@ void setMode(SystemMode newMode)
 
   enterModeFailed = false;
 
-  if (oldMode == MODE_LOGGING) {
-    // Stop the GPS task before closing/exporting the session, but do not expose
-    // MODE_SLEEP yet. The display task enters deep sleep as soon as it sees
+  if (oldMode == MODE_LOGGING && newMode == MODE_SLEEP) {
+    // Stop the GPS task and show a "saving" screen before closing/exporting
+    // the session. The display task enters deep sleep as soon as it sees
     // MODE_SLEEP, and long GeoJSON exports must finish first.
-    currentMode = newMode == MODE_SLEEP ? MODE_IDLE : newMode;
+    storage_begin_shutdown();
+    currentMode = MODE_SAVING;
+    requestModeRedraw();
+    vTaskDelay(pdMS_TO_TICKS(100));
+  } else if (oldMode == MODE_LOGGING) {
+    currentMode = newMode;
   }
 
   runExitActions(oldMode, newMode);
