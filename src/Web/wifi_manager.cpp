@@ -12,16 +12,7 @@
 
 #include "Core/build_config.h"
 #include "Core/log.h"
-#include "Config/config_types.h"
 #include "Runtime/display_redraw.h"
-
-// ============================================================================
-// DEV MODE OVERRIDE
-// ============================================================================
-#if DEV_FORCE_WIFI
-static const char *DEV_SSID = "Als_iPhone";
-static const char *DEV_PASS = "alan1234";
-#endif
 
 // -----------------------------------------------------------------------------
 // State
@@ -51,11 +42,6 @@ static constexpr const char* AP_PROVISIONING_SSID = "GPS-Setup";
 
 static WifiUiState wifiUiState = WIFI_UI_OFF;
 static constexpr DisplayWindow WIFI_STATUS_WINDOW = DISPLAY_FULL_WINDOW;
-
-struct WifiCredentials {
-  const char* ssid;
-  const char* pass;
-};
 
 WifiUiState wifi_get_ui_state()
 {
@@ -111,25 +97,6 @@ static bool have_phone_wifi()
   return wifi_effective_phone_ssid()[0];
 }
 
-static WifiCredentials effective_phone_wifi()
-{
-#if DEV_FORCE_WIFI
-  return {DEV_SSID, DEV_PASS};
-#else
-  return {config.phone_ssid, config.phone_pass};
-#endif
-}
-
-const char* wifi_effective_phone_ssid()
-{
-  return effective_phone_wifi().ssid;
-}
-
-bool wifi_effective_phone_password_set()
-{
-  return effective_phone_wifi().pass[0];
-}
-
 static bool phone_hotspot_visible(const char* ssid)
 {
   if (!ssid || !ssid[0]) return false;
@@ -174,7 +141,7 @@ static void start_sta()
     return;
   }
 
-  const WifiCredentials phoneWifi = effective_phone_wifi();
+  const WifiCredentials phoneWifi = wifi_effective_phone_credentials();
 #if DEV_FORCE_WIFI
   LOG_WIFI("STA", "DEV FORCE");
 #endif
