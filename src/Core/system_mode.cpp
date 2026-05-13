@@ -206,6 +206,15 @@ void runEnterActions(SystemMode newMode)
       break;
   }
 }
+
+void recoverFromFailedEnter(SystemMode requestedMode)
+{
+  if (!enterModeFailed || currentMode != requestedMode) return;
+
+  currentMode = MODE_IDLE;
+  modeEnteredAtMs = millis();
+  requestModeRedraw();
+}
 }
 
 SystemMode getMode()
@@ -229,14 +238,16 @@ const char* modeToString(SystemMode mode)
 
 void systemModeLoop()
 {
-  if (getMode() == MODE_IDLE) {
+  const SystemMode mode = getMode();
+
+  if (mode == MODE_IDLE) {
     if (millis() - modeEnteredAtMs >= IDLE_AUTO_SLEEP_MS) {
       setMode(MODE_SLEEP);
     }
     return;
   }
 
-  if (getMode() != MODE_CONFIG) return;
+  if (mode != MODE_CONFIG) return;
 
   wifi_loop();
 
@@ -278,9 +289,5 @@ void setMode(SystemMode newMode)
   runEnterActions(newMode);
   requestModeRedraw();
 
-  if (enterModeFailed && currentMode == newMode) {
-    currentMode = MODE_IDLE;
-    modeEnteredAtMs = millis();
-    requestModeRedraw();
-  }
+  recoverFromFailedEnter(newMode);
 }
