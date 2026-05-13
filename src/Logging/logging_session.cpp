@@ -27,12 +27,16 @@ bool isSessionActive()
 {
   return session_state == SessionState::Active;
 }
+
+bool isSessionClosing()
+{
+  return session_state == SessionState::Closing;
 }
 
-bool logging_session_begin(const GpsFix& firstFix)
+bool sessionCanStart()
 {
   if (isSessionActive()) return true;
-  if (session_state == SessionState::Closing) {
+  if (isSessionClosing()) {
     LOG_STORAGE("Session", "begin rejected while closing");
     return false;
   }
@@ -42,6 +46,15 @@ bool logging_session_begin(const GpsFix& firstFix)
                 Time_Set_OK, storage_is_shutting_down());
     return false;
   }
+
+  return true;
+}
+}
+
+bool logging_session_begin(const GpsFix& firstFix)
+{
+  if (!sessionCanStart()) return false;
+  if (isSessionActive()) return true;
 
   if (!logging_session_files_open()) {
     return false;
