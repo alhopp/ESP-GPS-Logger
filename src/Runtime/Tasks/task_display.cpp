@@ -20,7 +20,7 @@
 
 #include "Core/log.h"
 
-#include "Core/sleep_control.h"
+#include "Core/Power/sleep_control.h"
 #include "Core/system_mode.h"
 
 #include "Display/E_paper.h"

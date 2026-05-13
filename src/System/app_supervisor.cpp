@@ -9,7 +9,7 @@
 
 #include <Arduino.h>
 
-#include "Core/magnet_input.h"
+#include "Core/Input/magnet_input.h"
 #include "Core/system_mode.h"
 #include "System/watchdog_manager.h"
 

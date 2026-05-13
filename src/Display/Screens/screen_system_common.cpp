@@ -1,7 +1,7 @@
 #include "Display/Screens/screen_system.h"
 #include "Display/Screens/screen_system_common.h"
 
-#include "Core/magnet_input.h"
+#include "Core/Input/magnet_input.h"
 #include "Display/E_paper.h"
 #include "Runtime/Display/display_redraw.h"
 

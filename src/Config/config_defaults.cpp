@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #include "Core/log.h"
-#include "Core/battery_config.h"
+#include "Core/Battery/battery_config.h"
 #include "Config/config_types.h"
 
 namespace {

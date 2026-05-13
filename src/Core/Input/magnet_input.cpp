@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #include "Core/board_pins.h"
-#include "Core/magnet_input.h"
+#include "Core/Input/magnet_input.h"
 #include "Core/log.h"
 #include "Core/system_mode.h"
 #include "Core/Globals.h"
