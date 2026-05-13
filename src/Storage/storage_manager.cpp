@@ -38,6 +38,8 @@ void mountLittleFS();
 void mountSdForBoot();
 bool mountSD_MMC();
 void unmountSD_MMC();
+void prepareSdMountAttempt(int attempt);
+bool beginSdMmc();
 bool quickIOTest(fs::FS& fs, const char* path);
 void logLittleFSStats();
 void logSDStats();
@@ -210,16 +212,9 @@ bool mountSD_MMC()
   if (sd_mounted) return true;
 
   for (int attempt = 1; attempt <= SD_MMC_MOUNT_ATTEMPTS; attempt++) {
-    LOG_STORAGE("SD MMC", "preflight %d/%d", attempt, SD_MMC_MOUNT_ATTEMPTS);
+    prepareSdMountAttempt(attempt);
 
-    // Force the peripheral back to a clean state before each attempt. Deep
-    // sleep can leave the SD/eMMC bus in a state where the first mount fails.
-    SD_MMC.end();
-    pinMode(SDMMC_DAT0_PIN, INPUT_PULLUP);
-    delay(SD_MMC_RETRY_DELAY_MS);
-
-    LOG_STORAGE("SD MMC", "init");
-    if (SD_MMC.begin(SD_MMC_MOUNTPOINT, SD_MMC_1BIT_MODE)) {
+    if (beginSdMmc()) {
       sd_mounted = true;
       sd_detected = true;
       return true;
@@ -232,6 +227,23 @@ bool mountSD_MMC()
 
   sd_mounted = false;
   return false;
+}
+
+void prepareSdMountAttempt(int attempt)
+{
+  LOG_STORAGE("SD MMC", "preflight %d/%d", attempt, SD_MMC_MOUNT_ATTEMPTS);
+
+  // Force the peripheral back to a clean state before each attempt. Deep
+  // sleep can leave the SD/eMMC bus in a state where the first mount fails.
+  SD_MMC.end();
+  pinMode(SDMMC_DAT0_PIN, INPUT_PULLUP);
+  delay(SD_MMC_RETRY_DELAY_MS);
+}
+
+bool beginSdMmc()
+{
+  LOG_STORAGE("SD MMC", "init");
+  return SD_MMC.begin(SD_MMC_MOUNTPOINT, SD_MMC_1BIT_MODE);
 }
 
 // Clean shutdown of SD_MMC:
