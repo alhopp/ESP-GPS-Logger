@@ -8,8 +8,6 @@
 #include "Logging/GeoJSON/geojson_writer.h"
 #include <string.h>
 
-#include "Logging/GeoJSON/geojson_graph_writer.h"
-#include "Logging/GeoJSON/geojson_stats_writer.h"
 #include "Logging/GeoJSON/geojson_track_simplifier.h"
 #include "Storage/storage_manager.h"
 
@@ -76,14 +74,139 @@ bool isTrackFeature()
   return state.currentMode && strcmp(state.currentMode, "track") == 0;
 }
 
+void writeCommaLine(File& file)
+{
+  file.println(",");
+}
+
+void writePropertyName(File& file, const char* name)
+{
+  file.print("\"");
+  file.print(name);
+  file.print("\":");
+}
+
+void writeStats(File& file, const GeoJSONStats& stats)
+{
+  writeCommaLine(file);
+  file.println("\"stats\":{");
+  writePropertyName(file, "nm");
+  file.print(stats.nm, 3);
+  writeCommaLine(file);
+  writePropertyName(file, "alpha");
+  file.print(stats.alpha, 3);
+  writeCommaLine(file);
+  writePropertyName(file, "alphaDistance");
+  file.print(stats.alphaDistance, 1);
+  writeCommaLine(file);
+  writePropertyName(file, "alphaClosure");
+  file.print(stats.alphaClosure, 1);
+  writeCommaLine(file);
+  writePropertyName(file, "h1");
+  file.print(stats.h1, 3);
+  writeCommaLine(file);
+  writePropertyName(file, "max");
+  file.print(stats.max, 3);
+  writeCommaLine(file);
+  writePropertyName(file, "avg10");
+  file.print(stats.avg10, 3);
+  writeCommaLine(file);
+  writePropertyName(file, "r10");
+  file.print("[");
+  for (int i = 0; i < 5; i++) {
+    if (i) file.print(",");
+    file.print(stats.r10[i], 3);
+  }
+  file.println("],");
+  writePropertyName(file, "distance");
+  file.print(stats.distance, 3);
+  file.println("}");
+}
+
+void writeGraphSeries(File& file, const char* name, const GeoJSONGraphSeries& series)
+{
+  writePropertyName(file, name);
+  file.print("[");
+
+  for (int i = 0; i < series.count; i++) {
+    if (i) file.print(",");
+    file.print(series.values[i], 2);
+  }
+
+  file.print("]");
+}
+
+void writeGraphSeriesList(File& file, const char* name, const GeoJSONGraphSeries* series, int count)
+{
+  writePropertyName(file, name);
+  file.print("[");
+
+  for (int i = 0; i < count; i++) {
+    if (i) file.print(",");
+    file.print("[");
+    for (int j = 0; j < series[i].count; j++) {
+      if (j) file.print(",");
+      file.print(series[i].values[j], 2);
+    }
+    file.print("]");
+  }
+
+  file.print("]");
+}
+
+void writeGraphMetaSeries(File& file, const char* name, const GeoJSONGraphSeries& series)
+{
+  writePropertyName(file, name);
+  file.print("{\"xMax\":");
+  file.print(series.xMax, 3);
+  file.print(",\"xUnit\":\"");
+  file.print(series.xUnit ? series.xUnit : "");
+  file.print("\"}");
+}
+
+void writeGraphs(File& file, const GeoJSONGraphs& graphs)
+{
+  writeCommaLine(file);
+  file.println("\"graphs\":{");
+  writeGraphSeries(file, "2s", graphs.s2);
+  writeCommaLine(file);
+  writeGraphSeriesList(file, "10s", graphs.s10, graphs.s10Count);
+  writeCommaLine(file);
+  writeGraphSeries(file, "alpha", graphs.alpha);
+  writeCommaLine(file);
+  writeGraphSeries(file, "nm", graphs.nm);
+  writeCommaLine(file);
+  writeGraphSeries(file, "1h", graphs.h1);
+  writeCommaLine(file);
+  writeGraphSeries(file, "distance", graphs.distance);
+  file.println();
+  file.print("},");
+
+  file.println();
+  file.println("\"graph_meta\":{");
+  writeGraphMetaSeries(file, "2s", graphs.s2);
+  writeCommaLine(file);
+  writeGraphMetaSeries(file, "10s", graphs.s10Count > 0 ? graphs.s10[0] : graphs.s2);
+  writeCommaLine(file);
+  writeGraphMetaSeries(file, "alpha", graphs.alpha);
+  writeCommaLine(file);
+  writeGraphMetaSeries(file, "nm", graphs.nm);
+  writeCommaLine(file);
+  writeGraphMetaSeries(file, "1h", graphs.h1);
+  writeCommaLine(file);
+  writeGraphMetaSeries(file, "distance", graphs.distance);
+  file.println();
+  file.print("}");
+}
+
 void writeTrackProperties()
 {
   if (state.hasStats) {
-    geojson_write_stats(state.file, state.stats);
+    writeStats(state.file, state.stats);
   }
 
   if (state.hasGraphs) {
-    geojson_write_graphs(state.file, state.graphs);
+    writeGraphs(state.file, state.graphs);
   }
 }
 

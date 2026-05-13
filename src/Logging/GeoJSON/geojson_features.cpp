@@ -22,6 +22,12 @@ bool hasWindow(const SessionWindow& window)
   return window.startSbp >= 1 && window.endSbp >= window.startSbp;
 }
 
+struct DerivedFeature {
+  const char* mode;
+  int startSbp;
+  int endSbp;
+};
+
 void addSbpRangePoints(const char* sbpPath, int startGpsIdx, int endGpsIdx, int step)
 {
   if (startGpsIdx < 0 || endGpsIdx < startGpsIdx) return;
@@ -31,14 +37,16 @@ void addSbpRangePoints(const char* sbpPath, int startGpsIdx, int endGpsIdx, int 
   if (!geojson_sbp_open(file, sbpPath)) return;
 
   GeoJsonSbpFrame frame;
-  int gpsIndex = 1;
-  while (geojson_sbp_read_frame(file, frame)) {
-    if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx &&
-        ((gpsIndex - startGpsIdx) % step) == 0) {
+  int firstGpsIdx = startGpsIdx < 1 ? 1 : startGpsIdx;
+  const int offset = (firstGpsIdx - startGpsIdx) % step;
+  if (offset != 0) {
+    firstGpsIdx += step - offset;
+  }
+
+  for (int gpsIndex = firstGpsIdx; gpsIndex <= endGpsIdx; gpsIndex += step) {
+    if (geojson_sbp_read_frame_at(file, gpsIndex, frame)) {
       geojson_add_point(geojson_sbp_frame_lat(frame), geojson_sbp_frame_lon(frame));
     }
-    if (gpsIndex > endGpsIdx) break;
-    gpsIndex++;
   }
 
   file.close();
@@ -92,13 +100,20 @@ bool geojson_add_base_track_from_sbp(const char* sbpPath)
 
 void geojson_add_derived_features(const char* sbpPath, const SessionStatsSnapshot& snapshot)
 {
-  addRangeFeature(sbpPath, "2s", snapshot.max2s.startSbp, snapshot.max2s.endSbp);
+  const DerivedFeature features[] = {
+    { "2s", snapshot.max2s.startSbp, snapshot.max2s.endSbp },
+    { "10s", snapshot.tenSecond[0].startSbp, snapshot.tenSecond[0].endSbp },
+    { "10s", snapshot.tenSecond[1].startSbp, snapshot.tenSecond[1].endSbp },
+    { "10s", snapshot.tenSecond[2].startSbp, snapshot.tenSecond[2].endSbp },
+    { "10s", snapshot.tenSecond[3].startSbp, snapshot.tenSecond[3].endSbp },
+    { "10s", snapshot.tenSecond[4].startSbp, snapshot.tenSecond[4].endSbp },
+    { "alpha", snapshot.alpha.startSbp, snapshot.alpha.endSbp },
+    { "nm", snapshot.nauticalMile.startSbp, snapshot.nauticalMile.endSbp }
+  };
 
-  for (int i = 0; i < 5; i++) {
-    addRangeFeature(sbpPath, "10s", snapshot.tenSecond[i].startSbp, snapshot.tenSecond[i].endSbp);
+  for (const DerivedFeature& feature : features) {
+    addRangeFeature(sbpPath, feature.mode, feature.startSbp, feature.endSbp);
   }
 
-  addRangeFeature(sbpPath, "alpha", snapshot.alpha.startSbp, snapshot.alpha.endSbp);
-  addRangeFeature(sbpPath, "nm", snapshot.nauticalMile.startSbp, snapshot.nauticalMile.endSbp);
   addOneHourFeature(sbpPath, snapshot);
 }
