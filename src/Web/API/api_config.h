@@ -1,5 +1,11 @@
 #pragma once
 
+// ============================================================================
+// api_config.h
+//
+// Public registration point for the web configuration endpoint.
+// ============================================================================
+
 #include <WebServer.h>
 
 // Registers GET/POST /api/config.

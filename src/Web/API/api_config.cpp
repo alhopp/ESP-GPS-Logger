@@ -1,3 +1,11 @@
+// ============================================================================
+// api_config.cpp
+//
+// Registers the configuration API used by the web UI. GET returns editable
+// config plus system facts; POST applies supported config groups and persists
+// them through the config manager.
+// ============================================================================
+
 #include "Web/API/api_config.h"
 
 #include <ArduinoJson.h>

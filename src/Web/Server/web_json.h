@@ -1,5 +1,11 @@
 #pragma once
 
+// ============================================================================
+// web_json.h
+//
+// Shared JSON response helper used by web API handlers.
+// ============================================================================
+
 #include <ArduinoJson.h>
 #include <WebServer.h>
 

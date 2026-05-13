@@ -1,3 +1,10 @@
+// ============================================================================
+// api_status.cpp
+//
+// Registers lightweight runtime status endpoints for the config UI. Reports
+// current mode, session state, GPS health, storage state, and network status.
+// ============================================================================
+
 #include "Web/API/api_status.h"
 
 #include <ArduinoJson.h>

@@ -1,3 +1,10 @@
+// ============================================================================
+// web_json.cpp
+//
+// Shared JSON response helper for web APIs. Serializes ArduinoJson documents
+// with the standard content type and marks web activity for config timeout.
+// ============================================================================
+
 #include "Web/Server/web_json.h"
 
 #include "Web/Server/web_server.h"
