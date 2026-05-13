@@ -56,14 +56,7 @@ function updateLogsTitle(storage){
   const el = document.getElementById("logsTitle");
   if(!el) return;
   if(storage) filesStorageCache = { ...storage };
-
-  const used = AppUtil.formatStorageSize(storage?.storage_used_bytes, storage?.storage_used_mb);
-  const free = AppUtil.formatStorageSize(storage?.storage_free_bytes, storage?.storage_free_mb);
-  if(used && free){
-    el.textContent = `Logs - ${used} used / ${free} free`;
-  }else{
-    el.textContent = "Logs";
-  }
+  el.textContent = "Logs";
 }
 
 function updateSessionSummary(name, stats){
@@ -147,7 +140,7 @@ async function loadFiles(fileList, sdInfo){
           const downloadName = f.sbp_name || f.name;
           const displayName = f.sbp_name || f.name;
           const details = f.sbp_name
-            ? `Download SBP ${fileSizeKb(f.sbp_size)} | Map preview ${fileSizeKb(f.size)}`
+            ? `SBP ${fileSizeKb(f.sbp_size)} | Map ${fileSizeKb(f.size)}`
             : `Map preview only ${fileSizeKb(f.size)}`;
 
           fileList.insertAdjacentHTML("beforeend",`
@@ -166,7 +159,7 @@ async function loadFiles(fileList, sdInfo){
                   </div>
                   <div class="file-size">${AppUtil.escapeHtml(details)}</div>
                 </div>
-                <button class="file-download" type="button" aria-label="Download">&#8681;</button>
+                <button class="file-download" type="button" aria-label="Download">Download</button>
               </div>
             </div>
           `);

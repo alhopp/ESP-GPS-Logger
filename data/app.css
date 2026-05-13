@@ -53,7 +53,7 @@ input,select{width:100%;margin-top:4px;padding:12px;font-size:17px;border:1px so
 .file-stats b{display:block;font-size:14px;line-height:1.1;color:var(--b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-stats small{display:block;margin-top:3px;font-size:11px;font-weight:700;color:var(--f);text-transform:uppercase}
 .file-size{font-size:13px;color:var(--f)}
-.file-download{flex:0 0 42px;width:42px;height:42px;border:1px solid var(--e);border-radius:10px;background:#fff;color:var(--a);font-size:22px;font-weight:900}
+.file-download{flex:0 0 92px;height:42px;border:0;border-radius:10px;background:linear-gradient(180deg,var(--a),#156fcb);color:#fff;font-size:13px;font-weight:900;box-shadow:0 6px 12px rgba(30,136,229,.22)}
 .file-download:active{transform:scale(.94)}
 section#files.a~footer{display:none}
 
