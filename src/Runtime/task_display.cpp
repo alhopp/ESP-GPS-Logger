@@ -176,19 +176,12 @@ void displayTask(void* parameter)
     const SystemMode mode = getMode();
     const DrawFn draw = getDrawFnForMode(mode);
 
-    RefreshRequest effectiveRequest = request;
-    if (mode == MODE_SLEEP) {
-      effectiveRequest.partial = false;
-      effectiveRequest.window = DISPLAY_FULL_WINDOW;
-    }
-
-    renderRefresh(effectiveRequest, draw);
-
-    // -----------------------------------------------------------------------
-    // Deep sleep handling (FORCE full refresh)
-    // -----------------------------------------------------------------------
     if (mode == MODE_SLEEP) {
       enterDeepSleep(draw);
+      continue;
     }
+
+    RefreshRequest effectiveRequest = request;
+    renderRefresh(effectiveRequest, draw);
   }
 }
