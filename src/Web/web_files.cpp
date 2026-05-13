@@ -140,6 +140,41 @@ void addGeojsonFile(JsonArray& files, fs::FS& storage, const char* base, size_t 
   sbp.close();
 }
 
+bool processLogDirectoryEntry(File& file, fs::FS& storage, JsonArray& files, int& removedEmpty)
+{
+  if (file.isDirectory()) {
+    file.close();
+    return false;
+  }
+
+  const char* base = basenameOnly(file.name());
+  if (!isValidLogFile(base)) {
+    file.close();
+    return false;
+  }
+
+  char baseCopy[96];
+  strlcpy(baseCopy, base, sizeof(baseCopy));
+
+  const size_t size = file.size();
+  const time_t modified = file.getLastWrite();
+  file.close();
+
+  if (size == 0) {
+    char path[128];
+    buildLogPath(path, sizeof(path), baseCopy);
+    if (storage.remove(path)) removedEmpty++;
+    return false;
+  }
+
+  if (!hasExtension(baseCopy, ".geojson")) {
+    return false;
+  }
+
+  addGeojsonFile(files, storage, baseCopy, size, modified);
+  return true;
+}
+
 void handleFilesList(WebServer& server)
 {
   LOG_STORAGE("API files", "request");
@@ -171,29 +206,8 @@ void handleFilesList(WebServer& server)
   int removedEmpty = 0;
   File file = dir.openNextFile();
   while (file) {
-    if (!file.isDirectory()) {
-      const char* base = basenameOnly(file.name());
-      if (isValidLogFile(base)) {
-        char baseCopy[96];
-        strlcpy(baseCopy, base, sizeof(baseCopy));
-
-        const size_t size = file.size();
-        const time_t modified = file.getLastWrite();
-        file.close();
-
-        if (size == 0) {
-          char path[128];
-          buildLogPath(path, sizeof(path), baseCopy);
-          if (storage.remove(path)) removedEmpty++;
-        } else if (hasExtension(baseCopy, ".geojson")) {
-          addGeojsonFile(files, storage, baseCopy, size, modified);
-          count++;
-        }
-      } else {
-        file.close();
-      }
-    } else {
-      file.close();
+    if (processLogDirectoryEntry(file, storage, files, removedEmpty)) {
+      count++;
     }
     file = dir.openNextFile();
   }
