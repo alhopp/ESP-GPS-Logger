@@ -17,8 +17,8 @@ constexpr uint32_t DISPLAY_TASK_STACK = 6096;
 constexpr UBaseType_t DISPLAY_TASK_PRIO = 1;
 constexpr BaseType_t DISPLAY_TASK_CORE = 0;
 
-TaskHandle_t gpsTaskHandle = nullptr;
-TaskHandle_t displayTaskHandle = nullptr;
+TaskHandle_t gpsRuntimeTaskHandle = nullptr;
+TaskHandle_t displayRuntimeTaskHandle = nullptr;
 
 struct RuntimeTaskSpec {
   TaskFunction_t entry;
@@ -59,8 +59,8 @@ void logTaskHighWaterMark(const char* name, TaskHandle_t handle)
 
 bool startRuntimeTasks()
 {
-  gpsTaskHandle = nullptr;
-  displayTaskHandle = nullptr;
+  gpsRuntimeTaskHandle = nullptr;
+  displayRuntimeTaskHandle = nullptr;
 
   const RuntimeTaskSpec gpsSpec = {
         gpsTask,
@@ -68,7 +68,7 @@ bool startRuntimeTasks()
         GPS_TASK_STACK,
         GPS_TASK_PRIO,
         GPS_TASK_CORE,
-        &gpsTaskHandle
+        &gpsRuntimeTaskHandle
   };
   const RuntimeTaskSpec displaySpec = {
         displayTask,
@@ -76,7 +76,7 @@ bool startRuntimeTasks()
         DISPLAY_TASK_STACK,
         DISPLAY_TASK_PRIO,
         DISPLAY_TASK_CORE,
-        &displayTaskHandle
+        &displayRuntimeTaskHandle
   };
 
   if (!createRuntimeTask(gpsSpec)) {
@@ -86,13 +86,13 @@ bool startRuntimeTasks()
 
   if (!createRuntimeTask(displaySpec)) {
     LOG_SYS("Task", "Display task create failed");
-    stopTask(gpsTaskHandle);
+    stopTask(gpsRuntimeTaskHandle);
     return false;
   }
 
   LOG_SYS("Task", "tasks started");
-  logTaskHighWaterMark("GPS", gpsTaskHandle);
-  logTaskHighWaterMark("Display", displayTaskHandle);
+  logTaskHighWaterMark("GPS", gpsRuntimeTaskHandle);
+  logTaskHighWaterMark("Display", displayRuntimeTaskHandle);
 
   return true;
 }
