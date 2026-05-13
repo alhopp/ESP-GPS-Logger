@@ -12,29 +12,12 @@
 #include "Core/log.h"
 #include "Core/system_info.h"
 #include "GPS/gps_config.h"
+#include "Logging/geojson_sbp_reader.h"
 #include "Logging/geojson_writer.h"
 #include "Session/session_stats_snapshot.h"
-#include "Storage/storage_manager.h"
 
 namespace {
-constexpr int SBP_HEADER_SIZE = 64;
 constexpr int GRAPH_MAX_POINTS = 240;
-
-struct SBPFrame {
-  uint8_t  HDOP;
-  uint8_t  SVIDCnt;
-  uint16_t UtcSec;
-  uint32_t date_time_UTC_packed;
-  uint32_t SVIDList;
-  int32_t  Lat;
-  int32_t  Lon;
-  int32_t  AltCM;
-  uint16_t Sog;
-  uint16_t Cog;
-  int16_t  ClmbRte;
-  uint8_t  sdop;
-  uint8_t  vsdop;
-} __attribute__((packed));
 
 float graph2s[GRAPH_MAX_POINTS];
 float graph10s[5][GRAPH_MAX_POINTS];
@@ -45,52 +28,6 @@ float graph1h[GRAPH_MAX_POINTS];
 float graphDistance[GRAPH_MAX_POINTS];
 float graph1hMinutes = 0.0f;
 float graphSessionMinutes = 0.0f;
-
-double frameLat(const SBPFrame& frame)
-{
-  return frame.Lat * 0.0000001;
-}
-
-double frameLon(const SBPFrame& frame)
-{
-  return frame.Lon * 0.0000001;
-}
-
-float frameKnots(const SBPFrame& frame)
-{
-  return static_cast<float>(frame.Sog) * 10.0f * MMPS_TO_KNOTS;
-}
-
-bool openSbp(File& file, const char* sbpPath)
-{
-  fs::FS& storage = storage_sd_fs();
-  file = storage.open(sbpPath, FILE_READ);
-  if (!file) return false;
-  if (file.size() <= SBP_HEADER_SIZE) {
-    file.close();
-    return false;
-  }
-  file.seek(SBP_HEADER_SIZE);
-  return true;
-}
-
-bool readFrame(File& file, SBPFrame& frame)
-{
-  return file.read(reinterpret_cast<uint8_t*>(&frame), sizeof(frame)) == sizeof(frame);
-}
-
-int countSbpFrames(const char* sbpPath)
-{
-  fs::FS& storage = storage_sd_fs();
-  File file = storage.open(sbpPath, FILE_READ);
-  if (!file) return 0;
-
-  const size_t size = file.size();
-  file.close();
-
-  if (size <= SBP_HEADER_SIZE) return 0;
-  return (size - SBP_HEADER_SIZE) / sizeof(SBPFrame);
-}
 
 bool hasWindow(const SessionWindow& window)
 {
@@ -146,15 +83,15 @@ int readGpsSpeedGraph(const char* sbpPath, float* out, int startGpsIdx, int endG
   const int step = samples > GRAPH_MAX_POINTS ? (samples + GRAPH_MAX_POINTS - 1) / GRAPH_MAX_POINTS : 1;
 
   File file;
-  if (!openSbp(file, sbpPath)) return 0;
+  if (!geojson_sbp_open(file, sbpPath)) return 0;
 
-  SBPFrame frame;
+  GeoJsonSbpFrame frame;
   int gpsIndex = 1;
   int count = 0;
-  while (readFrame(file, frame) && count < GRAPH_MAX_POINTS) {
+  while (geojson_sbp_read_frame(file, frame) && count < GRAPH_MAX_POINTS) {
     if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx &&
         ((gpsIndex - startGpsIdx) % step) == 0) {
-      out[count++] = frameKnots(frame);
+      out[count++] = geojson_sbp_frame_knots(frame);
     }
     if (gpsIndex > endGpsIdx) break;
     gpsIndex++;
@@ -176,9 +113,9 @@ int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int e
   const int secStep = seconds > GRAPH_MAX_POINTS ? (seconds + GRAPH_MAX_POINTS - 1) / GRAPH_MAX_POINTS : 1;
 
   File file;
-  if (!openSbp(file, sbpPath)) return 0;
+  if (!geojson_sbp_open(file, sbpPath)) return 0;
 
-  SBPFrame frame;
+  GeoJsonSbpFrame frame;
   int gpsIndex = 1;
   int secIndex = startSecIdx;
   int count = 0;
@@ -186,7 +123,7 @@ int readSecondSpeedGraph(const char* sbpPath, float* out, int startSecIdx, int e
   int samplesInSecond = 0;
   int secondsRead = 0;
 
-  while (readFrame(file, frame) && count < GRAPH_MAX_POINTS) {
+  while (geojson_sbp_read_frame(file, frame) && count < GRAPH_MAX_POINTS) {
     if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx) {
       sumCms += frame.Sog;
       samplesInSecond++;
@@ -225,7 +162,7 @@ int readSessionSpeedGraph(const char* sbpPath)
 {
   graphSessionMinutes = 0.0f;
   File file;
-  if (!openSbp(file, sbpPath)) return 0;
+  if (!geojson_sbp_open(file, sbpPath)) return 0;
 
   const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
   int count = 0;
@@ -234,10 +171,10 @@ int readSessionSpeedGraph(const char* sbpPath)
   int nextSample = 1;
   int gpsIndex = 1;
 
-  SBPFrame frame;
-  while (readFrame(file, frame)) {
+  GeoJsonSbpFrame frame;
+  while (geojson_sbp_read_frame(file, frame)) {
     if (gpsIndex >= nextSample) {
-      appendCompactGraphPoint(graphDistance, count, strideSamples, frameKnots(frame));
+      appendCompactGraphPoint(graphDistance, count, strideSamples, geojson_sbp_frame_knots(frame));
       nextSample = gpsIndex + strideSamples;
     }
 
@@ -295,7 +232,7 @@ void attachGraphSeries(const char* sbpPath, const SessionStatsSnapshot& snapshot
   );
   if (h1Count == 0) {
     const int sampleRate = systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
-    const int totalSeconds = countSbpFrames(sbpPath) / sampleRate;
+    const int totalSeconds = geojson_sbp_count_frames(sbpPath) / sampleRate;
     if (totalSeconds > 0) {
       h1Count = readSecondSpeedGraph(sbpPath, graph1h, 0, totalSeconds - 1);
     }
@@ -327,14 +264,14 @@ void addSbpRangePoints(const char* sbpPath, int startGpsIdx, int endGpsIdx, int 
   if (step < 1) step = 1;
 
   File file;
-  if (!openSbp(file, sbpPath)) return;
+  if (!geojson_sbp_open(file, sbpPath)) return;
 
-  SBPFrame frame;
+  GeoJsonSbpFrame frame;
   int gpsIndex = 1;
-  while (readFrame(file, frame)) {
+  while (geojson_sbp_read_frame(file, frame)) {
     if (gpsIndex >= startGpsIdx && gpsIndex <= endGpsIdx &&
         ((gpsIndex - startGpsIdx) % step) == 0) {
-      geojson_add_point(frameLat(frame), frameLon(frame));
+      geojson_add_point(geojson_sbp_frame_lat(frame), geojson_sbp_frame_lon(frame));
     }
     if (gpsIndex > endGpsIdx) break;
     gpsIndex++;
@@ -388,11 +325,11 @@ void addDerivedFeatures(const char* sbpPath, const SessionStatsSnapshot& snapsho
 bool addBaseTrackFromSbp(const char* sbpPath)
 {
   File file;
-  if (!openSbp(file, sbpPath)) return false;
+  if (!geojson_sbp_open(file, sbpPath)) return false;
 
-  SBPFrame frame;
-  while (readFrame(file, frame)) {
-    geojson_add_track_point(frameLat(frame), frameLon(frame));
+  GeoJsonSbpFrame frame;
+  while (geojson_sbp_read_frame(file, frame)) {
+    geojson_add_track_point(geojson_sbp_frame_lat(frame), geojson_sbp_frame_lon(frame));
   }
 
   file.close();
