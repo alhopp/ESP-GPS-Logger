@@ -124,7 +124,6 @@ bool logging_session_files_close()
   closeFile(sbpfile);
   const bool exported = exportClosedSession();
   closeFile(ubxfile);
-  closeFile(sbpfile);
   clearActiveSessionPaths();
   return exported;
 }

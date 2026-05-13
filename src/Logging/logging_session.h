@@ -15,6 +15,6 @@
 // writes, but callers should go through this API so session state has one owner.
 
 bool logging_session_begin(const GpsFix& firstFix);
-void logging_session_write_fix(const GpsFix& fix, bool writeLiveTrack);
+void logging_session_write_fix();
 void logging_session_end();
 bool logging_session_active();

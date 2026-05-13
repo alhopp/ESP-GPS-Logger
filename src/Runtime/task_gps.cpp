@@ -79,7 +79,7 @@ void processGpsFix(const GpsFix& fix)
   processGpsMessage(fix);
 
   if (logging_session_active() && GPS_Signal_OK) {
-    logging_session_write_fix(fix, getMode() == MODE_LOGGING);
+    logging_session_write_fix();
   }
 
   gps_display_policy_update(fix);

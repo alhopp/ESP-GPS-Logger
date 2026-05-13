@@ -66,13 +66,11 @@ bool logging_session_begin(const GpsFix& firstFix)
   return true;
 }
 
-void logging_session_write_fix(const GpsFix& fix, bool writeLiveTrack)
+void logging_session_write_fix()
 {
   if (!isSessionActive()) return;
 
   logging_session_files_write_raw();
-  (void)fix;
-  (void)writeLiveTrack;
 }
 
 void logging_session_end()
