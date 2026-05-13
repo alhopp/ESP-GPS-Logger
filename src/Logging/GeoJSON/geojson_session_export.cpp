@@ -16,6 +16,22 @@
 #include "Session/session_stats_snapshot.h"
 
 namespace {
+void printExportTiming(const char* stage, uint32_t elapsedMs)
+{
+#if LOG_ENABLED
+  Serial.printf("[%-*s] %-*s : %s %.1fs\n",
+                LOG_TAG_W,
+                "STORAGE",
+                LOG_ITEM_W,
+                "GeoJSON",
+                stage,
+                elapsedMs / 1000.0f);
+#else
+  (void)stage;
+  (void)elapsedMs;
+#endif
+}
+
 void attachSessionStats(const SessionStatsSnapshot& snapshot)
 {
   GeoJSONStats s {
@@ -53,22 +69,37 @@ bool geojson_session_export_finalize(const char* sbpPath,
 {
   if (!sbpPath || !geojsonPath) return false;
 
+  const uint32_t exportStartedAtMs = millis();
+  uint32_t stageStartedAtMs = exportStartedAtMs;
+
   if (!geojson_begin(geojsonPath)) {
     LOG_ERROR("STORAGE", "GeoJSON open failed");
     return false;
   }
+  printExportTiming("open", millis() - stageStartedAtMs);
 
+  stageStartedAtMs = millis();
   geojson_begin_feature("track");
   if (!geojson_add_base_track_from_sbp(sbpPath)) {
     geojson_end_feature();
     geojson_end();
     return false;
   }
+  printExportTiming("base track", millis() - stageStartedAtMs);
 
+  stageStartedAtMs = millis();
   attachSessionStats(snapshot);
   geojson_attach_graph_series(sbpPath, snapshot);
+  printExportTiming("graphs", millis() - stageStartedAtMs);
+
+  stageStartedAtMs = millis();
   geojson_end_feature();
   geojson_add_derived_features(sbpPath, snapshot);
+  printExportTiming("derived features", millis() - stageStartedAtMs);
+
+  stageStartedAtMs = millis();
   geojson_end();
+  printExportTiming("write close", millis() - stageStartedAtMs);
+  printExportTiming("total", millis() - exportStartedAtMs);
   return true;
 }
