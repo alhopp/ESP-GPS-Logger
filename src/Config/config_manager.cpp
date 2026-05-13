@@ -1,9 +1,9 @@
-// -----------------------------------------------------------------------------
-// Configuration Manager
+// ============================================================================
+// Configuration manager
 //
 // Loads / validates config from LittleFS (/config.txt), creates defaults if
 // missing or invalid, applies derived runtime values, and dumps diagnostics.
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 #include <Arduino.h>
 #include <LittleFS.h>

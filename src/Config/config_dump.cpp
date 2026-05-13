@@ -1,5 +1,12 @@
 #include "Config/config_dump.h"
 
+// ============================================================================
+// Config diagnostics
+//
+// Emits the loaded config and live system facts to Serial. This is intentionally
+// read-only and disabled for stats-only serial builds.
+// ============================================================================
+
 #include <Arduino.h>
 
 #include "Core/build_config.h"

@@ -1,5 +1,12 @@
 #include "Config/config_defaults.h"
 
+// ============================================================================
+// Config defaults
+//
+// Single source of default values for /config.txt creation and invalid-config
+// recovery. Defaults must preserve user-facing behaviour and key meanings.
+// ============================================================================
+
 #include <Arduino.h>
 
 #include "Core/log.h"

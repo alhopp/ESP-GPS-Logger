@@ -1,5 +1,13 @@
 #pragma once
 
+// ============================================================================
+// Config data model
+//
+// In-memory representation of /config.txt. Field names intentionally mirror the
+// persisted JSON keys and web API groups, so keep additions compatible and do
+// not rename existing fields without a migration.
+// ============================================================================
+
 #include <stdint.h>
 
 struct Config

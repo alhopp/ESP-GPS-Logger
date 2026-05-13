@@ -1,5 +1,12 @@
 #include "Config/config_runtime.h"
 
+// ============================================================================
+// Config runtime application
+//
+// Mirrors persisted config into runtime state. Currently this owns battery
+// shutdown voltage and POSIX timezone-string derivation for GPS time sync.
+// ============================================================================
+
 #include <Arduino.h>
 
 #include "Core/log.h"
@@ -52,6 +59,12 @@ void applyDstTimezone(float timezone)
   }
 }
 
+void applyTimezoneEnv(float timezone)
+{
+  setStandardTimezone(timezone);
+  applyDstTimezone(timezone);
+}
+
 }
 
 void config_apply_runtime()
@@ -59,11 +72,5 @@ void config_apply_runtime()
   LOG_CONFIG("Apply", "Derived runtime values");
 
   RTC_minimum_voltage_bat = config.shutdown_voltage;
-  TimeZone_env(config.timezone);
-}
-
-void TimeZone_env(float timezone)
-{
-  setStandardTimezone(timezone);
-  applyDstTimezone(timezone);
+  applyTimezoneEnv(config.timezone);
 }
