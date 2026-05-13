@@ -1,5 +1,15 @@
 #include "Session/session_stats_snapshot.h"
 
+// ============================================================================
+// Session stats snapshot builder
+//
+// Collects the final session metrics from the GPS metric calculators after a
+// logging session ends. The snapshot is intentionally a read-only transport
+// object: it does not recalculate speed results, it just freezes the current
+// best windows and their SBP frame ranges for display, RTC persistence, debug
+// output, and GeoJSON export.
+// ============================================================================
+
 #include "Core/system_info.h"
 #include "GPS/Data/gps_data.h"
 #include "GPS/Data/gps_runtime_instances.h"
@@ -12,6 +22,9 @@
 #include <math.h>
 
 namespace {
+constexpr int kTopResultCount = 5;
+constexpr int kMetricSlotCount = 10;
+
 int sampleRate()
 {
   return systemInfo.sample_rate > 0 ? systemInfo.sample_rate : 1;
@@ -21,7 +34,7 @@ double bestDistanceSpeedMmps(const GPS_distance_speed& window)
 {
   double best = window.m_max_speed;
 
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < kMetricSlotCount; i++) {
     if (window.avg_speed[i] > best) best = window.avg_speed[i];
   }
 
@@ -55,8 +68,8 @@ void fillAlphaTop5(SessionAlphaWindow* out, const Alfa_speed& alpha)
 {
   if (!out) return;
 
-  for (int rank = 0; rank < 5; rank++) {
-    const int slot = 9 - rank;
+  for (int rank = 0; rank < kTopResultCount; rank++) {
+    const int slot = (kMetricSlotCount - 1) - rank;
 
     out[rank].speedKnots = alpha.avg_speed[slot] * MMPS_TO_KNOTS;
     out[rank].startSbp = alpha.ResultSbpStart(slot);
@@ -88,7 +101,7 @@ SessionStatsSnapshot build_session_stats_snapshot()
   );
 
   double tenSecondSumKnots = 0.0;
-  for (int rank = 0; rank < 5; rank++) {
+  for (int rank = 0; rank < kTopResultCount; rank++) {
     const float speedKnots =
       rank < win_10s_top5_count ? win_10s_top5_speed[rank] * MMPS_TO_KNOTS : 0.0f;
     const int startSbp = rank < win_10s_top5_count ? win_10s_top5_sbp_start[rank] : -1;
@@ -103,7 +116,7 @@ SessionStatsSnapshot build_session_stats_snapshot()
     );
     tenSecondSumKnots += speedKnots;
   }
-  snapshot.tenSecondAverageKnots = tenSecondSumKnots / 5.0f;
+  snapshot.tenSecondAverageKnots = tenSecondSumKnots / kTopResultCount;
   snapshot.runCount = speed_10s.run_count;
 
   snapshot.nauticalMile = makeWindow(
