@@ -79,6 +79,11 @@ function hydrateSessionSummaries(files){
     });
 }
 
+function selectFileRow(selectedRow){
+  document.querySelectorAll(".file-row[data-name]")
+    .forEach(row => row.classList.toggle("selected", row === selectedRow));
+}
+
 function applyDeletedStorageBytes(deletedBytes){
   const bytes = Number(deletedBytes);
   if(!filesStorageCache || !Number.isFinite(bytes) || bytes <= 0) return;
@@ -261,6 +266,7 @@ function enableSwipe(container, fileList, sdInfo){
       e.preventDefault();
       e.stopPropagation();
       const r = downloadBtn.closest(".file-swipe");
+      selectFileRow(r);
       download(r?.dataset.download || r?.dataset.name);
       return;
     }
@@ -269,6 +275,7 @@ function enableSwipe(container, fileList, sdInfo){
     if(!r) return;
 
     if(!r.classList.contains("show-delete")){
+      selectFileRow(r);
       MapSessions.openFile(r.dataset.name)
         .finally(() => AppShell.openTab("map"));
     }
