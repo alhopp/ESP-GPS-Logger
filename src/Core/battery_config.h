@@ -12,7 +12,11 @@
 constexpr float BATTERY_ADC_MV_PER_COUNT_DEFAULT = 1.7f;
 constexpr float BATTERY_DISPLAY_OFFSET_V = 0.04f;
 
-constexpr float VOLTAGE_100 = 4.15f;
-constexpr float VOLTAGE_0 = 3.4f;
+constexpr float BATTERY_PERCENT_FULL_V = 4.15f;
+constexpr float BATTERY_PERCENT_EMPTY_V = 3.4f;
+constexpr float BATTERY_SHUTDOWN_VOLTAGE_DEFAULT = 3.2f;
 
-constexpr float MINIMUM_VOLTAGE = 3.2f;
+// Compatibility aliases for older modules/config defaults.
+constexpr float VOLTAGE_100 = BATTERY_PERCENT_FULL_V;
+constexpr float VOLTAGE_0 = BATTERY_PERCENT_EMPTY_V;
+constexpr float MINIMUM_VOLTAGE = BATTERY_SHUTDOWN_VOLTAGE_DEFAULT;

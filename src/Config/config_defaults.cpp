@@ -7,7 +7,6 @@
 #include "Config/config_types.h"
 
 namespace {
-constexpr float DEFAULT_SHUTDOWN_VOLTAGE = 3.2f;
 constexpr float DEFAULT_TIMEZONE = 1.0f;
 constexpr bool DEFAULT_TIMEZONE_DST = true;
 }
@@ -17,7 +16,7 @@ void config_set_defaults()
   LOG_CONFIG("Defaults", "Applying defaults");
 
   config.cal_bat = BATTERY_ADC_MV_PER_COUNT_DEFAULT;
-  config.shutdown_voltage = DEFAULT_SHUTDOWN_VOLTAGE;
+  config.shutdown_voltage = BATTERY_SHUTDOWN_VOLTAGE_DEFAULT;
 
   config.timezone = DEFAULT_TIMEZONE;
   config.timezone_DST = DEFAULT_TIMEZONE_DST;

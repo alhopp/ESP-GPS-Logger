@@ -44,7 +44,8 @@ bool battery_is_low()
 float battery_percent(float voltage)
 {
   const float percent =
-      100.0f * (1.0f - (VOLTAGE_100 - voltage) / (VOLTAGE_100 - VOLTAGE_0));
+      100.0f * (1.0f - (BATTERY_PERCENT_FULL_V - voltage) /
+                            (BATTERY_PERCENT_FULL_V - BATTERY_PERCENT_EMPTY_V));
   return constrain(percent, 0.0f, 100.0f);
 }
 
