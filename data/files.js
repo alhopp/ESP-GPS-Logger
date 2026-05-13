@@ -145,10 +145,12 @@ async function loadFiles(fileList, sdInfo){
                  data-name="${AppUtil.escapeHtml(f.name)}"
                  data-download="${AppUtil.escapeHtml(downloadName)}"
                  data-date="${AppUtil.escapeHtml(date)}">
-              <div class="file-actions">
+              <div class="file-delete-actions">
                 <button class="file-action file-action-delete" type="button" aria-label="Delete session">
                   <span aria-hidden="true">&#128465;</span><small>Delete</small>
                 </button>
+              </div>
+              <div class="file-actions">
                 <button class="file-action file-action-download" type="button" aria-label="Download SBP">
                   <span aria-hidden="true">&#8681;</span><small>SBP</small>
                 </button>
@@ -192,8 +194,8 @@ function enableSwipe(container, fileList, sdInfo){
   let row = null, x0 = 0, y0 = 0, dx = 0, sw = false;
 
   const closeAll = () =>
-    container.querySelectorAll(".file-swipe.show-actions")
-      .forEach(r => r.classList.remove("show-actions"));
+    container.querySelectorAll(".file-swipe.show-actions,.file-swipe.show-delete")
+      .forEach(r => r.classList.remove("show-actions", "show-delete"));
 
   const download = name => {
     name && (location.href =
@@ -285,6 +287,7 @@ function enableSwipe(container, fileList, sdInfo){
     sw = false;
 
     row.classList.toggle("show-actions", dx < -36);
+    row.classList.toggle("show-delete", dx > 36);
   }, { passive:true });
 
   container.addEventListener("click", e=>{
@@ -310,6 +313,6 @@ function enableSwipe(container, fileList, sdInfo){
     if(!r) return;
 
     selectFileRow(r);
-    r.classList.remove("show-actions");
+    r.classList.remove("show-actions", "show-delete");
   });
 }
